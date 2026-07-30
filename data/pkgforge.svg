@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="mintD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="glassD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.03)"/>
+    </linearGradient>
+    <filter id="shadowD">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  <!-- Main Background Container -->
+  <rect x="32" y="32" width="448" height="448" rx="110" fill="url(#bgD)" stroke="url(#mintD)" stroke-width="5" filter="url(#shadowD)"/>
+
+  <!-- Glass Card Layer 1 (Back) -->
+  <rect x="130" y="120" width="220" height="260" rx="24" fill="url(#glassD)" stroke="rgba(255,255,255,0.2)" stroke-width="2" transform="rotate(-6 240 250)"/>
+
+  <!-- Glass Card Layer 2 (Front Main) -->
+  <rect x="146" y="126" width="220" height="260" rx="24" fill="url(#glassD)" stroke="url(#mintD)" stroke-width="4"/>
+
+  <!-- Circular Conversion Arrows -->
+  <path d="M 256 160 A 70 70 0 1 1 186 230" fill="none" stroke="url(#mintD)" stroke-width="8" stroke-linecap="round"/>
+  <polygon points="186,210 186,245 220,230" fill="url(#mintD)"/>
+
+  <path d="M 256 340 A 70 70 0 1 1 326 270" fill="none" stroke="url(#mintD)" stroke-width="8" stroke-linecap="round"/>
+  <polygon points="326,290 326,255 292,270" fill="url(#mintD)"/>
+
+  <!-- Arch Package Core Icon in Center -->
+  <circle cx="256" cy="256" r="32" fill="#0d1117" stroke="url(#mintD)" stroke-width="4"/>
+  <path d="M 256 238 L 272 270 L 240 270 Z" fill="url(#mintD)"/>
+</svg>

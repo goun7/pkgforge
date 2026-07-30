@@ -1,0 +1,32 @@
+#compdef pkgforge
+
+_pkgforge() {
+    local -a commands
+    commands=(
+        'convert:Convert a .deb/.rpm package file or URL'
+        'list:List conversion and installation history'
+        'remove:Remove an installed package from system'
+        'rollback:Rollback package to previous saved version'
+        'check-updates:Check upstream download URLs for updates'
+        'gui:Launch PyQt6 graphical user interface'
+    )
+
+    _arguments -s \
+        '1: :->command' \
+        '*: :->args'
+
+    case $state in
+        command)
+            _describe -t commands 'pkgforge command' commands
+            ;;
+        args)
+            case $words[1] in
+                convert)
+                    _files -g '*.deb *.rpm'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_pkgforge "$@"

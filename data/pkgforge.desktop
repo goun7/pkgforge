@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PkgForge
+GenericName=Package Converter
+Comment=Convert and install .deb and .rpm packages on Arch Linux
+Exec=pkgforge gui %f
+Icon=pkgforge
+Terminal=false
+Type=Application
+Categories=System;Settings;PackageManagement;
+MimeType=application/vnd.debian.binary-package;application/x-debian-package;application/x-deb;application/x-rpm;
+Keywords=arch;linux;package;deb;rpm;converter;

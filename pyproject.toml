@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "pkgforge"
+version = "1.0.0"
+description = "Convert and install .deb/.rpm packages on Arch Linux with safety sandbox and CLI/GUI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+    {name = "PkgForge Contributors"},
+]
+keywords = ["arch", "linux", "package", "deb", "rpm", "converter", "pkgforge"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "PyQt6>=6.5.0",
+]
+
+[project.scripts]
+pkgforge = "main:main"
+
+[project.gui-scripts]
+pkgforge-gui = "main:main"
+
+[tool.setuptools.packages.find]
+include = ["core*", "ui*"]
