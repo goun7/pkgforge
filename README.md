@@ -14,7 +14,7 @@
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
 - **🛡️ 13 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
-- **💻 Dual Interface (Headless CLI + PyQt6 GUI)**: Seamless operation in terminal or rich graphical desktop mode. CLI runs without requiring a display server.
+- **💻 Dual Interface (Headless CLI + PyQt6 GUI)**: CLI runs without PyQt6 or a display server. GUI mode requires PyQt6 (`sudo pacman -S python-pyqt6`).
 - **🌐 Direct URL Conversion**: Download and convert packages directly from HTTP/HTTPS links (`pkgforge convert https://...`).
 - **📸 Atomic Snapshot Rollback**: Automatically takes Btrfs/ZFS filesystem snapshots before installation for instant atomic rollback.
 - **🐳 OCI Container Export**: Convert any `.deb`/`.rpm` to a portable OCI container image (`pkgforge convert --to-oci`).
@@ -64,37 +64,51 @@ yay -S pkgforge-git
 
 ## 💻 CLI Usage
 
-PkgForge includes a complete headless CLI interface:
+PkgForge includes a complete headless CLI interface (no PyQt6 required for CLI):
 
 ```bash
-# Convert a local package
-pkgforge convert package.deb
+# Core conversion
+pkgforge convert package.deb                    # Convert DEB → Arch
+pkgforge convert package.rpm --install           # Convert + install
+pkgforge convert https://example.com/pkg.deb    # Convert from URL
+pkgforge convert package.deb --to-oci            # Export as OCI container
+pkgforge convert package.deb --delta             # Binary delta download
+pkgforge convert package.deb --sign              # Auto-sign with GPG
+pkgforge convert package.deb --resolve-deps      # Auto-resolve missing deps
+pkgforge convert package.deb --verify-build      # Reproducible build check
 
-# Convert and automatically install
-pkgforge convert package.deb --install
+# Package lifecycle
+pkgforge list                                    # Conversion history
+pkgforge remove package-name                     # Uninstall package
+pkgforge rollback package-name                   # Restore backup
+pkgforge check-updates                           # Check upstream updates
+pkgforge check-updates --watch                   # Watch mode (polls every 5min)
 
-# Convert directly from a URL
-pkgforge convert https://example.com/software_amd64.deb --install
+# Cross-conversion
+pkgforge rpm-to-deb package.rpm                  # RPM → DEB
+pkgforge flatpak-export org.mozilla.firefox      # Flatpak → DEB
+pkgforge appimage-export app.AppImage            # AppImage → DEB
+pkgforge from-source https://github.com/repo     # Generate PKGBUILD from source
 
-# Convert to OCI container image
-pkgforge convert package.deb --to-oci
+# Security & Analysis
+pkgforge quality package.pkg.tar.zst             # Quality score (A-F)
+pkgforge abi-check package.pkg.tar.zst           # GLIBC/GLIBCXX symbol check
+pkgforge scan-image image.tar                    # OCI image security scan
+pkgforge sign package.pkg.tar.zst                # GPG sign package
+pkgforge verify package.pkg.tar.zst              # Verify GPG signature
+pkgforge provenance package.pkg.tar.zst          # SLSA provenance check
 
-# Use binary delta for faster downloads (requires xdelta3)
-pkgforge convert https://example.com/package.deb --delta
+# System Management
+pkgforge health                                  # Health dashboard
+pkgforge graph package-name                      # Dependency graph
+pkgforge audit                                   # Audit trail + anomaly detection
+pkgforge snapshot-cleanup --install              # Auto-cleanup old snapshots
+pkgforge benchmark --quick                       # Performance benchmarks
+pkgforge publish package.pkg.tar.zst             # Publish to AUR
+pkgforge verify-rollback                         # Test rollback mechanism
+pkgforge --clear-cache                           # Clear offline cache
 
-# List conversion and installation history
-pkgforge list
-
-# Uninstall an installed package
-pkgforge remove package-name
-
-# Rollback a package to its previous saved backup
-pkgforge rollback package-name
-
-# Check saved package URLs for upstream updates
-pkgforge check-updates
-
-# Launch GUI interface from terminal
+# GUI (requires PyQt6)
 pkgforge gui
 ```
 

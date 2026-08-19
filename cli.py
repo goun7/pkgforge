@@ -72,6 +72,12 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_health(args)
     elif command == "snapshot-cleanup":
         return _cmd_snapshot_cleanup(args)
+    elif command == "quality":
+        return _cmd_quality(args)
+    elif command == "publish":
+        return _cmd_publish(args)
+    elif command == "verify-rollback":
+        return _cmd_verify_rollback(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -1110,3 +1116,75 @@ def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
         else:
             print("    (snapshot bulunamadı)")
         return 0
+
+
+def _cmd_quality(args: argparse.Namespace) -> int:
+    """Handle `pkgforge quality`."""
+    from core.quality_score import score_package
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    tools = discover_tools()
+    print(f"\n📊 Paket Kalite Puanlaması: {pkg_path.name}\n")
+    report = score_package(pkg_path, tools)
+    print(report.summary())
+    return 0 if report.passed else 1
+
+
+def _cmd_publish(args: argparse.Namespace) -> int:
+    """Handle `pkgforge publish`."""
+    from core.aur_publish import prepare_aur_package, push_to_aur
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
+    aur_url = getattr(args, "aur_url", None)
+
+    print(f"📦 AUR paketi hazırlanıyor: {pkg_path.name}\n")
+    ok, msg, aur_pkg = prepare_aur_package(pkg_path, out_dir)
+
+    if not ok:
+        print(f"❌ {msg}")
+        return 1
+
+    print(f"✅ {msg}")
+    print(f"   PKGBUILD: {aur_pkg.pkgbuild}")
+    if aur_pkg.srcinfo.exists():
+        print(f"   .SRCINFO: {aur_pkg.srcinfo}")
+
+    if aur_url:
+        print(f"\n🚀 AUR'a yükleniyor...")
+        ok2, msg2 = push_to_aur(aur_pkg.pkgbuild.parent, aur_url)
+        if ok2:
+            print(f"✅ {msg2}")
+        else:
+            print(f"❌ {msg2}")
+            return 1
+    else:
+        print(f"\n💡 AUR'a yüklemek için:")
+        print(f"   pkgforge publish {pkg_path} --aur-url ssh://aur@aur.archlinux.org/{aur_pkg.name}.git")
+
+    return 0
+
+
+def _cmd_verify_rollback(args: argparse.Namespace) -> int:
+    """Handle `pkgforge verify-rollback`."""
+    from core.rollback_verify import verify_rollback
+
+    print("\n🔍 Rollback Doğrulaması\n")
+    result = verify_rollback()
+    print(result.detail)
+
+    if result.verified:
+        print("\n✅ Snapshot rollback mekanizması çalışıyor.")
+    else:
+        print("\n❌ Rollback doğrulanamadı.")
+        return 1
+
+    return 0

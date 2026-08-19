@@ -91,75 +91,105 @@ def _try_debtap(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[boo
 
 
 def _try_docker(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[bool, str, Path | None]:
-    """Try building in a Docker container."""
+    """Try building in a Docker container with volume mount for output."""
     docker = shutil.which("docker") or shutil.which("podman")
     if not docker:
         return False, "docker/podman bulunamadı", None
 
-    try:
-        # Create a minimal Dockerfile for building
-        dockerfile_content = f"""FROM archlinux:latest
-RUN pacman -Syu --noconfirm && pacman -S --noconfirm base-devel docker sudo
-COPY {deb_path.name} /tmp/
-RUN mkdir -p /build && cp /tmp/{deb_path.name} /build/
-WORKDIR /build
-"""
-        import tempfile
-        with tempfile.TemporaryDirectory(prefix="pkgforge_docker_") as tmpdir:
-            tmp = Path(tmpdir)
-            (tmp / "Dockerfile").write_text(dockerfile_content)
-            shutil.copy2(deb_path, tmp / deb_path.name)
+    import tempfile as _tmp
+    with _tmp.TemporaryDirectory(prefix="pkgforge_docker_") as tmpdir:
+        tmp = Path(tmpdir)
 
-            # Build container
-            res = subprocess.run(
-                [docker, "build", "-t", "pkgforge-build", str(tmp)],
-                capture_output=True, text=True, timeout=300,
-            )
-            if res.returncode != 0:
-                return False, f"Docker build başarısız: {res.stderr[:200]}", None
+        dockerfile = (
+            f"FROM archlinux:latest\n"
+            f"RUN pacman -Syu --noconfirm && \\\n"
+            f"    pacman -S --noconfirm base-devel debtap sudo && \\\n"
+            f"    debtap -u\n"
+            f"WORKDIR /build\n"
+            f"COPY {deb_path.name} /build/\n"
+            f"CMD [\"bash\", \"-c\", \"debtap /build/{deb_path.name} -u && \\\n"
+            f"cp *.pkg.tar.zst /output/ 2>/dev/null || \\\n"
+            f"cp *.pkg.tar.xz /output/ 2>/dev/null || \\\n"
+            f"cp *.pkg.tar /output/ 2>/dev/null || echo NO_OUTPUT\"]\n"
+        )
+        (tmp / "Dockerfile").write_text(dockerfile)
+        shutil.copy2(deb_path, tmp / deb_path.name)
 
-            # Run conversion inside container
-            res = subprocess.run(
-                [docker, "run", "--rm", "pkgforge-build",
-                 "bash", "-c", "pacman -S --noconfirm debtap && debtap -u && debtap /tmp/*.deb"],
-                capture_output=True, text=True, timeout=300,
-            )
-            if res.returncode != 0:
-                return False, f"Docker dönüşüm başarısız: {res.stderr[:200]}", None
+        res = subprocess.run(
+            [docker, "build", "-t", "pkgforge-build", str(tmp)],
+            capture_output=True, text=True, timeout=300,
+        )
+        if res.returncode != 0:
+            return False, f"Docker build başarısız: {res.stderr[:200]}", None
 
-            # Extract output
-            # TODO: Copy .pkg.tar.zst from container
-            return False, "Docker çıkarma henüz implemente edilmedi", None
+        res = subprocess.run(
+            [docker, "run", "--rm",
+             "-v", f"{output_dir}:/output",
+             "pkgforge-build"],
+            capture_output=True, text=True, timeout=600,
+        )
+        if res.returncode != 0:
+            return False, f"Docker dönüşüm başarısız: {res.stderr[:200]}", None
 
-    except Exception as exc:
-        return False, f"Docker hatası: {exc}", None
+        for pattern in ["*.pkg.tar.zst", "*.pkg.tar.xz", "*.pkg.tar"]:
+            found = list(output_dir.glob(pattern))
+            if found:
+                output = max(found, key=lambda p: p.stat().st_mtime)
+                return True, f"Docker ile dönüştürüldü: {output.name}", output
+
+        return False, "Docker container çıktı üretmedi", None
 
 
 def _try_distrobox(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[bool, str, Path | None]:
-    """Try building in distrobox."""
+    """Try building in distrobox with home directory sharing."""
     distrobox = shutil.which("distrobox")
     if not distrobox:
         return False, "distrobox bulunamadı", None
 
     try:
-        # Create distrobox with arch image
-        res = subprocess.run(
+        # Create distrobox (ignore if exists)
+        subprocess.run(
             [distrobox, "create", "-i", "archlinux:latest", "-n", "pkgforge-build", "--yes"],
             capture_output=True, text=True, timeout=120,
         )
-        if res.returncode != 0 and "already exists" not in (res.stderr or ""):
-            return False, f"Distrobox oluşturma başarısız: {res.stderr[:200]}", None
 
-        # Copy file and convert
-        res = subprocess.run(
+        # Copy DEB into distrobox home
+        container_home = subprocess.run(
+            [distrobox, "enter", "pkgforge-build", "--", "echo", "$HOME"],
+            capture_output=True, text=True, timeout=10,
+        ).stdout.strip()
+        if not container_home:
+            container_home = "/root"
+
+        subprocess.run(
             [distrobox, "enter", "pkgforge-build", "--",
-             "bash", "-c", f"pacman -Syu --noconfirm && pacman -S --noconfirm debtap && debtap -u && cp /home/*/{deb_path.name} /tmp/ && debtap /tmp/{deb_path.name}"],
-            capture_output=True, text=True, timeout=300,
+             "cp", str(deb_path), f"{container_home}/"],
+            capture_output=True, text=True, timeout=30,
         )
+
+        # Install debtap and convert
+        build_cmd = (
+            f"sudo pacman -Syu --noconfirm && "
+            f"sudo pacman -S --noconfirm debtap && "
+            f"sudo debtap -u && "
+            f"cd {container_home} && debtap {deb_path.name} -u && "
+            f"cp {container_home}/*.pkg.tar.* {output_dir}/ 2>/dev/null || true"
+        )
+        res = subprocess.run(
+            [distrobox, "enter", "pkgforge-build", "--", "bash", "-c", build_cmd],
+            capture_output=True, text=True, timeout=600,
+        )
+
         if res.returncode != 0:
             return False, f"Distrobox dönüşüm başarısız: {res.stderr[:200]}", None
 
-        return True, "Distrobox ile dönüştürüldü", None
+        for pattern in ["*.pkg.tar.zst", "*.pkg.tar.xz", "*.pkg.tar"]:
+            found = list(output_dir.glob(pattern))
+            if found:
+                output = max(found, key=lambda p: p.stat().st_mtime)
+                return True, f"Distrobox ile dönüştürüldü: {output.name}", output
+
+        return False, "Distrobox çıktı üretmedi", None
 
     except Exception as exc:
         return False, f"Distrobox hatası: {exc}", None

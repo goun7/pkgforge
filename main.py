@@ -260,6 +260,19 @@ def main() -> int:
     snap_clean_parser.add_argument("--status", action="store_true", help=tr("cli.arg_cleanup_status"))
     snap_clean_parser.add_argument("--max-age", type=int, default=7, help=tr("cli.arg_cleanup_max_age"))
 
+    # quality subcommand
+    quality_parser = subparsers.add_parser("quality", help=tr("cli.quality_help"))
+    quality_parser.add_argument("package", help=tr("cli.arg_quality_pkg"))
+
+    # publish subcommand
+    publish_parser = subparsers.add_parser("publish", help=tr("cli.publish_help"))
+    publish_parser.add_argument("package", help=tr("cli.arg_publish_pkg"))
+    publish_parser.add_argument("--aur-url", help=tr("cli.arg_publish_aur_url"))
+    publish_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+
+    # verify-rollback subcommand
+    subparsers.add_parser("verify-rollback", help=tr("cli.verify_rollback_help"))
+
     # from-source subcommand
     source_parser = subparsers.add_parser("from-source", help=tr("cli.from_source_help"))
     source_parser.add_argument("repo_url", help=tr("cli.arg_source_repo_url"))
