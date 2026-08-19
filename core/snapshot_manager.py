@@ -196,23 +196,93 @@ def _take_btrfs_snapshot(snap_name: str) -> SnapshotInfo:
 
 
 def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
-    """Restore a btrfs snapshot.
+    """Restore a btrfs snapshot via boot-time rollback.
 
-    This is a simplified approach: we delete the current root subvolume
-    and replace it with the snapshot.  In production, this should use
-    a more sophisticated approach (e.g., boot into snapshot).
+    Creates a systemd service that performs the rollback on next boot,
+    since live root filesystem replacement is unsafe.
     """
-    # For safety, we can't actually rollback a live root filesystem.
-    # Instead, we provide instructions for the user to boot from snapshot.
-    msg = (
-        f"⚠️ Btrfs snapshot geri yükleme:\n"
-        f"  1. Sistemi yeniden başlat\n"
-        f"  2. GRUB'dan snapshot önyükleme seçin\n"
-        f"  3. Veya: sudo btrfs subvolume snapshot /{snapshot_name} /\n\n"
-        f"  Not: Canlı sistemde root geri yükleme desteklenmiyor.\n"
-        f"  Snapshot: /{snapshot_name}"
+    snap_path = snapshot_name if snapshot_name.startswith("/") else f"/{snapshot_name}"
+
+    # 1. Create rollback script
+    rollback_script = (
+        '#!/bin/bash\n'
+        'set -e\n'
+        f"SNAP='{snap_path}'\n"
+        'CURRENT=/@pkgforge-pre-rollback\n'
+        'echo "[pkgforge] Rolling back to snapshot: $SNAP"\n'
+        '# Backup current root\n'
+        'btrfs subvolume snapshot / "$CURRENT" 2>/dev/null || true\n'
+        '# Replace root with snapshot\n'
+        'btrfs subvolume delete / --subvol "$(btrfs subvolume show / | head -1 | awk \'{print $2}\')" 2>/dev/null || true\n'
+        f"btrfs subvolume snapshot '{snap_path}' /\n"
+        'echo "[pkgforge] Rollback complete. Removing snapshot..."\n'
+        'btrfs subvolume delete "$SNAP" 2>/dev/null || true\n'
+        'systemctl disable pkgforge-rollback.service\n'
+        'rm /etc/systemd/system/pkgforge-rollback.service\n'
+        'rm /usr/local/bin/pkgforge-rollback.sh\n'
+        'echo "[pkgforge] Cleanup done."\n'
     )
-    return True, msg
+
+    script_path = Path("/usr/local/bin/pkgforge-rollback.sh")
+    try:
+        script_path.write_text(rollback_script, encoding="utf-8")
+        script_path.chmod(0o755)
+    except OSError as exc:
+        return False, f"Rollback scripti oluşturulamadı: {exc}"
+
+    # 2. Create systemd service for boot-time execution
+    service_content = (
+        "[Unit]\n"
+        "Description=PkgForge Package Rollback\n"
+        "After=local-fs.target\n"
+        "Before=multi-user.target\n"
+        "\n"
+        "[Service]\n"
+        "Type=oneshot\n"
+        "ExecStart=/usr/local/bin/pkgforge-rollback.sh\n"
+        "RemainAfterExit=no\n"
+        "\n"
+        "[Install]\n"
+        "WantedBy=multi-user.target\n"
+    )
+
+    service_path = Path("/etc/systemd/system/pkgforge-rollback.service")
+    try:
+        # Use pkexec for the systemd file creation
+        res = safe_run(
+            ["pkexec", "tee", str(service_path)],
+            input=service_content,
+            timeout=10,
+        )
+        if res.returncode != 0:
+            # Fallback: write to temp and ask user to install
+            tmp_service = Path(f"/tmp/pkgforge-rollback-{os.getpid()}.service")
+            tmp_service.write_text(service_content, encoding="utf-8")
+            msg = (
+                f"📦 Btrfs rollback planı hazırlandı:\n\n"
+                f"  1. Servis dosyasını kurun:\n"
+                f"     sudo cp {tmp_service} {service_path}\n"
+                f"  2. Etkinleştirin:\n"
+                f"     sudo systemctl enable pkgforge-rollback.service\n"
+                f"  3. Sistemi yeniden başlatın:\n"
+                f"     sudo reboot\n\n"
+                f"  Snapshot: {snap_path}"
+            )
+            return True, msg
+
+        # Enable the service
+        safe_run(["pkexec", "systemctl", "enable", "pkgforge-rollback.service"], timeout=10)
+
+        msg = (
+            f"✅ Btrfs rollback planı hazırlandı!\n\n"
+            f"  Sistemi yeniden başlattığınızda {snap_path} snapshot'ına geri dönülecek.\n"
+            f"  Rollback sonrası otomatik temizlik yapılacak.\n\n"
+            f"  ⚠️  Sistemi şimdi yeniden başlatmak ister misiniz? (sudo reboot)"
+        )
+        return True, msg
+
+    except Exception as exc:
+        return False, f"Rollback planı oluşturulamadı: {exc}"
 
 
 def _list_btrfs_snapshots() -> list[dict[str, str]]:

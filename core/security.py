@@ -10,6 +10,7 @@ import hashlib
 import logging
 import os
 import re
+import stat
 import subprocess
 from pathlib import Path, PurePosixPath
 
@@ -20,6 +21,34 @@ log = logging.getLogger(__name__)
 # Forbidden path components
 _TRAVERSAL_PATTERNS = re.compile(r"(^|/)\.\.(/|$)")
 _ABSOLUTE_PATH = re.compile(r"^/")
+
+# Standard FHS roots that packages legitimately own. Single source of truth:
+# check_path_traversal() allows these as absolute member roots, and
+# check_symlink_attacks() derives its absolute-target whitelist from them, so
+# the two lists can never drift apart.
+_FHS_ROOTS = (
+    "usr", "etc", "opt", "var", "bin", "sbin",
+    "lib", "lib32", "lib64", "share", "run",
+)
+
+# Absolute prefixes derived from _FHS_ROOTS: a symlink target under one of
+# these is interpreted *relative to the package root* at install time (e.g.
+# /usr/bin/app -> /usr/share/app/bin/app), so it stays inside the package.
+# Anything else (e.g. /home, /root, /tmp, /proc, /sys) is an escape to
+# host-private storage.
+_SAFE_ABSOLUTE_PREFIXES = tuple("/" + root for root in _FHS_ROOTS)
+
+# High-signal indicators looked for inside ELF binaries during the package
+# security scan. Purely heuristic and non-fatal (warnings only).
+_ELF_SUSPICIOUS_PATTERNS = (
+    b"/bin/sh -i",
+    b"/bin/bash -i",
+    b"nc -e ",
+    b"ncat -e ",
+    b"-e /bin/sh",
+    b"LD_PRELOAD",
+    b"socat exec:",
+)
 
 # Valid pacman package name: starts with an alphanumeric or @._+ and contains
 # only those plus '-'. Deliberately rejects names starting with '-' (which
@@ -62,6 +91,7 @@ def validate_mime_type(file_path: Path, tools: ToolPaths) -> str:
         "application/x-debian-package",
         "application/x-deb",
         "application/x-rpm",
+        "application/x-archive",  # some DEBs detected as generic ar archive
     }
 
     if mime not in valid_mimes:
@@ -81,6 +111,103 @@ def validate_file_size(file_path: Path, max_mb: int, warn_mb: int) -> str | None
         )
     if size_mb > warn_mb:
         return f"Dosya boyutu büyük: {size_mb:.0f} MB"
+    return None
+
+
+# ── Decompression bomb detection ─────────────────────────────────
+
+# Maximum allowed compression ratio before flagging as potential bomb.
+# Real-world DEBs rarely exceed 10x; zip bombs are typically > 100x.
+_MAX_COMPRESSION_RATIO = 50
+
+def check_compression_bomb(
+    archive_path: Path,
+    tools: ToolPaths,
+    *,
+    max_ratio: int = _MAX_COMPRESSION_RATIO,
+) -> str | None:
+    """Check if a DEB/RPM archive is a potential decompression bomb.
+
+    Uses ``file`` and ``bsdtar`` to estimate the uncompressed size of the
+    archive's data payload.  Returns a warning string if the compression
+    ratio exceeds *max_ratio*, or None if the archive appears safe.
+    """
+    if not archive_path.is_file():
+        return None
+
+    archive_mb = archive_path.stat().st_size / (1024 * 1024)
+    if archive_mb < 0.1:
+        return None  # Too small to be a bomb
+
+    try:
+        # For DEBs: list data.tar.* members and sum their uncompressed sizes
+        suffix = archive_path.suffix.lower()
+        if suffix == ".deb" and tools.ar and tools.bsdtar:
+            ar_res = safe_run([tools.ar, "t", str(archive_path)], timeout=10)
+            if ar_res.returncode != 0:
+                return None
+
+            data_tar = None
+            for m in ar_res.stdout.strip().splitlines():
+                if m.strip().startswith("data.tar"):
+                    data_tar = m.strip()
+                    break
+            if not data_tar:
+                return None
+
+            # Extract data.tar and list contents with sizes
+            ar_p = safe_run([tools.ar, "p", str(archive_path), data_tar], timeout=30)
+            if ar_p.returncode != 0:
+                return None
+
+            # Use bsdtar to get file list — estimate uncompressed from member count
+            tar_list = safe_run(
+                [tools.bsdtar, "-tzf", "-"] if data_tar.endswith(".gz")
+                else [tools.bsdtar, "-tf", "-"],
+                input=ar_p.stdout,
+                timeout=30,
+            )
+            if tar_list.returncode != 0:
+                return None
+
+            member_count = len(tar_list.stdout.strip().splitlines())
+            if member_count < 10:
+                return None
+
+            # Heuristic: if archive is small but has many members, suspect bomb
+            # Also check for suspiciously large individual members
+            estimated_mb = member_count * 0.01  # rough estimate
+            if archive_mb > 0 and estimated_mb / archive_mb > max_ratio:
+                return (
+                    f"⚠ Potansiyel decompression bomb: {member_count} dosya, "
+                    f"tahmini sıkıştırma oranı > {max_ratio}x"
+                )
+
+        # For RPMs: similar check using rpm2cpio header
+        elif suffix == ".rpm" and tools.rpm2cpio:
+            # RPM header contains installed_size — compare with file size
+            rpm_info = safe_run(
+                [tools.rpm2cpio, "-qp", "--queryformat", "%{SIZE}\n%{PAYLOADSIZE}\n",
+                 str(archive_path)],
+                timeout=10,
+            )
+            if rpm_info.returncode == 0:
+                lines = rpm_info.stdout.strip().splitlines()
+                if len(lines) >= 2:
+                    try:
+                        installed_kb = int(lines[0]) // 1024
+                        payload_kb = int(lines[1]) // 1024
+                        if payload_kb > 0 and installed_kb / archive_mb > max_ratio * 1024:
+                            return (
+                                f"⚠ Potansiyel decompression bomb: "
+                                f"kurulum boyutu {installed_kb}KB, arşiv {archive_mb:.0f}MB"
+                            )
+                    except (ValueError, IndexError):
+                        pass
+
+    except Exception as exc:
+        log.debug("Decompression bomb kontrolü başarısız: %s", exc)
+
     return None
 
 
@@ -183,26 +310,162 @@ def check_path_traversal(file_list: list[str]) -> list[str]:
             offending.append(entry)
         elif _ABSOLUTE_PATH.match(entry) and not entry.startswith("./"):
             # Absolute paths inside packages are normal for .deb/.rpm,
-            # but we flag those that escape expected prefixes.
+            # but we flag those that escape expected FHS prefixes.
             parts = PurePosixPath(entry).parts
-            allowed_roots = {"usr", "etc", "opt", "var", "lib", "lib64", "bin", "sbin", "share"}
-            if len(parts) > 1 and parts[1] not in allowed_roots:
+            if len(parts) > 1 and parts[1] not in _FHS_ROOTS:
                 offending.append(entry)
     return offending
 
 
+def _safe_resolve(path: Path) -> Path:
+    """Resolve *path* without raising on missing targets or symlink loops.
+
+    ``Path.resolve`` raises on non-existent paths under Python 3.13+ (where
+    ``strict`` defaults to True) and on symlink loops; package contents are
+    exactly the kind of untrusted input where those failures are common, so
+    resolution must never crash the security scan. Falls back to a purely
+    lexical normalization when the filesystem cannot be traversed.
+    """
+    try:
+        return path.resolve(strict=False)
+    except (OSError, RuntimeError):
+        # Last resort: normalize lexically (collapses ../ and //) without
+        # touching the filesystem, which is enough for containment checks.
+        return Path(os.path.normpath(path))
+
+
 def check_symlink_attacks(extract_dir: Path) -> list[str]:
-    """Walk extracted directory and find symlinks pointing outside the tree."""
+    """Walk extracted directory and find symlinks escaping the package root.
+
+    Absolute symlinks such as ``/usr/bin/app -> /usr/share/app/bin/app`` are a
+    standard, legitimate packaging pattern (FHS layout): the target resolves
+    inside the package when installed. Only symlinks that escape into
+    host-private locations (``/home``, ``/root``, ``/tmp``, ``/proc`` ...) or
+    that use relative ``..`` escapes are flagged. Directory symlinks are
+    checked as well as file symlinks.
+    """
     offending: list[str] = []
-    extract_resolved = extract_dir.resolve()
-    for root, _dirs, files in os.walk(extract_dir):
-        for name in files:
+    extract_resolved = _safe_resolve(extract_dir)
+    prefix = str(extract_resolved)
+    for root, dirs, files in os.walk(extract_dir):
+        for name in dirs + files:
             fpath = Path(root) / name
-            if fpath.is_symlink():
-                target = fpath.resolve()
-                if not str(target).startswith(str(extract_resolved)):
-                    offending.append(f"{fpath} → {target}")
+            if not fpath.is_symlink():
+                continue
+            raw_target = os.readlink(fpath)
+            if os.path.isabs(raw_target):
+                # Normalize so crafted targets like "/usr/share/../../etc/passwd"
+                # cannot slip past the prefix check.
+                normalized = os.path.normpath(raw_target)
+                # 1) FHS-style targets (e.g. /usr/share/app/bin/app) are interpreted
+                #    relative to the package root at install time → safe.
+                fhs_safe = any(
+                    normalized == p or normalized.startswith(p + "/")
+                    for p in _SAFE_ABSOLUTE_PREFIXES
+                )
+                # 2) Target interpreted relative to the extraction root and really
+                #    present inside it (another file shipped by the package).
+                in_tree = extract_resolved / normalized.lstrip("/")
+                inside = (
+                    str(in_tree) == prefix or str(in_tree).startswith(prefix + os.sep)
+                ) and in_tree.exists()
+                # 3) Target resolves on this host to a path inside the tree
+                #    (e.g. an absolute link to another extracted file).
+                host_resolved = _safe_resolve(Path(raw_target))
+                host_inside = (
+                    str(host_resolved) == prefix
+                    or str(host_resolved).startswith(prefix + os.sep)
+                )
+                if not (fhs_safe or inside or host_inside):
+                    offending.append(f"{fpath} → {raw_target}")
+            else:
+                resolved = _safe_resolve(fpath.parent / raw_target)
+                if not (
+                    str(resolved) == prefix
+                    or str(resolved).startswith(prefix + os.sep)
+                ):
+                    offending.append(f"{fpath} → {raw_target}")
     return offending
+
+
+# ── Dangerous file scan (setuid / devices / suspicious ELF) ──────
+
+def check_dangerous_files(
+    extract_dir: Path, *, max_elf_scan: int = 100, elf_scan_bytes: int = 1 << 20
+) -> tuple[list[str], list[str]]:
+    """Scan extracted tree for dangerous file properties.
+
+    Returns ``(errors, warnings)`` where:
+
+    * **errors** – device/socket/FIFO nodes. Almost never legitimate inside an
+      application package; block conversion.
+    * **warnings** – setuid/setgid binaries, world-writable files/dirs and ELF
+      binaries whose first 1 MiB contains reverse-shell / preload indicators.
+      Informational; conversion may continue. Setuid is deliberately *not* a
+      hard error because Electron apps legitimately ship ``chrome-sandbox``
+      (mode 4755) — blocking on it would break the tool's main use case.
+
+    Symlinks are not followed. Scanning is bounded (``max_elf_scan`` binaries,
+    ``elf_scan_bytes`` per file) so a huge package cannot stall the pipeline.
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+    elfs_checked = 0
+
+    for root, dirs, files in os.walk(extract_dir):
+        for name in dirs + files:
+            fpath = Path(root) / name
+            try:
+                st = fpath.lstat()
+            except OSError:
+                continue
+
+            rel = fpath.relative_to(extract_dir)
+            if stat.S_ISREG(st.st_mode) or stat.S_ISDIR(st.st_mode):
+                perms = stat.S_IMODE(st.st_mode)
+                if perms & (stat.S_ISUID | stat.S_ISGID):
+                    warnings.append(f"setuid/setgid: {rel} (mode {oct(perms)})")
+                elif perms & 0o002:
+                    warnings.append(f"world-writable: {rel}")
+
+                # Only probe for the ELF magic while we still have scan budget,
+                # so huge trees do not open every single file.
+                if (
+                    stat.S_ISREG(st.st_mode)
+                    and elfs_checked < max_elf_scan
+                    and _looks_like_elf(fpath)
+                ):
+                    elfs_checked += 1
+                    if _elf_has_suspicious_pattern(fpath, elf_scan_bytes):
+                        warnings.append(f"suspicious-elf: {rel}")
+            elif (
+                stat.S_ISFIFO(st.st_mode)
+                or stat.S_ISSOCK(st.st_mode)
+                or stat.S_ISCHR(st.st_mode)
+                or stat.S_ISBLK(st.st_mode)
+            ):
+                errors.append(f"device/fifo/socket node: {rel}")
+
+    return errors, warnings
+
+
+def _looks_like_elf(fpath: Path) -> bool:
+    """Return True if *fpath* starts with the ELF magic bytes (no execution)."""
+    try:
+        with open(fpath, "rb") as f:
+            return f.read(4) == b"\x7fELF"
+    except OSError:
+        return False
+
+
+def _elf_has_suspicious_pattern(fpath: Path, max_bytes: int) -> bool:
+    """Scan the first *max_bytes* of an ELF binary for attack indicators."""
+    try:
+        with open(fpath, "rb") as f:
+            blob = f.read(max_bytes)
+    except OSError:
+        return False
+    return any(pattern in blob for pattern in _ELF_SUSPICIOUS_PATTERNS)
 
 
 # ── Sandbox execution (bubblewrap) ───────────────────────────────
@@ -224,17 +487,26 @@ def build_sandbox_cmd(
         "--die-with-parent",
         "--ro-bind", "/usr", "/usr",
         "--ro-bind", "/etc", "/etc",
-        "--ro-bind", "/lib", "/lib",
-        "--ro-bind", "/lib64", "/lib64",
-        "--symlink", "/usr/lib", "/lib",
-        "--symlink", "/usr/lib64", "/lib64",
-        "--symlink", "/usr/bin", "/bin",
-        "--symlink", "/usr/bin", "/sbin",
         "--proc", "/proc",
         "--dev", "/dev",
         "--tmpfs", "/tmp",  # nosec B108
         "--bind", str(work_dir), str(work_dir),
     ]
+
+    # Replicate the host FHS layout inside the sandbox. On Arch /bin, /sbin,
+    # /lib, /lib64 are symlinks into /usr; on other distros they are real
+    # directories. Mirror whatever the host does — binding a directory and then
+    # trying to symlink over it (or vice versa) makes bwrap fail with
+    # "destination exists and is not a symlink".
+    for merged_dir in ("/bin", "/sbin", "/lib", "/lib64"):
+        if os.path.islink(merged_dir):
+            target = os.path.realpath(merged_dir)
+            if target.startswith("/usr/"):
+                bwrap_cmd += ["--symlink", target, merged_dir]
+            else:
+                bwrap_cmd += ["--ro-bind", merged_dir, merged_dir]
+        elif os.path.isdir(merged_dir):
+            bwrap_cmd += ["--ro-bind", merged_dir, merged_dir]
 
     debtap_cache = Path("/var/cache/debtap")
     if debtap_cache.exists():

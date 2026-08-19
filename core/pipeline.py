@@ -287,6 +287,13 @@ class ConversionPipeline(QObject):
             "warning" if not self._result.signature.has_signature else "info",
             self._result.signature.detail,
         )
+        self.progress.emit(18)
+
+        # Decompression bomb check
+        from core.security import check_compression_bomb
+        bomb_warn = check_compression_bomb(file_path, self._tools)
+        if bomb_warn:
+            self._log("warning", bomb_warn)
         self.progress.emit(20)
 
         self._set_step(PipelineStep.SECURITY, "done")
@@ -299,6 +306,12 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.MALWARE_SCAN, "running")
             self.progress.emit(22)
             try:
+                # Database freshness check (informational)
+                from core.malware_scanner import check_database_freshness
+                db_warn = check_database_freshness()
+                if db_warn:
+                    self._log("warning", db_warn)
+
                 from core.malware_scanner import scan_file, is_clamav_available
                 if is_clamav_available():
                     scan_result = scan_file(file_path, self._tools)
