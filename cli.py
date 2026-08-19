@@ -46,6 +46,10 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_check_updates(args)
     elif command == "flatpak-export":
         return _cmd_flatpak_export(args)
+    elif command == "appimage-export":
+        return _cmd_appimage_export(args)
+    elif command == "provenance":
+        return _cmd_provenance(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -154,6 +158,18 @@ def _cmd_convert(args: argparse.Namespace) -> int:
         )
         return 0
 
+    # --verify-build: reproducible build verification
+    if getattr(args, "verify_build", False):
+        from core.reproducible_build import verify_reproducible
+        print(f"🔍 Reproducible build doğrulanıyor...")
+        vr = verify_reproducible(Path(pkg_path), tools)
+        print(f"  {vr.detail}")
+        if vr.verified:
+            print(f"  ✅ Doğrulama başarılı — paket reproducible")
+        else:
+            print(f"  ⚠️  Paket farklı — supply chain riski olabilir")
+        # Continue to install even if verification fails (informational)
+
     # Compatibility grade + "what will change" preview (best-effort, never fatal)
     try:
         from core.package_analyzer import analyze_package
@@ -171,6 +187,21 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 print(f"    {f}")
     except Exception as exc:
         log.debug("Uyumluluk önizleme atlandı: %s", exc)
+
+    # Generate SLSA provenance record
+    from core.provenance import create_provenance, save_provenance
+    from core.security import sha256_hash
+    prov = create_provenance(
+        source_file=file_path,
+        source_url=target if target.startswith("http") else "",
+        source_sha256=http_info.get("source_sha256", conv_result.message.split("SHA-256: ")[1][:16] if "SHA-256:" in conv_result.message else ""),
+        output_file=Path(pkg_path),
+        output_sha256=sha256_hash(Path(pkg_path)) if Path(pkg_path).exists() else "",
+        package_name=file_path.stem.split("_")[0].split("-")[0],
+        package_type="deb" if is_deb else "rpm",
+    )
+    prov_path = save_provenance(prov, Path(pkg_path).parent / f"{Path(pkg_path).name}.provenance.json")
+    print(f"📋 Provenance: {prov_path.name}")
 
     # Backup converted package in HistoryDB
     db = HistoryDB()
@@ -344,6 +375,85 @@ def _cmd_flatpak_export(args: argparse.Namespace) -> int:
 
     print(f"🐳 Flatpak → DEB dönüştürülüyor: {app_id}//{branch}...")
     ok, msg, deb_path = flatpak_to_deb(app_id, out_dir, branch)
+
+    if ok:
+        print(f"✅ {msg}")
+        print(f"   Kurmak için: sudo dpkg -i {deb_path}")
+    else:
+        print(f"❌ {msg}")
+        return 1
+
+    return 0
+
+
+def _cmd_provenance(args: argparse.Namespace) -> int:
+    """Handle `pkgforge provenance <package>`."""
+    from core.provenance import load_provenance, verify_provenance, find_provenance
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    prov_path = find_provenance(pkg_path)
+    if not prov_path:
+        # Try looking for .provenance.json next to the package
+        print(f"❌ Provenance dosyası bulunamadı: {pkg_path.name}.provenance.json")
+        print(f"   Not: Provenance sadece pkgforge convert ile oluşturulan paketler için mevcut.")
+        return 1
+
+    prov = load_provenance(prov_path)
+    if not prov:
+        print(f"❌ Provenance dosyası okunamadı: {prov_path}")
+        return 1
+
+    print(f"📋 Provenance Doğrulama: {pkg_path.name}\n")
+    print(f"  Araç:          {prov.tool_name} v{prov.tool_version}")
+    print(f"  Build ID:      {prov.build_id}")
+    print(f"  Kaynak:        {prov.source_file}")
+    if prov.source_url:
+        print(f"  Kaynak URL:    {prov.source_url}")
+    print(f"  Kaynak SHA-256:{prov.source_sha256[:32]}…" if prov.source_sha256 else "  Kaynak SHA-256: (yok)")
+    print(f"  Çıktı:         {prov.output_file}")
+    print(f"  Çıktı SHA-256: {prov.output_sha256[:32]}…" if prov.output_sha256 else "  Çıktı SHA-256: (yok)")
+    print(f"  Build Zamanı:  {prov.build_timestamp}")
+    print(f"  Build Host:    {prov.build_host}")
+    print(f"  Build OS:      {prov.build_os}")
+    print(f"  Paket:         {prov.package_name} {prov.package_version}")
+    print(f"  Mimari:        {prov.package_arch}")
+    print()
+    print(f"  🔒 ClamAV:     {prov.clamav_result}")
+    print(f"  💣 Bomb Check: {prov.decompression_bomb_result}")
+    print(f"  ✍️  İmza:       {'Geçerli' if prov.signature_valid else 'Yok/Geçersiz'}")
+    print()
+
+    valid, msg = verify_provenance(prov)
+    if valid:
+        print(f"  ✅ {msg}")
+    else:
+        print(f"  ❌ {msg}")
+        return 1
+
+    return 0
+
+
+def _cmd_appimage_export(args: argparse.Namespace) -> int:
+    """Handle `pkgforge appimage-export`."""
+    from core.appimage_converter import is_appimage_available, appimage_to_deb
+
+    if not is_appimage_available():
+        print("❌ unsquashfs bulunamadı — kurulum: sudo pacman -S squashfs-tools")
+        return 1
+
+    appimage_path = Path(args.appimage).resolve()
+    if not appimage_path.is_file():
+        print(f"❌ Dosya bulunamadı: {appimage_path}")
+        return 1
+
+    out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
+
+    print(f"📦 AppImage → DEB dönüştürülüyor: {appimage_path.name}...")
+    ok, msg, deb_path = appimage_to_deb(appimage_path, out_dir)
 
     if ok:
         print(f"✅ {msg}")

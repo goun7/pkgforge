@@ -198,6 +198,7 @@ def main() -> int:
     convert_parser.add_argument("--to-oci", action="store_true", help=tr("cli.arg_to_oci"))
     convert_parser.add_argument("--oci-tag", help=tr("cli.arg_oci_tag"))
     convert_parser.add_argument("--delta", action="store_true", help=tr("cli.arg_delta"))
+    convert_parser.add_argument("--verify-build", action="store_true", help=tr("cli.arg_verify_build"))
 
     # list subcommand
     subparsers.add_parser("list", help=tr("cli.list_help"))
@@ -219,6 +220,15 @@ def main() -> int:
     flatpak_parser.add_argument("--list", action="store_true", help=tr("cli.arg_flatpak_list"))
     flatpak_parser.add_argument("--branch", default="stable", help=tr("cli.arg_flatpak_branch"))
     flatpak_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+
+    # appimage-export subcommand
+    appimage_parser = subparsers.add_parser("appimage-export", help=tr("cli.appimage_export_help"))
+    appimage_parser.add_argument("appimage", help=tr("cli.arg_appimage_path"))
+    appimage_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+
+    # provenance subcommand
+    prov_parser = subparsers.add_parser("provenance", help=tr("cli.provenance_help"))
+    prov_parser.add_argument("package", help=tr("cli.arg_provenance_pkg"))
 
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
