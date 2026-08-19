@@ -11,8 +11,26 @@ import logging
 import shutil
 from enum import IntEnum
 from pathlib import Path
+import threading
 
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, QEventLoop, QTimer
+try:
+    from PyQt6.QtCore import QObject, QThread, pyqtSignal, QEventLoop, QTimer
+    _HAS_PYQT6 = True
+except ImportError:
+    _HAS_PYQT6 = False
+    # Minimal stubs for non-Qt mode
+    class QObject:
+        pass
+    class QThread(QObject):
+        pass
+    def pyqtSignal(*args, **kwargs):
+        return None
+    class QEventLoop:
+        def exec(self): pass
+        def quit(self): pass
+    class QTimer:
+        @staticmethod
+        def singleShot(ms, fn): fn()
 
 from config import (
     MAX_PACKAGE_SIZE_MB,
@@ -29,7 +47,6 @@ from core.compatibility_checker import (
 from core.deb_converter import DebConverter
 from core.installer import Installer
 from core.package_analyzer import PackageMetadata, analyze_package
-from core.rpm_converter import RpmConverter
 from core.security import (
     SignatureResult,
     check_path_traversal,
@@ -39,6 +56,15 @@ from core.security import (
     verify_deb_signature,
     verify_rpm_signature,
 )
+
+# Conditional import: PyQt6 for GUI, subprocess for CLI
+try:
+    from PyQt6.QtCore import QObject
+    from core.rpm_converter import RpmConverter
+    _HAS_PYQT6 = True
+except ImportError:
+    from core.subprocess_converters import RpmConverterSubprocess as RpmConverter
+    _HAS_PYQT6 = False
 
 log = logging.getLogger(__name__)
 
@@ -540,33 +566,48 @@ class ConversionPipeline(QObject):
 
     def _convert_deb(self, deb_path: Path, output_dir: Path) -> None:
         """Run DEB conversion using NativeDebConverter (with debtap fallback)."""
-        from core.native_deb_converter import NativeDebConverter
-
-        self._deb_converter = NativeDebConverter(self._tools, self)
-        self._deb_converter.output_line.connect(lambda msg: self._log("info", msg))
-
         self._async_success = False
         self._async_message = ""
         self._async_pkg_path = None
 
-        loop = QEventLoop()
+        if _HAS_PYQT6:
+            # Qt mode: use QEventLoop
+            from core.native_deb_converter import NativeDebConverter
+            self._deb_converter = NativeDebConverter(self._tools, self)
+            self._deb_converter.output_line.connect(lambda msg: self._log("info", msg))
 
-        def on_done(success: bool, msg: str, pkg: object) -> None:
-            self._async_success = success
-            self._async_message = msg
-            self._async_pkg_path = pkg  # type: ignore
-            loop.quit()
+            loop = QEventLoop()
 
-        self._deb_converter.finished.connect(on_done)
-        self._deb_converter.convert(deb_path, output_dir)
-        loop.exec()
+            def on_done(success: bool, msg: str, pkg: object) -> None:
+                self._async_success = success
+                self._async_message = msg
+                self._async_pkg_path = pkg  # type: ignore
+                loop.quit()
 
-        # Disconnect native converter signals before attempting fallback
-        # to prevent stale callbacks from corrupting shared state.
-        try:
-            self._deb_converter.finished.disconnect(on_done)
-        except TypeError:
-            pass
+            self._deb_converter.finished.connect(on_done)
+            self._deb_converter.convert(deb_path, output_dir)
+            loop.exec()
+            try:
+                self._deb_converter.finished.disconnect(on_done)
+            except TypeError:
+                pass
+        else:
+            # Subprocess mode: use threading.Event
+            from core.subprocess_converters import NativeDebConverterSubprocess
+            converter = NativeDebConverterSubprocess(self._tools)
+            converter.output_line.connect(lambda msg: self._log("info", msg))
+
+            done_event = threading.Event()
+
+            def on_done(success: bool, msg: str, pkg: object) -> None:
+                self._async_success = success
+                self._async_message = msg
+                self._async_pkg_path = pkg
+                done_event.set()
+
+            converter.finished.connect(on_done)
+            converter.convert(deb_path, output_dir)
+            done_event.wait()
 
         # Fallback to debtap if native converter fails and debtap exists
         if not self._async_success and self._tools.debtap:
@@ -575,39 +616,59 @@ class ConversionPipeline(QObject):
             fallback_converter = DebConverter(self._tools, self)
             fallback_converter.output_line.connect(lambda msg: self._log("info", msg))
 
-            loop_fb = QEventLoop()
-
-            def on_fb_done(success: bool, msg: str, pkg: object) -> None:
-                self._async_success = success
-                self._async_message = msg
-                self._async_pkg_path = pkg  # type: ignore
-                loop_fb.quit()
-
-            fallback_converter.finished.connect(on_fb_done)
-            fallback_converter.convert(deb_path, output_dir)
-            loop_fb.exec()
+            if _HAS_PYQT6:
+                loop_fb = QEventLoop()
+                def on_fb_done(success: bool, msg: str, pkg: object) -> None:
+                    self._async_success = success
+                    self._async_message = msg
+                    self._async_pkg_path = pkg
+                    loop_fb.quit()
+                fallback_converter.finished.connect(on_fb_done)
+                fallback_converter.convert(deb_path, output_dir)
+                loop_fb.exec()
+            else:
+                done_event2 = threading.Event()
+                def on_fb_done2(success: bool, msg: str, pkg: object) -> None:
+                    self._async_success = success
+                    self._async_message = msg
+                    self._async_pkg_path = pkg
+                    done_event2.set()
+                fallback_converter.finished.connect(on_fb_done2)
+                fallback_converter.convert(deb_path, output_dir)
+                done_event2.wait()
 
 
     def _convert_rpm(self, rpm_path: Path, work_dir: Path, meta: PackageMetadata) -> None:
         """Run RPM conversion."""
-        self._rpm_converter = RpmConverter(self._tools, self)
-        self._rpm_converter.output_line.connect(lambda msg: self._log("info", msg))
-
         self._async_success = False
         self._async_message = ""
         self._async_pkg_path = None
 
-        loop = QEventLoop()
-
-        def on_done(success: bool, msg: str, pkg: object) -> None:
-            self._async_success = success
-            self._async_message = msg
-            self._async_pkg_path = pkg  # type: ignore
-            loop.quit()
-
-        self._rpm_converter.finished.connect(on_done)
-        self._rpm_converter.convert(rpm_path, work_dir, meta)
-        loop.exec()
+        if _HAS_PYQT6:
+            self._rpm_converter = RpmConverter(self._tools, self)
+            self._rpm_converter.output_line.connect(lambda msg: self._log("info", msg))
+            loop = QEventLoop()
+            def on_done(success: bool, msg: str, pkg: object) -> None:
+                self._async_success = success
+                self._async_message = msg
+                self._async_pkg_path = pkg
+                loop.quit()
+            self._rpm_converter.finished.connect(on_done)
+            self._rpm_converter.convert(rpm_path, work_dir, meta)
+            loop.exec()
+        else:
+            from core.subprocess_converters import RpmConverterSubprocess
+            converter = RpmConverterSubprocess(self._tools)
+            converter.output_line.connect(lambda msg: self._log("info", msg))
+            done_event = threading.Event()
+            def on_done_sub(success: bool, msg: str, pkg: object) -> None:
+                self._async_success = success
+                self._async_message = msg
+                self._async_pkg_path = pkg
+                done_event.set()
+            converter.finished.connect(on_done_sub)
+            converter.convert(rpm_path, work_dir, meta)
+            done_event.wait()
 
     def _cleanup(self) -> None:
         """Remove temporary directory."""

@@ -298,8 +298,17 @@ def main() -> int:
     parser.add_argument("--version", "-v", action="store_true", help=tr("cli.arg_version"))
     parser.add_argument("--check-deps", action="store_true", help=tr("cli.arg_check_deps"))
     parser.add_argument("--install-deps", action="store_true", help=tr("cli.arg_install_deps"))
+    parser.add_argument("--offline", action="store_true", help=tr("cli.arg_offline"))
+    parser.add_argument("--clear-cache", action="store_true", help=tr("cli.arg_clear_cache"))
 
     args = parser.parse_args()
+
+    if args.clear_cache:
+        from core.offline_cache import get_cache
+        cache = get_cache()
+        count = cache.clear_all()
+        print(f"🗑️  {count} önbellek kaydı temizlendi.")
+        return 0
 
     if args.version:
         from config import APP_NAME, APP_VERSION

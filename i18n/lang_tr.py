@@ -284,6 +284,8 @@ STRINGS: dict[str, str] = {
     "cli.arg_version": "Sürümü göster ve çık",
     "cli.arg_check_deps": "Sistem bağımlılıklarını denetle ve çık",
     "cli.arg_install_deps": "Eksik sistem bağımlılıklarını denetle ve kur",
+    "cli.arg_offline": "Çevrimdışı modda çalış (sadece önbellek kullan)",
+    "cli.arg_clear_cache": "Tüm önbellek verilerini temizle",
     "cli.invalid_cmd": "❌ Geçersiz komut. Yardım için: pkgforge --help",
     "cli.converting": "📦 PkgForge — Paket dönüştürülüyor: {target}",
     "cli.missing_tools": "❌ Gerekli sistem araçları eksik: {tools}",

@@ -239,3 +239,78 @@ class TestRealRPMConversion(unittest.TestCase):
         self.assertIsNotNone(graph)
         self.assertEqual(graph.root, REAL_RPM.stem.split(".")[0])
         print(f"  ✓ Graph: {len(graph.nodes)} nodes, {len(graph.warnings)} warnings")
+
+
+class TestOfflineCache(unittest.TestCase):
+    """Test offline cache functionality."""
+
+    def test_cache_put_and_get(self):
+        """Cache should store and retrieve values."""
+        import tempfile
+        from core.offline_cache import OfflineCache
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = OfflineCache(cache_dir=Path(tmpdir), ttl=3600)
+            cache.put("test", "key1", {"name": "test", "version": "1.0"})
+            result = cache.get("test", "key1")
+            self.assertIsNotNone(result)
+            self.assertEqual(result["name"], "test")
+
+    def test_cache_expiry(self):
+        """Cache should expire after TTL."""
+        import tempfile
+        from core.offline_cache import OfflineCache
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = OfflineCache(cache_dir=Path(tmpdir), ttl=0)  # Immediate expiry
+            cache.put("test", "key1", "value1")
+            result = cache.get("test", "key1")
+            self.assertIsNone(result)
+
+    def test_cache_clear(self):
+        """Cache clear should remove all entries."""
+        import tempfile
+        from core.offline_cache import OfflineCache
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = OfflineCache(cache_dir=Path(tmpdir))
+            cache.put("ns1", "k1", "v1")
+            cache.put("ns2", "k2", "v2")
+            count = cache.clear_all()
+            self.assertEqual(count, 2)
+            self.assertIsNone(cache.get("ns1", "k1"))
+
+    def test_cache_stats(self):
+        """Cache stats should report correct counts."""
+        import tempfile
+        from core.offline_cache import OfflineCache
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = OfflineCache(cache_dir=Path(tmpdir))
+            cache.put("test", "k1", "v1")
+            stats = cache.stats()
+            self.assertEqual(stats["total_entries"], 1)
+            self.assertIn("test", stats["namespaces"])
+
+
+class TestPluginSystem(unittest.TestCase):
+    """Test plugin loading and discovery."""
+
+    def test_load_plugins(self):
+        """Plugins should load from core/plugins/."""
+        from core.plugins import load_plugins, list_plugins
+        plugins = load_plugins()
+        self.assertIsInstance(plugins, dict)
+
+    def test_deb_plugin_registered(self):
+        """DEB plugin should be auto-registered."""
+        from core.plugins import get_converter
+        converter = get_converter("deb")
+        self.assertIsNotNone(converter)
+        self.assertEqual(converter.name, "deb")
+
+    def test_list_plugins(self):
+        """list_plugins should return plugin info."""
+        from core.plugins import list_plugins
+        plugins = list_plugins()
+        self.assertIsInstance(plugins, list)
