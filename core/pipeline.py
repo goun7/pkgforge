@@ -99,6 +99,9 @@ class ConversionPipeline(QObject):
     log_message = pyqtSignal(str, str)
     compatibility_ready = pyqtSignal(object)
     finished = pyqtSignal(object)
+    # Internal: emitted from the UI thread to wake the worker thread that is
+    # blocked in _wait_for_decision() once the user approves/dismisses install.
+    _decision_signal = pyqtSignal()
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -107,6 +110,13 @@ class ConversionPipeline(QObject):
         self._temp_dir: Path | None = None
         self._user_approved = False
         self._result = PipelineResult()
+
+        # Decision gate for the compatibility-warning pause: the worker thread
+        # blocks in _wait_for_decision() until the UI thread records a choice,
+        # so cleanup cannot delete the converted package mid-review.
+        self._decision_made = False
+        self._decision_approved = False
+        self._decision_message: str | None = None
 
         # Converters and installer (will be created during pipeline)
         self._deb_converter: DebConverter | None = None
@@ -122,6 +132,8 @@ class ConversionPipeline(QObject):
     def cancel(self) -> None:
         """Cancel the pipeline at the earliest opportunity."""
         self._cancelled = True
+        # Wake the worker if it is blocked in _wait_for_decision().
+        self._decision_signal.emit()
         if self._deb_converter:
             self._deb_converter.cancel()
         if self._rpm_converter:
@@ -130,8 +142,59 @@ class ConversionPipeline(QObject):
             self._installer.cancel()
 
     def approve_install(self) -> None:
-        """User approved the installation after reviewing compatibility."""
-        self._user_approved = True
+        """User approved the installation after reviewing compatibility.
+
+        Thread-safe: may be called from the UI thread while the worker thread
+        is blocked in _wait_for_decision(); the queued _decision_signal wakes
+        the worker's nested event loop.
+        """
+        self._decision_approved = True
+        self._decision_made = True
+        self._decision_signal.emit()
+
+    def dismiss_install(self, message: str | None = None) -> None:
+        """User declined installation (closed the report / chose fallback).
+
+        Thread-safe counterpart of approve_install(): releases the worker
+        thread so the pipeline can finish and clean up. An optional *message*
+        overrides the default result text (e.g. when the user chose the
+        distrobox fallback instead of a plain decline).
+        """
+        self._decision_approved = False
+        self._decision_made = True
+        if message:
+            self._decision_message = message
+        self._decision_signal.emit()
+
+    def _wait_for_decision(self) -> bool:
+        """Block the worker thread until the UI records an install decision.
+
+        The converted package lives inside the temp dir, so the pipeline must
+        not return (and trigger cleanup) while the user is still reviewing the
+        compatibility report. A nested QEventLoop keeps processing events on
+        the worker thread — including the queued _decision_signal that wakes
+        it — until approve_install()/dismiss_install() runs. A fresh loop is
+        used per iteration because a QEventLoop that was quit() cannot be
+        reliably re-exec()ed.
+
+        The decision flags are deliberately NOT reset here: each pipeline
+        instance processes exactly one file, and not resetting closes the race
+        where the UI records a decision before the worker reaches this method
+        (the flags are already authoritative; a pre-connection signal emit is
+        simply dropped).
+        """
+        while not self._decision_made and not self._cancelled:
+            loop = QEventLoop()
+            self._decision_signal.connect(loop.quit)
+            try:
+                loop.exec()
+            finally:
+                try:
+                    self._decision_signal.disconnect(loop.quit)
+                except TypeError:
+                    pass
+
+        return self._decision_approved and not self._cancelled
 
     def run(self, file_path: Path) -> None:
         """Execute the full pipeline synchronously (call from QThread)."""
@@ -266,20 +329,24 @@ class ConversionPipeline(QObject):
 
         self.progress.emit(35)
 
-        # AUR Check
+        # AUR Check (purely informational — must never abort the conversion)
         from i18n import load_setting
         if load_setting("aur_check", True):
             self._log("info", f"AUR'da kontrol ediliyor: {meta.name}")
-            from core.aur_checker import check_aur
-            aur_res = check_aur(meta.name, meta.version)
-            if aur_res.status == "found_newer":
-                self._log("warning", f"AUR'da daha yeni versiyon mevcut: {aur_res.aur_version} (paket: {meta.version})")
-            elif aur_res.status == "out_of_date":
-                self._log("info", f"AUR paketi eskimiş (OutOfDate): {aur_res.aur_version}, yerel dönüşüm önerilir")
-            elif aur_res.status == "found_older":
-                self._log("info", f"Yerel paket AUR'dakinden daha yeni: {meta.version} > {aur_res.aur_version}")
-            elif aur_res.status == "not_found":
-                self._log("info", "Paket AUR'da bulunamadı, özel dönüşüm yapılıyor")
+            try:
+                from core.aur_checker import check_aur
+                aur_res = check_aur(meta.name, meta.version)
+                if aur_res.status == "found_newer":
+                    self._log("warning", f"AUR'da daha yeni versiyon mevcut: {aur_res.aur_version} (paket: {meta.version})")
+                elif aur_res.status == "out_of_date":
+                    self._log("info", f"AUR paketi eskimiş (OutOfDate): {aur_res.aur_version}, yerel dönüşüm önerilir")
+                elif aur_res.status == "found_older":
+                    self._log("info", f"Yerel paket AUR'dakinden daha yeni: {meta.version} > {aur_res.aur_version}")
+                elif aur_res.status == "not_found":
+                    self._log("info", "Paket AUR'da bulunamadı, özel dönüşüm yapılıyor")
+            except Exception as exc:
+                log.warning("AUR kontrolü atlandı: %s", exc)
+                self._log("warning", f"AUR kontrolü yapılamadı: {exc}")
 
         self._set_step(PipelineStep.ANALYSIS, "done")
 
@@ -348,10 +415,20 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.COMPATIBILITY, "warning")
             self._log("warning", "Uyarılar var — kullanıcı onayı bekleniyor")
             self.compatibility_ready.emit(report)
-            # Pipeline pauses here — UI will call approve_install()
-            self._result.success = False
-            self._result.message = "Uyumluluk uyarıları mevcut — kurulum için onay gerekli"
-            return
+            # Block until the UI records a decision (approve_install /
+            # dismiss_install). The temp dir — and therefore the converted
+            # package — stays alive while the user reviews the report.
+            if not self._wait_for_decision():
+                self._set_step(PipelineStep.INSTALL, "error")
+                self._result.success = False
+                self._result.message = (
+                    "İptal edildi" if self._cancelled
+                    else self._decision_message
+                    or "Uyumluluk uyarıları mevcut — kurulum onaylanmadı"
+                )
+                return
+            self._user_approved = True
+            self._set_step(PipelineStep.COMPATIBILITY, "done")
         else:
             self._set_step(PipelineStep.COMPATIBILITY, "done")
             # Auto-approve if all checks passed
@@ -366,10 +443,13 @@ class ConversionPipeline(QObject):
         self._do_install(converted_pkg, meta.name)
 
     def do_install_after_approval(self) -> None:
-        """Called by the UI after user approves installation despite warnings."""
-        if self._result.converted_pkg and self._result.metadata:
-            self._user_approved = True
-            self._do_install(self._result.converted_pkg, self._result.metadata.name)
+        """Called by the UI after user approves installation despite warnings.
+
+        Kept for API compatibility; the install itself now runs on the worker
+        thread that is blocked in _wait_for_decision(), so this only records
+        the decision and wakes that thread.
+        """
+        self.approve_install()
 
     def _do_install(self, pkg_path: Path, pkg_name: str) -> None:
         """Execute the installation step."""
@@ -435,6 +515,13 @@ class ConversionPipeline(QObject):
         self._deb_converter.finished.connect(on_done)
         self._deb_converter.convert(deb_path, output_dir)
         loop.exec()
+
+        # Disconnect native converter signals before attempting fallback
+        # to prevent stale callbacks from corrupting shared state.
+        try:
+            self._deb_converter.finished.disconnect(on_done)
+        except TypeError:
+            pass
 
         # Fallback to debtap if native converter fails and debtap exists
         if not self._async_success and self._tools.debtap:

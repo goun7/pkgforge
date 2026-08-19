@@ -35,6 +35,8 @@ class HistoryRecord:
     details: str
     source_url: str = ""
     backup_pkg: str = ""
+    http_etag: str = ""
+    http_last_modified: str = ""
 
 
 class HistoryDB:
@@ -79,6 +81,10 @@ class HistoryDB:
                     conn.execute("ALTER TABLE conversions ADD COLUMN source_url TEXT DEFAULT ''")
                 if "backup_pkg" not in columns:
                     conn.execute("ALTER TABLE conversions ADD COLUMN backup_pkg TEXT DEFAULT ''")
+                if "http_etag" not in columns:
+                    conn.execute("ALTER TABLE conversions ADD COLUMN http_etag TEXT DEFAULT ''")
+                if "http_last_modified" not in columns:
+                    conn.execute("ALTER TABLE conversions ADD COLUMN http_last_modified TEXT DEFAULT ''")
                 conn.commit()
         except sqlite3.Error as exc:
             log.error("HistoryDB ilklendirme hatası: %s", exc)
@@ -94,6 +100,8 @@ class HistoryDB:
         details: str = "",
         source_url: str = "",
         backup_pkg: str = "",
+        http_etag: str = "",
+        http_last_modified: str = "",
     ) -> int:
         """Add a new conversion/installation record."""
         try:
@@ -101,10 +109,10 @@ class HistoryDB:
                 cursor = conn.execute(
                     """
                     INSERT INTO conversions
-                    (package_name, original_file, package_type, sha256, status, output_pkg, details, source_url, backup_pkg)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (package_name, original_file, package_type, sha256, status, output_pkg, details, source_url, backup_pkg, http_etag, http_last_modified)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (package_name, original_file, package_type, sha256, status, output_pkg, details, source_url, backup_pkg),
+                    (package_name, original_file, package_type, sha256, status, output_pkg, details, source_url, backup_pkg, http_etag, http_last_modified),
                 )
                 conn.commit()
                 log.info("Dönüşüm kaydı eklendi: %s (%s)", package_name, status)
@@ -134,7 +142,8 @@ class HistoryDB:
                 cursor = conn.execute(
                     """
                     SELECT id, timestamp, package_name, original_file, package_type,
-                           sha256, status, output_pkg, details, source_url, backup_pkg
+                           sha256, status, output_pkg, details, source_url, backup_pkg,
+                           http_etag, http_last_modified
                     FROM conversions
                     ORDER BY id DESC
                     LIMIT ?
@@ -155,6 +164,8 @@ class HistoryDB:
                             details=row["details"],
                             source_url=row["source_url"] if "source_url" in row.keys() else "",
                             backup_pkg=row["backup_pkg"] if "backup_pkg" in row.keys() else "",
+                            http_etag=row["http_etag"] if "http_etag" in row.keys() else "",
+                            http_last_modified=row["http_last_modified"] if "http_last_modified" in row.keys() else "",
                         )
                     )
         except sqlite3.Error as exc:
@@ -169,7 +180,8 @@ class HistoryDB:
                 cursor = conn.execute(
                     """
                     SELECT id, timestamp, package_name, original_file, package_type,
-                           sha256, status, output_pkg, details, source_url, backup_pkg
+                           sha256, status, output_pkg, details, source_url, backup_pkg,
+                           http_etag, http_last_modified
                     FROM conversions
                     WHERE package_name = ? OR package_name LIKE ?
                     ORDER BY id DESC
@@ -190,6 +202,8 @@ class HistoryDB:
                             details=row["details"],
                             source_url=row["source_url"] if "source_url" in row.keys() else "",
                             backup_pkg=row["backup_pkg"] if "backup_pkg" in row.keys() else "",
+                            http_etag=row["http_etag"] if "http_etag" in row.keys() else "",
+                            http_last_modified=row["http_last_modified"] if "http_last_modified" in row.keys() else "",
                         )
                     )
         except sqlite3.Error as exc:
@@ -205,3 +219,15 @@ class HistoryDB:
                 log.info("Dönüşüm geçmişi temizlendi")
         except sqlite3.Error as exc:
             log.error("HistoryDB temizleme hatası: %s", exc)
+
+    def update_http_headers(self, record_id: int, etag: str, last_modified: str) -> None:
+        """Update stored HTTP caching headers for a record (upstream tracker)."""
+        try:
+            with self._get_connection() as conn:
+                conn.execute(
+                    "UPDATE conversions SET http_etag = ?, http_last_modified = ? WHERE id = ?",
+                    (etag, last_modified, record_id),
+                )
+                conn.commit()
+        except sqlite3.Error as exc:
+            log.warning("HTTP başlıkları güncellenemedi (id=%d): %s", record_id, exc)

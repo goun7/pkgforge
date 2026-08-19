@@ -22,6 +22,7 @@ def download_package(
     *,
     require_https: bool = True,
     expected_sha256: str | None = None,
+    response_info: dict[str, str] | None = None,
 ) -> Path:
     """Download a package file from a URL.
 
@@ -34,6 +35,9 @@ def download_package(
             setting.
         expected_sha256: If provided, the downloaded file's SHA-256 must match
             (case-insensitive) or the file is deleted and an error is raised.
+        response_info: Optional dict to receive HTTP response metadata
+            (``etag``, ``last_modified``, ``content_length``). Used by
+            the upstream tracker to detect future updates.
 
     Returns:
         Path to the downloaded file.
@@ -67,6 +71,12 @@ def download_package(
             content_length = resp.headers.get("Content-Length")
             if content_length and int(content_length) > max_bytes:
                 raise ValueError(f"Dosya boyutu çok büyük: {int(content_length) / (1024*1024):.1f} MB")
+
+            # Capture HTTP caching headers for upstream update tracking
+            if response_info is not None:
+                response_info["etag"] = resp.headers.get("ETag", "").strip('"')
+                response_info["last_modified"] = resp.headers.get("Last-Modified", "")
+                response_info["content_length"] = content_length or ""
 
             with open(dest_file, "wb") as out_f:
                 while True:

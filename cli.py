@@ -62,11 +62,13 @@ def _cmd_convert(args: argparse.Namespace) -> int:
 
     # Check if target is URL or local file
     file_path: Path
+    http_info: dict[str, str] = {}
     if target.startswith("http://") or target.startswith("https://"):
         print(tr("cli.downloading_url").format(target=target))
         try:
             file_path = download_package(
-                target, require_https=not load_setting("allow_insecure_http", False)
+                target, require_https=not load_setting("allow_insecure_http", False),
+                response_info=http_info,
             )
             print(tr("cli.download_complete").format(name=file_path.name))
         except Exception as exc:
@@ -149,44 +151,52 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     db = HistoryDB()
     backup_path = db.backup_package(Path(pkg_path))
 
-    db.add_record(
-        package_name=file_path.stem.split("_")[0].split("-")[0],
-        original_file=file_path.name,
-        package_type="deb" if is_deb else "rpm",
-        sha256="",
-        status="success",
-        output_pkg=str(pkg_path),
-        source_url=target if target.startswith("http") else "",
-        backup_pkg=str(backup_path) if backup_path else "",
-        details=msg,
-    )
-
     # Auto-install if requested (dry-run disables installation entirely)
+    install_status = "converted"
     dry_run = getattr(args, "dry_run", False) or load_setting("dry_run", False)
     if args.install and dry_run:
         print(tr("cli.dry_run_note"))
     elif args.install:
-        if not getattr(args, "yes", False):
+        # Onay iste (eğer --yes verilmemişse)
+        confirmed = getattr(args, "yes", False)
+        if not confirmed:
             print(tr("cli.confirm_install").format(name=pkg_path.name))
             try:
                 answer = input("[y/N] ").strip().lower()
             except EOFError:
                 answer = ""
-            if answer not in ("y", "yes", "e", "evet"):
-                print(tr("cli.install_cancelled"))
-                return 0
-        print(tr("cli.installing_pkg").format(name=pkg_path.name))
-        pkexec = tools.pkexec or "pkexec"
-        pacman = tools.pacman or "pacman"
+            confirmed = answer in ("y", "yes", "e", "evet")
 
-        res = safe_run([pkexec, pacman, "-U", "--noconfirm", "--", str(pkg_path)], timeout=120)
-        if res.returncode == 0:
-            print(tr("cli.install_success").format(name=pkg_path.name))
+        if confirmed:
+            print(tr("cli.installing_pkg").format(name=pkg_path.name))
+            pkexec = tools.pkexec or "pkexec"
+            pacman = tools.pacman or "pacman"
+
+            res = safe_run([pkexec, pacman, "-U", "--noconfirm", "--", str(pkg_path)], timeout=120)
+            if res.returncode == 0:
+                print(tr("cli.install_success").format(name=pkg_path.name))
+                install_status = "installed"
+            else:
+                print(tr("cli.install_failed").format(error=res.stderr))
+                install_status = "install_failed"
         else:
-            print(tr("cli.install_failed").format(error=res.stderr))
-            return 1
+            print(tr("cli.install_cancelled"))
 
-    return 0
+    db.add_record(
+        package_name=file_path.stem.split("_")[0].split("-")[0],
+        original_file=file_path.name,
+        package_type="deb" if is_deb else "rpm",
+        sha256="",
+        status=install_status,
+        output_pkg=str(pkg_path),
+        source_url=target if target.startswith("http") else "",
+        backup_pkg=str(backup_path) if backup_path else "",
+        details=msg,
+        http_etag=http_info.get("etag", ""),
+        http_last_modified=http_info.get("last_modified", ""),
+    )
+
+    return 0 if install_status != "install_failed" else 1
 
 
 def _cmd_list(args: argparse.Namespace) -> int:

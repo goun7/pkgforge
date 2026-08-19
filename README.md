@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Build Status](https://img.shields.io/badge/tests-28%20passed-brightgreen)](tests/)
+[![Build Status](https://img.shields.io/badge/tests-39%20passed-brightgreen)](tests/)
 
 **PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **PyQt6 GUI**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
 
@@ -135,7 +135,7 @@ converter can never make a genuinely malicious package safe, so the goal is to
 
 ## 🧪 Running Tests
 
-To run the automated test suite (28 unit tests):
+To run the automated test suite (39 unit tests):
 
 ```bash
 python -m unittest discover -s tests

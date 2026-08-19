@@ -29,10 +29,15 @@ class UpdateCheckResult:
     last_modified: str = ""
     content_length: str = ""
     detail: str = ""
+    record_id: int = 0
 
 
 def check_upstream_update(record: HistoryRecord) -> UpdateCheckResult:
-    """Check a single package's download URL for updates via HTTP HEAD request."""
+    """Check a single package's download URL for updates via HTTP HEAD request.
+
+    Compares the current ETag/Last-Modified against stored values to detect
+    actual content changes on the upstream server.
+    """
     if not record.source_url or not record.source_url.startswith(("http://", "https://")):
         return UpdateCheckResult(
             package_name=record.package_name,
@@ -55,7 +60,6 @@ def check_upstream_update(record: HistoryRecord) -> UpdateCheckResult:
             last_mod = headers.get("Last-Modified", "")
             content_len = headers.get("Content-Length", "")
 
-            # If Last-Modified is present, log it
             log.info(
                 "Upstream HEAD check for %s: ETag=%s, Last-Modified=%s",
                 record.package_name,
@@ -63,8 +67,25 @@ def check_upstream_update(record: HistoryRecord) -> UpdateCheckResult:
                 last_mod,
             )
 
-            # Determine update status based on ETag or Last-Modified if recorded
-            has_update = bool(etag or last_mod)
+            # Compare against stored values to detect actual changes
+            prev_etag = record.http_etag
+            prev_last_mod = record.http_last_modified
+
+            has_update = False
+            detail = ""
+
+            if prev_etag and etag and prev_etag != etag:
+                has_update = True
+                detail = f"ETag değişti: {prev_etag[:20]}… → {etag[:20]}…"
+            elif prev_last_mod and last_mod and prev_last_mod != last_mod:
+                has_update = True
+                detail = f"Last-Modified değişti: {prev_last_mod} → {last_mod}"
+            elif not prev_etag and not prev_last_mod:
+                # İlk kayıt — sakla ama güncelleme olarak işaretleme
+                detail = "İlk kontrol — upstream erişilebilir"
+            else:
+                detail = "Değişiklik tespit edilmedi"
+
             return UpdateCheckResult(
                 package_name=record.package_name,
                 source_url=record.source_url,
@@ -73,7 +94,8 @@ def check_upstream_update(record: HistoryRecord) -> UpdateCheckResult:
                 etag=etag,
                 last_modified=last_mod,
                 content_length=content_len,
-                detail=f"Last-Modified: {last_mod}" if last_mod else "Upstream erişilebilir",
+                detail=detail,
+                record_id=record.id,
             )
 
     except urllib.error.URLError as exc:
@@ -99,5 +121,8 @@ def check_all_installed_updates() -> list[UpdateCheckResult]:
             seen_pkgs.add(rec.package_name)
             res = check_upstream_update(rec)
             results.append(res)
+            # Saklanan değerleri güncelle (sonraki kontrol için)
+            if res.record_id and res.status == "checked":
+                db.update_http_headers(res.record_id, res.etag, res.last_modified)
 
     return results

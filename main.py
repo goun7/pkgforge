@@ -189,11 +189,11 @@ def main() -> int:
 
     # convert subcommand
     convert_parser = subparsers.add_parser("convert", help=tr("cli.convert_help"))
-    convert_parser.add_argument("target", help="File path or URL to .deb/.rpm package")
-    convert_parser.add_argument("--install", "-i", action="store_true", help="Automatically install after conversion")
-    convert_parser.add_argument("--yes", "-y", action="store_true", help="Skip the install confirmation prompt")
-    convert_parser.add_argument("--dry-run", action="store_true", help="Convert and analyze only; never install")
-    convert_parser.add_argument("--output-dir", "-o", help="Directory to place converted package")
+    convert_parser.add_argument("target", help=tr("cli.arg_target"))
+    convert_parser.add_argument("--install", "-i", action="store_true", help=tr("cli.arg_install"))
+    convert_parser.add_argument("--yes", "-y", action="store_true", help=tr("cli.arg_yes"))
+    convert_parser.add_argument("--dry-run", action="store_true", help=tr("cli.arg_dry_run"))
+    convert_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
 
     # list subcommand
     subparsers.add_parser("list", help=tr("cli.list_help"))
@@ -213,12 +213,12 @@ def main() -> int:
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
     # Global flags
-    parser.add_argument("--file", "-f", nargs="+", type=Path, help="Path(s) to .deb or .rpm file(s) for GUI")
-    parser.add_argument("--lang", "-l", choices=["tr", "en"], help="Interface language (tr/en)")
-    parser.add_argument("--theme", "-t", choices=["dark", "light", "system"], help="Theme (dark/light/system)")
-    parser.add_argument("--version", "-v", action="store_true", help="Show version and exit")
-    parser.add_argument("--check-deps", action="store_true", help="Check system dependencies and exit")
-    parser.add_argument("--install-deps", action="store_true", help="Check and install missing system dependencies")
+    parser.add_argument("--file", "-f", nargs="+", type=Path, help=tr("cli.arg_file"))
+    parser.add_argument("--lang", "-l", choices=["tr", "en"], help=tr("cli.arg_lang"))
+    parser.add_argument("--theme", "-t", choices=["dark", "light", "system"], help=tr("cli.arg_theme"))
+    parser.add_argument("--version", "-v", action="store_true", help=tr("cli.arg_version"))
+    parser.add_argument("--check-deps", action="store_true", help=tr("cli.arg_check_deps"))
+    parser.add_argument("--install-deps", action="store_true", help=tr("cli.arg_install_deps"))
 
     args = parser.parse_args()
 
@@ -254,9 +254,6 @@ def main() -> int:
         return 0
     if not _check_pyqt6():
         return 1
-
-    from i18n import init_language
-    init_language(args.lang)
 
     from PyQt6.QtWidgets import QApplication
     app = QApplication(sys.argv)

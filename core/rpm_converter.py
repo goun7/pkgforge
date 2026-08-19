@@ -12,11 +12,11 @@ import shlex
 import textwrap
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, QProcess, pyqtSignal
+from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 
 from config import RPM_DEP_MAP, ToolPaths
 from core.package_analyzer import PackageMetadata
-from core.security import check_symlink_attacks
+from core.security import check_dangerous_files, check_symlink_attacks
 from core.dependency_resolver import resolve_runtime_dependencies
 
 log = logging.getLogger(__name__)
@@ -51,6 +51,9 @@ class RpmConverter(QObject):
         """
         if not self._tools.rpm2cpio:
             self.finished.emit(False, "rpm2cpio bulunamadı — rpmextract paketi gerekli", None)
+            return
+        if not self._tools.bsdtar:
+            self.finished.emit(False, "bsdtar bulunamadı — libarchive paketi gerekli", None)
             return
         if not self._tools.makepkg:
             self.finished.emit(False, "makepkg bulunamadı — pacman paketi gerekli", None)
@@ -115,6 +118,18 @@ class RpmConverter(QObject):
             )
             return
 
+        # Security: flag setuid binaries, device nodes and suspicious ELF
+        errors, warnings = check_dangerous_files(self._work_dir / "pkg_root")
+        for warn in warnings[:5]:
+            self.output_line.emit(f"⚠ {warn}")
+        if errors:
+            self.finished.emit(
+                False,
+                f"Güvenlik: tehlikeli dosya özellikleri: {errors[:3]}",
+                None,
+            )
+            return
+
         # Phase 2: Generate PKGBUILD and run makepkg
         try:
             self._build_package()
@@ -159,9 +174,16 @@ class RpmConverter(QObject):
 
         from core.security import build_sandbox_cmd
 
-        env = QProcess.systemEnvironment()
-        env.append(f"PKGDEST={self._work_dir}")
-        self._process.setEnvironment(env)
+        # PKGDEST must point inside build_dir: that is the directory bound into
+        # the bwrap sandbox. Pointing it at a parent dir would write into the
+        # sandbox's private tmpfs, and the package would vanish on exit.
+        pkg_out = build_dir / "pkgout"
+        pkg_out.mkdir(parents=True, exist_ok=True)
+
+        from PyQt6.QtCore import QProcessEnvironment
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PKGDEST", str(pkg_out))
+        self._process.setProcessEnvironment(env)
 
         raw_cmd = [self._tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"]
         prog, args = build_sandbox_cmd(raw_cmd, build_dir, self._tools)
@@ -188,7 +210,7 @@ class RpmConverter(QObject):
     def _generate_pkgbuild(self, src_dir: Path) -> str:
         """Generate a PKGBUILD for the extracted RPM content."""
         if self._meta is None:
-            return
+            raise RuntimeError("Paket metadatası mevcut değil (meta=None)")
         meta = self._meta
 
         # Prefer dependencies resolved from the actual extracted binaries; fall
@@ -220,7 +242,10 @@ class RpmConverter(QObject):
             options=('!strip' '!emptydirs')
 
             package() {{
-                cp -a "$srcdir"/. "$pkgdir"/
+                # Ownership is set by pacman at install time; not preserving it
+                # also keeps the build working inside sandboxes/user namespaces
+                # where chown to other uids fails (EINVAL).
+                cp -a --no-preserve=ownership "$srcdir"/. "$pkgdir"/
             }}
         """)
 
@@ -245,9 +270,15 @@ class RpmConverter(QObject):
         self.finished.emit(False, msg, None)
 
     def _find_output_package(self) -> Path | None:
-        for entry in self._work_dir.iterdir():
-            if entry.is_file() and ".pkg.tar" in entry.name:
-                return entry
+        # PKGDEST is build/pkgout (sandbox-bound); also tolerate the legacy
+        # work_dir location in case PKGDEST was not honored.
+        search_dirs = [self._work_dir / "build" / "pkgout", self._work_dir]
+        for search_dir in search_dirs:
+            if not search_dir.is_dir():
+                continue
+            for entry in search_dir.iterdir():
+                if entry.is_file() and ".pkg.tar" in entry.name:
+                    return entry
         return None
 
 
@@ -273,5 +304,11 @@ def _sanitize_version(version: str) -> str:
 
 
 def _escape_bash(text: str) -> str:
-    """Escape single quotes for bash."""
+    """Escape text for safe use inside single-quoted PKGBUILD strings.
+
+    Handles single quotes (end quote, escape, re-open) and strips other
+    shell-active characters that could be interpreted inside a PKGBUILD.
+    """
+    # Strip backticks and $() to prevent command substitution
+    text = text.replace('`', '').replace('$(', '')
     return text.replace("'", "'\\''")

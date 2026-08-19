@@ -16,7 +16,12 @@ from PyQt6.QtCore import QObject, QProcess, pyqtSignal
 
 from config import ToolPaths, DEB_ARCH_MAP
 from core.package_analyzer import PackageMetadata, analyze_package
-from core.security import build_sandbox_cmd, check_symlink_attacks, safe_run
+from core.security import (
+    build_sandbox_cmd,
+    check_dangerous_files,
+    check_symlink_attacks,
+    safe_run,
+)
 from core.dependency_resolver import resolve_runtime_dependencies
 
 log = logging.getLogger(__name__)
@@ -71,6 +76,15 @@ class NativeDebConverter(QObject):
                     f"Güvenlik: dizin dışına işaret eden sembolik bağ(lar): {escaping[:3]}"
                 )
 
+            # Security: flag setuid binaries, device nodes and suspicious ELF
+            errors, warnings = check_dangerous_files(src_dir)
+            for warn in warnings[:5]:
+                self.output_line.emit(f"⚠ {warn}")
+            if errors:
+                raise RuntimeError(
+                    f"Güvenlik: tehlikeli dosya özellikleri: {errors[:3]}"
+                )
+
             # Resolve real Arch dependencies from the extracted binaries so the
             # generated package declares installable deps, not raw deb names.
             self.output_line.emit("▶ Bağımlılıklar çözümleniyor...")
@@ -112,7 +126,9 @@ class NativeDebConverter(QObject):
         if not data_tar:
             raise RuntimeError(".deb içinde data.tar bulunamadı")
 
-        # Extract data.tar payload and pipe to bsdtar or tar
+        # Extract data.tar payload and pipe to bsdtar or tar.
+        # ar_proc.stderr is consumed via PIPE to avoid a deadlock if ar
+        # fills the OS pipe buffer while nobody reads stderr.
         ar_proc = subprocess.Popen(
             [self._tools.ar, "p", str(deb_path), data_tar],
             stdout=subprocess.PIPE,
@@ -127,10 +143,19 @@ class NativeDebConverter(QObject):
             stderr=subprocess.PIPE,
         )
 
+        # Close our copy of ar's stdout so tar sees EOF; read ar's stderr
+        # in parallel so the pipe buffer never fills up.
         if ar_proc.stdout:
             ar_proc.stdout.close()
+        ar_stderr = ar_proc.stderr.read() if ar_proc.stderr else b""
+        ar_proc.wait(timeout=30)
 
         _stdout, stderr = tar_proc.communicate(timeout=60)
+        if ar_proc.returncode != 0:
+            raise RuntimeError(
+                f"ar başarısız (kod: {ar_proc.returncode}): "
+                f"{ar_stderr.decode('utf-8', errors='replace')}"
+            )
         if tar_proc.returncode != 0:
             raise RuntimeError(f"İçerik çıkarılamadı: {stderr.decode('utf-8', errors='replace')}")
 
@@ -140,8 +165,9 @@ class NativeDebConverter(QObject):
         version = _sanitize_version(meta.version)
         arch = meta.arch_mapped or "x86_64"
 
-        # Sanitize description for single quotes
-        desc = meta.description.replace("'", "'\\''") if meta.description else f"{name} (converted from DEB)"
+        # Sanitize description for shell safety inside PKGBUILD single-quoted strings
+        raw_desc = meta.description or f"{name} (converted from DEB)"
+        desc = raw_desc.replace('`', '').replace('$(', '').replace("'", "'\\''")
         url = meta.url if meta.url else "https://archlinux.org"
 
         # Prefer dependencies resolved to real Arch packages. If resolution
@@ -165,7 +191,10 @@ class NativeDebConverter(QObject):
             options=('!strip' '!emptydirs')
 
             package() {{
-                cp -a "$srcdir"/. "$pkgdir"/
+                # Ownership is set by pacman at install time; not preserving it
+                # also keeps the build working inside sandboxes/user namespaces
+                # where chown to other uids fails (EINVAL).
+                cp -a --no-preserve=ownership "$srcdir"/. "$pkgdir"/
             }}
         """)
 
@@ -180,9 +209,16 @@ class NativeDebConverter(QObject):
         self._process.finished.connect(self._on_makepkg_finished)
         self._process.errorOccurred.connect(self._on_error)
 
-        env = QProcess.systemEnvironment()
-        env.append(f"PKGDEST={self._work_dir}")
-        self._process.setEnvironment(env)
+        # PKGDEST must point inside build_dir: that is the directory bound into
+        # the bwrap sandbox. Pointing it at a parent dir would write into the
+        # sandbox's private tmpfs, and the package would vanish on exit.
+        pkg_out = build_dir / "pkgout"
+        pkg_out.mkdir(parents=True, exist_ok=True)
+
+        from PyQt6.QtCore import QProcessEnvironment
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PKGDEST", str(pkg_out))
+        self._process.setProcessEnvironment(env)
 
         raw_cmd = [self._tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"]
         prog, args = build_sandbox_cmd(raw_cmd, build_dir, self._tools)
@@ -218,9 +254,15 @@ class NativeDebConverter(QObject):
         self.finished.emit(False, f"Native DEB dönüştürücü hatası: {error}", None)
 
     def _find_output_package(self) -> Path | None:
-        for entry in self._work_dir.iterdir():
-            if entry.is_file() and ".pkg.tar" in entry.name:
-                return entry
+        # PKGDEST is native_build/pkgout (sandbox-bound); also tolerate the
+        # legacy work_dir location in case PKGDEST was not honored.
+        search_dirs = [self._work_dir / "native_build" / "pkgout", self._work_dir]
+        for search_dir in search_dirs:
+            if not search_dir.is_dir():
+                continue
+            for entry in search_dir.iterdir():
+                if entry.is_file() and ".pkg.tar" in entry.name:
+                    return entry
         return None
 
 
