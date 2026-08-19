@@ -50,6 +50,12 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_appimage_export(args)
     elif command == "provenance":
         return _cmd_provenance(args)
+    elif command == "benchmark":
+        return _cmd_benchmark(args)
+    elif command == "sign":
+        return _cmd_sign(args)
+    elif command == "verify":
+        return _cmd_verify(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -463,3 +469,71 @@ def _cmd_appimage_export(args: argparse.Namespace) -> int:
         return 1
 
     return 0
+
+
+def _cmd_benchmark(args: argparse.Namespace) -> int:
+    """Handle `pkgforge benchmark`."""
+    from core.benchmark import run_benchmarks
+
+    test_file = Path(args.bench_file).resolve() if args.bench_file else None
+    quick = getattr(args, "quick", False)
+
+    print("⚡ PkgForge Performans Ölçümü\n")
+    report = run_benchmarks(test_file=test_file, quick=quick)
+    print(report.summary())
+    print()
+
+    if report.passed:
+        print("✅ Tüm testler başarılı")
+    else:
+        print("❌ Bazı testler başarısız")
+        return 1
+
+    return 0
+
+
+def _cmd_sign(args: argparse.Namespace) -> int:
+    """Handle `pkgforge sign <package>`."""
+    from core.package_signing import sign_package
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    key_path = Path(args.key).resolve() if args.key else None
+
+    print(f"✍️  Paket imzalanıyor: {pkg_path.name}...")
+    ok, msg = sign_package(pkg_path, key_path)
+
+    if ok:
+        print(f"✅ {msg}")
+    else:
+        print(f"❌ {msg}")
+        return 1
+
+    return 0
+
+
+def _cmd_verify(args: argparse.Namespace) -> int:
+    """Handle `pkgforge verify <package>`."""
+    from core.package_signing import verify_signature
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    print(f"🔍 İmza doğrulanıyor: {pkg_path.name}...")
+    info = verify_signature(pkg_path)
+
+    print(f"\n  İmza Durumu:  {'✅ Geçerli' if info.valid else '❌ Geçersiz/Yok'}")
+    if info.signer:
+        print(f"  İmzalayan:    {info.signer}")
+    if info.key_id:
+        print(f"  Key ID:       {info.key_id}")
+    if info.key_fingerprint:
+        print(f"  Fingerprint:  {info.key_fingerprint}")
+    print(f"  Detay:        {info.detail}")
+
+    return 0 if info.valid else 1

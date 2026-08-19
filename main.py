@@ -230,6 +230,20 @@ def main() -> int:
     prov_parser = subparsers.add_parser("provenance", help=tr("cli.provenance_help"))
     prov_parser.add_argument("package", help=tr("cli.arg_provenance_pkg"))
 
+    # benchmark subcommand
+    bench_parser = subparsers.add_parser("benchmark", help=tr("cli.benchmark_help"))
+    bench_parser.add_argument("--bench-file", help=tr("cli.arg_bench_file"))
+    bench_parser.add_argument("--quick", action="store_true", help=tr("cli.arg_bench_quick"))
+
+    # sign subcommand
+    sign_parser = subparsers.add_parser("sign", help=tr("cli.sign_help"))
+    sign_parser.add_argument("package", help=tr("cli.arg_sign_pkg"))
+    sign_parser.add_argument("--key", help=tr("cli.arg_sign_key"))
+
+    # verify subcommand
+    verify_parser = subparsers.add_parser("verify", help=tr("cli.verify_help"))
+    verify_parser.add_argument("package", help=tr("cli.arg_verify_pkg"))
+
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
