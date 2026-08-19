@@ -66,11 +66,29 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     if target.startswith("http://") or target.startswith("https://"):
         print(tr("cli.downloading_url").format(target=target))
         try:
-            file_path = download_package(
-                target, require_https=not load_setting("allow_insecure_http", False),
-                response_info=http_info,
-            )
-            print(tr("cli.download_complete").format(name=file_path.name))
+            use_delta = getattr(args, "delta", False)
+            if use_delta:
+                from core.delta_updater import download_with_delta, find_local_previous
+                from config import create_temp_dir
+                # Try to find a previous local version for delta
+                pkg_name_guess = Path(target).stem.split("_")[0].split("-")[0]
+                old_pkg = find_local_previous(pkg_name_guess)
+                tmp = create_temp_dir()
+                dest = tmp / Path(target).name
+                file_path, used_delta = download_with_delta(
+                    target, dest, old_pkg,
+                    require_https=not load_setting("allow_insecure_http", False),
+                )
+                if used_delta:
+                    print(tr("cli.download_complete").format(name=file_path.name) + " (delta)")
+                else:
+                    print(tr("cli.download_complete").format(name=file_path.name))
+            else:
+                file_path = download_package(
+                    target, require_https=not load_setting("allow_insecure_http", False),
+                    response_info=http_info,
+                )
+                print(tr("cli.download_complete").format(name=file_path.name))
         except Exception as exc:
             print(tr("cli.download_error").format(error=str(exc)))
             return 1
@@ -80,54 +98,59 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             print(tr("cli.file_not_found").format(path=file_path))
             return 1
 
-    # Run conversion via NativeDebConverter or RpmConverter
+    # Run conversion via cli_bridge (no direct PyQt6 event loop needed)
     out_dir = Path(args.output_dir).resolve() if args.output_dir else file_path.parent
     is_deb = file_path.suffix.lower() == ".deb"
 
-    if is_deb:
-        from core.native_deb_converter import NativeDebConverter
-        converter = NativeDebConverter(tools)
-    else:
-        from core.rpm_converter import RpmConverter
-        from core.package_analyzer import analyze_package
-        meta = analyze_package(file_path, tools)
-        converter = RpmConverter(tools)  # type: ignore
-
     print(tr("cli.starting_conversion").format(name=file_path.name))
-    success = False
-    msg = ""
-    pkg_path = None
 
-    def on_line(line: str):
+    from core.cli_bridge import convert_deb_sync, convert_rpm_sync
+
+    def _print_line(line: str):
         print(f"  {line}")
 
-    def on_done(succ: bool, message: str, pkg: object):
-        nonlocal success, msg, pkg_path
-        success = succ
-        msg = message
-        pkg_path = pkg
-
-    converter.output_line.connect(on_line)
-    converter.finished.connect(on_done)
-
-    from PyQt6.QtCore import QCoreApplication, QEventLoop
-    app = QCoreApplication.instance() or QCoreApplication(sys.argv)
-
-    loop = QEventLoop()
-    converter.finished.connect(lambda: loop.quit())
-
     if is_deb:
-        converter.convert(file_path, out_dir)
+        conv_result = convert_deb_sync(file_path, out_dir, tools, progress_callback=_print_line)
     else:
-        converter.convert(file_path, out_dir, meta)  # type: ignore
+        conv_result = convert_rpm_sync(file_path, out_dir, tools=tools, progress_callback=_print_line)
 
-    loop.exec()
+    success = conv_result.success
+    msg = conv_result.message
+    pkg_path = conv_result.output_pkg
 
     if not success or not pkg_path:
         print(tr("cli.conversion_failed").format(msg=msg))
         return 1
 
     print(tr("cli.conversion_success").format(pkg=pkg_path))
+
+    # --to-oci: convert to OCI container image instead of installing
+    if getattr(args, "to_oci", False):
+        from core.oci_builder import build_oci_image
+        oci_tag = getattr(args, "oci_tag", None)
+        print(f"🐳 OCI konteyner görüntüsü oluşturuluyor...")
+        ok, oci_msg, oci_path = build_oci_image(Path(pkg_path), tools, tag=oci_tag)
+        if ok:
+            print(f"✅ {oci_msg}")
+            if oci_path:
+                print(f"   Yüklemek için: podman load -i {oci_path}")
+        else:
+            print(f"❌ {oci_msg}")
+            return 1
+        # Record and exit
+        db = HistoryDB()
+        db.add_record(
+            package_name=file_path.stem.split("_")[0].split("-")[0],
+            original_file=file_path.name,
+            package_type="deb" if is_deb else "rpm",
+            sha256="", status="oci_built",
+            output_pkg=str(oci_path) if oci_path else "",
+            source_url=target if target.startswith("http") else "",
+            details=oci_msg,
+            http_etag=http_info.get("etag", ""),
+            http_last_modified=http_info.get("last_modified", ""),
+        )
+        return 0
 
     # Compatibility grade + "what will change" preview (best-effort, never fatal)
     try:

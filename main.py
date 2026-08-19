@@ -43,6 +43,7 @@ SYSTEM_DEPS: list[tuple[str, str, bool]] = [
     ("gpg", "gnupg", False),
     ("ldd", "glibc", True),
     ("ar", "binutils", False),
+    ("clamscan", "clamav", False),
     ("debtap", "debtap (AUR)", False),
     ("rpm2cpio", "rpm-tools", False),
     ("distrobox", "distrobox", False),
@@ -194,6 +195,9 @@ def main() -> int:
     convert_parser.add_argument("--yes", "-y", action="store_true", help=tr("cli.arg_yes"))
     convert_parser.add_argument("--dry-run", action="store_true", help=tr("cli.arg_dry_run"))
     convert_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+    convert_parser.add_argument("--to-oci", action="store_true", help=tr("cli.arg_to_oci"))
+    convert_parser.add_argument("--oci-tag", help=tr("cli.arg_oci_tag"))
+    convert_parser.add_argument("--delta", action="store_true", help=tr("cli.arg_delta"))
 
     # list subcommand
     subparsers.add_parser("list", help=tr("cli.list_help"))

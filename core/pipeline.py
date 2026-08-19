@@ -45,14 +45,16 @@ log = logging.getLogger(__name__)
 
 class PipelineStep(IntEnum):
     SECURITY = 0
-    ANALYSIS = 1
-    CONVERSION = 2
-    COMPATIBILITY = 3
-    INSTALL = 4
+    MALWARE_SCAN = 1
+    ANALYSIS = 2
+    CONVERSION = 3
+    COMPATIBILITY = 4
+    INSTALL = 5
 
 
 STEP_LABELS = {
     PipelineStep.SECURITY: "Güvenlik Kontrolü",
+    PipelineStep.MALWARE_SCAN: "Malware Tarama",
     PipelineStep.ANALYSIS: "Paket Analizi",
     PipelineStep.CONVERSION: "Dönüşüm",
     PipelineStep.COMPATIBILITY: "Uyumluluk Testi",
@@ -289,11 +291,41 @@ class ConversionPipeline(QObject):
 
         self._set_step(PipelineStep.SECURITY, "done")
 
+        # ── Step 1.5: Malware scan (optional, non-fatal) ────────
+        if self._cancelled:
+            return
+        from i18n import load_setting
+        if load_setting("clamav_scan", True):
+            self._set_step(PipelineStep.MALWARE_SCAN, "running")
+            self.progress.emit(22)
+            try:
+                from core.malware_scanner import scan_file, is_clamav_available
+                if is_clamav_available():
+                    scan_result = scan_file(file_path, self._tools)
+                    if scan_result.engine_version:
+                        self._log("info", f"ClamAV motoru: {scan_result.engine_version}")
+                    if scan_result.infected:
+                        self._set_step(PipelineStep.MALWARE_SCAN, "error")
+                        self._result.message = (
+                            f"⚠️ Malware tespit edildi: {scan_result.detail}. "
+                            f"Enfekte dosyalar: {scan_result.infected_files[:5]}"
+                        )
+                        self._log("error", self._result.message)
+                        return
+                    self._log("info", scan_result.detail)
+                else:
+                    self._log("warning", "clamscan bulunamadı — malware taraması atlandı")
+                self._set_step(PipelineStep.MALWARE_SCAN, "done")
+            except Exception as exc:
+                self._log("warning", f"Malware taraması başarısız: {exc}")
+                self._set_step(PipelineStep.MALWARE_SCAN, "done")
+            self.progress.emit(25)
+
         # ── Step 2: Package analysis ─────────────────────────────
         if self._cancelled:
             return
         self._set_step(PipelineStep.ANALYSIS, "running")
-        self.progress.emit(25)
+        self.progress.emit(30)
 
         try:
             meta = analyze_package(file_path, self._tools)

@@ -13,11 +13,14 @@
 ## 🎯 Key Features
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
-- **🛡️ 11 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, and Path Traversal checks.
-- **💻 Dual Interface (Headless CLI + PyQt6 GUI)**: Seamless operation in terminal or rich graphical desktop mode.
+- **🛡️ 13 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
+- **💻 Dual Interface (Headless CLI + PyQt6 GUI)**: Seamless operation in terminal or rich graphical desktop mode. CLI runs without requiring a display server.
 - **🌐 Direct URL Conversion**: Download and convert packages directly from HTTP/HTTPS links (`pkgforge convert https://...`).
+- **📸 Atomic Snapshot Rollback**: Automatically takes Btrfs/ZFS filesystem snapshots before installation for instant atomic rollback.
+- **🐳 OCI Container Export**: Convert any `.deb`/`.rpm` to a portable OCI container image (`pkgforge convert --to-oci`).
+- **📦 Binary Delta Updates**: Use xdelta3 to download only the diff for faster updates (`pkgforge convert --delta`).
 - **⏪ Lifecycle & Rollback Management**: Uninstall converted packages via `pacman -R` or rollback to previous saved backups stored in `~/.config/pkgforge/backups/`.
-- **📡 Upstream Auto-Tracker**: Lightweight HTTP header inspector (`ETag` / `Last-Modified`) to check if installed packages have new releases.
+- **📡 Upstream Auto-Tracker**: Compares stored `ETag`/`Last-Modified` headers against current values to detect actual content changes.
 - **🔀 Cross-Check Engine**: Compares versions across Local files, AUR, and Flatpak using pacman's `vercmp` to recommend the newest release.
 
 ---
@@ -72,6 +75,12 @@ pkgforge convert package.deb --install
 
 # Convert directly from a URL
 pkgforge convert https://example.com/software_amd64.deb --install
+
+# Convert to OCI container image
+pkgforge convert package.deb --to-oci
+
+# Use binary delta for faster downloads (requires xdelta3)
+pkgforge convert https://example.com/package.deb --delta
 
 # List conversion and installation history
 pkgforge list

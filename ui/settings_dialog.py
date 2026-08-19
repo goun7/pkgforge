@@ -85,6 +85,16 @@ class SettingsDialog(QDialog):
             self._distrobox_check.setToolTip(tr("settings.distrobox_desc"))
         features_layout.addWidget(self._distrobox_check)
 
+        # ClamAV malware scan
+        self._clamav_check = QCheckBox(tr("settings.clamav_scan"))
+        self._clamav_check.setToolTip(tr("settings.clamav_scan_desc"))
+        features_layout.addWidget(self._clamav_check)
+
+        # Snapshot before install
+        self._snapshot_check = QCheckBox(tr("settings.snapshot"))
+        self._snapshot_check.setToolTip(tr("settings.snapshot_desc"))
+        features_layout.addWidget(self._snapshot_check)
+
         # Dry-run: convert + analyze only, never install
         self._dry_run_check = QCheckBox(tr("settings.dry_run"))
         self._dry_run_check.setToolTip(tr("settings.dry_run_desc"))
@@ -136,6 +146,8 @@ class SettingsDialog(QDialog):
         # Features
         self._aur_check.setChecked(load_setting("aur_check", True))
         self._distrobox_check.setChecked(load_setting("distrobox_fallback", False))
+        self._clamav_check.setChecked(load_setting("clamav_scan", True))
+        self._snapshot_check.setChecked(load_setting("snapshot", True))
         self._dry_run_check.setChecked(load_setting("dry_run", False))
         self._insecure_http_check.setChecked(load_setting("allow_insecure_http", False))
 
@@ -146,6 +158,8 @@ class SettingsDialog(QDialog):
         settings["theme"] = self._theme_combo.currentData()
         settings["aur_check"] = self._aur_check.isChecked()
         settings["distrobox_fallback"] = self._distrobox_check.isChecked()
+        settings["clamav_scan"] = self._clamav_check.isChecked()
+        settings["snapshot"] = self._snapshot_check.isChecked()
         settings["dry_run"] = self._dry_run_check.isChecked()
         settings["allow_insecure_http"] = self._insecure_http_check.isChecked()
         save_settings(settings)

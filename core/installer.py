@@ -38,6 +38,7 @@ class Installer(QObject):
         self._process: QProcess | None = None
         self._pkg_name = ""
         self._cancelled = False
+        self._snapshot_name = ""
 
     def install(self, pkg_path: Path, pkg_name: str) -> None:
         """Install the package using pkexec + install_helper.sh.
@@ -63,6 +64,29 @@ class Installer(QObject):
         self._cancelled = False
 
         self.output_line.emit(f"▶ Paket kuruluyor: {pkg_path.name}")
+
+        # Take a filesystem snapshot before installation (best-effort)
+        from i18n import load_setting
+        if load_setting("snapshot", True):
+            try:
+                from core.snapshot_manager import take_snapshot, detect_backend
+                backend = detect_backend()
+                if backend != "none":
+                    self.output_line.emit(f"  📸 {backend.upper()} snapshot alınıyor...")
+                    snap = take_snapshot(pkg_name)
+                    if snap.success:
+                        self._snapshot_name = snap.snapshot_name
+                        self.output_line.emit(f"  ✓ Snapshot hazır: {snap.snapshot_name}")
+                    else:
+                        self._snapshot_name = ""
+                        self.output_line.emit(f"  ⚠ {snap.detail}")
+                else:
+                    self._snapshot_name = ""
+            except Exception:
+                self._snapshot_name = ""
+        else:
+            self._snapshot_name = ""
+
         self.output_line.emit("  Yetki yükseltme isteniyor (Polkit)...")
 
         self._process = QProcess(self)
@@ -78,10 +102,11 @@ class Installer(QObject):
                 ["/bin/bash", str(INSTALL_HELPER), str(pkg_path)],
             )
         else:
-            # Direct pkexec pacman -U fallback
+            # Direct pkexec pacman -U fallback (-- guards against a package
+            # path being parsed as a pacman option)
             self._process.start(
                 self._tools.pkexec,
-                [self._tools.pacman, "-U", "--noconfirm", str(pkg_path)],
+                [self._tools.pacman, "-U", "--noconfirm", "--", str(pkg_path)],
             )
 
     def cancel(self) -> None:
@@ -105,18 +130,20 @@ class Installer(QObject):
             return
 
         if exit_code != 0:
+            snap_hint = f"\n  📸 Snapshot mevcut: {self._snapshot_name}" if self._snapshot_name else ""
             if exit_code == 126:
-                self.finished.emit(False, "Yetkilendirme reddedildi (Polkit)")
+                self.finished.emit(False, f"Yetkilendirme reddedildi (Polkit){snap_hint}")
             elif exit_code == 127:
-                self.finished.emit(False, "pkexec komutu bulunamadı")
+                self.finished.emit(False, f"pkexec komutu bulunamadı{snap_hint}")
             else:
-                self.finished.emit(False, f"Kurulum başarısız (kod: {exit_code})")
+                self.finished.emit(False, f"Kurulum başarısız (kod: {exit_code}){snap_hint}")
             return
 
         # Post-install verification
         verified = self._verify_installation()
         if verified:
-            self.output_line.emit(f"✓ {self._pkg_name} başarıyla kuruldu/güncellendi")
+            snap_hint = f" [snapshot: {self._snapshot_name}]" if self._snapshot_name else ""
+            self.output_line.emit(f"✓ {self._pkg_name} başarıyla kuruldu/güncellendi{snap_hint}")
             self.finished.emit(True, f"{self._pkg_name} başarıyla kuruldu")
         else:
             self.output_line.emit("⚠ Kurulum tamamlandı ama doğrulama başarısız")
@@ -133,7 +160,10 @@ class Installer(QObject):
 
     def _verify_installation(self) -> bool:
         """Verify the package was installed successfully."""
-        if not self._pkg_name:
+        # The name comes from untrusted package metadata; validate before
+        # passing to pacman so a crafted name cannot inject CLI options.
+        from core.security import is_valid_package_name
+        if not is_valid_package_name(self._pkg_name):
             return False
 
         result = safe_run(
