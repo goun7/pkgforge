@@ -243,6 +243,13 @@ def main() -> int:
     scan_parser = subparsers.add_parser("scan-image", help=tr("cli.scan_image_help"))
     scan_parser.add_argument("image", help=tr("cli.arg_scan_image_path"))
 
+    # abi-check subcommand
+    abi_parser = subparsers.add_parser("abi-check", help=tr("cli.abi_check_help"))
+    abi_parser.add_argument("package", help=tr("cli.arg_abi_check_pkg"))
+
+    # health subcommand
+    subparsers.add_parser("health", help=tr("cli.health_help"))
+
     # from-source subcommand
     source_parser = subparsers.add_parser("from-source", help=tr("cli.from_source_help"))
     source_parser.add_argument("repo_url", help=tr("cli.arg_source_repo_url"))

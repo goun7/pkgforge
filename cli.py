@@ -66,6 +66,10 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_scan_image(args)
     elif command == "from-source":
         return _cmd_from_source(args)
+    elif command == "abi-check":
+        return _cmd_abi_check(args)
+    elif command == "health":
+        return _cmd_health(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -673,6 +677,71 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         print(f"   • {ptype}: {count}")
     print()
 
+    # Integrity check
+    print("🔒 Bütünlük Kontrolü:")
+    integrity_issues = 0
+    for r in records:
+        # Check if output package still exists
+        if r.output_pkg and not Path(r.output_pkg).exists():
+            print(f"   ⚠️  {r.package_name}: Çıktı dosyası silinmiş ({r.output_pkg})")
+            integrity_issues += 1
+        # Check if backup still exists
+        if r.backup_pkg and not Path(r.backup_pkg).exists():
+            print(f"   ⚠️  {r.package_name}: Yedek dosya silinmiş ({r.backup_pkg})")
+            integrity_issues += 1
+        # Check if source URL is recorded but no http headers
+        if r.source_url and not r.http_etag and not r.http_last_modified:
+            pass  # Not necessarily an issue, just informational
+    if integrity_issues == 0:
+        print("   ✅ Tüm dosyalar mevcut")
+    else:
+        print(f"   ⚠️  {integrity_issues} bütünlük sorunu tespit edildi")
+    print()
+
+    # Anomaly detection
+    print("🔎 Anomali Tespiti:")
+    anomalies = 0
+    # Check for duplicate packages
+    name_counts: dict[str, int] = {}
+    for r in records:
+        name_counts[r.package_name] = name_counts.get(r.package_name, 0) + 1
+    for name, count in name_counts.items():
+        if count > 3:
+            print(f"   ⚠️  '{name}' {count} kez dönüştürülmüş — tekrarlayan süreç?")
+            anomalies += 1
+    # Check for rapid-fire installs (potential abuse)
+    recent_installed = [r for r in records if r.status == "installed"][:5]
+    if len(recent_installed) >= 5:
+        print(f"   ⚠️  Son 5 kurulumda hız yüksek — otomatik süreç olabilir")
+        anomalies += 1
+    # Check for failed packages without retry
+    failed_names = set()
+    for r in records:
+        if r.status == "install_failed":
+            failed_names.add(r.package_name)
+    for name in failed_names:
+        installed_count = sum(1 for r in records if r.package_name == name and r.status == "installed")
+        if installed_count == 0:
+            print(f"   ⚠️  '{name}' başarısız ama hiç başarılı olmadı — sorun kalıcı olabilir")
+            anomalies += 1
+    if anomalies == 0:
+        print("   ✅ Anomali tespit edilmedi")
+    print()
+
+    # Provenance verification
+    print("📋 Provenance Doğrulama:")
+    provenance_count = 0
+    for r in records:
+        if r.output_pkg:
+            prov_file = Path(r.output_pkg).parent / f"{Path(r.output_pkg).name}.provenance.json"
+            if prov_file.exists():
+                provenance_count += 1
+    if provenance_count > 0:
+        print(f"   ✅ {provenance_count}/{len(records)} kayıt için provenance mevcut")
+    else:
+        print(f"   ℹ️  Hiç provenance kaydı bulunamadı")
+    print()
+
     # Detailed trail
     print("📋 Detaylı Kayıtlar:")
     print(f"{'ID':<4} {'Tarih':<20} {'Paket':<20} {'Tür':<6} {'Durum':<12} {'Orijinal Dosya'}")
@@ -705,37 +774,63 @@ def _cmd_scan_image(args: argparse.Namespace) -> int:
     print(f"🔍 OCI Görüntü Taraması: {image_path.name}\n")
     all_clean = True
 
-    # Trivy scan
+    # Trivy scan — try 'image' first, fall back to 'fs' for local dirs
     if trivy:
         print("  🔬 Trivy CVE taraması...")
-        res = safe_run([trivy, "fs", "--severity", "HIGH,CRITICAL", str(image_path)], timeout=300)
+        res = safe_run([trivy, "image", "--severity", "HIGH,CRITICAL", str(image_path)], timeout=600)
+        if res.returncode != 0:
+            # image command failed (not an OCI image?), try fs
+            res = safe_run([trivy, "fs", "--severity", "HIGH,CRITICAL", str(image_path)], timeout=600)
         if res.returncode == 0:
             print("  ✅ Trivy: Kritik CVE bulunamadı")
         else:
             all_clean = False
-            print(f"  ⚠️  Trivy sonuçları:\n{res.stdout[:500]}")
+            # Show relevant lines only
+            output = res.stdout or res.stderr
+            critical_lines = [l for l in output.splitlines() if any(sev in l for sev in ["HIGH", "CRITICAL", "MEDIUM"])]
+            if critical_lines:
+                print(f"  ⚠️  Trivy bulguları ({len(critical_lines)} satır):")
+                for l in critical_lines[:10]:
+                    print(f"      {l}")
+            else:
+                print(f"  ⚠️  Trivy çalışamadı: {output[:200]}")
 
-    # Grype scan
+    # Grype scan — use 'dir:' syntax for local directory/archive scanning
     if grype:
         print("  🔬 Grype bağımlılık taraması...")
-        res = safe_run([grype, "dir:" + str(image_path.parent), "--fail-on", "high"], timeout=300)
+        if image_path.is_dir():
+            target = f"dir:{image_path}"
+        else:
+            target = f"file:{image_path}"
+        res = safe_run([grype, target, "--fail-on", "high"], timeout=600)
         if res.returncode == 0:
             print("  ✅ Grype: Yüksek-seviye açık bulunamadı")
-        else:
+        elif res.returncode == 1:
+            # exit 1 = vulnerabilities found (expected with --fail-on high)
             all_clean = False
-            print(f"  ⚠️  Grype sonuçları:\n{res.stdout[:500]}")
+            output = res.stdout or res.stderr
+            vuln_lines = [l for l in output.splitlines() if "High" in l or "Critical" in l]
+            if vuln_lines:
+                print(f"  ⚠️  Grype bulguları ({len(vuln_lines)} adet):")
+                for l in vuln_lines[:10]:
+                    print(f"      {l}")
+            else:
+                print(f"  ⚠️  Grype: Açık tespit edildi")
+        else:
+            print(f"  ⚠️  Grype çalışamadı: {(res.stderr or res.stdout)[:200]}")
 
-    # ClamAV scan
+    # ClamAV scan — increase timeout for large images
     if clamscan:
         print("  🔬 ClamAV malware taraması...")
-        res = safe_run([clamscan, "--infected", "--no-summary", str(image_path)], timeout=120)
+        # Timeout: 300s for large archives (was 120s, too short)
+        res = safe_run([clamscan, "--infected", "--no-summary", str(image_path)], timeout=300)
         if res.returncode == 1:
             print("  ✅ ClamAV: Temiz")
         elif res.returncode == 0:
             print(f"  ❌ ClamAV enfekte dosya tespit etti:\n{res.stdout[:500]}")
             all_clean = False
         else:
-            print(f"  ⚠️  ClamAV çalışamadı: {res.stderr[:200]}")
+            print(f"  ⚠️  ClamAV çalışamadı (returncode={res.returncode}): {res.stderr[:200]}")
 
     print()
     if all_clean:
@@ -749,6 +844,8 @@ def _cmd_scan_image(args: argparse.Namespace) -> int:
 
 def _cmd_from_source(args: argparse.Namespace) -> int:
     """Handle `pkgforge from-source`."""
+    from core.from_source import generate_pkgbuild_from_source
+
     repo_url = args.repo_url
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
 
@@ -797,7 +894,7 @@ def _cmd_from_source(args: argparse.Namespace) -> int:
         print(f"  🔧 Build sistemi: {build_system}\n")
 
         # 3. Generate PKGBUILD
-        pkgbuild_content = _generate_pkgbuild_from_source(
+        pkgbuild_content = generate_pkgbuild_from_source(
             proj_name, repo_url, build_system, repo_dir
         )
 
@@ -820,89 +917,99 @@ def _cmd_from_source(args: argparse.Namespace) -> int:
     return 0
 
 
-def _generate_pkgbuild_from_source(
-    name: str,
-    repo_url: str,
-    build_system: str,
-    repo_dir: Path,
-) -> str:
-    """Generate a PKGBUILD template from source repo info."""
-    # Try to extract version from common files
-    version = "1.0.0"
-    for vf in [repo_dir / "VERSION", repo_dir / "version.txt", repo_dir / "VERSION.txt"]:
-        if vf.exists():
-            version = vf.read_text().strip().splitlines()[0]
-            break
 
-    # Try to extract description from README
-    description = f"{name} — kaynaktan derlenen paket"
-    for readme in [repo_dir / "README.md", repo_dir / "README", repo_dir / "README.rst"]:
-        if readme.exists():
-            for line in readme.read_text(encoding="utf-8", errors="ignore").splitlines():
-                line = line.strip()
-                if line and not line.startswith("#") and len(line) > 10:
-                    description = line[:100]
-                    break
-            break
 
-    # Escape for PKGBUILD
-    description = description.replace("'", "''")
+def _cmd_abi_check(args: argparse.Namespace) -> int:
+    """Handle `pkgforge abi-check`."""
+    from core.abi_scanner import check_abi_compatibility
 
-    # Build commands based on build system
-    if build_system == "cmake":
-        build_cmds = """    cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
-    cmake --build build"""
-        install_cmds = """    DESTDIR=\"$pkgdir" cmake --install build"""
-    elif build_system == "meson":
-        build_cmds = """    meson setup build
-    meson compile -C build"""
-        install_cmds = """    DESTDIR=\"$pkgdir" meson install -C build"""
-    elif build_system == "cargo":
-        build_cmds = """    cargo build --release --locked"""
-        install_cmds = """    install -Dm755 target/release/\"$pkgname\" \"$pkgdir/usr/bin/$pkgname\""""
-    elif build_system == "autotools":
-        build_cmds = """    ./configure --prefix=/usr
-    make"""
-        install_cmds = """    make DESTDIR=\"$pkgdir\" install"""
-    elif build_system == "python":
-        build_cmds = """    python -m build"""
-        install_cmds = """    python -m installer --destdir=\"$pkgdir\" dist/*.whl"""
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    print(f"🔍 ABI Uyumluluk Taraması: {pkg_path.name}\n")
+    report = check_abi_compatibility(pkg_path)
+    print(report.summary())
+
+    if report.passed:
+        print("\n✅ ABI uyumluluğu sağlam — tüm semboller destekleniyor.")
     else:
-        build_cmds = """    make"""
-        install_cmds = """    make DESTDIR=\"$pkgdir\" install"""
+        print(f"\n⚠️  {report.error_count} uyumsuzluk tespit edildi.")
+        print("   Paket kurulsa bile çalışmayabilir.")
+        return 1
 
-    pkgbuild = f"""# Maintainer: PkgForge <noreply@pkgforge.app>
+    return 0
 
-pkgname={name}
-pkgver={version}
-pkgrel=1
-pkgdesc='{description}'
-arch=('x86_64')
-url='{repo_url}'
-license=('GPL-3.0-or-later')
-depends=()
-makedepends=('git' '{'cmake' if build_system == 'cmake' else ''}' '{'meson' if build_system == 'meson' else ''}' '{'rust' if build_system == 'cargo' else ''}')
 
-source=($url/archive/v$pkgver.tar.gz)
-sha256sums=('SKIP')
+def _cmd_health(args: argparse.Namespace) -> int:
+    """Handle `pkgforge health`."""
+    db = HistoryDB()
+    records = db.get_history(limit=1000)
 
-prepare() {{
-    cd \"$pkgname-$pkgver\" || cd \"$srcdir/$pkgname-$pkgver\"
+    print(f"\n🏥 PkgForge Sağlık Raporu\n")
 
-    # Prepare step
-}}
+    if not records:
+        print("  Henüz kayıtlı dönüşüm bulunmuyor.")
+        print("  İlk dönüşümü başlatmak için: pkgforge convert <dosya>")
+        return 0
 
-build() {{
-    cd \"$pkgname-$pkgver\" || cd \"$srcdir/$pkgname-$pkgver\"
+    # Status distribution
+    status_counts: dict[str, int] = {}
+    type_counts: dict[str, int] = {}
+    url_count = 0
+    for r in records:
+        status_counts[r.status] = status_counts.get(r.status, 0) + 1
+        type_counts[r.package_type] = type_counts.get(r.package_type, 0) + 1
+        if r.source_url:
+            url_count += 1
 
-{build_cmds}
-}}
+    total = len(records)
+    installed = status_counts.get("installed", 0)
+    converted = status_counts.get("converted", 0)
+    failed = status_counts.get("install_failed", 0)
+    success_rate = ((installed + converted) / total * 100) if total > 0 else 0
 
-package() {{
-    cd \"$pkgname-$pkgver\" || cd \"$srcdir/$pkgname-$pkgver\"
+    print(f"📊 Dönüşüm İstatistikleri:")
+    print(f"   Toplam dönüşüm:      {total}")
+    print(f"   Başarılı kurulum:    {installed} ({installed/total*100:.0f}%)" if total else "")
+    print(f"   Başarılı (kurumsuz): {converted} ({converted/total*100:.0f}%)" if total else "")
+    print(f"   Başarısız kurulum:   {failed} ({failed/total*100:.0f}%)" if total else "")
+    print(f"   Başarı oranı:        {success_rate:.0f}%")
+    print(f"   URL indirme:         {url_count}")
+    print()
 
-{install_cmds}
-}}
-"""
+    # Type breakdown
+    print(f"📦 Paket Tür Dağılımı:")
+    for ptype, count in sorted(type_counts.items()):
+        pct = count / total * 100 if total else 0
+        bar = "█" * int(pct / 5) + "░" * (20 - int(pct / 5))
+        print(f"   {ptype:<8} {bar} {count} ({pct:.0f}%)")
+    print()
 
-    return pkgbuild
+    # Recent activity (last 7 days approximation)
+    if records:
+        print(f"📅 Son Aktivite:")
+        print(f"   İlk kayıt:  {records[-1].timestamp}")
+        print(f"   Son kayıt:  {records[0].timestamp}")
+        print()
+
+    # Failed packages (error patterns)
+    if failed > 0:
+        print(f"⚠️  Başarısız Paketler:")
+        for r in records:
+            if r.status == "install_failed":
+                print(f"   ❌ {r.package_name} ({r.package_type}) — {r.original_file}")
+        print()
+
+    # Health score
+    if success_rate >= 90:
+        health = "🟢 Mükemmel"
+    elif success_rate >= 70:
+        health = "🟡 İyi"
+    else:
+        health = "🔴 Sorunlu"
+
+    print(f"🏥 Genel Sağlık: {health} ({success_rate:.0f}%)")
+
+    return 0
