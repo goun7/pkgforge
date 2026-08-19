@@ -1,0 +1,57 @@
+MainWindow 1100x760
+  QWidget 1100x738
+    QWidget 1100x738
+      headerBar 1100x61
+        headerTitle "PkgForge" 317x28
+        headerSubtitle "v1.0.0 — .deb/.rpm paketlerini Arch'a dö" 317x17
+        headerBtn 44x44
+        headerBtn 44x44
+        headerBtn 44x44
+        headerBtn 44x44
+        headerBtn 44x44
+      QWidget 1100x677
+        stepContainer 640x480
+          StepDot 28x28
+          stepLabel "Güvenlik Kontrolü" 95x480
+          StepConnector 640x28
+          StepDot 28x28
+          stepLabel "Paket Analizi" 95x480
+          StepConnector 640x28
+          StepDot 28x28
+          stepLabel "Dönüşüm" 95x480
+          StepConnector 640x28
+          StepDot 28x28
+          stepLabel "Uyumluluk Testi" 95x480
+          StepConnector 640x28
+          StepDot 28x28
+          stepLabel "Kurulum" 95x480
+          QProgressBar 640x10
+        dropZone 1052x593
+          QLabel 72x72
+          dropLabel ".deb veya .rpm dosyalarını buraya sürükl" 321x21
+          dropSubLabel "veya" 321x17
+          primaryBtn "📂  Dosyaları Seç" 200x40
+          dropSubLabel "Desteklenen: .deb, .rpm (çoklu seçim yap" 321x17
+        dangerBtn "✕  İptal" 640x480
+        primaryBtn "🔄  Yeni Paket" 640x480
+        logPanel 1052x36
+          logToggle "▶ Log Çıktısı" 88x28
+          logToggle "0 satır" 57x28
+          logToggle "💾" 32x480
+          logText 640x200
+            qt_scrollarea_viewport 638x198
+            qt_scrollarea_hcontainer 100x30
+              QScrollBar 100x30
+            qt_scrollarea_vcontainer 100x30
+              QScrollBar 100x30
+    queueSidebar 220x480
+      QLabel "Paket Kuyruğu" 640x480
+      QScrollArea 640x480
+        qt_scrollarea_viewport 640x480
+          QWidget 640x480
+        qt_scrollarea_hcontainer 100x30
+          QScrollBar 100x30
+        qt_scrollarea_vcontainer 100x30
+          QScrollBar 100x30
+  QStatusBar 1100x22
+    QSizeGrip 17x17

@@ -1,0 +1,9 @@
+Package: hello
+Version: 1.0.0-1
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Test User <test@example.com>
+Depends: libc6
+Description: PkgForge test package
+ A tiny package for user-testing PkgForge.

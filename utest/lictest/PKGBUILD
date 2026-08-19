@@ -1,0 +1,14 @@
+pkgname='lictest'
+pkgver='1.0.0'
+pkgrel=1
+pkgdesc='license test'
+arch=('any')
+url='https://example.com'
+license=('LicenseRef-unknown')
+depends=('bash')
+options=('!strip' '!emptydirs')
+package() {
+    mkdir -p "$pkgdir/usr/share/lictest" "$pkgdir/usr/share/licenses/lictest"
+    echo hi > "$pkgdir/usr/share/lictest/data.txt"
+    printf 'License unknown. Converted package; see upstream for terms.\n' > "$pkgdir/usr/share/licenses/lictest/LICENSE"
+}

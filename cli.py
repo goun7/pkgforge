@@ -48,6 +48,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_flatpak_export(args)
     elif command == "appimage-export":
         return _cmd_appimage_export(args)
+    elif command == "rpm-to-deb":
+        return _cmd_rpm_to_deb(args)
     elif command == "provenance":
         return _cmd_provenance(args)
     elif command == "benchmark":
@@ -56,6 +58,14 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_sign(args)
     elif command == "verify":
         return _cmd_verify(args)
+    elif command == "graph":
+        return _cmd_graph(args)
+    elif command == "audit":
+        return _cmd_audit(args)
+    elif command == "scan-image":
+        return _cmd_scan_image(args)
+    elif command == "from-source":
+        return _cmd_from_source(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -208,6 +218,17 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     )
     prov_path = save_provenance(prov, Path(pkg_path).parent / f"{Path(pkg_path).name}.provenance.json")
     print(f"📋 Provenance: {prov_path.name}")
+
+    # Auto-sign if requested
+    if getattr(args, "sign", False):
+        from core.package_signing import sign_package
+        sign_key = Path(args.sign_key).resolve() if getattr(args, "sign_key", None) else None
+        print(f"✍️  Otomatik imzalanıyor: {Path(pkg_path).name}...")
+        sign_ok, sign_msg = sign_package(Path(pkg_path), sign_key)
+        if sign_ok:
+            print(f"✅ {sign_msg}")
+        else:
+            print(f"⚠️  İmza başarısız: {sign_msg}")
 
     # Backup converted package in HistoryDB
     db = HistoryDB()
@@ -471,6 +492,34 @@ def _cmd_appimage_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_rpm_to_deb(args: argparse.Namespace) -> int:
+    """Handle `pkgforge rpm-to-deb`."""
+    from core.rpm_to_deb_converter import is_rpm_to_deb_available, rpm_to_deb
+
+    if not is_rpm_to_deb_available():
+        print("❌ rpm2cpio veya dpkg-deb bulunamadı — kurulum: sudo pacman -S rpmextract dpkg")
+        return 1
+
+    rpm_path = Path(args.rpm).resolve()
+    if not rpm_path.is_file():
+        print(f"❌ Dosya bulunamadı: {rpm_path}")
+        return 1
+
+    out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
+
+    print(f"📦 RPM → DEB dönüştürülüyor: {rpm_path.name}...")
+    ok, msg, deb_path = rpm_to_deb(rpm_path, out_dir)
+
+    if ok:
+        print(f"✅ {msg}")
+        print(f"   Kurmak için: sudo dpkg -i {deb_path}")
+    else:
+        print(f"❌ {msg}")
+        return 1
+
+    return 0
+
+
 def _cmd_benchmark(args: argparse.Namespace) -> int:
     """Handle `pkgforge benchmark`."""
     from core.benchmark import run_benchmarks
@@ -537,3 +586,323 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     print(f"  Detay:        {info.detail}")
 
     return 0 if info.valid else 1
+
+
+def _cmd_graph(args: argparse.Namespace) -> int:
+    """Handle `pkgforge graph`."""
+    from core.dep_graph import build_dep_graph, build_file_dep_graph
+
+    pkg_name = args.package
+    show_files = getattr(args, "files", False)
+    fmt = getattr(args, "format", "ascii")
+
+    if show_files:
+        # Find the package file
+        import glob as globmod
+        for pattern in [f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.zst",
+                        f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.xz"]:
+            matches = globmod.glob(pattern)
+            if matches:
+                graph = build_file_dep_graph(Path(matches[0]))
+                break
+        else:
+            print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
+            return 1
+    else:
+        graph = build_dep_graph(Path(f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.zst"))
+        if not graph.nodes:
+            print(f"❌ Grafik oluşturulamadı: {pkg_name}")
+            print("   Paket kurulu olmalı veya .pkg.tar.zst dosyası mevcut olmalı.")
+            return 1
+
+    stats = graph.stats()
+    print(f"\n📊 Bağımlılık Grafiği: {graph.root}\n")
+    print(f"   Toplam: {stats['total']}, Kurulu: {stats['installed']}, Eksik: {stats['missing']}")
+    print(f"   Maks Derinlik: {stats['max_depth']}")
+    print()
+
+    if fmt == "mermaid":
+        print(graph.to_mermaid())
+    else:
+        print(graph.to_ascii())
+
+    return 0
+
+
+def _cmd_audit(args: argparse.Namespace) -> int:
+    """Handle `pkgforge audit`."""
+    db = HistoryDB()
+    records = db.get_history(limit=100)
+
+    date_from = getattr(args, "date_from", None)
+    date_to = getattr(args, "date_to", None)
+
+    # Filter by date range if specified
+    if date_from or date_to:
+        filtered = []
+        for r in records:
+            if date_from and r.timestamp < date_from:
+                continue
+            if date_to and r.timestamp > date_to:
+                continue
+            filtered.append(r)
+        records = filtered
+
+    print(f"\n🔍 PkgForge Audit Trail\n")
+    print(f"   Toplam kayıt: {len(records)}\n")
+
+    if not records:
+        print("  Kayıt bulunamadı.")
+        return 0
+
+    # Summary
+    status_counts: dict[str, int] = {}
+    type_counts: dict[str, int] = {}
+    for r in records:
+        status_counts[r.status] = status_counts.get(r.status, 0) + 1
+        type_counts[r.package_type] = type_counts.get(r.package_type, 0) + 1
+
+    print("📊 Özet:")
+    for status, count in sorted(status_counts.items()):
+        icon = {"installed": "✅", "converted": "📦", "install_failed": "❌", "oci_built": "🐳"}.get(status, "•")
+        print(f"   {icon} {status}: {count}")
+    print()
+
+    print("📦 Paket Türleri:")
+    for ptype, count in sorted(type_counts.items()):
+        print(f"   • {ptype}: {count}")
+    print()
+
+    # Detailed trail
+    print("📋 Detaylı Kayıtlar:")
+    print(f"{'ID':<4} {'Tarih':<20} {'Paket':<20} {'Tür':<6} {'Durum':<12} {'Orijinal Dosya'}")
+    print("-" * 90)
+    for r in records:
+        print(f"{r.id:<4} {r.timestamp:<20} {r.package_name:<20} {r.package_type:<6} {r.status:<12} {r.original_file}")
+
+    return 0
+
+
+def _cmd_scan_image(args: argparse.Namespace) -> int:
+    """Handle `pkgforge scan-image`."""
+    image_path = Path(args.image).resolve()
+    if not image_path.is_file():
+        print(f"❌ Görüntü dosyası bulunamadı: {image_path}")
+        return 1
+
+    # Check for trivy or grype
+    trivy = shutil.which("trivy")
+    grype = shutil.which("grype")
+    clamscan = shutil.which("clamscan")
+
+    if not trivy and not grype and not clamscan:
+        print("❌ Tarama aracı bulunamadı.")
+        print("   Kurulum: sudo pacman -S trivy")
+        print("   veya: sudo pacman -S grype")
+        print("   veya: sudo pacman -S clamav")
+        return 1
+
+    print(f"🔍 OCI Görüntü Taraması: {image_path.name}\n")
+    all_clean = True
+
+    # Trivy scan
+    if trivy:
+        print("  🔬 Trivy CVE taraması...")
+        res = safe_run([trivy, "fs", "--severity", "HIGH,CRITICAL", str(image_path)], timeout=300)
+        if res.returncode == 0:
+            print("  ✅ Trivy: Kritik CVE bulunamadı")
+        else:
+            all_clean = False
+            print(f"  ⚠️  Trivy sonuçları:\n{res.stdout[:500]}")
+
+    # Grype scan
+    if grype:
+        print("  🔬 Grype bağımlılık taraması...")
+        res = safe_run([grype, "dir:" + str(image_path.parent), "--fail-on", "high"], timeout=300)
+        if res.returncode == 0:
+            print("  ✅ Grype: Yüksek-seviye açık bulunamadı")
+        else:
+            all_clean = False
+            print(f"  ⚠️  Grype sonuçları:\n{res.stdout[:500]}")
+
+    # ClamAV scan
+    if clamscan:
+        print("  🔬 ClamAV malware taraması...")
+        res = safe_run([clamscan, "--infected", "--no-summary", str(image_path)], timeout=120)
+        if res.returncode == 1:
+            print("  ✅ ClamAV: Temiz")
+        elif res.returncode == 0:
+            print(f"  ❌ ClamAV enfekte dosya tespit etti:\n{res.stdout[:500]}")
+            all_clean = False
+        else:
+            print(f"  ⚠️  ClamAV çalışamadı: {res.stderr[:200]}")
+
+    print()
+    if all_clean:
+        print("✅ Tüm taramalar temiz — görüntü güvenli.")
+    else:
+        print("⚠️  Bazı taramalar uyarı verdi — sonuçları inceleyin.")
+        return 1
+
+    return 0
+
+
+def _cmd_from_source(args: argparse.Namespace) -> int:
+    """Handle `pkgforge from-source`."""
+    repo_url = args.repo_url
+    out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
+
+    print(f"📥 Kaynaktan PKGBUILD oluşturuluyor: {repo_url}\n")
+
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="pkgforge_src_") as tmpdir:
+        tmp = Path(tmpdir)
+
+        # 1. Clone repo
+        print("  📥 Depo klonlanıyor...")
+        res = safe_run(["git", "clone", "--depth=1", repo_url, str(tmp / "repo")], timeout=120)
+        if res.returncode != 0:
+            print(f"❌ Git clone başarısız: {res.stderr[:200]}")
+            return 1
+
+        repo_dir = tmp / "repo"
+
+        # 2. Detect project type
+        pkgbuild = None
+        has_cmake = (repo_dir / "CMakeLists.txt").exists()
+        has_makefile = (repo_dir / "Makefile").exists() or (repo_dir / "makefile").exists()
+        has_meson = (repo_dir / "meson.build").exists()
+        has_configure = (repo_dir / "configure").exists()
+        has_setup_py = (repo_dir / "setup.py").exists()
+        has_cargo = (repo_dir / "Cargo.toml").exists()
+
+        # Determine project name from URL
+        proj_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
+
+        print(f"  📁 Proje tespit edildi: {proj_name}")
+        if has_cmake:
+            build_system = "cmake"
+        elif has_meson:
+            build_system = "meson"
+        elif has_cargo:
+            build_system = "cargo"
+        elif has_configure:
+            build_system = "autotools"
+        elif has_makefile:
+            build_system = "make"
+        elif has_setup_py:
+            build_system = "python"
+        else:
+            build_system = "unknown"
+        print(f"  🔧 Build sistemi: {build_system}\n")
+
+        # 3. Generate PKGBUILD
+        pkgbuild_content = _generate_pkgbuild_from_source(
+            proj_name, repo_url, build_system, repo_dir
+        )
+
+        # 4. Write PKGBUILD
+        output_pkgbuild = out_dir / f"PKGBUILD-{proj_name}"
+        output_pkgbuild.write_text(pkgbuild_content, encoding="utf-8")
+        print(f"✅ PKGBUILD oluşturuldu: {output_pkgbuild}\n")
+
+        # Show preview
+        print("📋 PKGBUILD Önizleme:")
+        print("-" * 60)
+        for i, line in enumerate(pkgbuild_content.splitlines()[:30]):
+            print(f"  {line}")
+        if len(pkgbuild_content.splitlines()) > 30:
+            print(f"  ... ({len(pkgbuild_content.splitlines()) - 30} satır daha)")
+        print("-" * 60)
+
+        print(f"\n💡 Derlemek için: cd {out_dir} && makepkg -si")
+
+    return 0
+
+
+def _generate_pkgbuild_from_source(
+    name: str,
+    repo_url: str,
+    build_system: str,
+    repo_dir: Path,
+) -> str:
+    """Generate a PKGBUILD template from source repo info."""
+    # Try to extract version from common files
+    version = "1.0.0"
+    for vf in [repo_dir / "VERSION", repo_dir / "version.txt", repo_dir / "VERSION.txt"]:
+        if vf.exists():
+            version = vf.read_text().strip().splitlines()[0]
+            break
+
+    # Try to extract description from README
+    description = f"{name} — kaynaktan derlenen paket"
+    for readme in [repo_dir / "README.md", repo_dir / "README", repo_dir / "README.rst"]:
+        if readme.exists():
+            for line in readme.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and len(line) > 10:
+                    description = line[:100]
+                    break
+            break
+
+    # Escape for PKGBUILD
+    description = description.replace("'", "''")
+
+    # Build commands based on build system
+    if build_system == "cmake":
+        build_cmds = """    cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build"""
+        install_cmds = """    DESTDIR=\"$pkgdir" cmake --install build"""
+    elif build_system == "meson":
+        build_cmds = """    meson setup build
+    meson compile -C build"""
+        install_cmds = """    DESTDIR=\"$pkgdir" meson install -C build"""
+    elif build_system == "cargo":
+        build_cmds = """    cargo build --release --locked"""
+        install_cmds = """    install -Dm755 target/release/\"$pkgname\" \"$pkgdir/usr/bin/$pkgname\""""
+    elif build_system == "autotools":
+        build_cmds = """    ./configure --prefix=/usr
+    make"""
+        install_cmds = """    make DESTDIR=\"$pkgdir\" install"""
+    elif build_system == "python":
+        build_cmds = """    python -m build"""
+        install_cmds = """    python -m installer --destdir=\"$pkgdir\" dist/*.whl"""
+    else:
+        build_cmds = """    make"""
+        install_cmds = """    make DESTDIR=\"$pkgdir\" install"""
+
+    pkgbuild = f"""# Maintainer: PkgForge <noreply@pkgforge.app>
+
+pkgname={name}
+pkgver={version}
+pkgrel=1
+pkgdesc='{description}'
+arch=('x86_64')
+url='{repo_url}'
+license=('GPL-3.0-or-later')
+depends=()
+makedepends=('git' '{'cmake' if build_system == 'cmake' else ''}' '{'meson' if build_system == 'meson' else ''}' '{'rust' if build_system == 'cargo' else ''}')
+
+source=($url/archive/v$pkgver.tar.gz)
+sha256sums=('SKIP')
+
+prepare() {{
+    cd \"$pkgname-$pkgver\" || cd \"$srcdir/$pkgname-$pkgver\"
+
+    # Prepare step
+}}
+
+build() {{
+    cd \"$pkgname-$pkgver\" || cd \"$srcdir/$pkgname-$pkgver\"
+
+{build_cmds}
+}}
+
+package() {{
+    cd \"$pkgname-$pkgver\" || cd \"$srcdir/$pkgname-$pkgver\"
+
+{install_cmds}
+}}
+"""
+
+    return pkgbuild

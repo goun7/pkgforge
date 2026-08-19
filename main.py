@@ -199,6 +199,8 @@ def main() -> int:
     convert_parser.add_argument("--oci-tag", help=tr("cli.arg_oci_tag"))
     convert_parser.add_argument("--delta", action="store_true", help=tr("cli.arg_delta"))
     convert_parser.add_argument("--verify-build", action="store_true", help=tr("cli.arg_verify_build"))
+    convert_parser.add_argument("--sign", action="store_true", help=tr("cli.arg_sign_auto"))
+    convert_parser.add_argument("--sign-key", help=tr("cli.arg_sign_key_auto"))
 
     # list subcommand
     subparsers.add_parser("list", help=tr("cli.list_help"))
@@ -225,6 +227,31 @@ def main() -> int:
     appimage_parser = subparsers.add_parser("appimage-export", help=tr("cli.appimage_export_help"))
     appimage_parser.add_argument("appimage", help=tr("cli.arg_appimage_path"))
     appimage_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+
+    # graph subcommand
+    graph_parser = subparsers.add_parser("graph", help=tr("cli.graph_help"))
+    graph_parser.add_argument("package", help=tr("cli.arg_graph_pkg"))
+    graph_parser.add_argument("--files", action="store_true", help=tr("cli.arg_graph_files"))
+    graph_parser.add_argument("--format", choices=["ascii", "mermaid"], default="ascii", help=tr("cli.arg_graph_format"))
+
+    # audit subcommand
+    audit_parser = subparsers.add_parser("audit", help=tr("cli.audit_help"))
+    audit_parser.add_argument("--from", dest="date_from", help=tr("cli.arg_audit_from"))
+    audit_parser.add_argument("--to", dest="date_to", help=tr("cli.arg_audit_to"))
+
+    # scan-image subcommand
+    scan_parser = subparsers.add_parser("scan-image", help=tr("cli.scan_image_help"))
+    scan_parser.add_argument("image", help=tr("cli.arg_scan_image_path"))
+
+    # from-source subcommand
+    source_parser = subparsers.add_parser("from-source", help=tr("cli.from_source_help"))
+    source_parser.add_argument("repo_url", help=tr("cli.arg_source_repo_url"))
+    source_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+
+    # rpm-to-deb subcommand
+    rpm2deb_parser = subparsers.add_parser("rpm-to-deb", help=tr("cli.rpm_to_deb_help"))
+    rpm2deb_parser.add_argument("rpm", help=tr("cli.arg_rpm_to_deb_path"))
+    rpm2deb_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
 
     # provenance subcommand
     prov_parser = subparsers.add_parser("provenance", help=tr("cli.provenance_help"))
