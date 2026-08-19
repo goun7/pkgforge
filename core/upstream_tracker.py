@@ -48,13 +48,24 @@ def check_upstream_update(record: HistoryRecord) -> UpdateCheckResult:
         )
 
     try:
-        req = urllib.request.Request(
-            record.source_url,
-            method="HEAD",
-            headers={"User-Agent": f"PkgForge/{APP_VERSION}"},
-        )
+        from core.retry import retry_with_backoff, RetryConfig
 
-        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+        def _do_head():
+            req = urllib.request.Request(
+                record.source_url,
+                method="HEAD",
+                headers={"User-Agent": f"PkgForge/{APP_VERSION}"},
+            )
+            return urllib.request.urlopen(req, timeout=10)  # nosec B310
+
+        retry_config = RetryConfig(
+            max_retries=2,
+            base_delay=1.0,
+            retryable_exceptions=(urllib.error.URLError, ConnectionError, TimeoutError, OSError),
+        )
+        resp = retry_with_backoff(_do_head, config=retry_config, operation_name="upstream-HEAD")
+
+        with resp:
             headers = resp.headers
             etag = headers.get("ETag", "").strip('"')
             last_mod = headers.get("Last-Modified", "")

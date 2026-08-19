@@ -70,6 +70,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_abi_check(args)
     elif command == "health":
         return _cmd_health(args)
+    elif command == "snapshot-cleanup":
+        return _cmd_snapshot_cleanup(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -374,17 +376,43 @@ def _cmd_rollback(args: argparse.Namespace) -> int:
 
 def _cmd_check_updates(args: argparse.Namespace) -> int:
     """Handle `pkgforge check-updates`."""
-    print(tr("cli.checking_updates") + "\n")
-    results = check_all_installed_updates()
+    import time as _time
 
-    if not results:
-        print(tr("cli.no_url_pkgs"))
-        return 0
+    watch_mode = getattr(args, "watch", False)
+    interval = getattr(args, "interval", 300)
 
-    for r in results:
-        status_icon = "🟢" if r.has_update else "⚪"
-        print(f"  {status_icon} {r.package_name:<20} | {r.detail}")
-    return 0
+    if watch_mode:
+        print(f"👁️  İzleme modu başlatıldı (her {interval} saniyede bir kontrol)\n")
+        print("    Durdurmak için: Ctrl+C\n")
+
+    while True:
+        print(tr("cli.checking_updates") + "\n")
+        results = check_all_installed_updates()
+
+        if not results:
+            print(tr("cli.no_url_pkgs"))
+            if not watch_mode:
+                return 0
+        else:
+            updates_found = [r for r in results if r.has_update]
+            for r in results:
+                status_icon = "🟢" if r.has_update else "⚪"
+                print(f"  {status_icon} {r.package_name:<20} | {r.detail}")
+
+            if updates_found:
+                print(f"\n  📢 {len(updates_found)} güncelleme mevcut!")
+                for r in updates_found:
+                    print(f"     → {r.package_name}: {r.detail}")
+
+        if not watch_mode:
+            return 0
+
+        print(f"\n  ⏳ {interval}s sonra tekrar kontrol edilecek...")
+        try:
+            _time.sleep(interval)
+        except KeyboardInterrupt:
+            print("\n  👁️  İzleme durduruldu.")
+            return 0
 
 
 def _cmd_flatpak_export(args: argparse.Namespace) -> int:
@@ -1029,3 +1057,56 @@ def _cmd_health(args: argparse.Namespace) -> int:
     print(f"🏥 Genel Sağlık: {health} ({success_rate:.0f}%)")
 
     return 0
+
+
+def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
+    """Handle `pkgforge snapshot-cleanup`."""
+    from core.snapshot_cleanup import (
+        install_cleanup_service, remove_cleanup_service, get_cleanup_status,
+    )
+
+    if getattr(args, "install", False):
+        max_age = getattr(args, "max_age", 7)
+        print(f"📦 Snapshot cleanup servisi kuruluyor (maks. yaş: {max_age} gün)...\n")
+        ok, msg = install_cleanup_service(max_age_days=max_age)
+        if ok:
+            print(msg)
+        else:
+            print(f"❌ {msg}")
+            return 1
+        return 0
+
+    elif getattr(args, "remove", False):
+        print("🗑️  Snapshot cleanup servisi kaldırılıyor...\n")
+        ok, msg = remove_cleanup_service()
+        if ok:
+            print(msg)
+        else:
+            print(f"❌ {msg}")
+            return 1
+        return 0
+
+    else:
+        # Default: show status
+        status = get_cleanup_status()
+        print("\n🔍 PkgForge Snapshot Cleanup Durumu\n")
+        if status["installed"]:
+            print(f"  📦 Servis:    Kurulu")
+            print(f"  ▶️  Durum:     {'Aktif' if status['active'] else 'Durdurulmuş'}")
+            if status["next_run"]:
+                print(f"  ⏰ Sıradaki:  {status['next_run']}")
+        else:
+            print("  ❌ Servis kurulu değil")
+            print("\n  💡 Kurmak için: pkgforge snapshot-cleanup --install")
+
+        print(f"\n  📋 Mevcut snapshot'lar:")
+        from core.snapshot_manager import list_snapshots, detect_backend
+        backend = detect_backend()
+        print(f"  Algılanan arka plan: {backend}")
+        snaps = list_snapshots()
+        if snaps:
+            for s in snaps:
+                print(f"    • {s['name']} ({s.get('date', '?')})")
+        else:
+            print("    (snapshot bulunamadı)")
+        return 0

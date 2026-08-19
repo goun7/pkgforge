@@ -66,7 +66,12 @@ def download_package(
     max_bytes = MAX_PACKAGE_SIZE_MB * 1024 * 1024
     downloaded_bytes = 0
 
-    try:
+    # Retry with exponential backoff for network errors
+    from core.retry import retry_with_backoff, RetryConfig
+
+    def _do_download():
+        nonlocal downloaded_bytes
+        downloaded_bytes = 0
         with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             content_length = resp.headers.get("Content-Length")
             if content_length and int(content_length) > max_bytes:
@@ -88,8 +93,15 @@ def download_package(
                         raise ValueError("İndirme boyutu maksimum limiti aştı")
                     out_f.write(chunk)
 
-    except urllib.error.URLError as exc:
-        log.error("İndirme başarısız: %s", exc)
+    retry_config = RetryConfig(
+        max_retries=3,
+        base_delay=2.0,
+        retryable_exceptions=(urllib.error.URLError, ConnectionError, TimeoutError, OSError),
+    )
+    try:
+        retry_with_backoff(_do_download, config=retry_config, operation_name=f"download({filename})")
+    except Exception as exc:
+        log.error("İndirme başarısız (3 deneme): %s", exc)
         raise RuntimeError(f"İndirme başarısız: {exc}")
 
     # Optional integrity verification against a known SHA-256

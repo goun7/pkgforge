@@ -215,7 +215,9 @@ def main() -> int:
     rollback_parser.add_argument("package", help="Package name to rollback")
 
     # check-updates subcommand
-    subparsers.add_parser("check-updates", help=tr("cli.updates_help"))
+    updates_parser = subparsers.add_parser("check-updates", help=tr("cli.updates_help"))
+    updates_parser.add_argument("--watch", action="store_true", help=tr("cli.arg_watch"))
+    updates_parser.add_argument("--interval", type=int, default=300, help=tr("cli.arg_watch_interval"))
 
     # flatpak-export subcommand
     flatpak_parser = subparsers.add_parser("flatpak-export", help=tr("cli.flatpak_export_help"))
@@ -250,6 +252,13 @@ def main() -> int:
 
     # health subcommand
     subparsers.add_parser("health", help=tr("cli.health_help"))
+
+    # snapshot-cleanup subcommand
+    snap_clean_parser = subparsers.add_parser("snapshot-cleanup", help=tr("cli.snapshot_cleanup_help"))
+    snap_clean_parser.add_argument("--install", action="store_true", help=tr("cli.arg_cleanup_install"))
+    snap_clean_parser.add_argument("--remove", action="store_true", help=tr("cli.arg_cleanup_remove"))
+    snap_clean_parser.add_argument("--status", action="store_true", help=tr("cli.arg_cleanup_status"))
+    snap_clean_parser.add_argument("--max-age", type=int, default=7, help=tr("cli.arg_cleanup_max_age"))
 
     # from-source subcommand
     source_parser = subparsers.add_parser("from-source", help=tr("cli.from_source_help"))

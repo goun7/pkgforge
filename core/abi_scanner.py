@@ -40,6 +40,16 @@ class SymbolMismatch:
 
 
 @dataclass
+class NamcapResult:
+    """Namcap static analysis result for a single finding."""
+
+    severity: str  # "error" | "warning" | "info"
+    tag: str       # namcap tag name (e.g., "htar-warning")
+    message: str   # Human-readable description
+    file: str = "" # Associated file path (if any)
+
+
+@dataclass
 class ABIScanReport:
     """Complete ABI compatibility scan report."""
 
@@ -47,14 +57,18 @@ class ABIScanReport:
     mismatches: list[SymbolMismatch] = field(default_factory=list)
     missing_libs: list[tuple[str, str]] = field(default_factory=list)  # (binary, lib)
     checked_symbols: int = 0
+    namcap_results: list[NamcapResult] = field(default_factory=list)
+    namcap_available: bool = False
 
     @property
     def passed(self) -> bool:
-        return len(self.mismatches) == 0 and len(self.missing_libs) == 0
+        has_namcap_errors = any(r.severity == "error" for r in self.namcap_results)
+        return len(self.mismatches) == 0 and len(self.missing_libs) == 0 and not has_namcap_errors
 
     @property
     def error_count(self) -> int:
-        return len(self.mismatches) + len(self.missing_libs)
+        namcap_errs = sum(1 for r in self.namcap_results if r.severity == "error")
+        return len(self.mismatches) + len(self.missing_libs) + namcap_errs
 
     def summary(self) -> str:
         lines = [
@@ -63,6 +77,11 @@ class ABIScanReport:
             f"  ❌ Sembol uyumsuzluğu: {len(self.mismatches)}",
             f"  📦 Eksik kütüphane: {len(self.missing_libs)}",
         ]
+        if self.namcap_available:
+            n_errors = sum(1 for r in self.namcap_results if r.severity == "error")
+            n_warns = sum(1 for r in self.namcap_results if r.severity == "warning")
+            n_info = sum(1 for r in self.namcap_results if r.severity == "info")
+            lines.append(f"  🏷️  Namcap: {n_errors} hata, {n_warns} uyarı, {n_info} bilgi")
         if self.mismatches:
             lines.append("")
             lines.append("  Uyumsuz Semboller:")
@@ -77,6 +96,13 @@ class ABIScanReport:
             lines.append("  Eksik Kütüphaneler:")
             for binary, lib in self.missing_libs[:20]:
                 lines.append(f"    ❌  {binary}: {lib}")
+        if self.namcap_results:
+            lines.append("")
+            lines.append("  Namcap Bulguları:")
+            for r in self.namcap_results[:20]:
+                icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}.get(r.severity, "•")
+                loc = f" ({r.file})" if r.file else ""
+                lines.append(f"    {icon} [{r.tag}] {r.message}{loc}")
         return "\n".join(lines)
 
 
@@ -254,6 +280,68 @@ def _extract_symbol_for_version(elf_path: Path, version_tag: str) -> str | None:
     return None
 
 
+def _run_namcap(pkg_path: Path) -> list[NamcapResult]:
+    """Run namcap static analysis on a package file.
+
+    Args:
+        pkg_path: Path to .pkg.tar.zst or .deb file.
+
+    Returns:
+        List of NamcapResult objects.
+    """
+    namcap = shutil.which("namcap")
+    if not namcap:
+        return []
+
+    results: list[NamcapResult] = []
+    try:
+        res = subprocess.run(
+            [namcap, str(pkg_path)],
+            capture_output=True, text=True, timeout=120,
+        )
+        # namcap output format:
+        # PKGBUILD (line N): warning: description should not be empty
+        # PKGBUILD (line N): error: depends contains not a dependency
+        # file.txt (line 1): info: refer to https://wiki.archlinux.org/...
+        for line in res.stdout.splitlines():
+            line = line.strip()
+            if not line or line.startswith("namcap:"):
+                continue
+
+            severity = "info"
+            if ": error:" in line or ": error " in line:
+                severity = "error"
+            elif ": warning:" in line or ": warning " in line:
+                severity = "warning"
+
+            # Parse tag from line
+            tag_match = re.search(r'\b(error|warning|info):\s+(\S+)', line)
+            tag = tag_match.group(2) if tag_match else "unknown"
+
+            # Extract file reference
+            file_match = re.match(r'^(\S+)', line)
+            file_ref = file_match.group(1) if file_match and ":" in line else ""
+
+            # Clean message
+            msg = line
+            if ":" in msg:
+                parts = msg.split(":", 2)
+                if len(parts) >= 3:
+                    msg = parts[2].strip()
+
+            results.append(NamcapResult(
+                severity=severity,
+                tag=tag,
+                message=msg[:200],
+                file=file_ref,
+            ))
+
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        log.debug("Namcap çalışamadı: %s", exc)
+
+    return results
+
+
 def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
     """Check ABI compatibility of all ELF binaries in a package.
 
@@ -340,5 +428,11 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
                             report.missing_libs.append((rel_path, lib_name))
                 except (subprocess.TimeoutExpired, OSError):
                     pass
+
+        # Run namcap static analysis on the package
+        namcap = shutil.which("namcap")
+        if namcap:
+            report.namcap_available = True
+            report.namcap_results = _run_namcap(pkg_path)
 
     return report

@@ -125,20 +125,18 @@ def _aur_helper() -> str | None:
 
 def _check_aur(name: str) -> tuple[bool, str]:
     """Check if a package is in the AUR."""
-    # Method 1: Try AUR RPC
+    # Method 1: Try AUR RPC with retry
     try:
-        req = Request(
-            f"https://aur.archlinux.org/rpc/v5/info/{name}",
-            headers={"User-Agent": "PkgForge/1.0"},
-        )
-        with urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
-            if data.get("resultcount", 0) > 0:
-                pkg = data["results"][0]
-                aur_name = pkg.get("Name", "")
-                aur_ver = pkg.get("Version", "")
-                return True, aur_ver if aur_name else ""
-    except (URLError, json.JSONDecodeError, KeyError, OSError):
+        from core.retry import retry_aur_rpc
+
+        rpc_url = f"https://aur.archlinux.org/rpc/v5/info/{name}"
+        data = retry_aur_rpc(rpc_url, max_retries=2, timeout=10)
+        if data.get("resultcount", 0) > 0:
+            pkg = data["results"][0]
+            aur_name = pkg.get("Name", "")
+            aur_ver = pkg.get("Version", "")
+            return True, aur_ver if aur_name else ""
+    except Exception:
         pass
 
     # Method 2: Try AUR helper
