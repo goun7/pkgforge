@@ -44,6 +44,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_rollback(args)
     elif command == "check-updates":
         return _cmd_check_updates(args)
+    elif command == "flatpak-export":
+        return _cmd_flatpak_export(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -304,4 +306,50 @@ def _cmd_check_updates(args: argparse.Namespace) -> int:
     for r in results:
         status_icon = "🟢" if r.has_update else "⚪"
         print(f"  {status_icon} {r.package_name:<20} | {r.detail}")
+    return 0
+
+
+def _cmd_flatpak_export(args: argparse.Namespace) -> int:
+    """Handle `pkgforge flatpak-export`."""
+    from core.flatpak_converter import (
+        is_flatpak_available, list_installed_apps, flatpak_to_deb,
+    )
+
+    if not is_flatpak_available():
+        print("❌ flatpak bulunamadı — kurulum: sudo pacman -S flatpak")
+        return 1
+
+    # --list: show installed apps
+    if getattr(args, "list", False):
+        apps = list_installed_apps()
+        if not apps:
+            print("  Yüklü Flatpak uygulaması bulunamadı.")
+            return 0
+        print(f"{'App ID':<40} {'Name':<25} {'Version':<15} {'Branch'}")
+        print("-" * 95)
+        for app in apps:
+            print(f"{app.app_id:<40} {app.name:<25} {app.version:<15} {app.branch}")
+        return 0
+
+    # Export a specific app
+    app_id = getattr(args, "app_id", None)
+    if not app_id:
+        print("❌ Flatpak uygulama ID'si gerekli.")
+        print("   Örnek: pkgforge flatpak-export org.mozilla.firefox")
+        print("   Listelemek için: pkgforge flatpak-export --list")
+        return 1
+
+    branch = getattr(args, "branch", "stable")
+    out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
+
+    print(f"🐳 Flatpak → DEB dönüştürülüyor: {app_id}//{branch}...")
+    ok, msg, deb_path = flatpak_to_deb(app_id, out_dir, branch)
+
+    if ok:
+        print(f"✅ {msg}")
+        print(f"   Kurmak için: sudo dpkg -i {deb_path}")
+    else:
+        print(f"❌ {msg}")
+        return 1
+
     return 0

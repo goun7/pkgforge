@@ -213,6 +213,13 @@ def main() -> int:
     # check-updates subcommand
     subparsers.add_parser("check-updates", help=tr("cli.updates_help"))
 
+    # flatpak-export subcommand
+    flatpak_parser = subparsers.add_parser("flatpak-export", help=tr("cli.flatpak_export_help"))
+    flatpak_parser.add_argument("app_id", nargs="?", help=tr("cli.arg_flatpak_app_id"))
+    flatpak_parser.add_argument("--list", action="store_true", help=tr("cli.arg_flatpak_list"))
+    flatpak_parser.add_argument("--branch", default="stable", help=tr("cli.arg_flatpak_branch"))
+    flatpak_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
