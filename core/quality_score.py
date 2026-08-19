@@ -83,6 +83,24 @@ class QualityReport:
         return "\n".join(lines)
 
 
+def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
+    """Read .PKGINFO from package once and return as dict."""
+    info: dict[str, str] = {}
+    try:
+        res = subprocess.run(
+            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                if " = " in line:
+                    key, val = line.split(" = ", 1)
+                    info[key.strip()] = val.strip()
+    except Exception:
+        pass
+    return info
+
+
 def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
     """Score a converted package on multiple quality dimensions.
 
@@ -183,18 +201,11 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
     # ── Compatibility checks (25 pts) ───────────────────────────
 
     # Dependencies resolved (15 pts)
+    pkginfo = _read_pkginfo(pkg_path)
+
     try:
         from core.dep_resolver import resolve_dependencies
-        # Try to read deps from .PKGINFO
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
-        )
-        deps = []
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("depend = "):
-                    deps.append(line.split("=", 1)[1].strip())
+        deps = [v for k, v in pkginfo.items() if k == "depend"]
 
         if deps:
             resolve_report = resolve_dependencies(deps, include_installed=True)
@@ -221,15 +232,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # Architecture match (10 pts)
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
-        )
-        arch = ""
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("arch = "):
-                    arch = line.split("=", 1)[1].strip()
+        arch = pkginfo.get("arch", "")
 
         import platform
         system_arch = platform.machine()
@@ -258,15 +261,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # Version (5 pts)
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
-        )
-        version = ""
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("pkgver = "):
-                    version = line.split("=", 1)[1].strip()
+        version = pkginfo.get("pkgver", "")
         ver_ok = bool(version)
         report.checks.append(QualityCheck(
             name="Sürüm", category="metadata",
@@ -282,15 +277,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # Description (5 pts)
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
-        )
-        desc = ""
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("desc = "):
-                    desc = line.split("=", 1)[1].strip()
+        desc = pkginfo.get("desc", "")
         desc_ok = bool(desc and len(desc) > 5)
         report.checks.append(QualityCheck(
             name="Açıklama", category="metadata",
@@ -306,15 +293,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # License (5 pts)
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
-        )
-        license_id = ""
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("license = "):
-                    license_id = line.split("=", 1)[1].strip()
+        license_id = pkginfo.get("license", "")
         lic_ok = bool(license_id)
         report.checks.append(QualityCheck(
             name="Lisans", category="metadata",
@@ -330,15 +309,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # Homepage (5 pts)
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
-        )
-        url = ""
-        if res.returncode == 0:
-            for line in res.stdout.splitlines():
-                if line.startswith("url = "):
-                    url = line.split("=", 1)[1].strip()
+        url = pkginfo.get("url", "")
         url_ok = bool(url and url.startswith("http"))
         report.checks.append(QualityCheck(
             name="Web Sitesi", category="metadata",

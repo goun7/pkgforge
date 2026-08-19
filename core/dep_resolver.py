@@ -125,13 +125,19 @@ def _aur_helper() -> str | None:
 
 def _check_aur(name: str) -> tuple[bool, str]:
     """Check if a package is in the AUR."""
-    # Method 1: Try AUR RPC with retry
+    # Method 1: Try AUR RPC with retry + offline cache
     try:
         from core.retry import retry_aur_rpc
+        from core.offline_cache import get_cache
 
+        cache = get_cache()
         rpc_url = f"https://aur.archlinux.org/rpc/v5/info/{name}"
-        data = retry_aur_rpc(rpc_url, max_retries=2, timeout=10)
-        if data.get("resultcount", 0) > 0:
+
+        def _fetch_aur():
+            return retry_aur_rpc(rpc_url, max_retries=2, timeout=10)
+
+        data = cache.get_or_fetch("aur", name, _fetch_aur)
+        if data and data.get("resultcount", 0) > 0:
             pkg = data["results"][0]
             aur_name = pkg.get("Name", "")
             aur_ver = pkg.get("Version", "")
@@ -250,3 +256,103 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
         return True, f"{len(packages)} paket kuruldu: {', '.join(packages)}"
     else:
         return False, f"Kurulum başarısız: {res.stderr[:300]}"
+
+
+
+# ── Runtime dependency resolver (from dependency_resolver.py) ─────
+# Resolves ELF sonames to Arch packages via readelf + pacman -Fq
+
+import re as _re
+
+_NEEDED_RE = _re.compile(r"NEEDED\)\s+Shared library:\s+\[([^\]]+)\]")
+_OBJDUMP_NEEDED_RE = _re.compile(r"^\s*NEEDED\s+(\S+)\s*$", _re.MULTILINE)
+_ELF_MAGIC = b"\x7fELF"
+
+
+def parse_needed_sonames(readelf_output: str) -> list[str]:
+    """Extract DT_NEEDED sonames from ``readelf -d`` output."""
+    return _NEEDED_RE.findall(readelf_output)
+
+
+def parse_objdump_sonames(objdump_output: str) -> list[str]:
+    """Extract NEEDED sonames from ``objdump -p`` output."""
+    return _OBJDUMP_NEEDED_RE.findall(objdump_output)
+
+
+def is_elf_file(path: Path) -> bool:
+    """Return True if *path* starts with the ELF magic bytes."""
+    try:
+        with open(path, "rb") as f:
+            return f.read(4) == _ELF_MAGIC
+    except OSError:
+        return False
+
+
+def collect_sonames(root_dir: Path, tools: ToolPaths, *, max_files: int = 200) -> set[str]:
+    """Walk *root_dir*, statically read each ELF's DT_NEEDED sonames."""
+    reader = tools.readelf or tools.objdump
+    if not reader:
+        return set()
+
+    sonames: set[str] = set()
+    checked = 0
+    for path in root_dir.rglob("*"):
+        if checked >= max_files:
+            break
+        if not path.is_file() or path.is_symlink():
+            continue
+        if not is_elf_file(path):
+            continue
+        checked += 1
+        try:
+            if tools.readelf:
+                res = subprocess.run([tools.readelf, "-d", str(path)],
+                    capture_output=True, text=True, timeout=10)
+                sonames.update(parse_needed_sonames(res.stdout))
+            else:
+                res = subprocess.run([tools.objdump, "-p", str(path)],
+                    capture_output=True, text=True, timeout=10)
+                sonames.update(parse_objdump_sonames(res.stdout))
+        except Exception as exc:
+            log.debug("soname okunamadı (%s): %s", path.name, exc)
+    return sonames
+
+
+def sonames_to_packages(sonames: set[str], tools: ToolPaths) -> list[str]:
+    """Map each soname to the Arch package that owns it via ``pacman -Fq``."""
+    pacman = tools.pacman or shutil.which("pacman")
+    if not pacman:
+        return []
+
+    packages: set[str] = set()
+    for soname in sonames:
+        if soname.startswith("ld-") or soname.startswith("ld-linux"):
+            packages.add("glibc")
+            continue
+        try:
+            res = subprocess.run([pacman, "-Fq", soname],
+                capture_output=True, text=True, timeout=8)
+        except Exception:
+            continue
+        if res.returncode != 0 or not res.stdout.strip():
+            continue
+        for line in res.stdout.strip().splitlines():
+            pkg = line.strip().split("/")[-1].split()[0]
+            if pkg:
+                packages.add(pkg)
+                break
+    return sorted(packages)
+
+
+def resolve_runtime_dependencies(root_dir: Path, tools: ToolPaths) -> list[str]:
+    """Return the confirmed Arch package dependencies for a build tree."""
+    try:
+        sonames = collect_sonames(root_dir, tools)
+        if not sonames:
+            return []
+        packages = sonames_to_packages(sonames, tools)
+        log.info("Bağımlılık çözümü: %d soname → %d Arch paketi", len(sonames), len(packages))
+        return packages
+    except Exception as exc:
+        log.warning("Bağımlılık çözümü başarısız: %s", exc)
+        return []

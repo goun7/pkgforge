@@ -18,6 +18,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import shlex
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -192,7 +193,7 @@ def push_to_aur(
     if res.returncode != 0:
         cmd = [git, "remote", "add", "origin", aur_repo_url]
         if ssh_key:
-            cmd = ["git", "-c", f"core.sshCommand=ssh -i {ssh_key}"] + cmd[1:]
+            cmd = ["git", "-c", f"core.sshCommand=ssh -i {shlex.quote(ssh_key)}"] + cmd[1:]
         subprocess.run(cmd, cwd=str(aur_dir), capture_output=True, timeout=10)
 
     # Stage and commit
@@ -208,7 +209,7 @@ def push_to_aur(
     # Push
     push_cmd = [git, "push", "origin", "master"]
     if ssh_key:
-        push_cmd = ["git", "-c", f"core.sshCommand=ssh -i {ssh_key}", "push", "origin", "master"]
+        push_cmd = ["git", "-c", f"core.sshCommand=ssh -i {shlex.quote(ssh_key)}", "push", "origin", "master"]
 
     res = subprocess.run(
         push_cmd,

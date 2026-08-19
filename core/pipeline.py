@@ -149,8 +149,9 @@ class ConversionPipeline(QObject):
         self._rpm_converter: RpmConverter | None = None
         self._installer: "Installer | None" = None
 
-        # For waiting on async operations
+        # For waiting on async operations (thread-safe)
         self._waiting = False
+        self._async_lock = threading.Lock()
         self._async_success = False
         self._async_message = ""
         self._async_pkg_path: Path | None = None
@@ -598,9 +599,10 @@ class ConversionPipeline(QObject):
             done_event = threading.Event()
 
             def on_done(success: bool, msg: str, pkg: object) -> None:
-                self._async_success = success
-                self._async_message = msg
-                self._async_pkg_path = pkg
+                with self._async_lock:
+                    self._async_success = success
+                    self._async_message = msg
+                    self._async_pkg_path = pkg
                 done_event.set()
 
             converter.finished.connect(on_done)
@@ -627,9 +629,10 @@ class ConversionPipeline(QObject):
             else:
                 done_event2 = threading.Event()
                 def on_fb_done2(success: bool, msg: str, pkg: object) -> None:
-                    self._async_success = success
-                    self._async_message = msg
-                    self._async_pkg_path = pkg
+                    with self._async_lock:
+                        self._async_success = success
+                        self._async_message = msg
+                        self._async_pkg_path = pkg
                     done_event2.set()
                 fallback_converter.finished.connect(on_fb_done2)
                 fallback_converter.convert(deb_path, output_dir)
@@ -647,9 +650,10 @@ class ConversionPipeline(QObject):
             self._rpm_converter.output_line.connect(lambda msg: self._log("info", msg))
             loop = QEventLoop()
             def on_done(success: bool, msg: str, pkg: object) -> None:
-                self._async_success = success
-                self._async_message = msg
-                self._async_pkg_path = pkg
+                with self._async_lock:
+                    self._async_success = success
+                    self._async_message = msg
+                    self._async_pkg_path = pkg
                 loop.quit()
             self._rpm_converter.finished.connect(on_done)
             self._rpm_converter.convert(rpm_path, work_dir, meta)
@@ -660,9 +664,10 @@ class ConversionPipeline(QObject):
             converter.output_line.connect(lambda msg: self._log("info", msg))
             done_event = threading.Event()
             def on_done_sub(success: bool, msg: str, pkg: object) -> None:
-                self._async_success = success
-                self._async_message = msg
-                self._async_pkg_path = pkg
+                with self._async_lock:
+                    self._async_success = success
+                    self._async_message = msg
+                    self._async_pkg_path = pkg
                 done_event.set()
             converter.finished.connect(on_done_sub)
             converter.convert(rpm_path, work_dir, meta)

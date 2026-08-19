@@ -43,8 +43,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 #### Testing & CI
 - E2E tests with real RPM packages
-- GitHub Actions CI pipeline
-- 68+ unit and integration tests
+- GitHub Actions CI pipeline with benchmark gate (30s threshold)
+- 60+ unit and integration tests
+
+#### New Commands (v1.1)
+- **`pkgforge quality`** — Package quality scoring (A-F grade, 100-point scale)
+- **`pkgforge publish`** — AUR auto-publish (PKGBUILD + .SRCINFO + git push)
+- **`pkgforge verify-rollback`** — Automated snapshot rollback verification
+- **`pkgforge health`** — Health dashboard with success rates and error patterns
+- **`pkgforge abi-check`** — GLIBC/GLIBCXX symbol version mismatch detection
+- **`pkgforge snapshot-cleanup`** — Systemd timer for automatic snapshot cleanup
+- **`convert --resolve-deps`** — Auto-resolve missing dependencies (pacman + AUR)
+- **`convert --offline`** — Offline mode with local cache
+- **`--clear-cache`** — Purge all cached data
+
+#### Architecture (v1.1)
+- Plugin system for converters (`core/plugins/`)
+- Smart fallback chain: native → debtap → docker → distrobox
+- Offline cache with TTL and atomic writes
+- Retry with exponential backoff for HTTP/AUR operations
+- Thread-safe pipeline (threading.Lock)
+- All 26 core modules import without PyQt6
 
 ## [1.0.0] — Initial Release
 
