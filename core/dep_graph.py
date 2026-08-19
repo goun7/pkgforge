@@ -371,13 +371,13 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
 
             elf_count += 1
             try:
-                res = subprocess.run(
+                ldd_res = subprocess.run(
                     [ldd, str(candidate)],
                     capture_output=True, text=True, timeout=5,
                 )
-                if res.returncode in (0, 1):  # ldd returns 1 for some binaries
+                if ldd_res.returncode in (0, 1):  # ldd returns 1 for some binaries
                     rel_path = str(candidate.relative_to(tmp))
-                    for line in res.stdout.splitlines():
+                    for line in ldd_res.stdout.splitlines():
                         line = line.strip()
                         if "=>" not in line:
                             continue

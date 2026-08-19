@@ -387,47 +387,59 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
         else:
             return report
 
-        # Scan all files for ELF binaries
+        # Step 1: Collect all ELF binaries (single pass)
+        skip_exts = {
+            ".py", ".txt", ".conf", ".json", ".xml", ".png", ".jpg", ".svg",
+            ".md", ".rst", ".html", ".css", ".js", ".ts", ".yaml", ".yml",
+            ".toml", ".ini", ".cfg", ".sh", ".bash", ".desktop", ".service",
+        }
+        elf_files: list[Path] = []
         for candidate in sorted(tmp.rglob("*")):
             if not candidate.is_file():
                 continue
-            skip_exts = {
-                ".py", ".txt", ".conf", ".json", ".xml", ".png", ".jpg", ".svg",
-                ".md", ".rst", ".html", ".css", ".js", ".ts", ".yaml", ".yml",
-                ".toml", ".ini", ".cfg", ".sh", ".bash", ".desktop", ".service",
-            }
             if candidate.suffix.lower() in skip_exts:
                 continue
             if candidate.name.startswith(".") or candidate.name.startswith("_"):
                 continue
+            if _is_elf_binary(candidate):
+                elf_files.append(candidate)
 
-            if not _is_elf_binary(candidate):
-                continue
+        report.binary_count = len(elf_files)
 
-            report.binary_count += 1
-            rel_path = str(candidate.relative_to(tmp))
-
-            # Check symbol versions
-            mismatches = scan_elf_symbols(candidate)
-            for m in mismatches:
-                m.binary = rel_path
-            report.mismatches.extend(mismatches)
-            report.checked_symbols += len(mismatches)
-
-            # Also check ldd for missing libs
-            ldd = shutil.which("ldd")
-            if ldd:
+        # Step 2: Batch ldd — single subprocess per binary but all collected first
+        ldd = shutil.which("ldd")
+        if ldd and elf_files:
+            # Run ldd on all binaries and parse results
+            ldd_results: dict[str, list[str]] = {}
+            for elf in elf_files:
                 try:
                     ldd_res = subprocess.run(
-                        [ldd, str(candidate)],
+                        [ldd, str(elf)],
                         capture_output=True, text=True, timeout=5,
                     )
-                    for line in ldd_res.stdout.splitlines():
-                        if "not found" in line:
-                            lib_name = line.strip().split()[0]
-                            report.missing_libs.append((rel_path, lib_name))
+                    missing = [
+                        line.strip().split()[0]
+                        for line in ldd_res.stdout.splitlines()
+                        if "not found" in line
+                    ]
+                    if missing:
+                        ldd_results[str(elf.relative_to(tmp))] = missing
                 except (subprocess.TimeoutExpired, OSError):
                     pass
+            for rel_path, libs in ldd_results.items():
+                for lib in libs:
+                    report.missing_libs.append((rel_path, lib))
+
+        # Step 3: Check symbol versions for each ELF
+        readelf = _get_readelf()
+        if readelf and elf_files:
+            for elf in elf_files:
+                rel_path = str(elf.relative_to(tmp))
+                mismatches = scan_elf_symbols(elf)
+                for m in mismatches:
+                    m.binary = rel_path
+                report.mismatches.extend(mismatches)
+                report.checked_symbols += len(mismatches)
 
         # Run namcap static analysis on the package
         namcap = shutil.which("namcap")
