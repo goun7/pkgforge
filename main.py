@@ -201,6 +201,7 @@ def main() -> int:
     convert_parser.add_argument("--verify-build", action="store_true", help=tr("cli.arg_verify_build"))
     convert_parser.add_argument("--sign", action="store_true", help=tr("cli.arg_sign_auto"))
     convert_parser.add_argument("--sign-key", help=tr("cli.arg_sign_key_auto"))
+    convert_parser.add_argument("--resolve-deps", action="store_true", help=tr("cli.arg_resolve_deps"))
 
     # list subcommand
     subparsers.add_parser("list", help=tr("cli.list_help"))

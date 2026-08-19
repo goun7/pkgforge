@@ -208,6 +208,22 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     except Exception as exc:
         log.debug("Uyumluluk önizleme atlandı: %s", exc)
 
+    # Smart dependency resolution (--resolve-deps)
+    if getattr(args, "resolve_deps", False):
+        from core.dep_resolver import resolve_dependencies
+        print("\n🔍 Bağımlılıklar çözümleniyor...")
+        try:
+            from core.package_analyzer import analyze_package as _ap
+            _meta = _ap(file_path, tools)
+            resolve_report = resolve_dependencies(_meta.depends)
+            print(resolve_report.summary())
+            if not resolve_report.all_resolved:
+                aur_pkgs = [d.aur_package or d.name for d in resolve_report.deps if not d.resolved and d.source != "not_found"]
+                if aur_pkgs:
+                    print(f"\n📦 Eksik AUR paketleri kurulabilir: {', '.join(aur_pkgs)}")
+        except Exception as exc:
+            log.debug("Bağımlılık çözümleme atlandı: %s", exc)
+
     # Generate SLSA provenance record
     from core.provenance import create_provenance, save_provenance
     from core.security import sha256_hash

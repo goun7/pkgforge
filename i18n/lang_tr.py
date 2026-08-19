@@ -239,6 +239,7 @@ STRINGS: dict[str, str] = {
     "cli.arg_verify_build": "Dönüşüm sonrası reproducible build doğrulaması yap",
     "cli.arg_sign_auto": "Dönüşüm sonrası otomatik GPG imzası ekle",
     "cli.arg_sign_key_auto": "Otomatik imzalama için GPG anahtar yolu (opsiyonel)",
+    "cli.arg_resolve_deps": "Eksik bağımlılıkları otomatik çöz (AUR dahil)",
     "cli.flatpak_export_help": "Flatpak uygulamasını DEB paketine dönüştür",
     "cli.arg_flatpak_app_id": "Dönüştürülecek Flatpak uygulama ID'si",
     "cli.arg_flatpak_list": "Yüklü Flatpak uygulamalarını listele",

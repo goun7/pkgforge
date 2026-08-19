@@ -239,6 +239,7 @@ STRINGS: dict[str, str] = {
     "cli.arg_verify_build": "Verify reproducible build after conversion",
     "cli.arg_sign_auto": "Auto-sign with GPG after conversion",
     "cli.arg_sign_key_auto": "GPG key path for auto-signing (optional)",
+    "cli.arg_resolve_deps": "Auto-resolve missing dependencies (including AUR)",
     "cli.flatpak_export_help": "Convert a Flatpak app to a .deb package",
     "cli.arg_flatpak_app_id": "Flatpak application ID to convert",
     "cli.arg_flatpak_list": "List installed Flatpak applications",
