@@ -44,8 +44,6 @@ from core.compatibility_checker import (
     CompatibilityReport,
     run_compatibility_checks,
 )
-from core.deb_converter import DebConverter
-from core.installer import Installer
 from core.package_analyzer import PackageMetadata, analyze_package
 from core.security import (
     SignatureResult,
@@ -147,9 +145,9 @@ class ConversionPipeline(QObject):
         self._decision_message: str | None = None
 
         # Converters and installer (will be created during pipeline)
-        self._deb_converter: DebConverter | None = None
+        self._deb_converter: "DebConverter | None" = None
         self._rpm_converter: RpmConverter | None = None
-        self._installer: Installer | None = None
+        self._installer: "Installer | None" = None
 
         # For waiting on async operations
         self._waiting = False
