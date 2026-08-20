@@ -8,13 +8,15 @@ on converted packages.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
 from config import ToolPaths
-from core.security import safe_run
+from core.security import safe_run, is_valid_package_name
+from core.dependency_resolver import parse_needed_sonames, parse_objdump_sonames
 
 log = logging.getLogger(__name__)
 
@@ -202,6 +204,12 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
         if not dep_name:
             continue
 
+        # Dep names come from untrusted package metadata; validate before
+        # passing to pacman so a crafted name cannot inject CLI options.
+        if not is_valid_package_name(dep_name):
+            missing.append(f"{dep_name} (geçersiz ad)")
+            continue
+
         # Check if installed
         qi = safe_run([tools.pacman, "-Qi", dep_name], timeout=5)
         if qi.returncode == 0:
@@ -271,7 +279,9 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
         elif not fpath.startswith("/"):
             fpath = "/" + fpath
 
-        result = safe_run([tools.pacman, "-Qo", fpath], timeout=5)
+        # A crafted file path could start with '-' and be parsed as an option;
+        # the '--' separator keeps pacman from treating it as a flag.
+        result = safe_run([tools.pacman, "-Qo", "--", fpath], timeout=5)
         if result.returncode == 0:
             # File is owned by another package
             owner = result.stdout.strip()
@@ -295,15 +305,23 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
 # ── Shared library check ────────────────────────────────────────
 
 def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
-    """Deep shared library check: extract ELF binaries, run ldd, detect issues."""
+    """Deep shared library check using static analysis only.
+
+    Security: we deliberately do **not** run ``ldd`` on extracted binaries —
+    ldd *executes* the target's PT_INTERP loader, so a malicious package could
+    run arbitrary code during a compatibility scan. Instead we read DT_NEEDED
+    entries statically with ``readelf -d`` / ``objdump -p`` (same approach as
+    the dependency resolver) and compare against the ``ldconfig -p`` cache.
+    """
     import shutil
     import tempfile
 
-    if not tools.bsdtar or not tools.ldd:
+    reader = tools.readelf or tools.objdump
+    if not tools.bsdtar or not reader:
         return CheckResult(
             name="Shared Library Kontrolü",
             severity=CheckSeverity.WARNING,
-            message="ldd veya bsdtar bulunamadı, kontrol atlandı",
+            message="readelf/objdump veya bsdtar bulunamadı, kontrol atlandı",
         )
 
     # List files in the package
@@ -331,7 +349,7 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
             message="Pakette ELF dosyası tespit edilmedi",
         )
 
-    # Extract ELF files to temp dir for ldd analysis
+    # Extract ELF files to temp dir for static analysis
     tmpdir = Path(tempfile.mkdtemp(prefix="pkgforge_ldd_"))
     missing_libs: list[str] = []
     glibc_issues: list[str] = []
@@ -344,10 +362,19 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
             timeout=60,
         )
 
-        # Find actual ELF files using 'file' command
+        # Find actual ELF files using 'file' command (does not execute them).
+        # Archive member names are untrusted: reject absolute paths and any
+        # containing '..' so a crafted member cannot point readelf at a host
+        # file outside the extraction dir.
         elf_to_check: list[Path] = []
         for elf_rel in elf_files[:30]:  # Limit to 30 files
-            elf_abs = tmpdir / elf_rel.lstrip("./")
+            if elf_rel.startswith("/") or ".." in elf_rel:
+                log.warning("Şüpheli arşiv üyesi atlandı: %s", elf_rel)
+                continue
+            elf_abs = (tmpdir / elf_rel).resolve()
+            if not str(elf_abs).startswith(str(tmpdir.resolve()) + os.sep):
+                log.warning("Dizin dışı ELF yolu atlandı: %s", elf_rel)
+                continue
             if elf_abs.is_file():
                 file_result = safe_run(
                     [tools.file_cmd, "--mime-type", "-b", str(elf_abs)],
@@ -357,40 +384,50 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
                 if "application/x-executable" in mime or "application/x-sharedlib" in mime:
                     elf_to_check.append(elf_abs)
 
-        # Run ldd on each ELF binary
+        # Known system libraries from the ldconfig cache (no execution)
+        system_libs = _system_lib_sonames()
+        # Libraries shipped by the package itself also satisfy deps
+        shipped_libs = {
+            p.name
+            for p in tmpdir.rglob("*")
+            if p.is_file() and (p.name.endswith(".so") or ".so." in p.name)
+        }
+
+        # Statically read DT_NEEDED from each ELF binary
         for elf_path in elf_to_check[:15]:  # Limit analysis scope
-            ldd_result = safe_run(
-                [tools.ldd, str(elf_path)],
-                timeout=10,
-            )
             checked_count += 1
+            try:
+                if tools.readelf:
+                    res = safe_run([tools.readelf, "-d", str(elf_path)], timeout=10)
+                    sonames = parse_needed_sonames(res.stdout)
+                else:
+                    res = safe_run([tools.objdump, "-p", str(elf_path)], timeout=10)
+                    sonames = parse_objdump_sonames(res.stdout)
+            except Exception as exc:
+                log.debug("NEEDED okunamadı (%s): %s", elf_path.name, exc)
+                continue
 
-            for line in ldd_result.stdout.splitlines():
-                line = line.strip()
-                if "not found" in line:
-                    lib_name = line.split("=>")[0].strip() if "=>" in line else line.split()[0]
-                    if lib_name not in missing_libs:
-                        missing_libs.append(lib_name)
+            for soname in sonames:
+                if soname in system_libs or soname in shipped_libs:
+                    continue
+                if soname not in missing_libs:
+                    missing_libs.append(soname)
 
-            # Check for glibc version requirements
-            for line in ldd_result.stdout.splitlines():
-                glibc_match = re.search(r"GLIBC_(\d+\.\d+(\.\d+)?)", line)
-                if glibc_match:
-                    required_ver = glibc_match.group(1)
-                    # Get system glibc version
-                    sys_glibc = _get_system_glibc(tools)
-                    if sys_glibc and _version_gt(required_ver, sys_glibc):
-                        issue = f"{elf_path.name}: GLIBC_{required_ver} gerekli (sistemde: {sys_glibc})"
-                        if issue not in glibc_issues:
-                            glibc_issues.append(issue)
+            # glibc version requirement (static .gnu.version parsing via readelf)
+            req_glibc = _elf_max_glibc(elf_path, tools)
+            if req_glibc:
+                sys_glibc = _get_system_glibc(tools)
+                if sys_glibc and _version_gt(req_glibc, sys_glibc):
+                    issue = f"{elf_path.name}: GLIBC_{req_glibc} gerekli (sistemde: {sys_glibc})"
+                    if issue not in glibc_issues:
+                        glibc_issues.append(issue)
 
     except Exception as exc:
-        log.warning("LDD analizi hatası: %s", exc)
+        log.warning("Shared library analizi hatası: %s", exc)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
     # Build result
-    all_issues = missing_libs + glibc_issues
     if glibc_issues:
         return CheckResult(
             name="Shared Library Kontrolü",
@@ -413,8 +450,55 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
         )
 
 
+def _system_lib_sonames() -> set[str]:
+    """Return sonames known to the system dynamic linker cache.
+
+    Uses ``ldconfig -p`` (read-only listing, no execution of package files).
+    """
+    import shutil
+    ldconfig_bin = shutil.which("ldconfig")
+    if not ldconfig_bin:
+        return set()
+    try:
+        result = safe_run([ldconfig_bin, "-p"], timeout=10)
+    except Exception:
+        return set()
+
+    sonames: set[str] = set()
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if "=>" in line:
+            name = line.split("=>")[0].strip().split()[0]
+            if name:
+                sonames.add(name)
+    return sonames
+
+
+def _elf_max_glibc(elf_path: Path, tools: ToolPaths) -> str:
+    """Return the highest GLIBC_x.y(.z) version an ELF requires (static read).
+
+    Parses ``readelf --version-info`` output; never executes the binary.
+    """
+    if not tools.readelf:
+        return ""
+    try:
+        res = safe_run([tools.readelf, "--version-info", str(elf_path)], timeout=10)
+    except Exception:
+        return ""
+    versions = re.findall(r"GLIBC_(\d+\.\d+(\.\d+)?)", res.stdout)
+    if not versions:
+        return ""
+    best = "0.0"
+    for ver, _ in versions:
+        if _version_gt(ver, best):
+            best = ver
+    return best if best != "0.0" else ""
+
+
 def _get_system_glibc(tools: ToolPaths) -> str:
-    """Get the system's glibc version."""
+    """Get the system's glibc version via ``ldd --version`` (safe, no target execution)."""
+    if not tools.ldd:
+        return ""
     try:
         result = safe_run([tools.ldd, "--version"], timeout=5)
         for line in result.stdout.splitlines():

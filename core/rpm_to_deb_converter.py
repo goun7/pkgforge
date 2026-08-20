@@ -57,7 +57,7 @@ def rpm_to_deb(
         pkg_dir.mkdir()
 
         import shlex
-        cmd = f"{shlex.quote(shutil.which('rpm2cpio'))} {shlex.quote(str(rpm_path))} | {shlex.quote(shutil.which('bsdtar') or 'bsdtar')} -xf -"
+        cmd = f"{shlex.quote(shutil.which('rpm2cpio') or 'rpm2cpio')} {shlex.quote(str(rpm_path))} | {shlex.quote(shutil.which('bsdtar') or 'bsdtar')} -xf -"
         res = safe_run(["/bin/bash", "-c", cmd], cwd=str(pkg_dir), timeout=60)
         if res.returncode != 0:
             return False, f"RPM çıkarma başarısız: {res.stderr[:200]}", None

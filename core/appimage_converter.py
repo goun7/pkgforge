@@ -92,7 +92,7 @@ def extract_appimage(appimage_path: Path, dest_dir: Path) -> bool:
 
 def parse_desktop_file(desktop_path: Path) -> dict[str, str]:
     """Parse a .desktop file for metadata."""
-    info = {}
+    info: dict[str, str] = {}
     if not desktop_path.is_file():
         return info
 

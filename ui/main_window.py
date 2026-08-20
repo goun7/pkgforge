@@ -417,10 +417,18 @@ class MainWindow(QMainWindow):
         )
 
         def on_approved() -> None:
+            # Wakes the worker thread blocked in _wait_for_decision(); the
+            # install itself runs on that thread, never on the UI thread.
             if self._pipeline:
-                self._pipeline.do_install_after_approval()
+                self._pipeline.approve_install()
 
         def on_distrobox() -> None:
+            # The container fallback handles installation; release the worker
+            # without approving a host install.
+            if self._pipeline:
+                self._pipeline.dismiss_install(
+                    "Kurulum distrobox konteynerine yönlendirildi"
+                )
             if result and result.metadata:
                 self._run_distrobox_fallback(result)
 
@@ -429,6 +437,10 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
         if dialog.result() == 0:
+            # User closed the report without approving: release the blocked
+            # worker so the pipeline can finish and clean up.
+            if self._pipeline:
+                self._pipeline.dismiss_install()
             self._finish_with_message(tr("pipe.cancelled"), success=False)
 
     def _run_distrobox_fallback(self, result: PipelineResult) -> None:

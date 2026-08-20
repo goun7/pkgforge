@@ -103,8 +103,12 @@ class DistroboxFallback(QObject):
         pkg_type = "deb" if self._pkg_path.suffix.lower() == ".deb" else "rpm"
 
         # Quote every package-derived value so a malicious filename cannot
-        # inject arbitrary shell commands.
-        tmp_target = f"/tmp/{self._pkg_path.name}"
+        # inject arbitrary shell commands. Use a hard-to-guess suffix so an
+        # attacker cannot pre-create a symlink at the target path (CWE-377).
+        import hashlib
+        import os
+        unique = hashlib.sha256(f"{os.getpid()}:{self._pkg_path.name}".encode()).hexdigest()[:12]
+        tmp_target = f"/tmp/pkgforge_{unique}_{self._pkg_path.name}"
         q_tmp = shlex.quote(tmp_target)
 
         if pkg_type == "deb":

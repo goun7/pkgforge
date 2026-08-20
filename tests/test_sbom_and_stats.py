@@ -165,3 +165,46 @@ class TestHistoryDBUsageStats(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ── extract_package_name tests ──────────────────────────────────
+class TestExtractPackageName:
+    """Tests for config.extract_package_name."""
+
+    def test_deb_simple(self):
+        from config import extract_package_name
+        assert extract_package_name("firefox_91.0-1_amd64.deb") == "firefox"
+
+    def test_deb_dotted_name(self):
+        from config import extract_package_name
+        assert extract_package_name("libssl1.1_1.1.0-1_amd64.deb") == "libssl1.1"
+
+    def test_deb_python(self):
+        from config import extract_package_name
+        assert extract_package_name("python3-pip_21.0-1_all.deb") == "python3-pip"
+
+    def test_rpm_simple(self):
+        from config import extract_package_name
+        assert extract_package_name("openssl-1.1.1k-4-x86_64.rpm") == "openssl-1.1.1k"
+
+    def test_rpm_fc_release(self):
+        from config import extract_package_name
+        assert extract_package_name("glibc-2.33-5.fc34.x86_64.rpm") == "glibc"
+
+    def test_rpm_noarch(self):
+        from config import extract_package_name
+        assert extract_package_name("python3-setuptools-57.0.0-1.noarch.rpm") == "python3-setuptools"
+
+    def test_pkg_tar_zst(self):
+        from config import extract_package_name
+        assert extract_package_name("neovim-0.9.0-1-x86_64.pkg.tar.zst") == "neovim"
+
+    def test_url_path(self):
+        from config import extract_package_name
+        url = "https://example.com/deb/firefox_91.0-1_amd64.deb"
+        assert extract_package_name(url) == "firefox"
+
+    def test_plain_name(self):
+        from config import extract_package_name
+        # No extension — returns as-is
+        assert extract_package_name("mypackage") == "mypackage"

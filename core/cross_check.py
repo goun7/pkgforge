@@ -89,7 +89,8 @@ def _query_flatpak_version(package_name: str) -> str:
         return ""
 
     try:
-        res = safe_run([flatpak_bin, "search", package_name], timeout=5)
+        # '--' keeps a crafted package name from being parsed as a flag
+        res = safe_run([flatpak_bin, "search", "--", package_name], timeout=5)
         if res.returncode == 0 and res.stdout.strip():
             for line in res.stdout.splitlines()[1:]:  # skip header
                 parts = line.split("\t")

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import urllib.request
+import urllib.parse
 import urllib.error
 from dataclasses import dataclass
 from typing import Literal
@@ -42,7 +43,7 @@ def check_aur(package_name: str, local_version: str = "") -> AurResult:
         return AurResult(status="error", detail="Boş paket adı")
 
     try:
-        url = f"{AUR_RPC_URL}?arg[]={urllib.request.quote(package_name)}"
+        url = f"{AUR_RPC_URL}?arg[]={urllib.parse.quote(package_name)}"
         req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
 
         with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
@@ -56,18 +57,20 @@ def check_aur(package_name: str, local_version: str = "") -> AurResult:
         ood = pkg_info.get("OutOfDate") is not None
         last_mod = pkg_info.get("LastModified", "")
 
+        status: Literal["found_newer", "found_older", "out_of_date", "not_found", "error"] = "error"
+        if ood:
+            status = "out_of_date"
+        elif local_version and _version_compare(aur_ver, local_version) >= 0:
+            status = "found_newer"
+        else:
+            status = "found_older"
+
         result = AurResult(
+            status=status,
             aur_version=aur_ver,
             out_of_date=ood,
             last_modified=str(last_mod),
         )
-
-        if ood:
-            result.status = "out_of_date"
-        elif local_version and _version_compare(aur_ver, local_version) >= 0:
-            result.status = "found_newer"
-        else:
-            result.status = "found_older"
 
         log.info("AUR check: %s → %s (aur: %s, local: %s)",
                  package_name, result.status, aur_ver, local_version)

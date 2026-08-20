@@ -175,8 +175,9 @@ HEADER_UPDATES = """
 HEADER_SETTINGS = """
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
      stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="3"/>
-  <path d="M12 2 V5 M12 19 V22 M2 12 H5 M19 12 H22 M5 5 L7 7 M17 17 L19 19 M19 5 L17 7 M7 17 L5 19"/>
+  <path d="M4 8 H20 M4 16 H20"/>
+  <circle cx="9" cy="8" r="2.6" fill="{color}" stroke="none"/>
+  <circle cx="15" cy="16" r="2.6" fill="{color}" stroke="none"/>
 </svg>
 """
 

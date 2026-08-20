@@ -467,10 +467,10 @@ result = convert_deb_sync(
 ### `core/malware_scanner.py`
 
 ```python
-from core.malware_scanner import scan_with_clamav, is_clamav_available, check_db_freshness
+from core.malware_scanner import scan_file, is_clamav_available, check_db_freshness
 
 if is_clamav_available():
-    ok, msg = scan_with_clamav(Path("package.deb"))
+    ok, msg = scan_file(Path("package.deb"), tools)
     # ok: bool, msg: str
 
     fresh = check_db_freshness()

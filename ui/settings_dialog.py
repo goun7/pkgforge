@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 
 from i18n import tr, available_languages, get_language, load_setting, save_settings, load_settings
 from config import discover_tools
+from core.plugins import list_plugins, reload_plugins
 
 
 class SettingsDialog(QDialog):
@@ -107,6 +108,32 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(features_group)
 
+        # ── Plugins ─────────────────────────────────────────────
+        plugins_group = QGroupBox("🔌 " + tr("settings.plugins"))
+        plugins_layout = QVBoxLayout(plugins_group)
+
+        self._plugin_checks: dict[str, QCheckBox] = {}
+        plugins = list_plugins()
+        if plugins:
+            for p in plugins:
+                cb = QCheckBox(f"{p['name']} ({', '.join(p['extensions'])})")
+                cb.setToolTip(f"Öncelik: {p['priority']} — Sınıf: {p['class']}")
+                cb.setChecked(load_setting(f"plugin_{p['name']}", True))
+                self._plugin_checks[p['name']] = cb
+                plugins_layout.addWidget(cb)
+
+            # Reload button
+            reload_btn = QPushButton(tr("settings.plugins_reload"))
+            reload_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            reload_btn.clicked.connect(self._reload_plugins)
+            plugins_layout.addWidget(reload_btn)
+        else:
+            no_plugins = QLabel(tr("settings.plugins_none"))
+            no_plugins.setStyleSheet("font-size: 11px; color: #888;")
+            plugins_layout.addWidget(no_plugins)
+
+        layout.addWidget(plugins_group)
+
         # ── Note ─────────────────────────────────────────────────
         note = QLabel(f"ℹ️ {tr('settings.restart_note')}")
         note.setStyleSheet("font-size: 11px; color: #888; padding: 4px;")
@@ -162,6 +189,25 @@ class SettingsDialog(QDialog):
         settings["snapshot"] = self._snapshot_check.isChecked()
         settings["dry_run"] = self._dry_run_check.isChecked()
         settings["allow_insecure_http"] = self._insecure_http_check.isChecked()
+        # Plugin enabled/disabled state
+        for name, cb in self._plugin_checks.items():
+            settings[f"plugin_{name}"] = cb.isChecked()
         save_settings(settings)
         self.settings_changed.emit(settings)
         self.accept()
+
+    def _reload_plugins(self) -> None:
+        """Hot-reload all plugins and refresh the UI."""
+        reloaded = reload_plugins()
+        # Update checkbox states
+        for name, cb in self._plugin_checks.items():
+            enabled = name in reloaded
+            cb.setChecked(enabled)
+            cb.setEnabled(True)
+        # Show feedback
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            tr("settings.plugins"),
+            tr("settings.plugins_reloaded").format(count=len(reloaded)),
+        )

@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import shutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -33,11 +33,7 @@ class FallbackResult:
     method: str          # Which method succeeded
     message: str
     output_pkg: Path | None = None
-    attempts: list[dict[str, Any]] = None  # History of all attempts
-
-    def __post_init__(self):
-        if self.attempts is None:
-            self.attempts = []
+    attempts: list[dict[str, Any]] = field(default_factory=list)  # History of all attempts
 
 
 def _try_native_deb(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[bool, str, Path | None]:

@@ -57,4 +57,5 @@ fi
 # ── Execute installation ─────────────────────────────────────────
 
 echo "Paket kuruluyor: $(basename "$PKG_FILE")"
-exec /usr/bin/pacman -U --noconfirm "$PKG_FILE"
+# '--' guards against a package path starting with '-' being parsed as an option
+exec /usr/bin/pacman -U --noconfirm -- "$PKG_FILE"

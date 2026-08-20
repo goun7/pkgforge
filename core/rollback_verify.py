@@ -119,16 +119,16 @@ def verify_rollback() -> RollbackVerifyResult:
     if deleted:
         result.verified = True
         result.detail = (
-            f"✅ Rollback doğrulaması başarılı\\n"
-            f"   Backend: {backend}\\n"
-            f"   Snapshot: {snap.snapshot_name}\\n"
+            f"✅ Rollback doğrulaması başarılı\n"
+            f"   Backend: {backend}\n"
+            f"   Snapshot: {snap.snapshot_name}\n"
             f"   Durum: Oluşturuldu → Doğrulandı → Temizlendi"
         )
     else:
         # Snapshot couldn't be deleted — but it was created successfully
         result.verified = True
         result.detail = (
-            f"⚠️ Snapshot oluşturuldu ama silinemedi: {snap.snapshot_name}\\n"
+            f"⚠️ Snapshot oluşturuldu ama silinemedi: {snap.snapshot_name}\n"
             f"   Manuel temizlik gerekebilir: sudo btrfs subvolume delete {snap.snapshot_name}"
         )
 
@@ -181,8 +181,8 @@ def verify_rollback_restore() -> RollbackVerifyResult:
         result.detail = f"✅ Rollback başarılı — dosya sistemi durumu eşleşiyor"
     else:
         result.detail = (
-            f"⚠️ Rollback sonrası dosya sistemi farklı\\n"
-            f"   Önce: {result.state_before}\\n"
+            f"⚠️ Rollback sonrası dosya sistemi farklı\n"
+            f"   Önce: {result.state_before}\n"
             f"   Sonra: {result.state_after}"
         )
 

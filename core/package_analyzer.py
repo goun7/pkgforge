@@ -97,7 +97,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
         timeout=30,
     )
     if extract_result.returncode != 0:
-        raise RuntimeError(f"control.tar çıkarılamadı: {extract_result.stderr}")
+        raise RuntimeError(f"control.tar çıkarılamadı: {extract_result.stderr.decode("utf-8", errors="replace")}")
 
     # Determine tar flags for decompression
     tar_flags = _tar_flags_for(control_tar)
@@ -120,7 +120,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
         )
 
     if tar_result.returncode != 0:
-        raise RuntimeError(f"control dosyası okunamadı: {tar_result.stderr}")
+        raise RuntimeError(f"control dosyası okunamadı: {tar_result.stderr.decode("utf-8", errors="replace")}")
 
     control_text = tar_result.stdout.decode("utf-8", errors="replace")
     _parse_deb_control(control_text, meta)

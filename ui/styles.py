@@ -188,9 +188,8 @@ def build_stylesheet(theme: str | None = None) -> str:
     }}
 
     QPushButton#headerBtn:hover {{
-        background-color: {c.TEAL};
-        color: {"#0f172a" if is_dark else "#ffffff"};
-        border-color: {c.TEAL_HOVER};
+        background-color: {c.GLOW_STRONG};
+        border-color: {c.TEAL};
     }}
 
     /* ── Drop Zone ────────────────────────────────────── */
@@ -445,6 +444,15 @@ def build_stylesheet(theme: str | None = None) -> str:
     }}
 
     /* ── Scrollbar ────────────────────────────────────── */
+    QScrollArea {{
+        background: transparent;
+        border: none;
+    }}
+
+    QScrollArea > QWidget > QWidget {{
+        background: transparent;
+    }}
+
     QScrollBar:vertical {{
         background: transparent;
         width: 8px;

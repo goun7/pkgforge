@@ -15,6 +15,7 @@ Usage:
 """
 
 from __future__ import annotations
+import json
 
 import logging
 import shutil
@@ -331,7 +332,7 @@ def export_flatpak_runtime(
     manifest_name = f"{app.app_id.lower().replace('.', '-')}.json"
     manifest_path = output_dir / manifest_name
     manifest_path.write_text(
-        __import__("json").dumps(manifest, indent=2, ensure_ascii=False),
+        json.dumps(manifest, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
 

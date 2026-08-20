@@ -198,7 +198,7 @@ package() {{
             env=env,
         )
 
-        for line in proc.stdout:
+        for line in (proc.stdout or []):
             stripped = line.strip()
             if stripped:
                 self._emit(f"  {stripped}")
@@ -324,7 +324,7 @@ class RpmConverterSubprocess:
                 text=True,
                 env=env,
             )
-            for line in proc.stdout:
+            for line in (proc.stdout or []):
                 stripped = line.strip()
                 if stripped:
                     self._emit(f"  {stripped}")
