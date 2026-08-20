@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+#### CLI & Features
+- **`pkgforge sbom --diff OLD NEW`** — Compare SBOM differences between two package versions (file/dependency changes)
+- **`pkgforge plugin install/list/available/remove`** — Plugin Marketplace for community converter plugins from GitHub releases
+- **`--offline` global flag** — Run all network-dependent operations in offline mode (AUR, upstream tracker)
+
+#### Security
+- Migrated 43 raw `subprocess.run` calls to `safe_run` across 7 modules (dep_graph, abi_scanner, dep_resolver, smart_fallback, aur_publish, benchmark, subprocess_converters)
+- All `except Exception: pass` blocks now log via `log.debug()` or `log.warning()` across 8 modules
+- Added `safe_run(text=)` parameter for explicit binary/text mode control
+
+#### CI & Testing
+- **`pytest-timeout`** — 120s default timeout prevents hanging E2E tests
+- **CI coverage gate** — `--cov-fail-under=75` minimum threshold in GitHub Actions
+- **SBOM diff tests** — 4 new tests for diff functionality
+- **Plugin marketplace tests** — 2 new tests for install/uninstall
+- **Property-based testing** with Hypothesis framework
+
+#### Documentation
+- Updated `docs/API.md` with provenance discovery and attestation verification functions
+- Updated CHANGELOG with SBOM diff, plugin marketplace, offline mode
+- Added docstrings to public functions across core modules
+
 #### CLI & Converters
 - **`pkgforge rpm-to-deb`** — Bidirectional RPM → DEB conversion
 - **`pkgforge graph`** — Dependency graph visualization (ASCII + Mermaid)

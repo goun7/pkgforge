@@ -337,9 +337,19 @@ att = create_attestation(
 save_attestation(att, Path("output.intoto.jsonl"))
 # Writes in-toto v1.0 attestation to disk
 
-valid, msg = verify_provenance(prov)
+# ── Provenance Discovery ─────────────────────────────────────
+prov_path = find_provenance(Path("output.pkg"))
+# Finds .provenance.json next to the output file
+# Returns Path or None
+
+# ── Attestation Verification ──────────────────────────────────
+att = load_attestation(Path("output.intoto.jsonl"))
+# Loads in-toto attestation from disk
+# Returns InTotoStatement or None
+
+valid, msg = verify_attestation(att)
 # valid: bool
-# msg: str — "Doğrulama başarılı" veya hata açıklaması
+# msg: str — "Attestasyon doğrulandı" veya hata açıklaması
 ```
 
 ---

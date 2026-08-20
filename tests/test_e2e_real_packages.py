@@ -7,6 +7,7 @@ conversion pipeline, security checks, and metadata extraction.
 import shutil
 import tempfile
 import unittest
+import pytest
 from pathlib import Path
 
 from config import discover_tools
@@ -149,6 +150,7 @@ class TestSecurityWithRealPackage(unittest.TestCase):
         self.assertIn(backend, ("btrfs", "zfs", "none"))
 
 
+@pytest.mark.slow
 class TestRealRPMConversion(unittest.TestCase):
     """Full E2E test: convert real RPM through the entire pipeline."""
 
