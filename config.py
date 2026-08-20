@@ -220,13 +220,14 @@ def extract_package_name(filename: str) -> str:
 
     elif lower.endswith(".rpm"):
         # RPM: [epoch:]name-version-release.arch.rpm
+        # Supports Unicode package names (CJK, Cyrillic, etc.)
         stem = name.rsplit(".", 1)[0]  # strip .rpm
         # Strip epoch prefix (e.g., "1:" in "1:openssl-1.1.1k-4")
         if ":" in stem:
             stem = stem.split(":", 1)[1]
         # Remove arch suffix — dot or hyphen separated
-        # (e.g., ".x86_64" in "openssl-4.x86_64" or "-x86_64" in "openssl-4-x86_64")
-        stem = _re.sub(r"[.\-](x86_64|noarch|i686|i386|aarch64|armv7hl)$", "", stem)
+        # Unicode-safe: supports x86_64, noarch, aarch64, etc.
+        stem = _re.sub(r"[.\-](x86_64|noarch|i686|i386|aarch64|armv7hl|s390x|ppc64le)$", "", stem)
         # Split by hyphens; last two segments are version-release
         parts = stem.split("-")
         if len(parts) >= 3:

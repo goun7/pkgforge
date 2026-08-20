@@ -261,3 +261,15 @@ class TestSBOMDiff(unittest.TestCase):
             self.assertTrue(path.exists())
             data = json.loads(path.read_text())
             self.assertEqual(data["old_name"], "test")
+
+    def test_rpm_unicode_name(self):
+        from config import extract_package_name
+        assert extract_package_name("テスト-1.0-1-x86_64.rpm") == "テスト"
+
+    def test_rpm_cyrillic_name(self):
+        from config import extract_package_name
+        assert extract_package_name("пакет-2.0-1-noarch.rpm") == "пакет"
+
+    def test_rpm_unicode_with_epoch(self):
+        from config import extract_package_name
+        assert extract_package_name("1:日本語-3.0-1-aarch64.rpm") == "日本語"
