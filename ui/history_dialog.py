@@ -38,12 +38,16 @@ log = logging.getLogger(__name__)
 
 
 class HistoryDialog(QDialog):
-    """History and installed package lifecycle manager dialog."""
+    """History and installed package lifecycle manager dialog.
+
+    Supports search/filter, CSV export, CSV import, and drag-and-drop.
+    """
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle(tr("history.title"))
         self.setMinimumSize(780, 480)
+        self.setAcceptDrops(True)
         self._db = HistoryDB()
         self._tools = discover_tools()
         self._all_records: list = []
@@ -114,6 +118,12 @@ class HistoryDialog(QDialog):
         # Buttons
         btn_layout = QHBoxLayout()
 
+        self._import_btn = QPushButton("📥 CSV İçe Aktar")
+        self._import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._import_btn.setToolTip("CSV dosyasından toplu paket listesi içe aktar (sürükle-bırak da desteklenir)")
+        self._import_btn.clicked.connect(self._import_csv_dialog)
+        btn_layout.addWidget(self._import_btn)
+
         self._export_btn = QPushButton("📄 CSV Dışa Aktar")
         self._export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._export_btn.clicked.connect(self._export_csv)
@@ -139,6 +149,22 @@ class HistoryDialog(QDialog):
         btn_layout.addWidget(close_btn)
 
         layout.addLayout(btn_layout)
+
+    # ── Drag & Drop ─────────────────────────────────────────────
+
+    def dragEnterEvent(self, event) -> None:
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.toLocalFile().lower().endswith(".csv"):
+                    event.acceptProposedAction()
+                    return
+
+    def dropEvent(self, event) -> None:
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if path.lower().endswith(".csv"):
+                self._import_csv(Path(path))
+                return
 
     def _load_data(self) -> None:
         """Load history records into table."""
@@ -332,3 +358,74 @@ class HistoryDialog(QDialog):
         if reply == QMessageBox.StandardButton.Yes:
             self._db.clear_history()
             self._load_data()
+
+    # ── CSV Import ──────────────────────────────────────────────
+
+    def _import_csv_dialog(self) -> None:
+        """Open file chooser for CSV import."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, "CSV İçe Aktar", "",
+            "CSV dosyaları (*.csv);;Tüm dosyalar (*)",
+        )
+        if path:
+            self._import_csv(Path(path))
+
+    def _import_csv(self, csv_path: Path) -> None:
+        """Import package list from a CSV file.
+
+        Expected CSV columns: package_name, package_type, original_file, source_url
+        The import creates history records so the user can later track/rollback.
+        """
+        if not csv_path.is_file():
+            QMessageBox.critical(self, tr("common.error"), f"Dosya bulunamadı: {csv_path}")
+            return
+
+        try:
+            content = csv_path.read_text(encoding="utf-8")
+            reader = csv.DictReader(io.StringIO(content))
+        except Exception as exc:
+            QMessageBox.critical(self, tr("common.error"), f"CSV okunamadı: {exc}")
+            return
+
+        imported = 0
+        skipped = 0
+        required_cols = {"package_name", "package_type", "original_file"}
+        if reader.fieldnames is None:
+            QMessageBox.critical(self, tr("common.error"), "CSV dosyası boş veya başlık içermiyor.")
+            return
+
+        missing_cols = required_cols - set(reader.fieldnames)
+        if missing_cols:
+            QMessageBox.critical(
+                self, tr("common.error"),
+                f"Eksik sütunlar: {', '.join(missing_cols)}\n"
+                f"Gerekli sütunlar: package_name, package_type, original_file",
+            )
+            return
+
+        for row in reader:
+            name = (row.get("package_name") or "").strip()
+            ptype = (row.get("package_type") or "").strip()
+            orig = (row.get("original_file") or "").strip()
+            url = (row.get("source_url") or "").strip()
+
+            if not name or not ptype:
+                skipped += 1
+                continue
+
+            self._db.add_record(
+                package_name=name,
+                original_file=orig,
+                package_type=ptype,
+                sha256="",
+                status="imported",
+                output_pkg="",
+                source_url=url,
+            )
+            imported += 1
+
+        self._load_data()
+        msg = f"✅ {imported} paket içe aktarıldı."
+        if skipped:
+            msg += f"\n⚠️ {skipped} satır atlandı (eksik veri)."
+        QMessageBox.information(self, "CSV İçe Aktarım", msg)

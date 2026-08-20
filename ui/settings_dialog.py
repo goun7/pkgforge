@@ -6,6 +6,8 @@ Settings are persisted to ~/.config/pkgforge/settings.json.
 
 from __future__ import annotations
 
+import json
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -17,6 +19,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSpinBox,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
     QFileDialog,
@@ -182,6 +185,34 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(plugins_group)
 
+        # ── Live Config Preview ──────────────────────────────────
+        preview_group = QGroupBox("👁️ Canlı Önizleme")
+        preview_layout = QVBoxLayout(preview_group)
+
+        self._preview_text = QTextEdit()
+        self._preview_text.setReadOnly(True)
+        self._preview_text.setMaximumHeight(140)
+        self._preview_text.setStyleSheet(
+            "QTextEdit { background: #1a1a2e; color: #00ff88; font-family: monospace; "
+            "font-size: 11px; border: 1px solid #333; border-radius: 4px; padding: 8px; }"
+        )
+        preview_layout.addWidget(self._preview_text)
+
+        # Connect all inputs to live preview
+        self._lang_combo.currentIndexChanged.connect(self._update_preview)
+        self._theme_combo.currentIndexChanged.connect(self._update_preview)
+        self._aur_check.toggled.connect(self._update_preview)
+        self._distrobox_check.toggled.connect(self._update_preview)
+        self._clamav_check.toggled.connect(self._update_preview)
+        self._snapshot_check.toggled.connect(self._update_preview)
+        self._dry_run_check.toggled.connect(self._update_preview)
+        self._insecure_http_check.toggled.connect(self._update_preview)
+        self._timeout_spin.valueChanged.connect(self._update_preview)
+        self._verbose_check.toggled.connect(self._update_preview)
+        self._auto_sign_check.toggled.connect(self._update_preview)
+
+        layout.addWidget(preview_group)
+
         # ── Note ─────────────────────────────────────────────────
         note = QLabel(f"ℹ️ {tr('settings.restart_note')}")
         note.setStyleSheet("font-size: 11px; color: #888; padding: 4px;")
@@ -231,6 +262,27 @@ class SettingsDialog(QDialog):
         self._outdir_input.setText(load_setting("output_dir", ""))
         self._verbose_check.setChecked(load_setting("verbose", False))
         self._auto_sign_check.setChecked(load_setting("auto_sign", False))
+
+        # Initial preview
+        self._update_preview()
+
+    def _update_preview(self) -> None:
+        """Update the live JSON preview panel with current UI state."""
+        config = {
+            "language": self._lang_combo.currentData(),
+            "theme": self._theme_combo.currentData(),
+            "aur_check": self._aur_check.isChecked(),
+            "distrobox_fallback": self._distrobox_check.isChecked(),
+            "clamav_scan": self._clamav_check.isChecked(),
+            "snapshot": self._snapshot_check.isChecked(),
+            "dry_run": self._dry_run_check.isChecked(),
+            "allow_insecure_http": self._insecure_http_check.isChecked(),
+            "timeout_seconds": self._timeout_spin.value(),
+            "output_dir": self._outdir_input.text() or None,
+            "verbose": self._verbose_check.isChecked(),
+            "auto_sign": self._auto_sign_check.isChecked(),
+        }
+        self._preview_text.setPlainText(json.dumps(config, indent=2, ensure_ascii=False))
 
     def _save(self) -> None:
         """Save settings and emit signal."""
