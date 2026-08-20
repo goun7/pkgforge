@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 APP_NAME = "PkgForge"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_ID = "org.pkgforge.app"
 
 # Settings

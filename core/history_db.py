@@ -2,6 +2,10 @@
 
 Persists package conversion logs, timestamps, hashes, source URLs, package backups,
 and installation status for lifecycle tracking (uninstall & rollback).
+
+Uses WAL journal mode for safe concurrent access from multiple PkgForge
+instances.  A busy_timeout of 5 s avoids immediate ``SQLITE_BUSY`` errors
+when two processes write at the same time.
 """
 
 from __future__ import annotations
@@ -19,6 +23,9 @@ log = logging.getLogger(__name__)
 
 DB_PATH = CONFIG_DIR / "history.db"
 BACKUP_DIR = CONFIG_DIR / "backups"
+
+# Busy-wait ceiling (ms) when another connection holds a write lock.
+_BUSY_TIMEOUT_MS = 5_000
 
 
 @dataclass
@@ -49,8 +56,16 @@ class HistoryDB:
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=_BUSY_TIMEOUT_MS / 1000)
         conn.row_factory = sqlite3.Row
+        # WAL mode: readers never block writers and vice-versa.
+        # journal_mode is persistent per database file, but SET is cheap to
+        # re-issue on every connection.
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
+        except sqlite3.Error:
+            pass  # Older SQLite — fall back to default journal
         return conn
 
     def _init_db(self) -> None:
@@ -88,6 +103,68 @@ class HistoryDB:
                 conn.commit()
         except sqlite3.Error as exc:
             log.error("HistoryDB ilklendirme hatası: %s", exc)
+
+    # ── Analytics helpers (used by usage dashboard) ─────────────
+
+    def get_usage_stats(self) -> dict[str, Any]:
+        """Return aggregated usage statistics from conversion history.
+
+        Returns a dict with keys: total, by_status, by_type, by_arch,
+        url_count, avg_output_size_mb, first_seen, last_seen.
+        """
+        stats: dict[str, Any] = {
+            "total": 0,
+            "by_status": {},
+            "by_type": {},
+            "by_arch": {},
+            "url_count": 0,
+            "avg_output_size_mb": 0.0,
+            "first_seen": "",
+            "last_seen": "",
+        }
+        try:
+            with self._get_connection() as conn:
+                rows = conn.execute(
+                    "SELECT package_name, package_type, status, source_url,"
+                    "       output_pkg, timestamp FROM conversions ORDER BY id"
+                ).fetchall()
+                if not rows:
+                    return stats
+
+                stats["total"] = len(rows)
+                stats["first_seen"] = rows[0]["timestamp"]
+                stats["last_seen"] = rows[-1]["timestamp"]
+
+                total_size = 0.0
+                size_count = 0
+                for row in rows:
+                    st = row["status"]
+                    stats["by_status"][st] = stats["by_status"].get(st, 0) + 1
+                    pt = row["package_type"]
+                    stats["by_type"][pt] = stats["by_type"].get(pt, 0) + 1
+                    if row["source_url"]:
+                        stats["url_count"] += 1
+                    # Output file size (if available)
+                    out = row["output_pkg"]
+                    if out:
+                        try:
+                            from pathlib import Path as _P
+                            sz = _P(out).stat().st_size / (1024 * 1024)
+                            total_size += sz
+                            size_count += 1
+                            # Infer arch from filename: …-x86_64.pkg.tar.zst
+                            stem = _P(out).stem  # strip .zst
+                            parts = stem.rsplit("-", 1)
+                            if len(parts) == 2:
+                                arch = parts[-1]  # e.g. x86_64
+                                stats["by_arch"][arch] = stats["by_arch"].get(arch, 0) + 1
+                        except OSError:
+                            pass
+                if size_count:
+                    stats["avg_output_size_mb"] = round(total_size / size_count, 1)
+        except sqlite3.Error as exc:
+            log.warning("İstatistik hesaplama hatası: %s", exc)
+        return stats
 
     def add_record(
         self,

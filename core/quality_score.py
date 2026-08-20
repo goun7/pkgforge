@@ -147,9 +147,11 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # ClamAV scan (10 pts)
     try:
-        from core.malware_scanner import is_clamav_available, scan_with_clamav
+        from core.malware_scanner import is_clamav_available, scan_file
         if is_clamav_available():
-            ok, msg = scan_with_clamav(pkg_path)
+            scan_result = scan_file(pkg_path, tools)
+            ok = scan_result.clean
+            msg = scan_result.detail
             report.checks.append(QualityCheck(
                 name="Malware Taraması", category="security",
                 passed=ok, score=10 if ok else 0, max_score=10,

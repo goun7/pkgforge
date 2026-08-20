@@ -113,7 +113,8 @@ def retry_download(
     import urllib.error
 
     def _do_download() -> bytes:
-        req = urllib.request.Request(url, headers={"User-Agent": "PkgForge/2.0"})
+        from config import APP_VERSION
+        req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
             return resp.read()
 
@@ -151,7 +152,8 @@ def retry_aur_rpc(
     import urllib.error
 
     def _do_rpc() -> dict:
-        req = urllib.request.Request(url, headers={"User-Agent": "PkgForge/1.0"})
+        from config import APP_VERSION
+        req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
             return json.loads(resp.read())
 

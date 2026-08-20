@@ -58,6 +58,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_sign(args)
     elif command == "verify":
         return _cmd_verify(args)
+    elif command == "sbom":
+        return _cmd_sbom(args)
     elif command == "graph":
         return _cmd_graph(args)
     elif command == "audit":
@@ -642,6 +644,33 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     return 0 if info.valid else 1
 
 
+def _cmd_sbom(args: argparse.Namespace) -> int:
+    """Handle `pkgforge sbom`."""
+    from core.sbom import generate_sbom, save_sbom
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    tools = discover_tools()
+    no_hashes = getattr(args, "no_hashes", False)
+    out_dir = Path(args.output_dir).resolve() if args.output_dir else pkg_path.parent
+
+    print(f"📋 SBOM oluşturuluyor: {pkg_path.name}\n")
+    sbom = generate_sbom(pkg_path, tools, include_hashes=not no_hashes)
+
+    # Save to file
+    sbom_path = out_dir / f"{pkg_path.name}.spdx.json"
+    save_sbom(sbom, sbom_path)
+
+    # Print summary
+    print(sbom.summary())
+    print(f"\n  📄 SBOM dosyası: {sbom_path}")
+
+    return 0
+
+
 def _cmd_graph(args: argparse.Namespace) -> int:
     """Handle `pkgforge graph`."""
     from core.dep_graph import build_dep_graph, build_file_dep_graph
@@ -874,9 +903,9 @@ def _cmd_scan_image(args: argparse.Namespace) -> int:
         print("  🔬 ClamAV malware taraması...")
         # Timeout: 300s for large archives (was 120s, too short)
         res = safe_run([clamscan, "--infected", "--no-summary", str(image_path)], timeout=300)
-        if res.returncode == 1:
+        if res.returncode == 0:
             print("  ✅ ClamAV: Temiz")
-        elif res.returncode == 0:
+        elif res.returncode == 1:
             print(f"  ❌ ClamAV enfekte dosya tespit etti:\n{res.stdout[:500]}")
             all_clean = False
         else:
@@ -996,6 +1025,7 @@ def _cmd_health(args: argparse.Namespace) -> int:
     """Handle `pkgforge health`."""
     db = HistoryDB()
     records = db.get_history(limit=1000)
+    stats = db.get_usage_stats()
 
     print(f"\n🏥 PkgForge Sağlık Raporu\n")
 
@@ -1005,16 +1035,11 @@ def _cmd_health(args: argparse.Namespace) -> int:
         return 0
 
     # Status distribution
-    status_counts: dict[str, int] = {}
-    type_counts: dict[str, int] = {}
-    url_count = 0
-    for r in records:
-        status_counts[r.status] = status_counts.get(r.status, 0) + 1
-        type_counts[r.package_type] = type_counts.get(r.package_type, 0) + 1
-        if r.source_url:
-            url_count += 1
+    status_counts = stats["by_status"]
+    type_counts = stats["by_type"]
+    url_count = stats["url_count"]
 
-    total = len(records)
+    total = stats["total"]
     installed = status_counts.get("installed", 0)
     converted = status_counts.get("converted", 0)
     failed = status_counts.get("install_failed", 0)
@@ -1037,7 +1062,22 @@ def _cmd_health(args: argparse.Namespace) -> int:
         print(f"   {ptype:<8} {bar} {count} ({pct:.0f}%)")
     print()
 
-    # Recent activity (last 7 days approximation)
+    # Architecture breakdown
+    arch_counts = stats.get("by_arch", {})
+    if arch_counts:
+        print(f"🖥️  Mimari Dağılımı:")
+        for arch, count in sorted(arch_counts.items(), key=lambda x: -x[1]):
+            pct = count / total * 100 if total else 0
+            print(f"   {arch:<12} {count} ({pct:.0f}%)")
+        print()
+
+    # Output size
+    avg_size = stats.get("avg_output_size_mb", 0.0)
+    if avg_size > 0:
+        print(f"💾 Çıktı Boyutu (ortalama): {avg_size:.1f} MB")
+        print()
+
+    # Recent activity
     if records:
         print(f"📅 Son Aktivite:")
         print(f"   İlk kayıt:  {records[-1].timestamp}")
@@ -1050,6 +1090,18 @@ def _cmd_health(args: argparse.Namespace) -> int:
         for r in records:
             if r.status == "install_failed":
                 print(f"   ❌ {r.package_name} ({r.package_type}) — {r.original_file}")
+        print()
+
+    # Most-converted packages
+    name_counts: dict[str, int] = {}
+    for r in records:
+        name_counts[r.package_name] = name_counts.get(r.package_name, 0) + 1
+    top_packages = sorted(name_counts.items(), key=lambda x: -x[1])[:5]
+    if top_packages and top_packages[0][1] > 1:
+        print(f"🔝 En Çok Dönüşen Paketler:")
+        for name, count in top_packages:
+            if count > 1:
+                print(f"   • {name}: {count} kez")
         print()
 
     # Health score

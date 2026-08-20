@@ -287,7 +287,7 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
 
 def _list_btrfs_snapshots() -> list[dict[str, str]]:
     """List btrfs snapshots starting with 'pkgforge-'."""
-    snapshots = []
+    snapshots: list[dict[str, str]] = []
     try:
         # List all subvolumes
         res = safe_run(["btrfs", "subvolume", "list", "/"], timeout=10)
@@ -365,7 +365,7 @@ def _restore_zfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
 
 def _list_zfs_snapshots() -> list[dict[str, str]]:
     """List ZFS snapshots with pkgforge prefix."""
-    snapshots = []
+    snapshots: list[dict[str, str]] = []
     dataset = _get_zfs_root_dataset()
     if not dataset:
         return snapshots

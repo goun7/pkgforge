@@ -40,18 +40,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Btrfs/ZFS snapshot management for safe rollback
 - SQLite-backed conversion history with backup support
 - Upstream update tracking via ETag/Last-Modified
+- **SQLite WAL mode** — Concurrent access protection with journal_mode=WAL and busy_timeout for safe multi-instance usage
+- **SBOM generator** — SPDX-inspired Software Bill of Materials for converted packages (core/sbom.py)
+- **Local Usage Dashboard** — Architecture breakdown, avg output size, top-converted packages in health command
 
 #### Testing & CI
 - E2E tests with real RPM packages
 - GitHub Actions CI pipeline with benchmark gate (30s threshold)
 - 60+ unit and integration tests
+- SBOM and usage stats unit tests
 
 #### New Commands (v1.1)
 - **`pkgforge quality`** — Package quality scoring (A-F grade, 100-point scale)
 - **`pkgforge publish`** — AUR auto-publish (PKGBUILD + .SRCINFO + git push)
 - **`pkgforge verify-rollback`** — Automated snapshot rollback verification
-- **`pkgforge health`** — Health dashboard with success rates and error patterns
+- **`pkgforge health`** — Health dashboard with success rates, architecture stats, and usage analytics
 - **`pkgforge abi-check`** — GLIBC/GLIBCXX symbol version mismatch detection
+- **`pkgforge sbom`** — Generate Software Bill of Materials (SPDX-inspired JSON) for converted packages
 - **`pkgforge snapshot-cleanup`** — Systemd timer for automatic snapshot cleanup
 - **`convert --resolve-deps`** — Auto-resolve missing dependencies (pacman + AUR)
 - **`convert --offline`** — Offline mode with local cache

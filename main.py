@@ -301,6 +301,12 @@ def main() -> int:
     verify_parser = subparsers.add_parser("verify", help=tr("cli.verify_help"))
     verify_parser.add_argument("package", help=tr("cli.arg_verify_pkg"))
 
+    # sbom subcommand
+    sbom_parser = subparsers.add_parser("sbom", help=tr("cli.sbom_help"))
+    sbom_parser.add_argument("package", help=tr("cli.arg_sbom_pkg"))
+    sbom_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
+    sbom_parser.add_argument("--no-hashes", action="store_true", help=tr("cli.arg_sbom_no_hashes"))
+
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 

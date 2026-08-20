@@ -18,8 +18,11 @@ import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import URLError
+
+from config import ToolPaths
 
 log = logging.getLogger(__name__)
 

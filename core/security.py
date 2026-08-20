@@ -567,14 +567,18 @@ def safe_run(
     cwd: str | Path | None = None,
     timeout: int = 120,
     env: dict[str, str] | None = None,
+    input: str | bytes | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run a command with shell=False (no injection) and a timeout."""
     log.debug("Executing: %s", cmd)
+    # text=True requires str input; bytes input needs text=False.
+    use_text = not isinstance(input, bytes)
     return subprocess.run(
         cmd,
         capture_output=True,
-        text=True,
+        text=use_text,
         cwd=str(cwd) if cwd else None,
         timeout=timeout,
         env=env,
+        input=input,
     )

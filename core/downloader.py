@@ -11,7 +11,7 @@ import urllib.parse
 import urllib.error
 from pathlib import Path
 
-from config import MAX_PACKAGE_SIZE_MB, create_temp_dir
+from config import APP_VERSION, MAX_PACKAGE_SIZE_MB, create_temp_dir
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def download_package(
     dest_file = dest_dir / filename
     log.info("Paket indiriliyor: %s → %s", url, dest_file)
 
-    req = urllib.request.Request(url, headers={"User-Agent": "PkgForge/2.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
     max_bytes = MAX_PACKAGE_SIZE_MB * 1024 * 1024
     downloaded_bytes = 0
 

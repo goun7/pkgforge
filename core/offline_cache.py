@@ -220,11 +220,12 @@ class OfflineCache:
     def is_offline(self) -> bool:
         """Quick check if we're likely offline."""
         try:
+            from config import APP_VERSION
             import urllib.request
             req = urllib.request.Request(
                 "https://aur.archlinux.org",
                 method="HEAD",
-                headers={"User-Agent": "PkgForge/2.0"},
+                headers={"User-Agent": f"PkgForge/{APP_VERSION}"},
             )
             urllib.request.urlopen(req, timeout=3)
             return False
