@@ -17,11 +17,11 @@ import datetime
 import hashlib
 import json
 import logging
-import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from config import APP_NAME, APP_VERSION, ToolPaths
+from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
@@ -89,9 +89,9 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
     """Extract metadata from .PKGINFO inside a .pkg.tar.zst."""
     info: dict[str, str] = {}
     try:
-        res = subprocess.run(
+        res = safe_run(
             ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
+            timeout=10,
         )
         if res.returncode == 0:
             for line in res.stdout.splitlines():
@@ -152,9 +152,9 @@ def generate_sbom(
     # List tarball members with sizes
     bsdtar = tools.bsdtar or "bsdtar"
     try:
-        res = subprocess.run(
+        res = safe_run(
             [bsdtar, "-tvf", str(pkg_path)],
-            capture_output=True, text=True, timeout=30,
+            timeout=30,
         )
         if res.returncode != 0:
             log.warning("SBOM: tar listing başarısız: %s", res.stderr[:200])
@@ -195,12 +195,12 @@ def generate_sbom(
             sha = ""
             if include_hashes and not is_symlink and not is_dir and size > 0 and size < 10_000_000:
                 try:
-                    inner = subprocess.run(
+                    inner = safe_run(
                         [bsdtar, "-xf", str(pkg_path), "-O", entry_path],
-                        capture_output=True, timeout=10,
+                        timeout=10,
                     )
                     if inner.returncode == 0 and inner.stdout:
-                        sha = hashlib.sha256(inner.stdout).hexdigest()
+                        sha = hashlib.sha256(inner.stdout.encode("utf-8", errors="replace")).hexdigest()
                 except Exception:
                     pass
 

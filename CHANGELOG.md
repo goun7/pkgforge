@@ -43,6 +43,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **SQLite WAL mode** — Concurrent access protection with journal_mode=WAL and busy_timeout for safe multi-instance usage
 - **SBOM generator** — SPDX-inspired Software Bill of Materials for converted packages (core/sbom.py)
 - **Local Usage Dashboard** — Architecture breakdown, avg output size, top-converted packages in health command
+- **Plugin Hot-Reload** — SIGHUP-based plugin hot-reload for converter plugins (core/plugins/__init__.py)
+- **Architecture Decision Records** — 3 ADRs documenting key design decisions (WAL mode, plugin system, CLI/GUI split) in docs/adr/
 
 #### Testing & CI
 - E2E tests with real RPM packages
@@ -58,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **`pkgforge abi-check`** — GLIBC/GLIBCXX symbol version mismatch detection
 - **`pkgforge sbom`** — Generate Software Bill of Materials (SPDX-inspired JSON) for converted packages
 - **`pkgforge snapshot-cleanup`** — Systemd timer for automatic snapshot cleanup
+- **`pkgforge attest`** — Create in-toto SLSA v1.0 attestation for converted packages
 - **`convert --resolve-deps`** — Auto-resolve missing dependencies (pacman + AUR)
 - **`convert --offline`** — Offline mode with local cache
 - **`--clear-cache`** — Purge all cached data

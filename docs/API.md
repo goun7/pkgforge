@@ -323,6 +323,23 @@ prov = create_provenance(
 valid, msg = verify_provenance(prov)
 # valid: bool
 # msg: str — "Doğrulama başarılı" veya hata açıklaması
+
+# ── SLSA Attestation (in-toto) ────────────────────────────────
+att = create_attestation(
+    subject_name="myapp",
+    subject_hash="abc123...",
+    materials=[{"name": "input.deb", "digest": "def456..."}],
+    builder_id="pkgforge/1.1.0",
+    invocation_config={"method": "native-deb"},
+)
+# att — InTotoStatement (JSON-serializable)
+
+save_attestation(att, Path("output.intoto.jsonl"))
+# Writes in-toto v1.0 attestation to disk
+
+valid, msg = verify_provenance(prov)
+# valid: bool
+# msg: str — "Doğrulama başarılı" veya hata açıklaması
 ```
 
 ---

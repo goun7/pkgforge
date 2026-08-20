@@ -13,11 +13,11 @@ from __future__ import annotations
 
 import logging
 import shutil
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from config import ToolPaths
+from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
@@ -87,17 +87,17 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
     """Read .PKGINFO from package once and return as dict."""
     info: dict[str, str] = {}
     try:
-        res = subprocess.run(
+        res = safe_run(
             ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
+            timeout=10,
         )
         if res.returncode == 0:
             for line in res.stdout.splitlines():
                 if " = " in line:
                     key, val = line.split(" = ", 1)
                     info[key.strip()] = val.strip()
-    except Exception:
-        pass
+    except Exception as exc:
+        log.debug("Check failed: %s", exc)
     return info
 
 
@@ -138,7 +138,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=False, score=max(0, 10 - abi.error_count * 2), max_score=10,
                 detail=f"{abi.error_count} uyumsuzluk tespit edildi",
             ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="ABI Uyumluluğu", category="security",
             passed=True, score=5, max_score=10,
@@ -163,7 +164,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=5, max_score=10,
                 detail="ClamAV kurulu değil",
             ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Malware Taraması", category="security",
             passed=True, score=5, max_score=10,
@@ -174,9 +176,9 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
     try:
         from core.security import check_path_traversal
         # Extract file list for check
-        res = subprocess.run(
+        res = safe_run(
             ["tar", "tf", str(pkg_path)],
-            capture_output=True, text=True, timeout=10,
+            timeout=10,
         )
         if res.returncode == 0:
             file_list = res.stdout.strip().splitlines()
@@ -193,7 +195,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=3, max_score=5,
                 detail="Dosya listesi alınamadı",
             ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Path Traversal", category="security",
             passed=True, score=3, max_score=5,
@@ -225,7 +228,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=10, max_score=15,
                 detail="Bağımlılık yok veya okunamadı",
             ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Bağımlılık Çözümleme", category="compatibility",
             passed=True, score=8, max_score=15,
@@ -244,7 +248,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=arch_ok, score=10 if arch_ok else 0, max_score=10,
             detail=f"Paket: {arch}, Sistem: {system_arch}" if arch else "Mimari bilinmiyor",
         ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Mimari Uyumluluğu", category="compatibility",
             passed=True, score=5, max_score=10,
@@ -270,7 +275,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=ver_ok, score=5 if ver_ok else 0, max_score=5,
             detail=version or "Eksik",
         ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Sürüm", category="metadata",
             passed=False, score=0, max_score=5,
@@ -286,7 +292,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=desc_ok, score=5 if desc_ok else 0, max_score=5,
             detail=desc[:60] if desc else "Eksik veya çok kısa",
         ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Açıklama", category="metadata",
             passed=False, score=0, max_score=5,
@@ -302,7 +309,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=lic_ok, score=5 if lic_ok else 0, max_score=5,
             detail=license_id or "Bilinmiyor",
         ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Lisans", category="metadata",
             passed=False, score=0, max_score=5,
@@ -318,7 +326,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=url_ok, score=5 if url_ok else 0, max_score=5,
             detail=url[:60] if url else "Belirtilmemiş",
         ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Web Sitesi", category="metadata",
             passed=False, score=0, max_score=5,
@@ -346,9 +355,9 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # File count (10 pts)
     try:
-        res = subprocess.run(
+        res = safe_run(
             ["tar", "tf", str(pkg_path)],
-            capture_output=True, text=True, timeout=10,
+            timeout=10,
         )
         if res.returncode == 0:
             file_count = len(res.stdout.strip().splitlines())
@@ -372,7 +381,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=5, max_score=10,
                 detail="Sayılamadı",
             ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Dosya Sayısı", category="size",
             passed=True, score=5, max_score=10,
@@ -381,9 +391,9 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
 
     # Compression ratio (5 pts)
     try:
-        res = subprocess.run(
+        res = safe_run(
             ["tar", "tf", str(pkg_path)],
-            capture_output=True, text=True, timeout=10,
+            timeout=10,
         )
         if res.returncode == 0:
             uncompressed_est = len(res.stdout) * 10  # rough estimate
@@ -400,7 +410,8 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=3, max_score=5,
                 detail="Hesaplanamadı",
             ))
-    except Exception:
+    except Exception as exc:
+        log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Sıkıştırma Oranı", category="size",
             passed=True, score=3, max_score=5,

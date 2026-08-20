@@ -12,6 +12,7 @@ use either backend transparently.
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import threading
 from dataclasses import dataclass, field
@@ -179,7 +180,7 @@ package() {{
 
         self._emit("▶ makepkg paketi derliyor...")
         env = {
-            **__import__("os").environ,
+            **os.environ,
             "PKGDEST": str(pkg_out),
         }
 
