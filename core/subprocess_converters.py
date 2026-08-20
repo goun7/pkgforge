@@ -77,7 +77,7 @@ class NativeDebConverterSubprocess:
         try:
             from core.package_analyzer import analyze_package
             from core.security import safe_run, check_symlink_attacks, check_dangerous_files
-            from core.dependency_resolver import resolve_runtime_dependencies
+            from core.dep_resolver import resolve_runtime_dependencies
 
             meta = analyze_package(deb_path, self._tools)
             self._emit(f"✓ Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
@@ -353,7 +353,7 @@ class RpmConverterSubprocess:
 
     def _generate_pkgbuild(self, meta, src_dir):
         from core.rpm_converter import _sanitize_pkgname, _sanitize_version, _escape_bash
-        from core.dependency_resolver import resolve_runtime_dependencies
+        from core.dep_resolver import resolve_runtime_dependencies
         from config import RPM_DEP_MAP
 
         resolved = resolve_runtime_dependencies(src_dir, self._tools)

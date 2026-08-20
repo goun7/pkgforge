@@ -23,6 +23,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from core.constants import TIMEOUT_FAST, TIMEOUT_MEDIUM, TIMEOUT_SLOW
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -146,7 +147,7 @@ def scan_elf_symbols(elf_path: Path) -> list[SymbolMismatch]:
 
     # Get required symbol versions from the binary
     res = safe_run(
-        [readelf, "-V", str(elf_path)], timeout=10,
+        [readelf, "-V", str(elf_path)], timeout=TIMEOUT_FAST,
     )
     if res.returncode != 0:
         return mismatches
@@ -245,7 +246,7 @@ def _get_available_versions(lib_path: Path) -> list[str]:
         return []
 
     res = safe_run(
-        [readelf, "-V", str(lib_path)], timeout=10,
+        [readelf, "-V", str(lib_path)], timeout=TIMEOUT_FAST,
     )
     if res.returncode != 0:
         return []
@@ -265,7 +266,7 @@ def _extract_symbol_for_version(elf_path: Path, version_tag: str) -> str | None:
         return None
 
     res = safe_run(
-        [readelf, "-s", "--version-info", str(elf_path)], timeout=10,
+        [readelf, "-s", "--version-info", str(elf_path)], timeout=TIMEOUT_FAST,
     )
     if res.returncode != 0:
         return None
@@ -294,7 +295,7 @@ def _run_namcap(pkg_path: Path) -> list[NamcapResult]:
     results: list[NamcapResult] = []
     try:
         res = safe_run(
-            [namcap, str(pkg_path)], timeout=120,
+            [namcap, str(pkg_path)], timeout=TIMEOUT_SLOW,
         )
         # namcap output format:
         # PKGBUILD (line N): warning: description should not be empty
@@ -364,12 +365,12 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
                 cmd = f"ar x {shlex.quote(str(pkg_path))} data.tar.*"
                 safe_run(
                     ["/bin/bash", "-c", cmd],
-                    cwd=str(tmp), timeout=30,
+                    cwd=str(tmp), timeout=TIMEOUT_MEDIUM,
                 )
                 # Find and extract data.tar
                 for dtar in tmp.glob("data.tar.*"):
                     safe_run(
-                        ["tar", "xf", str(dtar), "-C", str(tmp)], timeout=30,
+                        ["tar", "xf", str(dtar), "-C", str(tmp)], timeout=TIMEOUT_MEDIUM,
                     )
                     dtar.unlink()
                     break
@@ -377,7 +378,7 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
                 return report
         elif ".pkg.tar" in pkg_path.name:
             safe_run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
+                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=TIMEOUT_MEDIUM,
             )
         else:
             return report
@@ -409,7 +410,7 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
             for elf in elf_files:
                 try:
                     ldd_res = safe_run(
-                        [ldd, str(elf)], timeout=5,
+                        [ldd, str(elf)], timeout=TIMEOUT_FAST,
                     )
                     missing = [
                         line.strip().split()[0]

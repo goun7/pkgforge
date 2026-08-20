@@ -22,7 +22,7 @@ from core.security import (
     check_symlink_attacks,
     safe_run,
 )
-from core.dependency_resolver import resolve_runtime_dependencies
+from core.dep_resolver import resolve_runtime_dependencies
 
 log = logging.getLogger(__name__)
 

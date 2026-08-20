@@ -281,12 +281,17 @@ def _cmd_convert(args: argparse.Namespace) -> int:
         # Onay iste (eğer --yes verilmemişse)
         confirmed = getattr(args, "yes", False)
         if not confirmed:
-            print(tr("cli.confirm_install").format(name=pkg_path.name))
-            try:
-                answer = input("[y/N] ").strip().lower()
-            except EOFError:
-                answer = ""
-            confirmed = answer in ("y", "yes", "e", "evet")
+            if sys.stdin.isatty():
+                print(tr("cli.confirm_install").format(name=pkg_path.name))
+                try:
+                    answer = input("[y/N] ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    answer = ""
+                confirmed = answer in ("y", "yes", "e", "evet")
+            else:
+                # Non-interactive mode: skip install without --yes
+                print(tr("cli.dry_run_note"))
+                confirmed = False
 
         if confirmed:
             print(tr("cli.installing_pkg").format(name=pkg_path.name))

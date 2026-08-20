@@ -11,8 +11,11 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
+
+log = logging.getLogger(__name__)
 import tempfile
 import time
 from core.security import safe_run

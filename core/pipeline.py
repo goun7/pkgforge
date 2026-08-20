@@ -79,6 +79,10 @@ else:
 
 log = logging.getLogger(__name__)
 
+__all__ = [
+    "ConversionPipeline", "PipelineResult",
+]
+
 
 class PipelineStep(IntEnum):
     SECURITY = 0

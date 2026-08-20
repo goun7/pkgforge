@@ -17,7 +17,7 @@ from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from config import RPM_DEP_MAP, ToolPaths
 from core.package_analyzer import PackageMetadata
 from core.security import check_dangerous_files, check_symlink_attacks
-from core.dependency_resolver import resolve_runtime_dependencies
+from core.dep_resolver import resolve_runtime_dependencies
 
 log = logging.getLogger(__name__)
 

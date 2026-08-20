@@ -6,6 +6,14 @@ build/
 dist/
 *.egg-info/
 .pytest_cache/
+.mypy_cache/
 *.db
 cıktı.txt
 .freebuff/
+utest/
+*.deb
+*.rpm
+*.pkg.tar.*
+*.provenance.json
+*.attestation.json
+*.spdx.json

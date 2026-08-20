@@ -204,7 +204,12 @@ class HistoryDB:
             return None
         try:
             dest = BACKUP_DIR / pkg_path.name
-            shutil.copy2(pkg_path, dest)
+            # Use streaming copy for files > 10MB to reduce memory usage
+            if pkg_path.stat().st_size > 10 * 1024 * 1024:
+                from core.streaming import stream_copy
+                stream_copy(pkg_path, dest)
+            else:
+                shutil.copy2(pkg_path, dest)
             log.info("Yedek oluşturuldu: %s", dest.name)
             return dest
         except OSError as exc:

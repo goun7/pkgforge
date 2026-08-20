@@ -73,6 +73,8 @@ class DropZone(QWidget):
         self._pick_btn.setObjectName("primaryBtn")
         self._pick_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._pick_btn.setFixedWidth(200)
+        self._pick_btn.setAccessibleName(tr("drop.pick_multi"))
+        self._pick_btn.setAccessibleDescription(".deb veya .rpm dosyalarını seçmek için dosya teşekkürü açar")
         self._pick_btn.clicked.connect(self._on_pick_file)
         btn_layout.addWidget(self._pick_btn)
 

@@ -8,9 +8,12 @@ Kept free of any Qt dependency so it is easy to unit-test and reuse from CLI.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 from config import APP_NAME, APP_VERSION
 

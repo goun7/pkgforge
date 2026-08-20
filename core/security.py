@@ -18,6 +18,12 @@ from config import ToolPaths
 
 log = logging.getLogger(__name__)
 
+__all__ = [
+    "validate_deb_file", "validate_rpm_file", "check_path_traversal",
+    "sha256_hash", "verify_gpg_signature", "safe_run", "is_valid_package_name",
+    "run_in_sandbox",
+]
+
 # Forbidden path components
 _TRAVERSAL_PATTERNS = re.compile(r"(^|/)\.\.(/|$)")
 _ABSOLUTE_PATH = re.compile(r"^/")

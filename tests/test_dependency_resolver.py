@@ -4,7 +4,7 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from core.dependency_resolver import (
+from core.dep_resolver import (
     parse_needed_sonames,
     parse_objdump_sonames,
     is_elf_file,

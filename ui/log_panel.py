@@ -66,6 +66,7 @@ class LogPanel(QWidget):
         self._export_btn = QPushButton("💾")
         self._export_btn.setObjectName("logToggle")
         self._export_btn.setToolTip(tr("log.export_title"))
+        self._export_btn.setAccessibleName(tr("log.export_title"))
         self._export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._export_btn.clicked.connect(self._export_log)
         self._export_btn.setFixedWidth(32)
