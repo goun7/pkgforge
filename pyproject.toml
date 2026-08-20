@@ -24,7 +24,7 @@ classifiers = [
 
 [project.optional-dependencies]
 gui = ["PyQt6>=6.5.0"]
-dev = ["pytest>=7.0", "pytest-cov>=4.0", "mypy>=1.0", "bandit>=1.7"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "pytest-timeout>=2.0", "mypy>=1.0", "bandit>=1.7"]
 
 [project.scripts]
 pkgforge = "main:main"
@@ -37,3 +37,8 @@ include = ["core*", "core.plugins*", "ui*", "i18n*", "data*"]
 
 [tool.setuptools.package-data]
 data = ["*.json", "*.txt", "*.md"]
+
+[tool.pytest.ini_options]
+timeout = 120
+timeout_method = "signal"
+addopts = "-q --tb=short"

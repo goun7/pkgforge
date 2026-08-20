@@ -185,7 +185,7 @@ class TestExtractPackageName:
 
     def test_rpm_simple(self):
         from config import extract_package_name
-        assert extract_package_name("openssl-1.1.1k-4-x86_64.rpm") == "openssl-1.1.1k"
+        assert extract_package_name("openssl-1.1.1k-4-x86_64.rpm") == "openssl"
 
     def test_rpm_fc_release(self):
         from config import extract_package_name
@@ -208,3 +208,56 @@ class TestExtractPackageName:
         from config import extract_package_name
         # No extension — returns as-is
         assert extract_package_name("mypackage") == "mypackage"
+
+    def test_rpm_epoch_prefix(self):
+        from config import extract_package_name
+        assert extract_package_name("1:openssl-1.1.1k-4-x86_64.rpm") == "openssl"
+
+    def test_rpm_arch_by_hyphen(self):
+        from config import extract_package_name
+        # Arch can be separated by hyphen instead of dot
+        assert extract_package_name("openssl-1.1.1k-4-x86_64.rpm") == "openssl"
+
+
+class TestSBOMDiff(unittest.TestCase):
+    """Tests for SBOM diff functionality."""
+
+    def test_diff_shows_added_files(self):
+        from core.sbom import SBOMDocument, SBOMEntry, diff_sboms
+        old = SBOMDocument(package_name="test", package_version="1.0")
+        old.files = [SBOMEntry(path=f"usr/bin/f{i}") for i in range(3)]
+        new = SBOMDocument(package_name="test", package_version="2.0")
+        new.files = [SBOMEntry(path=f"usr/bin/f{i}") for i in range(1, 4)]
+        new.files.append(SBOMEntry(path="usr/bin/new"))
+        diff = diff_sboms(old, new)
+        self.assertIn("usr/bin/new", diff.added_files)
+        self.assertIn("usr/bin/f0", diff.removed_files)
+
+    def test_diff_shows_deps_changes(self):
+        from core.sbom import SBOMDocument, diff_sboms
+        old = SBOMDocument(package_name="test", dependencies=["liba", "libb"])
+        new = SBOMDocument(package_name="test", dependencies=["liba", "libc"])
+        diff = diff_sboms(old, new)
+        self.assertEqual(diff.added_deps, ["libc"])
+        self.assertEqual(diff.removed_deps, ["libb"])
+
+    def test_diff_no_changes(self):
+        from core.sbom import SBOMDocument, SBOMEntry, diff_sboms
+        sbom = SBOMDocument(package_name="test", package_version="1.0", total_files=3)
+        sbom.files = [SBOMEntry(path=f"usr/bin/f{i}") for i in range(3)]
+        sbom.dependencies = ["liba"]
+        diff = diff_sboms(sbom, sbom)
+        self.assertEqual(diff.added_files, [])
+        self.assertEqual(diff.removed_files, [])
+
+    def test_save_sbom_diff(self):
+        from core.sbom import SBOMDocument, SBOMEntry, diff_sboms, save_sbom_diff
+        import tempfile, json
+        old = SBOMDocument(package_name="test")
+        new = SBOMDocument(package_name="test")
+        diff = diff_sboms(old, new)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = save_sbom_diff(diff, Path(tmp) / "diff.json")
+            self.assertTrue(path.exists())
+            data = json.loads(path.read_text())
+            self.assertEqual(data["old_name"], "test")

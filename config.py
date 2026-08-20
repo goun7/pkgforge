@@ -17,6 +17,9 @@ APP_ID = "org.pkgforge.app"
 CONFIG_DIR = Path.home() / ".config" / "pkgforge"
 SETTINGS_FILE = CONFIG_DIR / "settings.json"
 
+# Offline mode — when True, network-dependent checks (AUR, upstream) are skipped
+OFFLINE_MODE: bool = False
+
 # Size limits
 MAX_PACKAGE_SIZE_MB = 2048
 WARN_PACKAGE_SIZE_MB = 500
@@ -216,10 +219,14 @@ def extract_package_name(filename: str) -> str:
         return _re.sub(r"-[\d].*$", "", stem)
 
     elif lower.endswith(".rpm"):
-        # RPM: name-version-release.arch.rpm (hyphens in version are allowed)
+        # RPM: [epoch:]name-version-release.arch.rpm
         stem = name.rsplit(".", 1)[0]  # strip .rpm
-        # Remove arch suffix (e.g., .x86_64, .noarch)
-        stem = _re.sub(r"\.(x86_64|noarch|i686|aarch64|armv7hl)$", "", stem)
+        # Strip epoch prefix (e.g., "1:" in "1:openssl-1.1.1k-4")
+        if ":" in stem:
+            stem = stem.split(":", 1)[1]
+        # Remove arch suffix — dot or hyphen separated
+        # (e.g., ".x86_64" in "openssl-4.x86_64" or "-x86_64" in "openssl-4-x86_64")
+        stem = _re.sub(r"[.\-](x86_64|noarch|i686|i386|aarch64|armv7hl)$", "", stem)
         # Split by hyphens; last two segments are version-release
         parts = stem.split("-")
         if len(parts) >= 3:
