@@ -35,6 +35,9 @@ from core.queue_manager import QueueManager, QueueItemStatus
 from i18n import tr, set_language, get_language, load_setting, init_language
 from ui.drop_zone import DropZone
 from ui.log_panel import LogPanel
+from ui.loading_indicator import LoadingIndicator
+from ui.about_dialog import AboutDialog
+from ui.confirm_dialog import confirm_action
 from ui.result_dialog import ResultDialog
 from ui.settings_dialog import SettingsDialog
 from ui.step_progress import StepProgress
@@ -93,8 +96,8 @@ class MainWindow(QMainWindow):
 
     def _setup_window(self) -> None:
         self.setWindowTitle(tr("app.window_title"))
-        self.setMinimumSize(780, 580)
-        self.resize(900, 660)
+        self.setMinimumSize(600, 450)
+        self.resize(800, 600)
         self.setWindowIcon(_load_app_icon())
 
     def _setup_ui(self) -> None:
@@ -595,20 +598,9 @@ class MainWindow(QMainWindow):
     # ── About dialog ─────────────────────────────────────────────
 
     def _show_about(self) -> None:
-        QMessageBox.about(
-            self,
-            tr("about.title"),
-            f"<h3>{APP_NAME} v{APP_VERSION}</h3>"
-            f"<p>{tr('about.desc')}</p>"
-            f"<p><b>{tr('about.tools')}:</b><br>"
-            f"debtap: {'✓' if self._tools.debtap else '✗'} | "
-            f"rpm2cpio: {'✓' if self._tools.rpm2cpio else '✗'} | "
-            f"namcap: {'✓' if self._tools.namcap else '✗'} | "
-            f"bwrap: {'✓' if self._tools.bwrap else '✗'} | "
-            f"distrobox: {'✓' if self._tools.distrobox else '✗'}</p>"
-            f"<p><b>{tr('about.security')}:</b> {tr('about.security_desc')}</p>"
-            f"<p style='color:#888'>Python {sys.version.split()[0]}</p>",
-        )
+        from ui.about_dialog import AboutDialog
+        dialog = AboutDialog(self)
+        dialog.exec()
 
     # ── Close event ──────────────────────────────────────────────
 
