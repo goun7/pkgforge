@@ -303,14 +303,26 @@ def main() -> int:
 
     # sbom subcommand
     sbom_parser = subparsers.add_parser("sbom", help=tr("cli.sbom_help"))
-    sbom_parser.add_argument("package", help=tr("cli.arg_sbom_pkg"))
+    sbom_parser.add_argument("package", nargs="?", help=tr("cli.arg_sbom_pkg"))
     sbom_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
     sbom_parser.add_argument("--no-hashes", action="store_true", help=tr("cli.arg_sbom_no_hashes"))
+    sbom_parser.add_argument("--diff", nargs=2, metavar=("OLD", "NEW"), help=tr("cli.arg_sbom_diff"))
 
     # attest subcommand
     attest_parser = subparsers.add_parser("attest", help=tr("cli.attest_help"))
     attest_parser.add_argument("package", help=tr("cli.arg_attest_pkg"))
     attest_parser.add_argument("--key", help=tr("cli.arg_attest_key"))
+
+    # plugin subcommand
+    plugin_parser = subparsers.add_parser("plugin", help=tr("cli.plugin_help"))
+    plugin_sub = plugin_parser.add_subparsers(dest="plugin_action")
+    plugin_install = plugin_sub.add_parser("install", help=tr("cli.plugin_install_help"))
+    plugin_install.add_argument("name", help=tr("cli.plugin_install_name"))
+    plugin_install.add_argument("--force", action="store_true", help=tr("cli.plugin_force"))
+    plugin_sub.add_parser("list", help=tr("cli.plugin_list_help"))
+    plugin_sub.add_parser("available", help=tr("cli.plugin_available_help"))
+    plugin_remove = plugin_sub.add_parser("remove", help=tr("cli.plugin_remove_help"))
+    plugin_remove.add_argument("name", help=tr("cli.plugin_remove_name"))
 
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
@@ -326,6 +338,12 @@ def main() -> int:
     parser.add_argument("--clear-cache", action="store_true", help=tr("cli.arg_clear_cache"))
 
     args = parser.parse_args()
+
+    # Activate offline mode if requested
+    if args.offline:
+        import config
+        config.OFFLINE_MODE = True
+        log.info("Çevrimdışı mod aktif")
 
     if args.clear_cache:
         from core.offline_cache import get_cache

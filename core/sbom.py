@@ -246,3 +246,96 @@ def save_sbom(sbom: SBOMDocument, output_path: Path) -> Path:
     )
     log.info("SBOM kaydedildi: %s", output_path)
     return output_path
+
+
+# ── SBOM Diff ──────────────────────────────────────────────────
+
+@dataclass
+class SBOMDiff:
+    """Diff between two SBOM documents."""
+
+    old_name: str = ""
+    new_name: str = ""
+    old_version: str = ""
+    new_version: str = ""
+    added_files: list[str] = field(default_factory=list)
+    removed_files: list[str] = field(default_factory=list)
+    changed_deps: list[str] = field(default_factory=list)
+    added_deps: list[str] = field(default_factory=list)
+    removed_deps: list[str] = field(default_factory=list)
+    version_changes: list[dict[str, str]] = field(default_factory=list)
+    old_total_files: int = 0
+    new_total_files: int = 0
+    old_total_size: int = 0
+    new_total_size: int = 0
+
+    def summary(self) -> str:
+        lines = [
+            f"  📦 {self.old_name} {self.old_version} → {self.new_version}",
+            f"  📄 Dosyalar: {self.old_total_files} → {self.new_total_files} ("
+            f"+{len(self.added_files)} eklendi, -{len(self.removed_files)} silindi)",
+        ]
+        if self.added_deps:
+            lines.append(f"  ➕ Yeni bağımlılıklar: {', '.join(self.added_deps[:10])}")
+        if self.removed_deps:
+            lines.append(f"  ➖ Kaldırılan bağımlılıklar: {', '.join(self.removed_deps[:10])}")
+        if self.version_changes:
+            lines.append(f"  🔄 Versiyon değişiklikleri: {len(self.version_changes)}")
+            for vc in self.version_changes[:5]:
+                lines.append(f"     {vc.get('dep', '?')}: {vc.get('old', '?')} → {vc.get('new', '?')}")
+        if not any([self.added_files, self.removed_files, self.added_deps, self.removed_deps, self.version_changes]):
+            lines.append("  ✅ Fark yok — paketler aynı")
+        return "\n".join(lines)
+
+    def to_dict(self) -> dict:
+        """Serialize to JSON-compatible dict."""
+        return asdict(self)
+
+
+def diff_sboms(old: SBOMDocument, new: SBOMDocument) -> SBOMDiff:
+    """Compare two SBOM documents and return a structured diff."""
+    diff = SBOMDiff()
+    diff.old_name = old.package_name
+    diff.new_name = new.package_name
+    diff.old_version = old.package_version
+    diff.new_version = new.package_version
+    diff.old_total_files = old.total_files
+    diff.new_total_files = new.total_files
+    diff.old_total_size = old.total_size_bytes
+    diff.new_total_size = new.total_size_bytes
+
+    # File-level diff
+    old_paths = {f.path for f in old.files}
+    new_paths = {f.path for f in new.files}
+    diff.added_files = sorted(new_paths - old_paths)
+    diff.removed_files = sorted(old_paths - new_paths)
+
+    # Dependency diff
+    old_deps = set(old.dependencies)
+    new_deps = set(new.dependencies)
+    diff.added_deps = sorted(new_deps - old_deps)
+    diff.removed_deps = sorted(old_deps - new_deps)
+
+    # Version changes for common deps
+    common_deps = old_deps & new_deps
+    # Note: current SBOM doesn't track per-dep versions,
+    # so version_changes is populated only when metadata differs
+    diff.version_changes = []
+
+    log.info(
+        "SBOM diff: +%d -%d files, +%d -%d deps",
+        len(diff.added_files), len(diff.removed_files),
+        len(diff.added_deps), len(diff.removed_deps),
+    )
+    return diff
+
+
+def save_sbom_diff(diff: SBOMDiff, output_path: Path) -> Path:
+    """Write the SBOM diff to a JSON file."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(diff.to_dict(), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    log.info("SBOM diff kaydedildi: %s", output_path)
+    return output_path

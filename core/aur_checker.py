@@ -29,18 +29,23 @@ class AurResult:
     detail: str = ""
 
 
-def check_aur(package_name: str, local_version: str = "") -> AurResult:
+def check_aur(package_name: str, local_version: str = "", offline: bool = False) -> AurResult:
     """Check AUR for a package and compare versions.
 
     Args:
         package_name: The package name to search for.
         local_version: The version from the .deb/.rpm being converted.
+        offline: If True, skip network request and return cached/error result.
 
     Returns:
         AurResult with status and version info.
     """
     if not package_name:
         return AurResult(status="error", detail="Boş paket adı")
+
+    if offline:
+        log.info("Çevrimdışı mod — AUR kontrolü atlandı: %s", package_name)
+        return AurResult(status="error", detail="Çevrimdışı mod — ağ erişimi yok")
 
     try:
         url = f"{AUR_RPC_URL}?arg[]={urllib.parse.quote(package_name)}"

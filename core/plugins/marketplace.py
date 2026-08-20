@@ -1,0 +1,205 @@
+"""PkgForge — Plugin Marketplace.
+
+Download and install community converter plugins from GitHub releases.
+
+Usage:
+    from core.plugins.marketplace import install_plugin, list_installed_plugins
+    path = install_plugin("flatpak-converter")
+    plugins = list_installed_plugins()
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import shutil
+import tempfile
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+log = logging.getLogger(__name__)
+
+# GitHub org and repo for community plugins
+PLUGIN_ORG = "pkgforge"
+PLUGIN_REPO = "pkgforge-plugins"
+PLUGIN_RELEASE_URL = f"https://github.com/{PLUGIN_ORG}/{PLUGIN_REPO}/releases/download"
+PLUGIN_INDEX_URL = f"https://api.github.com/repos/{PLUGIN_ORG}/{PLUGIN_REPO}/releases/latest"
+
+# Local plugin install directory
+PLUGIN_DIR = Path.home() / ".config" / "pkgforge" / "plugins"
+
+
+def _get_user_agent() -> str:
+    """Build user-agent string."""
+    from config import APP_NAME, APP_VERSION
+    return f"{APP_NAME}/{APP_VERSION} (plugin-marketplace)"
+
+
+def _sha256_file(path: Path) -> str:
+    """Compute SHA-256 of a file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _download_file(url: str, dest: Path, timeout: int = 30) -> None:
+    """Download a URL to a local path."""
+    req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(resp, f)
+
+
+def _fetch_json(url: str, timeout: int = 10) -> dict:
+    """Fetch JSON from a URL."""
+    req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def fetch_available_plugins() -> list[dict[str, str]]:
+    """Fetch list of available plugins from GitHub releases.
+
+    Returns:
+        List of dicts with 'name', 'version', 'description', 'download_url', 'sha256_url'.
+    """
+    try:
+        data = _fetch_json(PLUGIN_INDEX_URL)
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+        log.warning("Plugin index fetch failed: %s", exc)
+        return []
+
+    plugins: list[dict[str, str]] = []
+    for asset in data.get("assets", []):
+        name = asset.get("name", "")
+        if not name.endswith(".py"):
+            continue
+        # Plugin name is the asset filename without .py
+        plugin_name = name.rsplit(".", 1)[0]
+        download_url = asset.get("browser_download_url", "")
+        plugins.append({
+            "name": plugin_name,
+            "version": data.get("tag_name", "unknown"),
+            "description": f"Community plugin: {plugin_name}",
+            "download_url": download_url,
+            "sha256_url": f"{download_url}.sha256",
+        })
+
+    return plugins
+
+
+def install_plugin(
+    name: str,
+    *,
+    version: str = "latest",
+    verify_checksum: bool = True,
+    force: bool = False,
+) -> Path:
+    """Install a plugin from the marketplace.
+
+    Args:
+        name: Plugin name (e.g., "flatpak-converter").
+        version: Version to install (default: "latest").
+        verify_checksum: Whether to verify SHA-256 checksum.
+        force: Overwrite existing plugin.
+
+    Returns:
+        Path to the installed plugin file.
+
+    Raises:
+        FileNotFoundError: Plugin not found in marketplace.
+        RuntimeError: Download or verification failed.
+    """
+    PLUGIN_DIR.mkdir(parents=True, exist_ok=True)
+
+    dest = PLUGIN_DIR / f"{name}.py"
+
+    # Check if already installed
+    if dest.exists() and not force:
+        log.info("Plugin already installed: %s", name)
+        return dest
+
+    # Fetch plugin index
+    available = fetch_available_plugins()
+    plugin_info = None
+    for p in available:
+        if p["name"] == name:
+            plugin_info = p
+            break
+
+    if not plugin_info:
+        raise FileNotFoundError(
+            f"Plugin '{name}' not found in marketplace. "
+            f"Available: {[p['name'] for p in available]}"
+        )
+
+    # Download plugin
+    log.info("Downloading plugin: %s v%s", name, plugin_info["version"])
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir) / f"{name}.py"
+        _download_file(plugin_info["download_url"], tmp_path)
+
+        # Verify checksum if available
+        if verify_checksum:
+            try:
+                sha_path = Path(tmpdir) / f"{name}.py.sha256"
+                _download_file(plugin_info["sha256_url"], sha_path)
+                expected_sha = sha_path.read_text().strip().split()[0]
+                actual_sha = _sha256_file(tmp_path)
+                if actual_sha != expected_sha:
+                    raise RuntimeError(
+                        f"Checksum mismatch for {name}: "
+                        f"expected {expected_sha}, got {actual_sha}"
+                    )
+                log.info("Checksum verified: %s", name)
+            except (urllib.error.URLError, urllib.error.HTTPError, IndexError):
+                log.warning("Checksum file not available, skipping verification")
+
+        # Install
+        shutil.copy2(tmp_path, dest)
+
+    log.info("Plugin installed: %s → %s", name, dest)
+    return dest
+
+
+def uninstall_plugin(name: str) -> bool:
+    """Uninstall a locally installed plugin.
+
+    Args:
+        name: Plugin name to uninstall.
+
+    Returns:
+        True if removed, False if not found.
+    """
+    plugin_path = PLUGIN_DIR / f"{name}.py"
+    if plugin_path.exists():
+        plugin_path.unlink()
+        log.info("Plugin uninstalled: %s", name)
+        return True
+    return False
+
+
+def list_installed_plugins() -> list[dict[str, str]]:
+    """List locally installed marketplace plugins.
+
+    Returns:
+        List of dicts with 'name', 'path', 'size'.
+    """
+    if not PLUGIN_DIR.exists():
+        return []
+
+    plugins = []
+    for f in PLUGIN_DIR.glob("*.py"):
+        if f.name.startswith("_"):
+            continue
+        plugins.append({
+            "name": f.stem,
+            "path": str(f),
+            "size": str(f.stat().st_size),
+        })
+    return sorted(plugins, key=lambda p: p["name"])

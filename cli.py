@@ -82,6 +82,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_publish(args)
     elif command == "verify-rollback":
         return _cmd_verify_rollback(args)
+    elif command == "plugin":
+        return _cmd_plugin(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -648,7 +650,41 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 def _cmd_sbom(args: argparse.Namespace) -> int:
     """Handle `pkgforge sbom`."""
-    from core.sbom import generate_sbom, save_sbom
+    from core.sbom import generate_sbom, save_sbom, diff_sboms, save_sbom_diff
+
+    # SBOM diff mode
+    diff_pair = getattr(args, "diff", None)
+    if diff_pair:
+        old_path = Path(diff_pair[0]).resolve()
+        new_path = Path(diff_pair[1]).resolve()
+        for p in (old_path, new_path):
+            if not p.is_file():
+                print(f"❌ Paket bulunamadı: {p}")
+                return 1
+
+        tools = discover_tools()
+        no_hashes = getattr(args, "no_hashes", False)
+
+        print(f"📋 SBOM oluşturuluyor (eski): {old_path.name}")
+        old_sbom = generate_sbom(old_path, tools, include_hashes=not no_hashes)
+        print(f"📋 SBOM oluşturuluyor (yeni): {new_path.name}")
+        new_sbom = generate_sbom(new_path, tools, include_hashes=not no_hashes)
+
+        diff = diff_sboms(old_sbom, new_sbom)
+
+        out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
+        diff_path = out_dir / f"{old_path.stem}-diff-{new_path.stem}.json"
+        save_sbom_diff(diff, diff_path)
+
+        print(f"\n📊 SBOM Diff:\n")
+        print(diff.summary())
+        print(f"\n  📄 Diff dosyası: {diff_path}")
+        return 0
+
+    # Single SBOM generation
+    if not args.package:
+        print("❌ Paket yolu gerekli (--diff kullanmıyorsanız)")
+        return 1
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
@@ -1295,6 +1331,68 @@ def _cmd_verify_rollback(args: argparse.Namespace) -> int:
         print("\n✅ Snapshot rollback mekanizması çalışıyor.")
     else:
         print("\n❌ Rollback doğrulanamadı.")
+        return 1
+
+    return 0
+
+
+def _cmd_plugin(args: argparse.Namespace) -> int:
+    """Handle `pkgforge plugin`."""
+    from core.plugins.marketplace import (
+        install_plugin, uninstall_plugin, list_installed_plugins,
+        fetch_available_plugins,
+    )
+    from core.plugins import reload_plugins
+
+    action = getattr(args, "plugin_action", None)
+
+    if action == "install":
+        name = args.name
+        force = getattr(args, "force", False)
+        print(f"📦 Plugin indiriliyor: {name}")
+        try:
+            path = install_plugin(name, force=force)
+            print(f"✅ Plugin kuruldu: {path}")
+            # Reload plugins to pick up the new one
+            reloaded = reload_plugins()
+            print(f"🔄 {len(reloaded)} plugin aktif")
+        except FileNotFoundError as exc:
+            print(f"❌ {exc}")
+            return 1
+        except RuntimeError as exc:
+            print(f"❌ Kurulum başarısız: {exc}")
+            return 1
+
+    elif action == "remove":
+        name = args.name
+        if uninstall_plugin(name):
+            print(f"🗑️  Plugin kaldırıldı: {name}")
+            reload_plugins()
+        else:
+            print(f"❌ Plugin bulunamadı: {name}")
+            return 1
+
+    elif action == "list":
+        installed = list_installed_plugins()
+        if not installed:
+            print("📋 Yerel plugin yok (tüm built-in pluginler aktif)")
+        else:
+            print(f"📋 Yerel pluginler ({len(installed)}):")
+            for p in installed:
+                print(f"  • {p['name']} ({p['size']} bytes)")
+
+    elif action == "available":
+        print("🌐 Marketplace'ten pluginler yükleniyor...")
+        available = fetch_available_plugins()
+        if not available:
+            print("⚠️  Plugin bulunamadı (çevrimdışı veya marketplace erişilemez)")
+        else:
+            print(f"📋 Kullanılabilir pluginler ({len(available)}):")
+            for p in available:
+                print(f"  • {p['name']} v{p['version']} — {p['description']}")
+
+    else:
+        print("❌ Geçersiz plugin komutu. Kullanım: install, remove, list, available")
         return 1
 
     return 0

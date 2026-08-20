@@ -14,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import pkgutil
 from abc import ABC, abstractmethod
@@ -86,34 +87,63 @@ def register_plugin(plugin_class: type) -> None:
 
 
 def load_plugins() -> dict[str, ConverterPlugin]:
-    """Load all plugins from core/plugins/ directory.
+    """Load all plugins from core/plugins/ and marketplace directory.
 
     Returns:
         Dict of name -> plugin instance.
     """
-    plugins_dir = Path(__file__).parent
     loaded: dict[str, ConverterPlugin] = {}
+    _loaded_modules: set[str] = set()
 
+    # 1. Load built-in plugins from core/plugins/
+    plugins_dir = Path(__file__).parent
     for finder, module_name, is_pkg in pkgutil.iter_modules([str(plugins_dir)]):
         if is_pkg or module_name.startswith("_"):
             continue
         try:
             module = importlib.import_module(f"core.plugins.{module_name}")
-            # Find classes that subclass ConverterPlugin
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if (isinstance(attr, type)
-                    and issubclass(attr, ConverterPlugin)
-                    and attr is not ConverterPlugin):
-                    instance = attr()
-                    if instance.name:
-                        _REGISTRY[instance.name] = attr
-                        loaded[instance.name] = instance
-                        log.info("Loaded plugin: %s from %s", instance.name, module_name)
+            _loaded_modules.add(module_name)
+            _register_module(module, loaded)
         except Exception as exc:
             log.warning("Failed to load plugin %s: %s", module_name, exc)
 
+    # 2. Load marketplace plugins from ~/.config/pkgforge/plugins/
+    try:
+        from core.plugins.marketplace import PLUGIN_DIR
+        if PLUGIN_DIR.exists():
+            for py_file in PLUGIN_DIR.glob("*.py"):
+                if py_file.name.startswith("_"):
+                    continue
+                mod_name = f"_marketplace_{py_file.stem}"
+                if mod_name in _loaded_modules:
+                    continue
+                try:
+                    spec = importlib.util.spec_from_file_location(mod_name, py_file)
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        _loaded_modules.add(mod_name)
+                        _register_module(module, loaded)
+                except Exception as exc:
+                    log.warning("Failed to load marketplace plugin %s: %s", py_file.name, exc)
+    except ImportError:
+        pass
+
     return loaded
+
+
+def _register_module(module: object, loaded: dict[str, ConverterPlugin]) -> None:
+    """Register ConverterPlugin subclasses from a module."""
+    for attr_name in dir(module):
+        attr = getattr(module, attr_name)
+        if (isinstance(attr, type)
+            and issubclass(attr, ConverterPlugin)
+            and attr is not ConverterPlugin):
+            instance = attr()
+            if instance.name:
+                _REGISTRY[instance.name] = attr
+                loaded[instance.name] = instance
+                log.info("Loaded plugin: %s", instance.name)
 
 
 def get_converter_for_file(file_path: Path) -> ConverterPlugin | None:
