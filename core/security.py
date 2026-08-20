@@ -197,7 +197,8 @@ def check_compression_bomb(
                     try:
                         installed_kb = int(lines[0]) // 1024
                         payload_kb = int(lines[1]) // 1024
-                        if payload_kb > 0 and installed_kb / archive_mb > max_ratio * 1024:
+                        # Compare uncompressed (KB) vs compressed (MB) in same units
+                        if payload_kb > 0 and installed_kb / (archive_mb * 1024) > max_ratio:
                             return (
                                 f"⚠ Potansiyel decompression bomb: "
                                 f"kurulum boyutu {installed_kb}KB, arşiv {archive_mb:.0f}MB"

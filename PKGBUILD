@@ -52,6 +52,9 @@ package() {
     cd "$srcdir/pkgforge-$pkgver"
     python -m installer --destdir="$pkgdir" dist/*.whl
 
+    # Remove __pycache__ directories (bytecode — unnecessary in packages)
+    find "$pkgdir" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
     # Desktop entry & Icon installation (if data files exist)
     if [ -f data/pkgforge.desktop ]; then
         install -Dm644 data/pkgforge.desktop "$pkgdir/usr/share/applications/org.pkgforge.app.desktop"

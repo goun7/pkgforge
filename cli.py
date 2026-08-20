@@ -692,10 +692,22 @@ def _cmd_graph(args: argparse.Namespace) -> int:
             print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
             return 1
     else:
-        graph = build_dep_graph(Path(f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.zst"))
+        # Resolve wildcard to actual file path
+        import glob as globmod
+        pkg_file = None
+        for pattern in [f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.zst",
+                        f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.xz"]:
+            matches = globmod.glob(pattern)
+            if matches:
+                pkg_file = Path(matches[0])
+                break
+        if not pkg_file:
+            print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
+            print("   Paket kurulu olmalı veya .pkg.tar.zst dosyası mevcut olmalı.")
+            return 1
+        graph = build_dep_graph(pkg_file)
         if not graph.nodes:
             print(f"❌ Grafik oluşturulamadı: {pkg_name}")
-            print("   Paket kurulu olmalı veya .pkg.tar.zst dosyası mevcut olmalı.")
             return 1
 
     stats = graph.stats()
