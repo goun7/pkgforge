@@ -149,10 +149,6 @@ class TestSecurityWithRealPackage(unittest.TestCase):
         self.assertIn(backend, ("btrfs", "zfs", "none"))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestRealRPMConversion(unittest.TestCase):
     """Full E2E test: convert real RPM through the entire pipeline."""
 
@@ -430,3 +426,30 @@ class TestNetworkDownloads(unittest.TestCase):
             self.assertTrue(valid, msg)
             self.assertEqual(len(att.subject), 1)
             self.assertIn("builder", att.predicate)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class TestPluginMarketplace(unittest.TestCase):
+    """Test plugin marketplace functionality."""
+
+    def test_list_installed_empty(self):
+        from core.plugins.marketplace import list_installed_plugins
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from core.plugins.marketplace import PLUGIN_DIR
+            import core.plugins.marketplace as mp
+            original = mp.PLUGIN_DIR
+            mp.PLUGIN_DIR = Path(tmpdir)
+            try:
+                result = list_installed_plugins()
+                self.assertIsInstance(result, list)
+                self.assertEqual(len(result), 0)
+            finally:
+                mp.PLUGIN_DIR = original
+
+    def test_uninstall_nonexistent(self):
+        from core.plugins.marketplace import uninstall_plugin
+        result = uninstall_plugin("nonexistent-plugin-xyz")
+        self.assertFalse(result)

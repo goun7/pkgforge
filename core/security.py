@@ -569,11 +569,20 @@ def safe_run(
     timeout: int = 120,
     env: dict[str, str] | None = None,
     input: str | bytes | None = None,
+    text: bool | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """Run a command with shell=False (no injection) and a timeout."""
+    """Run a command with shell=False (no injection) and a timeout.
+
+    Args:
+        text: If None (default), auto-detect from input type.
+              If True, force text mode (stdout/stderr are str).
+              If False, force binary mode (stdout/stderr are bytes).
+    """
     log.debug("Executing: %s", cmd)
-    # text=True requires str input; bytes input needs text=False.
-    use_text = not isinstance(input, bytes)
+    if text is None:
+        use_text = not isinstance(input, bytes)
+    else:
+        use_text = text
     return subprocess.run(
         cmd,
         capture_output=True,

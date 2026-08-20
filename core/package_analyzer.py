@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import re
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -25,6 +24,9 @@ from core.security import safe_run
 log = logging.getLogger(__name__)
 
 PackageType = Literal["deb", "rpm"]
+
+# Memory safety: reject pipe input larger than this to avoid OOM
+MAX_PIPE_INPUT_MB = 500
 
 
 @dataclass
@@ -56,6 +58,14 @@ class PackageMetadata:
 
 def analyze_package(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     """Determine package type and extract metadata."""
+    # Memory safety: reject oversized files to prevent OOM during pipe operations
+    file_size_mb = file_path.stat().st_size / (1024 * 1024)
+    if file_size_mb > MAX_PIPE_INPUT_MB:
+        raise RuntimeError(
+            f"Paket çok büyük ({file_size_mb:.0f}MB > {MAX_PIPE_INPUT_MB}MB limiti). "
+            f"Bellek taşıma (pipe) saldırısına karşı koruma aktif."
+        )
+
     suffix = file_path.suffix.lower()
 
     if suffix == ".deb":
@@ -91,38 +101,41 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
 
     # Extract control file content
     # ar p <file> control.tar.* | tar -xO ./control  (or just control)
-    extract_result = subprocess.run(
+    extract_result = safe_run(
         [tools.ar, "p", str(file_path), control_tar],
-        capture_output=True,
         timeout=30,
+        text=False,
     )
     if extract_result.returncode != 0:
-        raise RuntimeError(f"control.tar çıkarılamadı: {extract_result.stderr.decode("utf-8", errors="replace")}")
+        stderr = extract_result.stderr
+        stderr_str = stderr.decode("utf-8", errors="replace") if isinstance(stderr, bytes) else str(stderr)
+        raise RuntimeError(f"control.tar çıkarılamadı: {stderr_str}")
 
     # Determine tar flags for decompression
     tar_flags = _tar_flags_for(control_tar)
-    tar_result = subprocess.run(
+    tar_result = safe_run(
         [tools.bsdtar, "-xf", "-", "--to-stdout", "./control"] if tools.bsdtar
         else ["tar", f"-x{tar_flags}f", "-", "--to-stdout", "./control"],
         input=extract_result.stdout,
-        capture_output=True,
         timeout=30,
     )
 
     # Fallback: try without ./ prefix
     if tar_result.returncode != 0:
-        tar_result = subprocess.run(
+        tar_result = safe_run(
             [tools.bsdtar, "-xf", "-", "--to-stdout", "control"] if tools.bsdtar
             else ["tar", f"-x{tar_flags}f", "-", "--to-stdout", "control"],
             input=extract_result.stdout,
-            capture_output=True,
             timeout=30,
         )
 
     if tar_result.returncode != 0:
-        raise RuntimeError(f"control dosyası okunamadı: {tar_result.stderr.decode("utf-8", errors="replace")}")
+        stderr = tar_result.stderr
+        stderr_str = stderr.decode("utf-8", errors="replace") if isinstance(stderr, bytes) else str(stderr)
+        raise RuntimeError(f"control dosyası okunamadı: {stderr_str}")
 
-    control_text = tar_result.stdout.decode("utf-8", errors="replace")
+    stdout = tar_result.stdout
+    control_text = stdout.decode("utf-8", errors="replace") if isinstance(stdout, bytes) else str(stdout)
     _parse_deb_control(control_text, meta)
 
     # Map architecture
@@ -196,25 +209,25 @@ def _extract_deb_file_list(
     file_path: Path, data_tar: str, meta: PackageMetadata, tools: ToolPaths
 ) -> None:
     """List files in data.tar.* without extracting."""
-    extract_result = subprocess.run(
+    extract_result = safe_run(
         [tools.ar, "p", str(file_path), data_tar],
-        capture_output=True,
         timeout=30,
+        text=False,
     )
     if extract_result.returncode != 0:
         return
 
-    tar_result = subprocess.run(
+    tar_result = safe_run(
         [tools.bsdtar, "-tf", "-"] if tools.bsdtar
         else ["tar", f"-t{_tar_flags_for(data_tar)}f", "-"],
         input=extract_result.stdout,
-        capture_output=True,
         timeout=30,
     )
     if tar_result.returncode == 0:
+        stdout_text = tar_result.stdout.decode("utf-8", errors="replace") if isinstance(tar_result.stdout, bytes) else tar_result.stdout
         meta.file_list = [
             line.strip()
-            for line in tar_result.stdout.decode("utf-8", errors="replace").splitlines()
+            for line in stdout_text.splitlines()
             if line.strip() and not line.strip().endswith("/")
         ]
 
@@ -248,23 +261,23 @@ def _analyze_rpm(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     meta.arch_mapped = RPM_ARCH_MAP.get(meta.arch, meta.arch)
 
     # Extract file list via rpm2cpio | bsdtar -tf -
-    file_list_result = subprocess.run(
+    file_list_result = safe_run(
         [tools.rpm2cpio, str(file_path)],
-        capture_output=True,
         timeout=30,
+        text=False,
     )
     if file_list_result.returncode == 0:
-        tar_result = subprocess.run(
+        tar_result = safe_run(
             [tools.bsdtar, "-tf", "-"] if tools.bsdtar
             else ["cpio", "-t", "--quiet"],
             input=file_list_result.stdout,
-            capture_output=True,
             timeout=30,
         )
         if tar_result.returncode == 0:
+            stdout_text = tar_result.stdout.decode("utf-8", errors="replace") if isinstance(tar_result.stdout, bytes) else tar_result.stdout
             meta.file_list = [
                 line.strip()
-                for line in tar_result.stdout.decode("utf-8", errors="replace").splitlines()
+                for line in stdout_text.splitlines()
                 if line.strip() and not line.strip().endswith("/")
             ]
 
