@@ -25,8 +25,7 @@ log = logging.getLogger(__name__)
 
 PackageType = Literal["deb", "rpm"]
 
-# Memory safety: reject pipe input larger than this to avoid OOM
-MAX_PIPE_INPUT_MB = 500
+from core.constants import MAX_PIPE_INPUT_MB
 
 
 @dataclass

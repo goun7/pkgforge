@@ -20,9 +20,8 @@ SETTINGS_FILE = CONFIG_DIR / "settings.json"
 # Offline mode — when True, network-dependent checks (AUR, upstream) are skipped
 OFFLINE_MODE: bool = False
 
-# Size limits
-MAX_PACKAGE_SIZE_MB = 2048
-WARN_PACKAGE_SIZE_MB = 500
+# Size limits (re-export from core.constants for backward compatibility)
+from core.constants import MAX_PACKAGE_SIZE_MB, WARN_PACKAGE_SIZE_MB
 
 # Supported architectures (Arch naming)
 SUPPORTED_ARCHES = frozenset({"x86_64", "any"})
