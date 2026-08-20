@@ -178,3 +178,65 @@ def cleanup_orphaned_temp_dirs() -> int:
                 pass
     return removed_count
 
+
+# ── Smart Package Name Extraction ────────────────────────────────
+
+def extract_package_name(filename: str) -> str:
+    """Extract a clean package name from a .deb or .rpm filename.
+
+    Handles Debian naming conventions:
+      name_version_arch.deb  → name
+      libssl1.1_1.1.0-1_amd64.deb → libssl1.1
+      python3-pip_21.0-1_all.deb → python3-pip
+
+    RPM naming:
+      name-version-release.arch.rpm → name
+      openssl-1.1.1k-4-x86_64.rpm → openssl
+      glibc-2.33-5.fc34.x86_64.rpm → glibc
+
+    URL paths are basename-extracted first.
+    """
+    import re as _re
+
+    # Extract basename from URL or path
+    name = Path(filename).name
+    if not name:
+        return filename
+
+    # Determine if deb or rpm
+    lower = name.lower()
+    if lower.endswith(".deb"):
+        # Debian: name_version_arch.deb
+        stem = name.rsplit(".", 1)[0]  # strip .deb
+        parts = stem.split("_")
+        if len(parts) >= 2:
+            # First part is the package name (may contain dots, e.g. libssl1.1)
+            return parts[0]
+        # Fallback: strip trailing -version
+        return _re.sub(r"-[\d].*$", "", stem)
+
+    elif lower.endswith(".rpm"):
+        # RPM: name-version-release.arch.rpm (hyphens in version are allowed)
+        stem = name.rsplit(".", 1)[0]  # strip .rpm
+        # Remove arch suffix (e.g., .x86_64, .noarch)
+        stem = _re.sub(r"\.(x86_64|noarch|i686|aarch64|armv7hl)$", "", stem)
+        # Split by hyphens; last two segments are version-release
+        parts = stem.split("-")
+        if len(parts) >= 3:
+            return "-".join(parts[:-2])
+        elif len(parts) == 2:
+            return parts[0]
+        return stem
+
+    elif lower.endswith(".pkg.tar.zst") or lower.endswith(".pkg.tar.xz"):
+        # Arch: name-version-release-arch.pkg.tar.*
+        stem = name.rsplit(".", 1)[0]  # strip .zst or .xz
+        stem = stem.rsplit(".", 1)[0]  # strip .tar
+        parts = stem.split("-")
+        if len(parts) >= 4:
+            return "-".join(parts[:-3])
+        return stem
+
+    # Unknown format: return stem as-is
+    return Path(filename).stem
+

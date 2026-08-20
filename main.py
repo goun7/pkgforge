@@ -307,6 +307,11 @@ def main() -> int:
     sbom_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
     sbom_parser.add_argument("--no-hashes", action="store_true", help=tr("cli.arg_sbom_no_hashes"))
 
+    # attest subcommand
+    attest_parser = subparsers.add_parser("attest", help=tr("cli.attest_help"))
+    attest_parser.add_argument("package", help=tr("cli.arg_attest_pkg"))
+    attest_parser.add_argument("--key", help=tr("cli.arg_attest_key"))
+
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 

@@ -174,5 +174,44 @@ def list_plugins() -> list[dict[str, Any]]:
     return result
 
 
+def reload_plugins() -> dict[str, ConverterPlugin]:
+    """Reload all plugins, replacing any previously loaded ones.
+
+    Clears the registry and re-imports all plugin modules.
+    Useful for hot-reloading during development or via SIGHUP.
+
+    Returns:
+        Dict of name -> plugin instance after reload.
+    """
+    global _REGISTRY
+    _REGISTRY.clear()
+    log.info("Plugin registry cleared, reloading...")
+    return load_plugins()
+
+
+def _setup_sighup_handler() -> None:
+    """Install SIGHUP handler for plugin hot-reload (Unix only)."""
+    import signal
+    import sys
+
+    if sys.platform == "win32":
+        return  # SIGHUP not available on Windows
+
+    def _handle_sighup(signum: int, frame: object) -> None:
+        log.info("SIGHUP received — reloading plugins")
+        try:
+            reloaded = reload_plugins()
+            log.info("Plugins reloaded: %d plugins active", len(reloaded))
+        except Exception as exc:
+            log.error("Plugin reload failed: %s", exc)
+
+    try:
+        signal.signal(signal.SIGHUP, _handle_sighup)
+        log.debug("SIGHUP handler installed for plugin hot-reload")
+    except (OSError, ValueError):
+        pass  # Not in main thread or signal not available
+
+
 # Auto-load plugins on import
 load_plugins()
+_setup_sighup_handler()

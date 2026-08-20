@@ -33,10 +33,10 @@ jobs:
         run: |
           python -m pytest tests/ -v --tb=short --cov=core --cov-report=term-missing
 
-      - name: Type Check
+      - name: Type Check (strict)
         run: |
           pip install mypy
-          mypy core/ --ignore-missing-imports --no-error-summary || true
+          mypy core/ --ignore-missing-imports --no-error-summary
 
       - name: Security Scan (Bandit)
         run: |
@@ -60,25 +60,26 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
-      - name: Run Benchmarks
+      - name: Run Benchmarks (regression gate)
         run: |
           python -c "
           from core.benchmark import run_benchmarks
           report = run_benchmarks(quick=True)
           print(report.summary())
-          # Fail if any benchmark failed
+          # HARD GATE: Fail if any benchmark failed
           assert report.passed, 'Benchmarks failed!'
-          # Fail if total time > 30 seconds (regression gate)
-          if report.total_duration_ms > 30000:
-              print(f'WARNING: Benchmarks took {report.total_duration_ms}ms (>30s)')
-              print('This may indicate a performance regression.')
-          print(f'Benchmark passed: {report.total_duration_ms}ms total')
+          # HARD GATE: Fail if total time > 30 seconds
+          THRESHOLD_MS = 30000
+          if report.total_duration_ms > THRESHOLD_MS:
+              print(f'FATAL: Benchmarks took {report.total_duration_ms}ms (threshold: {THRESHOLD_MS}ms)')
+              print('Performance regression detected — blocking merge.')
+              raise SystemExit(1)
+          print(f'Benchmark passed: {report.total_duration_ms}ms (threshold: {THRESHOLD_MS}ms)')
           "
 
       - name: Module Import Check (PyQt6-free)
         run: |
           python -c "
-          # Verify all core modules import WITHOUT PyQt6
           import importlib
           modules = [
               'core.security', 'core.history_db', 'core.provenance',
@@ -92,6 +93,8 @@ jobs:
               'core.offline_cache', 'core.retry', 'core.quality_score',
               'core.aur_publish', 'core.rollback_verify',
               'core.plugins', 'core.pipeline',
+              'core.sbom', 'core.benchmark', 'core.structured_log',
+              'core.streaming',
           ]
           for mod in modules:
               importlib.import_module(mod)
@@ -105,3 +108,7 @@ jobs:
           python main.py quality --help
           python main.py publish --help
           python main.py verify-rollback --help
+          python main.py sbom --help
+          python main.py attest --help
+          python main.py health --help
+          python main.py benchmark --quick

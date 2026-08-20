@@ -340,7 +340,18 @@ def _parse_rpm_filename(file_path: Path, meta: PackageMetadata) -> None:
 # ── Common helpers ───────────────────────────────────────────────
 
 def _check_installed(meta: PackageMetadata, tools: ToolPaths) -> None:
-    """Check if a package with this name is already installed."""
+    """Check if a package with this name is already installed.
+
+    The name comes from untrusted package metadata, so it must pass
+    is_valid_package_name() before being handed to pacman as an argument
+    (a crafted name like ``--dbpath=...`` could otherwise be parsed as an
+    option, not a package name).
+    """
+    from core.security import is_valid_package_name
+    if not is_valid_package_name(meta.name):
+        log.warning("Geçersiz paket adı, kurulum kontrolü atlandı: %r", meta.name)
+        return
+
     result = safe_run([tools.pacman, "-Qi", meta.name], timeout=10)
     if result.returncode == 0:
         meta.already_installed = True

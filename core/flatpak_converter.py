@@ -247,3 +247,99 @@ def _estimate_size_mb(directory: Path) -> int:
     except OSError:
         pass
     return max(1, total // (1024 * 1024))
+
+
+# ── Flatpak Runtime Image Export ─────────────────────────────────
+
+def export_flatpak_runtime(
+    app_id: str,
+    output_dir: Path,
+    branch: str = "stable",
+    sdk: str = "org.freedesktop.Platform",
+    sdk_version: str = "24.08",
+) -> tuple[bool, str, Path | None]:
+    """Export a Flatpak app as a runtime image (JSON manifest).
+
+    Generates a Flatpak manifest that can be used with `flatpak-builder`
+    to rebuild the app from its exported files.
+
+    Args:
+        app_id: Flatpak application ID (e.g., "org.mozilla.firefox").
+        output_dir: Directory to write the manifest.
+        branch: Flatpak branch (default "stable").
+        sdk: SDK runtime to use (default "org.freedesktop.Platform").
+        sdk_version: SDK version (default "24.08").
+
+    Returns:
+        (success, message, manifest_path)
+    """
+    if not is_flatpak_available():
+        return False, "flatpak bulunamadı", None
+
+    # Get app info
+    apps = list_installed_apps()
+    app = None
+    for a in apps:
+        if a.app_id == app_id:
+            app = a
+            break
+
+    if not app:
+        return False, f"Flatpak uygulaması bulunamadı: {app_id}", None
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate manifest
+    manifest = {
+        "app-id": app.app_id,
+        "runtime": sdk,
+        "runtime-version": sdk_version,
+        "sdk": f"{sdk}.Sdk",
+        "command": app.app_id.split(".")[-1],
+        "finish-args": [
+            "--share=ipc",
+            "--socket=x11",
+            "--socket=wayland",
+            "--socket=pulseaudio",
+            "--share=network",
+        ],
+        "modules": [
+            {
+                "name": app.app_id.split(".")[-1],
+                "buildsystem": "simple",
+                "build-commands": [
+                    f"cp -r /app/* ${{FLATPAK_DEST}}/",
+                ],
+                "sources": [
+                    {
+                        "type": "flatpak",
+                        "url": f"https://dl.flathub.org/repo/appstream/{app.app_id}.flatpakref",
+                        "branch": branch,
+                    }
+                ],
+            }
+        ],
+        # PkgForge metadata
+        "_pkgforge": {
+            "source": "pkgforge flatpak-export --to-flatpak-runtime",
+            "original_version": app.version,
+            "original_branch": app.branch,
+            "description": app.description,
+        },
+    }
+
+    manifest_name = f"{app.app_id.lower().replace('.', '-')}.json"
+    manifest_path = output_dir / manifest_name
+    manifest_path.write_text(
+        __import__("json").dumps(manifest, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    msg = (
+        f"✅ Flatpak runtime manifest oluşturuldu\n"
+        f"  Uygulama:  {app.name} {app.version}\n"
+        f"  Runtime:   {sdk} {sdk_version}\n"
+        f"  Manifest:  {manifest_path}\n"
+        f"  Derlemek:  flatpak-builder --force-clean build {manifest_path}"
+    )
+    return True, msg, manifest_path

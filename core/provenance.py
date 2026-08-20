@@ -212,3 +212,140 @@ def find_provenance(output_file: Path) -> Path | None:
     if prov_path.is_file():
         return prov_path
     return None
+
+
+# ── In-toto Attestation (SLSA Level 2) ──────────────────────────
+
+@dataclass
+class InTotoStatement:
+    """In-toto attestation statement for supply chain integrity.
+
+    Follows the in-toto attestation spec v1.0:
+    https://in-toto.io/Statement/v1
+    """
+    _type: str = "https://in-toto.io/Statement/v1"
+    predicate_type: str = "https://pkgforge.app/attestation/v1"
+    subject: list[dict[str, Any]] = field(default_factory=list)
+    predicate: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "_type": self._type,
+            "predicateType": self.predicate_type,
+            "subject": self.subject,
+            "predicate": self.predicate,
+        }
+
+
+def create_attestation(
+    prov: BuildProvenance,
+    *,
+    signer_key: str = "",
+) -> InTotoStatement:
+    """Create an in-toto attestation from a BuildProvenance record.
+
+    The subject contains the output package identity and hash.
+    The predicate contains the full build provenance.
+    """
+    # Subject: the output artifact
+    subject = []
+    if prov.output_file and prov.output_sha256:
+        subject.append({
+            "name": Path(prov.output_file).name,
+            "digest": {"sha256": prov.output_sha256},
+        })
+    elif prov.output_file:
+        subject.append({"name": Path(prov.output_file).name})
+
+    # Predicate: full provenance metadata
+    materials: list[dict[str, Any]] = []
+    predicate: dict[str, Any] = {
+        "builder": {
+            "id": f"{prov.tool_name}@{prov.tool_version}",
+        },
+        "buildType": f"{prov.tool_name}/convert",
+        "invocation": {
+            "configSource": {
+                "uri": prov.source_url or prov.source_file,
+                "digest": {"sha256": prov.source_sha256} if prov.source_sha256 else {},
+            },
+        },
+        "metadata": {
+            "buildInvocationId": prov.build_id,
+            "buildStartedOn": prov.build_timestamp,
+            "buildFinishedOn": prov.build_timestamp,
+            "completeness": {
+                "environment": False,
+                "materials": False,
+                "reproducible": False,
+            },
+            "reproducible": False,
+        },
+        "materials": materials,
+        "environment": {
+            "arch": prov.build_arch,
+            "os": prov.build_os,
+            "host": prov.build_host,
+        },
+        "security": {
+            "clamav": prov.clamav_result,
+            "decompression_bomb": prov.decompression_bomb_result,
+            "signature_valid": prov.signature_valid,
+        },
+    }
+
+    # Source material
+    if prov.source_file:
+        material: dict[str, Any] = {"uri": prov.source_file}
+        if prov.source_sha256:
+            material["digest"] = {"sha256": prov.source_sha256}
+        materials.append(material)
+
+    statement = InTotoStatement(subject=subject, predicate=predicate)
+
+    # Sign if key provided
+    if signer_key:
+        statement.predicate["signer"] = {
+            "keyId": signer_key[:16],
+        }
+
+    return statement
+
+
+def save_attestation(
+    attestation: InTotoStatement,
+    output_path: Path,
+) -> Path:
+    """Save in-toto attestation as JSON."""
+    out = output_path.with_suffix(".attestation.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(attestation.to_dict(), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    log.info("Attestation kaydedildi: %s", out)
+    return out
+
+
+def verify_attestation(attestation: InTotoStatement) -> tuple[bool, str]:
+    """Verify an in-toto attestation statement."""
+    # Check statement type
+    if attestation._type != "https://in-toto.io/Statement/v1":
+        return False, f"Geçersiz statement tipi: {attestation._type}"
+
+    # Check predicate type
+    if not attestation.predicate_type.startswith("https://"):
+        return False, f"Geçersiz predicate tipi: {attestation.predicate_type}"
+
+    # Check subject exists
+    if not attestation.subject:
+        return False, "Attestation'da subject yok"
+
+    # Check required predicate fields
+    pred = attestation.predicate
+    for key in ("builder", "buildType", "metadata"):
+        if key not in pred:
+            return False, f"Predicate'de '{key}' alanı eksik"
+
+    return True, "Attestation doğrulandı ✓"
+    return None

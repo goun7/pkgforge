@@ -12,25 +12,32 @@ import shutil
 from enum import IntEnum
 from pathlib import Path
 import threading
+from typing import TYPE_CHECKING, Any
 
-try:
+# ── PyQt6 availability gate ──────────────────────────────────────
+# Runtime: import real Qt classes when available, otherwise stubs.
+# Type-checking: always see the real signatures via TYPE_CHECKING.
+if TYPE_CHECKING:  # pragma: no cover
     from PyQt6.QtCore import QObject, QThread, pyqtSignal, QEventLoop, QTimer
-    _HAS_PYQT6 = True
-except ImportError:
-    _HAS_PYQT6 = False
-    # Minimal stubs for non-Qt mode
-    class QObject:
-        pass
-    class QThread(QObject):
-        pass
-    def pyqtSignal(*args, **kwargs):
-        return None
-    class QEventLoop:
-        def exec(self): pass
-        def quit(self): pass
-    class QTimer:
-        @staticmethod
-        def singleShot(ms, fn): fn()
+else:
+    try:
+        from PyQt6.QtCore import QObject, QThread, pyqtSignal, QEventLoop, QTimer
+        _HAS_PYQT6 = True
+    except ImportError:
+        _HAS_PYQT6 = False
+        # Minimal stubs — only used at runtime when PyQt6 is missing.
+        class QObject:  # type: ignore[no-redef]
+            pass
+        class QThread(QObject):  # type: ignore[no-redef]
+            pass
+        def pyqtSignal(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            return None
+        class QEventLoop:  # type: ignore[no-redef]
+            def exec(self) -> None: pass
+            def quit(self) -> None: pass
+        class QTimer:  # type: ignore[no-redef]
+            @staticmethod
+            def singleShot(ms: int, fn: Any) -> None: fn()
 
 from config import (
     MAX_PACKAGE_SIZE_MB,
@@ -56,13 +63,19 @@ from core.security import (
 )
 
 # Conditional import: PyQt6 for GUI, subprocess for CLI
-try:
-    from PyQt6.QtCore import QObject
+if TYPE_CHECKING:  # pragma: no cover
+    from core.deb_converter import DebConverter
+    from core.installer import Installer
     from core.rpm_converter import RpmConverter
     _HAS_PYQT6 = True
-except ImportError:
-    from core.subprocess_converters import RpmConverterSubprocess as RpmConverter
-    _HAS_PYQT6 = False
+else:
+    try:
+        from PyQt6.QtCore import QObject as _QObject  # noqa: F811
+        from core.rpm_converter import RpmConverter  # type: ignore[no-redef]
+        _HAS_PYQT6 = True
+    except ImportError:
+        from core.subprocess_converters import RpmConverterSubprocess as RpmConverter  # type: ignore[no-redef]
+        _HAS_PYQT6 = False
 
 log = logging.getLogger(__name__)
 
@@ -577,10 +590,10 @@ class ConversionPipeline(QObject):
 
             loop = QEventLoop()
 
-            def on_done(success: bool, msg: str, pkg: object) -> None:
+            def on_done(success: bool, msg: str, pkg: Path | None) -> None:
                 self._async_success = success
                 self._async_message = msg
-                self._async_pkg_path = pkg  # type: ignore
+                self._async_pkg_path = pkg
                 loop.quit()
 
             self._deb_converter.finished.connect(on_done)
@@ -598,7 +611,7 @@ class ConversionPipeline(QObject):
 
             done_event = threading.Event()
 
-            def on_done(success: bool, msg: str, pkg: object) -> None:
+            def on_done(success: bool, msg: str, pkg: Path | None) -> None:
                 with self._async_lock:
                     self._async_success = success
                     self._async_message = msg
@@ -618,7 +631,7 @@ class ConversionPipeline(QObject):
 
             if _HAS_PYQT6:
                 loop_fb = QEventLoop()
-                def on_fb_done(success: bool, msg: str, pkg: object) -> None:
+                def on_fb_done(success: bool, msg: str, pkg: Path | None) -> None:
                     self._async_success = success
                     self._async_message = msg
                     self._async_pkg_path = pkg
@@ -628,7 +641,7 @@ class ConversionPipeline(QObject):
                 loop_fb.exec()
             else:
                 done_event2 = threading.Event()
-                def on_fb_done2(success: bool, msg: str, pkg: object) -> None:
+                def on_fb_done2(success: bool, msg: str, pkg: Path | None) -> None:
                     with self._async_lock:
                         self._async_success = success
                         self._async_message = msg
@@ -649,7 +662,7 @@ class ConversionPipeline(QObject):
             self._rpm_converter = RpmConverter(self._tools, self)
             self._rpm_converter.output_line.connect(lambda msg: self._log("info", msg))
             loop = QEventLoop()
-            def on_done(success: bool, msg: str, pkg: object) -> None:
+            def on_done(success: bool, msg: str, pkg: Path | None) -> None:
                 with self._async_lock:
                     self._async_success = success
                     self._async_message = msg
@@ -663,7 +676,7 @@ class ConversionPipeline(QObject):
             converter = RpmConverterSubprocess(self._tools)
             converter.output_line.connect(lambda msg: self._log("info", msg))
             done_event = threading.Event()
-            def on_done_sub(success: bool, msg: str, pkg: object) -> None:
+            def on_done_sub(success: bool, msg: str, pkg: Path | None) -> None:
                 with self._async_lock:
                     self._async_success = success
                     self._async_message = msg

@@ -12,7 +12,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from config import ToolPaths, discover_tools
+from config import ToolPaths, discover_tools, extract_package_name
 from core.downloader import download_package
 from core.history_db import HistoryDB
 from core.security import safe_run, is_valid_package_name
@@ -60,6 +60,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_verify(args)
     elif command == "sbom":
         return _cmd_sbom(args)
+    elif command == "attest":
+        return _cmd_attest(args)
     elif command == "graph":
         return _cmd_graph(args)
     elif command == "audit":
@@ -107,7 +109,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 from core.delta_updater import download_with_delta, find_local_previous
                 from config import create_temp_dir
                 # Try to find a previous local version for delta
-                pkg_name_guess = Path(target).stem.split("_")[0].split("-")[0]
+                pkg_name_guess = extract_package_name(target)
                 old_pkg = find_local_previous(pkg_name_guess)
                 tmp = create_temp_dir()
                 dest = tmp / Path(target).name
@@ -176,7 +178,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
         # Record and exit
         db = HistoryDB()
         db.add_record(
-            package_name=file_path.stem.split("_")[0].split("-")[0],
+            package_name=extract_package_name(file_path.name),
             original_file=file_path.name,
             package_type="deb" if is_deb else "rpm",
             sha256="", status="oci_built",
@@ -243,7 +245,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
         source_sha256=http_info.get("source_sha256", conv_result.message.split("SHA-256: ")[1][:16] if "SHA-256:" in conv_result.message else ""),
         output_file=Path(pkg_path),
         output_sha256=sha256_hash(Path(pkg_path)) if Path(pkg_path).exists() else "",
-        package_name=file_path.stem.split("_")[0].split("-")[0],
+        package_name=extract_package_name(file_path.name),
         package_type="deb" if is_deb else "rpm",
     )
     prov_path = save_provenance(prov, Path(pkg_path).parent / f"{Path(pkg_path).name}.provenance.json")
@@ -296,7 +298,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             print(tr("cli.install_cancelled"))
 
     db.add_record(
-        package_name=file_path.stem.split("_")[0].split("-")[0],
+        package_name=extract_package_name(file_path.name),
         original_file=file_path.name,
         package_type="deb" if is_deb else "rpm",
         sha256="",
@@ -667,6 +669,50 @@ def _cmd_sbom(args: argparse.Namespace) -> int:
     # Print summary
     print(sbom.summary())
     print(f"\n  📄 SBOM dosyası: {sbom_path}")
+
+    return 0
+
+
+def _cmd_attest(args: argparse.Namespace) -> int:
+    """Handle `pkgforge attest`."""
+    from core.provenance import (
+        create_provenance, create_attestation, save_attestation, find_provenance,
+        load_provenance,
+    )
+
+    pkg_path = Path(args.package).resolve()
+    if not pkg_path.is_file():
+        print(f"❌ Paket bulunamadı: {pkg_path}")
+        return 1
+
+    # Find existing provenance record
+    prov_path = find_provenance(pkg_path)
+    if not prov_path:
+        print(f"❌ Provenance kaydı bulunamadı: {pkg_path.name}.provenance.json")
+        print("   Önce pkgforge convert ile dönüşüm yapın.")
+        return 1
+
+    prov = load_provenance(prov_path)
+    if not prov:
+        print(f"❌ Provenance yüklenemedi: {prov_path}")
+        return 1
+
+    # Create in-toto attestation
+    signer_key = getattr(args, "key", "") or ""
+    attestation = create_attestation(prov, signer_key=signer_key)
+
+    # Save attestation
+    att_path = save_attestation(attestation, pkg_path.parent / f"{pkg_path.name}.attestation.json")
+
+    # Summary
+    print(f"📋 SLSA Attestation Oluşturuldu:\n")
+    print(f"  Statement:  {attestation._type}")
+    print(f"  Predicate:  {attestation.predicate_type}")
+    print(f"  Subject:    {attestation.subject[0]['name'] if attestation.subject else '(yok)'}")
+    print(f"  Builder:    {attestation.predicate.get('builder', {}).get('id', '?')}")
+    print(f"  Build ID:   {attestation.predicate.get('metadata', {}).get('buildInvocationId', '?')}")
+    print(f"  Security:   ClamAV={attestation.predicate.get('security', {}).get('clamav', '?')}")
+    print(f"  Dosya:      {att_path}")
 
     return 0
 
