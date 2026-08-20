@@ -40,9 +40,8 @@ def _extract_pkg_info(pkg_path: Path) -> dict:
 
     # Try reading .PKGINFO
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=10,
+        res = safe_run(
+            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"], timeout=10,
         )
         if res.returncode == 0:
             for line in res.stdout.splitlines():
@@ -69,10 +68,9 @@ def _extract_pkg_info(pkg_path: Path) -> dict:
 
 def _generate_srcinfo(pkgbuild_path: Path) -> str:
     """Generate .SRCINFO from PKGBUILD using makepkg --printsrcinfo."""
-    res = subprocess.run(
+    res = safe_run(
         ["makepkg", "--printsrcinfo"],
-        cwd=str(pkgbuild_path.parent),
-        capture_output=True, text=True, timeout=30,
+        cwd=str(pkgbuild_path.parent), timeout=30,
     )
     if res.returncode == 0:
         return res.stdout
@@ -212,8 +210,16 @@ def prepare_aur_package(
     pkgbuild_path = aur_dir / "PKGBUILD"
     pkgbuild_path.write_text(pkgbuild_content, encoding="utf-8")
 
-    # Generate .SRCINFO
+    # Validate PKGBUILD — ensure it's parseable by makepkg
     srcinfo_content = _generate_srcinfo(pkgbuild_path)
+    if not srcinfo_content:
+        # PKGBUILD validation failed — try simpler fallback
+        log.warning("PKGBUILD validation failed, using minimal fallback")
+        pkgbuild_content = _generate_pkgbuild(name, version, git_url, "make")
+        pkgbuild_path.write_text(pkgbuild_content, encoding="utf-8")
+        srcinfo_content = _generate_srcinfo(pkgbuild_path)
+
+    # Generate .SRCINFO
     srcinfo_path = aur_dir / ".SRCINFO"
     if srcinfo_content:
         srcinfo_path.write_text(srcinfo_content, encoding="utf-8")
@@ -249,42 +255,41 @@ def push_to_aur(
 
     # Initialize git repo if needed
     if not (aur_dir / ".git").exists():
-        res = subprocess.run(
-            [git, "init", str(aur_dir)],
-            capture_output=True, text=True, timeout=10,
+        res = safe_run(
+            [git, "init", str(aur_dir)], timeout=10,
         )
         if res.returncode != 0:
             return False, f"git init başarısız: {res.stderr[:200]}"
 
     # Configure git user
-    subprocess.run(
+    safe_run(
         [git, "config", "user.email", "noreply@pkgforge.app"],
-        cwd=str(aur_dir), capture_output=True, timeout=5,
+        cwd=str(aur_dir), timeout=5,
     )
-    subprocess.run(
+    safe_run(
         [git, "config", "user.name", "PkgForge"],
-        cwd=str(aur_dir), capture_output=True, timeout=5,
+        cwd=str(aur_dir), timeout=5,
     )
 
     # Add remote if not exists
-    res = subprocess.run(
+    res = safe_run(
         [git, "remote", "get-url", "origin"],
-        cwd=str(aur_dir), capture_output=True, text=True, timeout=5,
+        cwd=str(aur_dir), timeout=5,
     )
     if res.returncode != 0:
         cmd = [git, "remote", "add", "origin", aur_repo_url]
         if ssh_key:
             cmd = ["git", "-c", f"core.sshCommand=ssh -i {shlex.quote(ssh_key)}"] + cmd[1:]
-        subprocess.run(cmd, cwd=str(aur_dir), capture_output=True, timeout=10)
+        safe_run(cmd, cwd=str(aur_dir), timeout=10)
 
     # Stage and commit
-    subprocess.run(
+    safe_run(
         [git, "add", "PKGBUILD", ".SRCINFO"],
-        cwd=str(aur_dir), capture_output=True, timeout=10,
+        cwd=str(aur_dir), timeout=10,
     )
-    subprocess.run(
+    safe_run(
         [git, "commit", "-m", "Update package"],
-        cwd=str(aur_dir), capture_output=True, timeout=10,
+        cwd=str(aur_dir), timeout=10,
     )
 
     # Push
@@ -292,9 +297,9 @@ def push_to_aur(
     if ssh_key:
         push_cmd = ["git", "-c", f"core.sshCommand=ssh -i {shlex.quote(ssh_key)}", "push", "origin", "master"]
 
-    res = subprocess.run(
+    res = safe_run(
         push_cmd,
-        cwd=str(aur_dir), capture_output=True, text=True, timeout=60,
+        cwd=str(aur_dir), timeout=60,
     )
 
     if res.returncode == 0:

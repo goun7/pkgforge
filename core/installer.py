@@ -82,7 +82,8 @@ class Installer(QObject):
                         self.output_line.emit(f"  ⚠ {snap.detail}")
                 else:
                     self._snapshot_name = ""
-            except Exception:
+            except Exception as exc:
+                log.debug("Snapshot temizleme başarısız: %s", exc)
                 self._snapshot_name = ""
         else:
             self._snapshot_name = ""
@@ -110,6 +111,7 @@ class Installer(QObject):
             )
 
     def cancel(self) -> None:
+        """Cancel the ongoing installation."""
         self._cancelled = True
         if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
             self._process.kill()

@@ -461,7 +461,8 @@ def _system_lib_sonames() -> set[str]:
         return set()
     try:
         result = safe_run([ldconfig_bin, "-p"], timeout=10)
-    except Exception:
+    except Exception as exc:
+        log.debug("ldconfig sorgulanamadı: %s", exc)
         return set()
 
     sonames: set[str] = set()
@@ -483,7 +484,8 @@ def _elf_max_glibc(elf_path: Path, tools: ToolPaths) -> str:
         return ""
     try:
         res = safe_run([tools.readelf, "--version-info", str(elf_path)], timeout=10)
-    except Exception:
+    except Exception as exc:
+        log.debug("readelf version bilgisi alınamadı: %s", exc)
         return ""
     versions = re.findall(r"GLIBC_(\d+\.\d+(\.\d+)?)", res.stdout)
     if not versions:
@@ -505,8 +507,8 @@ def _get_system_glibc(tools: ToolPaths) -> str:
             match = re.search(r"(\d+\.\d+(\.\d+)?)", line)
             if match:
                 return match.group(1)
-    except Exception:
-        pass
+    except Exception as exc:
+        log.debug("ABI version regex başarısız: %s", exc)
     return ""
 
 

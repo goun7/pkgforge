@@ -16,7 +16,6 @@ import json
 import logging
 import re
 import shutil
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -85,9 +84,8 @@ def _check_pacman(name: str) -> tuple[bool, str]:
     if not pacman:
         return False, ""
 
-    res = subprocess.run(
-        [pacman, "-Si", name],
-        capture_output=True, text=True, timeout=10,
+    res = safe_run(
+        [pacman, "-Si", name], timeout=10,
     )
     if res.returncode == 0:
         # Extract version
@@ -105,9 +103,8 @@ def _check_pacman_installed(name: str) -> tuple[bool, str]:
     if not pacman:
         return False, ""
 
-    res = subprocess.run(
-        [pacman, "-Qi", name],
-        capture_output=True, text=True, timeout=10,
+    res = safe_run(
+        [pacman, "-Qi", name], timeout=10,
     )
     if res.returncode == 0:
         for line in res.stdout.splitlines():
@@ -145,15 +142,14 @@ def _check_aur(name: str) -> tuple[bool, str]:
             aur_name = pkg.get("Name", "")
             aur_ver = pkg.get("Version", "")
             return True, aur_ver if aur_name else ""
-    except Exception:
-        pass
+    except Exception as exc:
+        log.debug("AUR kontrolü başarısız: %s", exc)
 
     # Method 2: Try AUR helper
     helper = _aur_helper()
     if helper:
-        res = subprocess.run(
-            [helper, "-Si", name],
-            capture_output=True, text=True, timeout=15,
+        res = safe_run(
+            [helper, "-Si", name], timeout=15,
         )
         if res.returncode == 0:
             for line in res.stdout.splitlines():
@@ -253,7 +249,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
         return False, "AUR helper bulunamadı (paru veya yay)"
 
     cmd = [aur_helper, "-S", "--needed", "--noconfirm"] + packages
-    res = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    res = safe_run(cmd, timeout=300)
 
     if res.returncode == 0:
         return True, f"{len(packages)} paket kuruldu: {', '.join(packages)}"
@@ -266,6 +262,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
 # Resolves ELF sonames to Arch packages via readelf + pacman -Fq
 
 import re as _re
+from core.security import safe_run
 
 _NEEDED_RE = _re.compile(r"NEEDED\)\s+Shared library:\s+\[([^\]]+)\]")
 _OBJDUMP_NEEDED_RE = _re.compile(r"^\s*NEEDED\s+(\S+)\s*$", _re.MULTILINE)
@@ -309,12 +306,10 @@ def collect_sonames(root_dir: Path, tools: ToolPaths, *, max_files: int = 200) -
         checked += 1
         try:
             if tools.readelf:
-                res = subprocess.run([tools.readelf, "-d", str(path)],
-                    capture_output=True, text=True, timeout=10)
+                res = safe_run([tools.readelf, "-d", str(path)], timeout=10)
                 sonames.update(parse_needed_sonames(res.stdout))
             else:
-                res = subprocess.run([tools.objdump, "-p", str(path)],
-                    capture_output=True, text=True, timeout=10)
+                res = safe_run([tools.objdump, "-p", str(path)], timeout=10)
                 sonames.update(parse_objdump_sonames(res.stdout))
         except Exception as exc:
             log.debug("soname okunamadı (%s): %s", path.name, exc)
@@ -333,9 +328,9 @@ def sonames_to_packages(sonames: set[str], tools: ToolPaths) -> list[str]:
             packages.add("glibc")
             continue
         try:
-            res = subprocess.run([pacman, "-Fq", soname],
-                capture_output=True, text=True, timeout=8)
-        except Exception:
+            res = safe_run([pacman, "-Fq", soname], timeout=8)
+        except Exception as exc:
+            log.debug("pacman -Fq başarısız %s: %s", soname, exc)
             continue
         if res.returncode != 0 or not res.stdout.strip():
             continue

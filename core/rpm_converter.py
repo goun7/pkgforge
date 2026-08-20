@@ -68,6 +68,7 @@ class RpmConverter(QObject):
         self._extract_rpm(rpm_path)
 
     def cancel(self) -> None:
+        """Cancel the ongoing conversion."""
         self._cancelled = True
         if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
             self._process.kill()

@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
@@ -162,9 +163,8 @@ def _is_elf_binary(file_path: Path) -> bool:
             return False
 
     try:
-        res = subprocess.run(
-            [file_cmd, "--brief", str(file_path)],
-            capture_output=True, text=True, timeout=5,
+        res = safe_run(
+            [file_cmd, "--brief", str(file_path)], timeout=5,
         )
         output = res.stdout.lower()
         return "elf" in output or "executable" in output or "shared object" in output
@@ -200,9 +200,8 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
     graph.root = pkg_name
 
     # Query package dependencies
-    res = subprocess.run(
-        [pacman, "-Qi", pkg_name],
-        capture_output=True, text=True, timeout=10,
+    res = safe_run(
+        [pacman, "-Qi", pkg_name], timeout=10,
     )
     if res.returncode != 0:
         graph.warnings.append(
@@ -246,9 +245,8 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
     for dep_name, dep_node in list(graph.nodes.items()):
         if dep_name == graph.root:
             continue
-        dep_res = subprocess.run(
-            [pacman, "-Qi", dep_name],
-            capture_output=True, text=True, timeout=5,
+        dep_res = safe_run(
+            [pacman, "-Qi", dep_name], timeout=5,
         )
         if dep_res.returncode == 0:
             dep_node.is_installed = True
@@ -261,9 +259,8 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
                         dep_node.version = f"{dep_node.version} — {desc}" if dep_node.version else desc
         else:
             # Check if it's in official repos (even if not installed)
-            search_res = subprocess.run(
-                [pacman, "-Si", dep_name],
-                capture_output=True, text=True, timeout=5,
+            search_res = safe_run(
+                [pacman, "-Si", dep_name], timeout=5,
             )
             if search_res.returncode != 0:
                 dep_node.is_foreign = True
@@ -274,9 +271,8 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
 def _build_from_pkginfo(pkg_path: Path, graph: DepGraph) -> DepGraph:
     """Build graph from .PKGINFO inside a .pkg.tar.zst."""
     try:
-        res = subprocess.run(
-            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"],
-            capture_output=True, text=True, timeout=30,
+        res = safe_run(
+            ["tar", "xf", str(pkg_path), "-O", ".PKGINFO"], timeout=30,
         )
         if res.returncode != 0:
             return graph
@@ -327,15 +323,13 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
         # Try extracting — try .pkg.tar.zst first, then raw tar
         extract_ok = False
         if ".pkg.tar" in pkg_path.name:
-            res = subprocess.run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)],
-                capture_output=True, timeout=30,
+            res = safe_run(
+                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
             )
             extract_ok = res.returncode == 0
         else:
-            res = subprocess.run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)],
-                capture_output=True, timeout=30,
+            res = safe_run(
+                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
             )
             extract_ok = res.returncode == 0
 
@@ -371,9 +365,8 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
 
             elf_count += 1
             try:
-                ldd_res = subprocess.run(
-                    [ldd, str(candidate)],
-                    capture_output=True, text=True, timeout=5,
+                ldd_res = safe_run(
+                    [ldd, str(candidate)], timeout=5,
                 )
                 if ldd_res.returncode in (0, 1):  # ldd returns 1 for some binaries
                     rel_path = str(candidate.relative_to(tmp))

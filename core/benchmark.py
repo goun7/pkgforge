@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import os
 import shutil
-import subprocess
 import tempfile
 import time
+from core.security import safe_run
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -96,16 +96,15 @@ def _create_test_deb(path: Path) -> bool:
         (tmp / "debian-binary").write_text("2.0\n")
 
         # Create tars
-        subprocess.run(["tar", "czf", str(tmp / "control.tar.gz"), "-C", str(ctrl_dir), "control"], check=True, capture_output=True)
-        subprocess.run(["tar", "czf", str(tmp / "data.tar.gz"), "-C", str(tmp), "data"], check=True, capture_output=True)
+        safe_run(["tar", "czf", str(tmp / "control.tar.gz"), "-C", str(ctrl_dir), "control"])
+        safe_run(["tar", "czf", str(tmp / "data.tar.gz"), "-C", str(tmp), "data"])
 
         # Assemble .deb
-        result = subprocess.run(
+        result = safe_run(
             ["ar", "rcs", str(path),
              str(tmp / "debian-binary"),
              str(tmp / "control.tar.gz"),
              str(tmp / "data.tar.gz")],
-            capture_output=True,
         )
         return result.returncode == 0
 
@@ -115,7 +114,6 @@ def run_benchmarks(
     quick: bool = False,
 ) -> BenchmarkReport:
     """Run all benchmarks and return results."""
-    import subprocess
     report = BenchmarkReport()
     tools = discover_tools()
     start_time = time.monotonic()
@@ -139,7 +137,7 @@ def run_benchmarks(
         r.input_size_bytes = test_file.stat().st_size
         mem_start = _get_memory_usage()
         t0 = time.monotonic()
-        from core.security import sha256_hash
+        from core.security import safe_run, sha256_hash
         h = sha256_hash(test_file)
         r.duration_ms = int((time.monotonic() - t0) * 1000)
         r.memory_peak_kb = _get_memory_usage() - mem_start

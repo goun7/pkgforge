@@ -98,8 +98,8 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
                 if " = " in line:
                     key, val = line.split(" = ", 1)
                     info[key.strip()] = val.strip()
-    except Exception:
-        pass
+    except Exception as exc:
+        log.debug("PKGINFO okunamadı: %s", exc)
     return info
 
 
@@ -201,8 +201,8 @@ def generate_sbom(
                     )
                     if inner.returncode == 0 and inner.stdout:
                         sha = hashlib.sha256(inner.stdout.encode("utf-8", errors="replace")).hexdigest()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.debug("SHA hesaplama başarısız: %s", exc)
 
             sbom.files.append(SBOMEntry(
                 path=entry_path,
@@ -227,8 +227,8 @@ def generate_sbom(
         from core.dep_resolver import resolve_runtime_dependencies
         deps = resolve_runtime_dependencies(Path("/"), tools)
         sbom.dependencies = deps
-    except Exception:
-        pass
+    except Exception as exc:
+        log.debug("Bağımlılık çözümleme başarısız: %s", exc)
 
     return sbom
 
@@ -260,6 +260,7 @@ class SBOMDiff:
     new_version: str = ""
     added_files: list[str] = field(default_factory=list)
     removed_files: list[str] = field(default_factory=list)
+    changed_files: list[dict[str, str]] = field(default_factory=list)  # [{path, old_sha256, new_sha256}]
     changed_deps: list[str] = field(default_factory=list)
     added_deps: list[str] = field(default_factory=list)
     removed_deps: list[str] = field(default_factory=list)
@@ -279,11 +280,15 @@ class SBOMDiff:
             lines.append(f"  ➕ Yeni bağımlılıklar: {', '.join(self.added_deps[:10])}")
         if self.removed_deps:
             lines.append(f"  ➖ Kaldırılan bağımlılıklar: {', '.join(self.removed_deps[:10])}")
+        if self.changed_files:
+            lines.append(f"  🔄 Değişen dosyalar: {len(self.changed_files)}")
+            for cf in self.changed_files[:5]:
+                lines.append(f"     {cf['path']}: {cf['old_sha256']} → {cf['new_sha256']}")
         if self.version_changes:
             lines.append(f"  🔄 Versiyon değişiklikleri: {len(self.version_changes)}")
             for vc in self.version_changes[:5]:
                 lines.append(f"     {vc.get('dep', '?')}: {vc.get('old', '?')} → {vc.get('new', '?')}")
-        if not any([self.added_files, self.removed_files, self.added_deps, self.removed_deps, self.version_changes]):
+        if not any([self.added_files, self.removed_files, self.changed_files, self.added_deps, self.removed_deps, self.version_changes]):
             lines.append("  ✅ Fark yok — paketler aynı")
         return "\n".join(lines)
 
@@ -310,6 +315,20 @@ def diff_sboms(old: SBOMDocument, new: SBOMDocument) -> SBOMDiff:
     diff.added_files = sorted(new_paths - old_paths)
     diff.removed_files = sorted(old_paths - new_paths)
 
+    # Content-level diff: compare SHA-256 hashes of common files
+    old_file_map = {f.path: f.sha256 for f in old.files if f.sha256}
+    new_file_map = {f.path: f.sha256 for f in new.files if f.sha256}
+    common_files = old_paths & new_paths
+    for path in sorted(common_files):
+        old_hash = old_file_map.get(path, "")
+        new_hash = new_file_map.get(path, "")
+        if old_hash and new_hash and old_hash != new_hash:
+            diff.changed_files.append({
+                "path": path,
+                "old_sha256": old_hash[:16] + "...",
+                "new_sha256": new_hash[:16] + "...",
+            })
+
     # Dependency diff
     old_deps = set(old.dependencies)
     new_deps = set(new.dependencies)
@@ -318,8 +337,6 @@ def diff_sboms(old: SBOMDocument, new: SBOMDocument) -> SBOMDiff:
 
     # Version changes for common deps
     common_deps = old_deps & new_deps
-    # Note: current SBOM doesn't track per-dep versions,
-    # so version_changes is populated only when metadata differs
     diff.version_changes = []
 
     log.info(

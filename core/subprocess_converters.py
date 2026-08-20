@@ -18,6 +18,7 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
+from core.security import safe_run
 
 from config import ToolPaths
 
@@ -45,8 +46,8 @@ class Signal:
         for cb in self._callbacks:
             try:
                 cb(*args)
-            except Exception:
-                pass
+            except Exception as exc:
+                log.debug("Callback çalıştırılamadı: %s", exc)
 
 
 # ── Native DEB Converter (subprocess) ──────────────────────────
@@ -75,7 +76,7 @@ class NativeDebConverterSubprocess:
         """Run the full conversion synchronously."""
         try:
             from core.package_analyzer import analyze_package
-            from core.security import check_symlink_attacks, check_dangerous_files
+            from core.security import safe_run, check_symlink_attacks, check_dangerous_files
             from core.dependency_resolver import resolve_runtime_dependencies
 
             meta = analyze_package(deb_path, self._tools)
@@ -119,9 +120,8 @@ class NativeDebConverterSubprocess:
 
     def _extract_data_tar(self, deb_path: Path, dest_dir: Path):
         """Extract data.tar.* from DEB."""
-        ar_res = subprocess.run(
-            [self._tools.ar, "t", str(deb_path)],
-            capture_output=True, text=True, timeout=30,
+        ar_res = safe_run(
+            [self._tools.ar, "t", str(deb_path)], timeout=30,
         )
         data_tar = None
         for m in ar_res.stdout.splitlines():
@@ -195,7 +195,6 @@ package() {{
             cwd=str(build_dir),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
             env=env,
         )
 
@@ -271,7 +270,6 @@ class RpmConverterSubprocess:
                 cwd=str(pkg_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
             )
             proc.communicate(timeout=60)
             if proc.returncode != 0:
@@ -322,7 +320,6 @@ class RpmConverterSubprocess:
                 cwd=str(build_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
                 env=env,
             )
             for line in (proc.stdout or []):

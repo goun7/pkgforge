@@ -162,7 +162,7 @@ def download_with_delta(
             if apply_delta(old_file, delta_file, dest_file):
                 log.info("Delta indirme başarılı: %s", dest_file.name)
                 return dest_file, True
-        except Exception:
+        except Exception as exc:
             log.info("Delta indirilemedi, tam dosya indiriliyor: %s", url)
 
     # Fallback to full download

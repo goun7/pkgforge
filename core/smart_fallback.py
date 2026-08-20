@@ -15,12 +15,12 @@ from __future__ import annotations
 
 import logging
 import shutil
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from config import ToolPaths
+from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
@@ -111,18 +111,16 @@ def _try_docker(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[boo
         (tmp / "Dockerfile").write_text(dockerfile)
         shutil.copy2(deb_path, tmp / deb_path.name)
 
-        res = subprocess.run(
-            [docker, "build", "-t", "pkgforge-build", str(tmp)],
-            capture_output=True, text=True, timeout=300,
+        res = safe_run(
+            [docker, "build", "-t", "pkgforge-build", str(tmp)], timeout=300,
         )
         if res.returncode != 0:
             return False, f"Docker build başarısız: {res.stderr[:200]}", None
 
-        res = subprocess.run(
+        res = safe_run(
             [docker, "run", "--rm",
              "-v", f"{output_dir}:/output",
-             "pkgforge-build"],
-            capture_output=True, text=True, timeout=600,
+             "pkgforge-build"], timeout=600,
         )
         if res.returncode != 0:
             return False, f"Docker dönüşüm başarısız: {res.stderr[:200]}", None
@@ -144,23 +142,20 @@ def _try_distrobox(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[
 
     try:
         # Create distrobox (ignore if exists)
-        subprocess.run(
-            [distrobox, "create", "-i", "archlinux:latest", "-n", "pkgforge-build", "--yes"],
-            capture_output=True, text=True, timeout=120,
+        safe_run(
+            [distrobox, "create", "-i", "archlinux:latest", "-n", "pkgforge-build", "--yes"], timeout=120,
         )
 
         # Copy DEB into distrobox home
-        container_home = subprocess.run(
-            [distrobox, "enter", "pkgforge-build", "--", "echo", "$HOME"],
-            capture_output=True, text=True, timeout=10,
+        container_home = safe_run(
+            [distrobox, "enter", "pkgforge-build", "--", "echo", "$HOME"], timeout=10,
         ).stdout.strip()
         if not container_home:
             container_home = "/root"
 
-        subprocess.run(
+        safe_run(
             [distrobox, "enter", "pkgforge-build", "--",
-             "cp", str(deb_path), f"{container_home}/"],
-            capture_output=True, text=True, timeout=30,
+             "cp", str(deb_path), f"{container_home}/"], timeout=30,
         )
 
         # Install debtap and convert
@@ -171,9 +166,8 @@ def _try_distrobox(deb_path: Path, output_dir: Path, tools: ToolPaths) -> tuple[
             f"cd {container_home} && debtap {deb_path.name} -u && "
             f"cp {container_home}/*.pkg.tar.* {output_dir}/ 2>/dev/null || true"
         )
-        res = subprocess.run(
-            [distrobox, "enter", "pkgforge-build", "--", "bash", "-c", build_cmd],
-            capture_output=True, text=True, timeout=600,
+        res = safe_run(
+            [distrobox, "enter", "pkgforge-build", "--", "bash", "-c", build_cmd], timeout=600,
         )
 
         if res.returncode != 0:

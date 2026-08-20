@@ -53,6 +53,7 @@ class PackageMetadata:
 
     @property
     def arch_compatible(self) -> bool:
+        """Check if two architecture strings are compatible."""
         return self.arch_mapped in SUPPORTED_ARCHES
 
 

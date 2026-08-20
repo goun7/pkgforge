@@ -105,7 +105,8 @@ class OfflineCache:
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 os.replace(tmp_path, str(path))  # Atomic rename
-            except Exception:
+            except Exception as exc:
+                log.warning("Cache yazma başarısız: %s", exc)
                 # Clean up temp file on failure
                 try:
                     os.unlink(tmp_path)
@@ -230,7 +231,7 @@ class OfflineCache:
             urllib.request.urlopen(req, timeout=3)
             return False
         except Exception:
-            return True
+            return True  # Network unreachable → offline
 
 
 # Global cache instance

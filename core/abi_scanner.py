@@ -23,6 +23,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
@@ -144,9 +145,8 @@ def scan_elf_symbols(elf_path: Path) -> list[SymbolMismatch]:
         return mismatches
 
     # Get required symbol versions from the binary
-    res = subprocess.run(
-        [readelf, "-V", str(elf_path)],
-        capture_output=True, text=True, timeout=10,
+    res = safe_run(
+        [readelf, "-V", str(elf_path)], timeout=10,
     )
     if res.returncode != 0:
         return mismatches
@@ -244,9 +244,8 @@ def _get_available_versions(lib_path: Path) -> list[str]:
     if not readelf:
         return []
 
-    res = subprocess.run(
-        [readelf, "-V", str(lib_path)],
-        capture_output=True, text=True, timeout=10,
+    res = safe_run(
+        [readelf, "-V", str(lib_path)], timeout=10,
     )
     if res.returncode != 0:
         return []
@@ -265,9 +264,8 @@ def _extract_symbol_for_version(elf_path: Path, version_tag: str) -> str | None:
     if not readelf:
         return None
 
-    res = subprocess.run(
-        [readelf, "-s", "--version-info", str(elf_path)],
-        capture_output=True, text=True, timeout=10,
+    res = safe_run(
+        [readelf, "-s", "--version-info", str(elf_path)], timeout=10,
     )
     if res.returncode != 0:
         return None
@@ -295,9 +293,8 @@ def _run_namcap(pkg_path: Path) -> list[NamcapResult]:
 
     results: list[NamcapResult] = []
     try:
-        res = subprocess.run(
-            [namcap, str(pkg_path)],
-            capture_output=True, text=True, timeout=120,
+        res = safe_run(
+            [namcap, str(pkg_path)], timeout=120,
         )
         # namcap output format:
         # PKGBUILD (line N): warning: description should not be empty
@@ -365,24 +362,22 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
             try:
                 import shlex
                 cmd = f"ar x {shlex.quote(str(pkg_path))} data.tar.*"
-                subprocess.run(
+                safe_run(
                     ["/bin/bash", "-c", cmd],
-                    cwd=str(tmp), capture_output=True, timeout=30,
+                    cwd=str(tmp), timeout=30,
                 )
                 # Find and extract data.tar
                 for dtar in tmp.glob("data.tar.*"):
-                    subprocess.run(
-                        ["tar", "xf", str(dtar), "-C", str(tmp)],
-                        capture_output=True, timeout=30,
+                    safe_run(
+                        ["tar", "xf", str(dtar), "-C", str(tmp)], timeout=30,
                     )
                     dtar.unlink()
                     break
             except (subprocess.TimeoutExpired, OSError):
                 return report
         elif ".pkg.tar" in pkg_path.name:
-            subprocess.run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)],
-                capture_output=True, timeout=30,
+            safe_run(
+                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
             )
         else:
             return report
@@ -413,9 +408,8 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
             ldd_results: dict[str, list[str]] = {}
             for elf in elf_files:
                 try:
-                    ldd_res = subprocess.run(
-                        [ldd, str(elf)],
-                        capture_output=True, text=True, timeout=5,
+                    ldd_res = safe_run(
+                        [ldd, str(elf)], timeout=5,
                     )
                     missing = [
                         line.strip().split()[0]
