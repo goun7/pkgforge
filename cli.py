@@ -626,13 +626,21 @@ def _cmd_sign(args: argparse.Namespace) -> int:
 
 def _cmd_verify(args: argparse.Namespace) -> int:
     """Handle `pkgforge verify <package>`."""
-    from core.package_signing import verify_signature
-
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
         print(f"❌ Paket bulunamadı: {pkg_path}")
         return 1
 
+    # Sigstore verification mode
+    if getattr(args, "sigstore", False):
+        from core.sigstore import verify_with_sigstore
+        print(f"🔍 Sigstore doğrulanıyor: {pkg_path.name}...")
+        result = verify_with_sigstore(pkg_path)
+        print(result.summary())
+        return 0 if result.success else 1
+
+    # Default: GPG verification
+    from core.package_signing import verify_signature
     print(f"🔍 İmza doğrulanıyor: {pkg_path.name}...")
     info = verify_signature(pkg_path)
 

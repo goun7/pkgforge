@@ -300,6 +300,7 @@ def main() -> int:
     # verify subcommand
     verify_parser = subparsers.add_parser("verify", help=tr("cli.verify_help"))
     verify_parser.add_argument("package", help=tr("cli.arg_verify_pkg"))
+    verify_parser.add_argument("--sigstore", action="store_true", help=tr("cli.arg_verify_sigstore"))
 
     # sbom subcommand
     sbom_parser = subparsers.add_parser("sbom", help=tr("cli.sbom_help"))

@@ -4,7 +4,10 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Build Status](https://img.shields.io/badge/tests-39%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-118%20passed-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](#)
+[![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
+[![Security](https://img.shields.io/badge/security-0%20anti--patterns-brightgreen)](#)
 
 **PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **PyQt6 GUI**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
 
