@@ -1,6 +1,6 @@
 """PkgForge — Settings dialog.
 
-Provides UI for language, theme, AUR check, and distrobox preferences.
+Provides UI for language, theme, AUR check, distrobox preferences, and advanced settings.
 Settings are persisted to ~/.config/pkgforge/settings.json.
 """
 
@@ -14,9 +14,12 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
+    QFileDialog,
 )
 
 from i18n import tr, available_languages, get_language, load_setting, save_settings, load_settings
@@ -36,8 +39,8 @@ class SettingsDialog(QDialog):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle(tr("settings.title"))
-        self.setMinimumWidth(460)
-        self.setMaximumWidth(560)
+        self.setMinimumWidth(500)
+        self.setMaximumWidth(620)
         self._setup_ui()
         self._load_current()
 
@@ -107,6 +110,51 @@ class SettingsDialog(QDialog):
         features_layout.addWidget(self._insecure_http_check)
 
         layout.addWidget(features_group)
+
+        # ── Advanced Settings ────────────────────────────────────
+        advanced_group = QGroupBox("🔧 " + tr("settings.advanced"))
+        advanced_layout = QVBoxLayout(advanced_group)
+
+        # Timeout
+        timeout_row = QHBoxLayout()
+        timeout_label = QLabel(tr("settings.timeout"))
+        timeout_label.setToolTip(tr("settings.timeout_desc"))
+        timeout_row.addWidget(timeout_label)
+        self._timeout_spin = QSpinBox()
+        self._timeout_spin.setRange(10, 600)
+        self._timeout_spin.setSuffix(" s")
+        self._timeout_spin.setToolTip(tr("settings.timeout_desc"))
+        timeout_row.addWidget(self._timeout_spin)
+        timeout_row.addStretch()
+        advanced_layout.addLayout(timeout_row)
+
+        # Default output directory
+        outdir_row = QHBoxLayout()
+        outdir_label = QLabel(tr("settings.output_dir"))
+        outdir_label.setToolTip(tr("settings.output_dir_desc"))
+        outdir_row.addWidget(outdir_label)
+        self._outdir_input = QLineEdit()
+        self._outdir_input.setPlaceholderText(tr("settings.output_dir_placeholder"))
+        self._outdir_input.setReadOnly(True)
+        outdir_row.addWidget(self._outdir_input, stretch=1)
+        outdir_browse = QPushButton("📂")
+        outdir_browse.setFixedWidth(36)
+        outdir_browse.setCursor(Qt.CursorShape.PointingHandCursor)
+        outdir_browse.clicked.connect(self._browse_output_dir)
+        outdir_row.addWidget(outdir_browse)
+        advanced_layout.addLayout(outdir_row)
+
+        # Verbose mode
+        self._verbose_check = QCheckBox(tr("settings.verbose"))
+        self._verbose_check.setToolTip(tr("settings.verbose_desc"))
+        advanced_layout.addWidget(self._verbose_check)
+
+        # Auto-sign
+        self._auto_sign_check = QCheckBox(tr("settings.auto_sign"))
+        self._auto_sign_check.setToolTip(tr("settings.auto_sign_desc"))
+        advanced_layout.addWidget(self._auto_sign_check)
+
+        layout.addWidget(advanced_group)
 
         # ── Plugins ─────────────────────────────────────────────
         plugins_group = QGroupBox("🔌 " + tr("settings.plugins"))
@@ -178,6 +226,12 @@ class SettingsDialog(QDialog):
         self._dry_run_check.setChecked(load_setting("dry_run", False))
         self._insecure_http_check.setChecked(load_setting("allow_insecure_http", False))
 
+        # Advanced
+        self._timeout_spin.setValue(load_setting("timeout_seconds", 120))
+        self._outdir_input.setText(load_setting("output_dir", ""))
+        self._verbose_check.setChecked(load_setting("verbose", False))
+        self._auto_sign_check.setChecked(load_setting("auto_sign", False))
+
     def _save(self) -> None:
         """Save settings and emit signal."""
         settings = load_settings()
@@ -189,6 +243,11 @@ class SettingsDialog(QDialog):
         settings["snapshot"] = self._snapshot_check.isChecked()
         settings["dry_run"] = self._dry_run_check.isChecked()
         settings["allow_insecure_http"] = self._insecure_http_check.isChecked()
+        # Advanced
+        settings["timeout_seconds"] = self._timeout_spin.value()
+        settings["output_dir"] = self._outdir_input.text()
+        settings["verbose"] = self._verbose_check.isChecked()
+        settings["auto_sign"] = self._auto_sign_check.isChecked()
         # Plugin enabled/disabled state
         for name, cb in self._plugin_checks.items():
             settings[f"plugin_{name}"] = cb.isChecked()
@@ -196,15 +255,20 @@ class SettingsDialog(QDialog):
         self.settings_changed.emit(settings)
         self.accept()
 
+    def _browse_output_dir(self) -> None:
+        """Open folder chooser for default output directory."""
+        current = self._outdir_input.text() or ""
+        directory = QFileDialog.getExistingDirectory(self, tr("settings.output_dir"), current)
+        if directory:
+            self._outdir_input.setText(directory)
+
     def _reload_plugins(self) -> None:
         """Hot-reload all plugins and refresh the UI."""
         reloaded = reload_plugins()
-        # Update checkbox states
         for name, cb in self._plugin_checks.items():
             enabled = name in reloaded
             cb.setChecked(enabled)
             cb.setEnabled(True)
-        # Show feedback
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.information(
             self,

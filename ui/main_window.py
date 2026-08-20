@@ -170,6 +170,33 @@ class MainWindow(QMainWindow):
         self._step_progress.setVisible(False)
         content_layout.addWidget(self._step_progress)
 
+        # ── Inline Error Banner ──────────────────────────────────
+        self._error_banner = QFrame()
+        self._error_banner.setObjectName("errorBanner")
+        self._error_banner.setStyleSheet(
+            "QFrame#errorBanner { background: #3a1c1c; border: 1px solid #ff6b6b; "
+            "border-radius: 8px; padding: 8px 12px; margin: 0 24px; }"
+        )
+        error_layout = QHBoxLayout(self._error_banner)
+        error_layout.setContentsMargins(12, 8, 12, 8)
+        error_layout.setSpacing(8)
+        self._error_icon = QLabel("⚠️")
+        error_layout.addWidget(self._error_icon)
+        self._error_text = QLabel()
+        self._error_text.setWordWrap(True)
+        self._error_text.setStyleSheet("color: #ff9999; font-size: 12px;")
+        error_layout.addWidget(self._error_text, stretch=1)
+        self._error_dismiss = QPushButton("✕")
+        self._error_dismiss.setFixedSize(24, 24)
+        self._error_dismiss.setStyleSheet(
+            "QPushButton { background: transparent; color: #ff9999; border: none; "
+            "font-size: 14px; } QPushButton:hover { color: white; }"
+        )
+        self._error_dismiss.clicked.connect(self._dismiss_error)
+        error_layout.addWidget(self._error_dismiss)
+        self._error_banner.setVisible(False)
+        content_layout.addWidget(self._error_banner)
+
         self._drop_zone = DropZone()
         self._drop_zone.files_dropped.connect(self._on_files_dropped)
         content_layout.addWidget(self._drop_zone, stretch=1)
@@ -267,6 +294,19 @@ class MainWindow(QMainWindow):
             debtap_db = Path("/var/cache/debtap/debian-main-packages-files")
             if not debtap_db.exists():
                 self._log_panel.append_log(tr("tools.debtap_db"), "warning")
+
+    def _show_inline_error(self, message: str, icon: str = "⚠️") -> None:
+        """Show a dismissable inline error banner at the top of the content area."""
+        self._error_icon.setText(icon)
+        self._error_text.setText(message)
+        self._error_banner.setVisible(True)
+        # Auto-dismiss after 10 seconds
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(10000, self._dismiss_error)
+
+    def _dismiss_error(self) -> None:
+        """Hide the inline error banner."""
+        self._error_banner.setVisible(False)
 
     # ── Queue management ─────────────────────────────────────────
 
@@ -540,7 +580,7 @@ class MainWindow(QMainWindow):
             dialog.exec()
         except Exception as exc:
             log.exception("Error opening UrlDialog: %s", exc)
-            QMessageBox.critical(self, tr("url.title"), str(exc))
+            self._show_inline_error(f"URL dialog hatası: {exc}", "❌")
 
     def _show_history(self) -> None:
         """Open history & package manager dialog."""
@@ -550,7 +590,7 @@ class MainWindow(QMainWindow):
             dialog.exec()
         except Exception as exc:
             log.exception("Error opening HistoryDialog: %s", exc)
-            QMessageBox.critical(self, tr("history.title"), str(exc))
+            self._show_inline_error(f"Geçmiş dialog hatası: {exc}", "❌")
 
     def _check_upstream_updates(self) -> None:
         """Check all saved URLs for upstream updates."""
@@ -570,7 +610,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, tr("updates.title"), tr("updates.up_to_date"))
         except Exception as exc:
             log.exception("Error checking updates: %s", exc)
-            QMessageBox.critical(self, tr("updates.title"), str(exc))
+            self._show_inline_error(f"Güncelleme kontrolü hatası: {exc}", "❌")
 
     # ── Settings ─────────────────────────────────────────────────
 

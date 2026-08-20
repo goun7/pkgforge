@@ -136,6 +136,16 @@ STRINGS: dict[str, str] = {
     "settings.save": "Save",
     "settings.cancel": "Cancel",
     "settings.restart_note": "Some settings may require restarting the application.",
+    "settings.advanced": "Advanced Settings",
+    "settings.timeout": "Operation Timeout",
+    "settings.timeout_desc": "Timeout in seconds for conversion operations",
+    "settings.output_dir": "Default Output Directory",
+    "settings.output_dir_desc": "Default directory for saving converted packages",
+    "settings.output_dir_placeholder": "Default: same as package location",
+    "settings.verbose": "Verbose mode (debug logging)",
+    "settings.verbose_desc": "Show detailed debug info during conversion",
+    "settings.auto_sign": "Auto GPG sign after conversion",
+    "settings.auto_sign_desc": "Automatically GPG sign every converted package",
 
     # ── About ────────────────────────────────────────────────────
     "about.title": "About PkgForge",

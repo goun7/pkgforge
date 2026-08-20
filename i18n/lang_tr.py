@@ -136,6 +136,16 @@ STRINGS: dict[str, str] = {
     "settings.save": "Kaydet",
     "settings.cancel": "İptal",
     "settings.restart_note": "Bazı ayarlar uygulamanın yeniden başlatılmasını gerektirebilir.",
+    "settings.advanced": "Gelişmiş Ayarlar",
+    "settings.timeout": "İşlem Zaman Aşımı",
+    "settings.timeout_desc": "Dönüşüm işlemleri için saniye cinsinden zaman aşımı süresi",
+    "settings.output_dir": "Varsayılan Çıktı Dizini",
+    "settings.output_dir_desc": "Dönüştürülen paketlerin kaydedileceği varsayılan dizin",
+    "settings.output_dir_placeholder": "Varsayılan: paketin bulunduğu dizin",
+    "settings.verbose": "Ayrıntılı mod (verbose logging)",
+    "settings.verbose_desc": "Dönüşüm sırasında ayrıntılı hata ayıklama bilgisi gösterir",
+    "settings.auto_sign": "Dönüşüm sonrası otomatik GPG imzası",
+    "settings.auto_sign_desc": "Her dönüşümden sonra paketi otomatik olarak GPG ile imzalar",
 
     # ── Hakkında ─────────────────────────────────────────────────
     "about.title": "PkgForge Hakkında",
