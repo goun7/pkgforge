@@ -65,4 +65,10 @@ package() {
 
     # Install config file
     install -Dm644 /dev/null "$pkgdir/etc/pkgforge.conf"
+
+    # Install systemd timer for delta auto-updates
+    if [ -f data/pkgforge-delta.service ]; then
+        install -Dm644 data/pkgforge-delta.service "$pkgdir/usr/lib/systemd/system/pkgforge-delta.service"
+        install -Dm644 data/pkgforge-delta.timer "$pkgdir/usr/lib/systemd/system/pkgforge-delta.timer"
+    fi
 }

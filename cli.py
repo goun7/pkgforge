@@ -1349,9 +1349,13 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
     if action == "install":
         name = args.name
         force = getattr(args, "force", False)
-        print(f"📦 Plugin indiriliyor: {name}")
+        version = getattr(args, "version", "latest")
+        # Support name==version syntax
+        if "==" in name:
+            name, version = name.split("==", 1)
+        print(f"📦 Plugin indiriliyor: {name} v{version}")
         try:
-            path = install_plugin(name, force=force)
+            path = install_plugin(name, version=version, force=force)
             print(f"✅ Plugin kuruldu: {path}")
             # Reload plugins to pick up the new one
             reloaded = reload_plugins()

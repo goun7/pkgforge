@@ -236,6 +236,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_help": "Plugin yönetimi (kur, kaldır, listele)",
     "cli.plugin_install_help": "Marketplace'den plugin kur",
     "cli.plugin_install_name": "Kurulacak plugin adı",
+    "cli.plugin_version": "Kurulacak versiyon (varsayılan: latest)",
     "cli.plugin_force": "Mevcut plugin'in üzerine yaz",
     "cli.plugin_list_help": "Yerel olarak kurulu pluginleri listele",
     "cli.plugin_available_help": "Marketplace'de kullanılabilir pluginleri listele",

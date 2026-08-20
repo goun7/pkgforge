@@ -1,0 +1,11 @@
+[Unit]
+Description=PkgForge Delta Auto-Update Check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -m pkgforge convert --check-updates
+User=root
+Nice=19
+IOSchedulingClass=idle

@@ -236,6 +236,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_help": "Plugin management (install, remove, list)",
     "cli.plugin_install_help": "Install plugin from marketplace",
     "cli.plugin_install_name": "Plugin name to install",
+    "cli.plugin_version": "Version to install (default: latest)",
     "cli.plugin_force": "Overwrite existing plugin",
     "cli.plugin_list_help": "List locally installed plugins",
     "cli.plugin_available_help": "List available plugins from marketplace",

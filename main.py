@@ -318,6 +318,7 @@ def main() -> int:
     plugin_sub = plugin_parser.add_subparsers(dest="plugin_action")
     plugin_install = plugin_sub.add_parser("install", help=tr("cli.plugin_install_help"))
     plugin_install.add_argument("name", help=tr("cli.plugin_install_name"))
+    plugin_install.add_argument("--version", "-V", default="latest", help=tr("cli.plugin_version"))
     plugin_install.add_argument("--force", action="store_true", help=tr("cli.plugin_force"))
     plugin_sub.add_parser("list", help=tr("cli.plugin_list_help"))
     plugin_sub.add_parser("available", help=tr("cli.plugin_available_help"))
