@@ -397,3 +397,61 @@ def disable_auto_update() -> tuple[bool, str]:
         return True, f"Otomatik güncelleme devre dışı bırakıldı ({_TIMER_NAME}.timer)"
     else:
         return False, f"Timer devre dışı bırakılamadı: {res.stderr[:200]}"
+
+
+def get_delta_logs(lines: int = 50) -> str:
+    """Read recent logs from the delta auto-update service.
+
+    Args:
+        lines: Number of log lines to read.
+
+    Returns:
+        Log output as string.
+    """
+    from core.security import safe_run as _safe_run
+
+    systemctl = shutil.which("systemctl")
+    if not systemctl:
+        return "systemctl bulunamadı"
+
+    res = _safe_run(
+        ["journalctl", "-u", f"{_SERVICE_NAME}", "-n", str(lines), "--no-pager"],
+        timeout=10,
+    )
+    if res.returncode == 0:
+        stdout = res.stdout if isinstance(res.stdout, str) else res.stdout.decode("utf-8", errors="replace")
+        return stdout.strip()
+    else:
+        return f"Log okunamadı: {res.stderr[:200]}"
+
+
+def notify_update_available(packages: list[str]) -> bool:
+    """Send desktop notification about available updates.
+
+    Uses notify-send if available, falls back to stdout.
+
+    Args:
+        packages: List of package names with available updates.
+
+    Returns:
+        True if notification was sent.
+    """
+    if not packages:
+        return False
+
+    message = f"{len(packages)} paket güncellenebilir:\n" + "\n".join(f"  • {p}" for p in packages[:10])
+
+    # Try notify-send (Linux desktop)
+    notify_send = shutil.which("notify-send")
+    if notify_send:
+        from core.security import safe_run as _safe_run
+        _safe_run(
+            [notify_send, "--urgency=normal", "PkgForge Güncelleme", message],
+            timeout=5,
+        )
+        log.info("Desktop notification gönderildi: %d paket", len(packages))
+        return True
+
+    # Fallback: stdout
+    print(f"\n📢 Güncelleme Mevcut:\n{message}")
+    return True

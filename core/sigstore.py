@@ -55,6 +55,8 @@ def sign_with_sigstore(
     *,
     key_path: str | None = None,
     output_dir: Path | None = None,
+    oidc_issuer: str | None = None,
+    certificate_identity: str | None = None,
 ) -> SigstoreResult:
     """Sign a file using Sigstore (cosign).
 
@@ -62,6 +64,8 @@ def sign_with_sigstore(
         file_path: Path to the file to sign.
         key_path: Optional path to private key. If None, uses keyless signing.
         output_dir: Directory to write signature files. Defaults to file's parent.
+        oidc_issuer: OIDC issuer URL for keyless signing (e.g., GitHub Actions).
+        certificate_identity: Expected certificate identity for keyless signing.
 
     Returns:
         SigstoreResult with signing outcome.
@@ -87,10 +91,12 @@ def sign_with_sigstore(
         # Key-based signing
         cmd.extend(["--key", key_path])
     else:
-        # Keyless signing (OIDC token) — requires Fulcio
+        # Keyless signing (OIDC token)
         cmd.append("--yes")  # Skip confirmation
-
-    cmd.append(str(file_path))
+        if oidc_issuer:
+            cmd.extend(["--oidc-issuer", oidc_issuer])
+        if certificate_identity:
+            cmd.extend(["--certificate-identity", certificate_identity])
 
     log.info("Sigstore imzalama: %s", file_path.name)
     result = safe_run(cmd, timeout=120)
@@ -122,12 +128,16 @@ def verify_with_sigstore(
     file_path: Path,
     *,
     key_path: str | None = None,
+    certificate_identity: str | None = None,
+    certificate_oidc_issuer: str | None = None,
 ) -> SigstoreResult:
     """Verify a file's Sigstore signature.
 
     Args:
         file_path: Path to the file to verify.
         key_path: Optional path to public key for key-based verification.
+        certificate_identity: Expected certificate identity (exact match or regexp).
+        certificate_oidc_issuer: Expected OIDC issuer URL (exact match or regexp).
 
     Returns:
         SigstoreResult with verification outcome.
@@ -152,9 +162,15 @@ def verify_with_sigstore(
     if key_path:
         cmd.extend(["--key", key_path])
     else:
-        # Keyless verification
-        cmd.append("--certificate-identity-regexp=.*")
-        cmd.append("--certificate-oidc-issuer-regexp=.*")
+        # Keyless verification — strict or permissive
+        if certificate_identity:
+            cmd.extend(["--certificate-identity", certificate_identity])
+        else:
+            cmd.append("--certificate-identity-regexp=.*")
+        if certificate_oidc_issuer:
+            cmd.extend(["--certificate-oidc-issuer", certificate_oidc_issuer])
+        else:
+            cmd.append("--certificate-oidc-issuer-regexp=.*")
 
     cmd.append(str(file_path))
 
