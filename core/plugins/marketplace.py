@@ -253,8 +253,8 @@ def audit_plugins() -> list[dict[str, str]]:
                         sha_path = Path(plugin_path.parent) / f"{name}.py.sha256"
                         _download_file(p["sha256_url"], sha_path)
                         expected_hash = sha_path.read_text().strip().split()[0]
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log.debug("SHA256 dosyası indirilemedi: %s", exc)
                     break
 
             if expected_hash:
