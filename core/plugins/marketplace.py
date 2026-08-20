@@ -61,12 +61,18 @@ def _fetch_json(url: str, timeout: int = 10) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def fetch_available_plugins() -> list[dict[str, str]]:
+def fetch_available_plugins(offline: bool = False) -> list[dict[str, str]]:
     """Fetch list of available plugins from GitHub releases.
+
+    Args:
+        offline: If True, return empty list without network request.
 
     Returns:
         List of dicts with 'name', 'version', 'description', 'download_url', 'sha256_url'.
     """
+    if offline:
+        log.info("Çevrimdışı mod — plugin listesi atlandı")
+        return []
     try:
         data = _fetch_json(PLUGIN_INDEX_URL)
     except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:

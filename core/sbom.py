@@ -124,6 +124,7 @@ def generate_sbom(
     tools: ToolPaths,
     *,
     include_hashes: bool = True,
+    offline: bool = False,
 ) -> SBOMDocument:
     """Generate a full SBOM for a converted .pkg.tar.zst file.
 
@@ -134,6 +135,7 @@ def generate_sbom(
         pkg_path: Path to the .pkg.tar.zst package.
         tools: Detected system tools.
         include_hashes: When False, sha256 is left empty (faster).
+        offline: When True, skip network-dependent operations (dep resolution).
 
     Returns:
         SBOMDocument with complete file listing.
@@ -222,13 +224,16 @@ def generate_sbom(
     except Exception as exc:
         log.warning("SBOM oluşturma başarısız: %s", exc)
 
-    # Shared-library dependencies
-    try:
-        from core.dep_resolver import resolve_runtime_dependencies
-        deps = resolve_runtime_dependencies(Path("/"), tools)
-        sbom.dependencies = deps
-    except Exception as exc:
-        log.debug("Bağımlılık çözümleme başarısız: %s", exc)
+    # Shared-library dependencies (skip in offline mode)
+    if not offline:
+        try:
+            from core.dep_resolver import resolve_runtime_dependencies
+            deps = resolve_runtime_dependencies(Path("/"), tools)
+            sbom.dependencies = deps
+        except Exception as exc:
+            log.debug("Bağımlılık çözümleme başarısız: %s", exc)
+    else:
+        log.debug("Çevrimdışı mod — bağımlılık çözümleme atlandı")
 
     return sbom
 

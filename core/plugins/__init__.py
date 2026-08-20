@@ -49,6 +49,10 @@ class ConverterPlugin(ABC):
     name: str = ""              # Converter identifier (e.g., "deb", "rpm")
     extensions: list[str] = []  # File extensions this converter handles
     priority: int = 100         # Lower priority = preferred converter
+    category: str = "converter" # Plugin category: converter, security, analyzer, utility
+    description: str = ""       # Short description of the plugin
+    author: str = ""            # Plugin author
+    version: str = "1.0.0"      # Plugin version
 
     @abstractmethod
     def is_available(self, tools: ToolPaths) -> bool:
@@ -186,19 +190,28 @@ def get_converter(name: str) -> ConverterPlugin | None:
     return None
 
 
-def list_plugins() -> list[dict[str, Any]]:
+def list_plugins(category: str | None = None) -> list[dict[str, Any]]:
     """List all registered plugins.
 
+    Args:
+        category: Optional filter by category (converter, security, analyzer, utility).
+
     Returns:
-        List of dicts with name, extensions, priority, available status.
+        List of dicts with name, extensions, priority, category, description, etc.
     """
     result = []
     for name, plugin_cls in sorted(_REGISTRY.items()):
         plugin = plugin_cls()
+        if category and plugin.category != category:
+            continue
         result.append({
             "name": plugin.name,
             "extensions": plugin.extensions,
             "priority": plugin.priority,
+            "category": plugin.category,
+            "description": plugin.description,
+            "author": plugin.author,
+            "version": plugin.version,
             "class": plugin_cls.__name__,
         })
     return result

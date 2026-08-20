@@ -21,6 +21,10 @@ class DebConverterPlugin(ConverterPlugin):
     name = "deb"
     extensions = [".deb"]
     priority = 10  # High priority — this is the primary converter
+    category = "converter"
+    description = "Native DEB to Arch Linux converter"
+    author = "PkgForge"
+    version = "1.1.0"
 
     def is_available(self, tools: ToolPaths) -> bool:
         """Check if DEB conversion tools are available."""
