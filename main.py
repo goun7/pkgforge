@@ -339,6 +339,10 @@ def main() -> int:
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
+    # completion subcommand
+    completion_parser = subparsers.add_parser("completion", help=tr("cli.completion_help"))
+    completion_parser.add_argument("shell", choices=["bash", "zsh", "fish"], help=tr("cli.completion_shell"))
+
     # Global flags
     parser.add_argument("--file", "-f", nargs="+", type=Path, help=tr("cli.arg_file"))
     parser.add_argument("--lang", "-l", choices=["tr", "en"], help=tr("cli.arg_lang"))

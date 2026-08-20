@@ -351,4 +351,6 @@ STRINGS: dict[str, str] = {
     "cli.delta_status_help": "Show daemon status",
     "cli.delta_enable_help": "Enable auto-updates",
     "cli.delta_disable_help": "Disable auto-updates",
+    "cli.completion_help": "Generate shell completion script",
+    "cli.completion_shell": "Shell type (bash/zsh/fish)",
 }

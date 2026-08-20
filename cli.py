@@ -86,6 +86,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_plugin(args)
     elif command == "delta":
         return _cmd_delta(args)
+    elif command == "completion":
+        return _cmd_completion(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -1463,3 +1465,17 @@ def _cmd_delta(args: argparse.Namespace) -> int:
         return 1
 
     return 0
+
+
+def _cmd_completion(args: argparse.Namespace) -> int:
+    """Handle `pkgforge completion`."""
+    from core.completion import generate_completion
+
+    shell = args.shell
+    try:
+        script = generate_completion(shell)
+        print(script)
+        return 0
+    except ValueError as exc:
+        print(f"❌ {exc}")
+        return 1

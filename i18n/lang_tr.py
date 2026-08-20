@@ -242,7 +242,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_available_help": "Marketplace'de kullanılabilir pluginleri listele",
     "cli.plugin_remove_help": "Yerel plugin'i kaldır",
     "cli.plugin_remove_name": "Kaldırılacak plugin adı",
-    "cli.gui_help": "PyQt6 grafik arayüzünü başlatıın",
+    "cli.gui_help": "PyQt6 grafik arayüzünü başlatın",
     "cli.arg_target": "Dönüştürülecek .deb/.rpm dosya yolu veya URL",
     "cli.arg_install": "Dönüşümden sonra otomatik kur",
     "cli.arg_yes": "Kurulum onay istemini atla",
@@ -351,4 +351,6 @@ STRINGS: dict[str, str] = {
     "cli.delta_status_help": "Daemon durumunu göster",
     "cli.delta_enable_help": "Otomatik güncelleme etkinleştir",
     "cli.delta_disable_help": "Otomatik güncelleme devre dışı bırak",
+    "cli.completion_help": "Shell completion betiği oluştur",
+    "cli.completion_shell": "Shell tipi (bash/zsh/fish)",
 }
