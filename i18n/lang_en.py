@@ -313,6 +313,7 @@ STRINGS: dict[str, str] = {
     "cli.arg_install_deps": "Check and install missing system dependencies",
     "cli.arg_offline": "Run in offline mode (use only local cache)",
     "cli.arg_clear_cache": "Clear all cached data",
+    "cli.arg_verbose": "Show verbose debug output",
     "cli.invalid_cmd": "❌ Invalid command. For help: pkgforge --help",
     "cli.converting": "📦 PkgForge — Converting package: {target}",
     "cli.missing_tools": "❌ Required system tools are missing: {tools}",

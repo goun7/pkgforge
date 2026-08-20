@@ -1307,7 +1307,7 @@ def _cmd_publish(args: argparse.Namespace) -> int:
     print(f"📦 AUR paketi hazırlanıyor: {pkg_path.name}\n")
     ok, msg, aur_pkg = prepare_aur_package(pkg_path, out_dir)
 
-    if not ok:
+    if not ok or not aur_pkg:
         print(f"❌ {msg}")
         return 1
 
@@ -1408,9 +1408,10 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
                 print(f"  • {p['name']} v{p['version']} — {p['description']}")
 
     elif action == "update":
+        from core.plugins.marketplace import update_plugin as _update_plugin
         name = args.name
         print(f"🔄 Plugin güncelleniyor: {name}")
-        ok, msg, path = update_plugin(name)
+        ok, msg, _path = _update_plugin(name)
         if ok:
             print(f"✅ {msg}")
             reload_plugins()
@@ -1419,8 +1420,9 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
             return 1
 
     elif action == "audit":
+        from core.plugins.marketplace import audit_plugins as _audit_plugins
         print("🔍 Plugin checksum doğrulanıyor...")
-        results = audit_plugins()
+        results = _audit_plugins()
         if not results:
             print("📋 Denetlenecek yerel plugin yok")
         else:

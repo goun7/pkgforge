@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
         self._setup_window()
         self._setup_ui()
         self._check_tools()
+        self._setup_shortcuts()
 
     def _setup_window(self) -> None:
         self.setWindowTitle(tr("app.window_title"))
@@ -231,6 +232,22 @@ class MainWindow(QMainWindow):
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)
         self._status_bar.showMessage(tr("status.ready"))
+
+
+    def _setup_shortcuts(self) -> None:
+        """Set up keyboard shortcuts for improved accessibility."""
+        from PyQt6.QtGui import QShortcut, QKeySequence
+        QShortcut(QKeySequence("Ctrl+O"), self, self._show_url_dialog)
+        QShortcut(QKeySequence("Ctrl+Q"), self, self.close)
+        QShortcut(QKeySequence("F5"), self, self._check_upstream_updates)
+        QShortcut(QKeySequence("Ctrl+H"), self, self._show_history)
+        QShortcut(QKeySequence("Ctrl+,"), self, self._show_settings)
+        QShortcut(QKeySequence("F1"), self, self._show_about)
+        QShortcut(QKeySequence("Escape"), self, lambda: self._on_cancel())
+        QShortcut(QKeySequence("Ctrl+N"), self, self._reset_ui)
+        # Set tab order for keyboard navigation
+        self.setTabOrder(self._drop_zone, self._cancel_btn)
+        self.setTabOrder(self._cancel_btn, self._new_btn)
 
     def _check_tools(self) -> None:
         missing = self._tools.missing_required

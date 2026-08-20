@@ -352,8 +352,15 @@ def main() -> int:
     parser.add_argument("--install-deps", action="store_true", help=tr("cli.arg_install_deps"))
     parser.add_argument("--offline", action="store_true", help=tr("cli.arg_offline"))
     parser.add_argument("--clear-cache", action="store_true", help=tr("cli.arg_clear_cache"))
+    parser.add_argument("--verbose", action="store_true", help=tr("cli.arg_verbose"))
 
     args = parser.parse_args()
+
+    # Activate verbose mode if requested
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger("pkgforge").setLevel(logging.DEBUG)
+        log.debug("Verbose logging aktif")
 
     # Activate offline mode if requested
     if args.offline:
@@ -388,6 +395,22 @@ def main() -> int:
         log.info("Temizlenen eski geçici dizin sayısı: %d", cleaned)
 
     # Route CLI subcommands
+    # Handle --file batch mode
+    file_list = getattr(args, "file", None)
+    if file_list and len(file_list) > 1 and hasattr(args, "install"):
+        from cli import run_cli
+        print(f"📦 Toplu dönüştürme: {len(file_list)} dosya")
+        failures = 0
+        for fp in file_list:
+            args.target = str(fp)
+            result = run_cli(args)
+            if result != 0:
+                failures += 1
+        if failures:
+            print(f"\n⚠️  {failures}/{len(file_list)} dosya başarısız")
+            return 1
+        print(f"\n✅ {len(file_list)} dosya başarıyla dönüştürüldü")
+        return 0
     if args.command and args.command != "gui":
         from cli import run_cli
         return run_cli(args)
