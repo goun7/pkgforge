@@ -219,6 +219,13 @@ def main() -> int:
     updates_parser.add_argument("--watch", action="store_true", help=tr("cli.arg_watch"))
     updates_parser.add_argument("--interval", type=int, default=300, help=tr("cli.arg_watch_interval"))
 
+    # delta subcommand
+    delta_parser = subparsers.add_parser("delta", help=tr("cli.delta_help"))
+    delta_sub = delta_parser.add_subparsers(dest="delta_action")
+    delta_sub.add_parser("status", help=tr("cli.delta_status_help"))
+    delta_sub.add_parser("enable", help=tr("cli.delta_enable_help"))
+    delta_sub.add_parser("disable", help=tr("cli.delta_disable_help"))
+
     # flatpak-export subcommand
     flatpak_parser = subparsers.add_parser("flatpak-export", help=tr("cli.flatpak_export_help"))
     flatpak_parser.add_argument("app_id", nargs="?", help=tr("cli.arg_flatpak_app_id"))
@@ -325,6 +332,9 @@ def main() -> int:
     plugin_sub.add_parser("available", help=tr("cli.plugin_available_help"))
     plugin_remove = plugin_sub.add_parser("remove", help=tr("cli.plugin_remove_help"))
     plugin_remove.add_argument("name", help=tr("cli.plugin_remove_name"))
+    plugin_update = plugin_sub.add_parser("update", help=tr("cli.plugin_update_help"))
+    plugin_update.add_argument("name", help=tr("cli.plugin_update_name"))
+    plugin_sub.add_parser("audit", help=tr("cli.plugin_audit_help"))
 
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))

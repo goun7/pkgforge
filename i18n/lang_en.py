@@ -344,4 +344,11 @@ STRINGS: dict[str, str] = {
     "cli.rollback_failed": "❌ Rollback failed: {error}",
     "cli.checking_updates": "📡 PkgForge — Checking upstream updates...",
     "cli.no_url_pkgs": "  No URL-installed packages found to check for updates.",
+    "cli.plugin_update_help": "Update plugin from marketplace",
+    "cli.plugin_update_name": "Plugin name to update",
+    "cli.plugin_audit_help": "Audit plugin checksum integrity",
+    "cli.delta_help": "Manage auto-update daemon",
+    "cli.delta_status_help": "Show daemon status",
+    "cli.delta_enable_help": "Enable auto-updates",
+    "cli.delta_disable_help": "Disable auto-updates",
 }

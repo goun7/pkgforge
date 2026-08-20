@@ -344,4 +344,11 @@ STRINGS: dict[str, str] = {
     "cli.rollback_failed": "❌ Geri döndürme başarısız: {error}",
     "cli.checking_updates": "📡 PkgForge — Upstream güncelleme kontrolü yapılıyor...",
     "cli.no_url_pkgs": "  Güncelleme kontrolü yapılacak URL kayıtlı paket bulunamadı.",
+    "cli.plugin_update_help": "Marketplace'den plugin güncelle",
+    "cli.plugin_update_name": "Güncellenecek plugin adı",
+    "cli.plugin_audit_help": "Plugin checksum doğrulaması yap",
+    "cli.delta_help": "Otomatik güncelleme daemonunu yönet",
+    "cli.delta_status_help": "Daemon durumunu göster",
+    "cli.delta_enable_help": "Otomatik güncelleme etkinleştir",
+    "cli.delta_disable_help": "Otomatik güncelleme devre dışı bırak",
 }

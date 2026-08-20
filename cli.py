@@ -84,6 +84,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_verify_rollback(args)
     elif command == "plugin":
         return _cmd_plugin(args)
+    elif command == "delta":
+        return _cmd_delta(args)
     else:
         print(tr("cli.invalid_cmd"))
         return 1
@@ -1403,8 +1405,61 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
             for p in available:
                 print(f"  • {p['name']} v{p['version']} — {p['description']}")
 
+    elif action == "update":
+        name = args.name
+        print(f"🔄 Plugin güncelleniyor: {name}")
+        ok, msg, path = update_plugin(name)
+        if ok:
+            print(f"✅ {msg}")
+            reload_plugins()
+        else:
+            print(f"❌ {msg}")
+            return 1
+
+    elif action == "audit":
+        print("🔍 Plugin checksum doğrulanıyor...")
+        results = audit_plugins()
+        if not results:
+            print("📋 Denetlenecek yerel plugin yok")
+        else:
+            for r in results:
+                icon = {"ok": "✅", "changed": "⚠️", "unknown": "❓", "error": "❌"}.get(r["status"], "?")
+                print(f"  {icon} {r['name']}: {r['message']}")
+
     else:
-        print("❌ Geçersiz plugin komutu. Kullanım: install, remove, list, available")
+        print("❌ Geçersiz plugin komutu. Kullanım: install, remove, list, available, update, audit")
+        return 1
+
+    return 0
+
+
+def _cmd_delta(args: argparse.Namespace) -> int:
+    """Handle `pkgforge delta`."""
+    from core.delta_updater import get_auto_update_status, enable_auto_update, disable_auto_update
+
+    action = getattr(args, "delta_action", None)
+
+    if action == "status":
+        status = get_auto_update_status()
+        print(f"\n📊 Delta Auto-Update Durumu:\n")
+        print(f"  systemctl:     {'✅' if status.get('systemctl_available') else '❌'}")
+        print(f"  Timer kurulu:  {'✅' if status.get('installed') else '❌'}")
+        print(f"  Timer aktif:   {'✅' if status.get('active') else '❌'}")
+        if status.get("next_run"):
+            print(f"  Sonraki çalışma: {status['next_run']}")
+
+    elif action == "enable":
+        ok, msg = enable_auto_update()
+        print(f"{'✅' if ok else '❌'} {msg}")
+        return 0 if ok else 1
+
+    elif action == "disable":
+        ok, msg = disable_auto_update()
+        print(f"{'✅' if ok else '❌'} {msg}")
+        return 0 if ok else 1
+
+    else:
+        print("❌ Geçersiz delta komutu. Kullanım: status, enable, disable")
         return 1
 
     return 0

@@ -32,12 +32,25 @@ class UpdateCheckResult:
     record_id: int = 0
 
 
-def check_upstream_update(record: HistoryRecord) -> UpdateCheckResult:
+def check_upstream_update(record: HistoryRecord, offline: bool = False) -> UpdateCheckResult:
     """Check a single package's download URL for updates via HTTP HEAD request.
 
     Compares the current ETag/Last-Modified against stored values to detect
     actual content changes on the upstream server.
+
+    Args:
+        record: History record with source URL and ETag info.
+        offline: If True, skip network request and return cached result.
     """
+    if offline:
+        return UpdateCheckResult(
+            package_name=record.package_name,
+            source_url=record.source_url,
+            has_update=False,
+            status="offline",
+            detail="Çevrimdışı mod — güncelleme kontrolü atlandı",
+        )
+
     if not record.source_url or not record.source_url.startswith(("http://", "https://")):
         return UpdateCheckResult(
             package_name=record.package_name,

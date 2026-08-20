@@ -351,3 +351,49 @@ def get_auto_update_status() -> dict:
             status["next_run"] = res.stdout.split("=", 1)[1].strip()
 
     return status
+
+
+def enable_auto_update() -> tuple[bool, str]:
+    """Enable the auto-update systemd timer.
+
+    Returns:
+        (success, message)
+    """
+    from core.security import safe_run as _safe_run
+    systemctl = shutil.which("systemctl")
+    if not systemctl:
+        return False, "systemctl bulunamadı — systemd kurulu değil"
+
+    timer_path = Path(f"/etc/systemd/system/{_TIMER_NAME}.timer")
+    if not timer_path.exists():
+        return False, f"Timer dosyası bulunamadı: {timer_path}"
+
+    res = _safe_run([systemctl, "enable", f"{_TIMER_NAME}.timer"], timeout=10)
+    if res.returncode != 0:
+        return False, f"Timer etkinleştirilemedi: {res.stderr[:200]}"
+
+    res = _safe_run([systemctl, "start", f"{_TIMER_NAME}.timer"], timeout=10)
+    if res.returncode != 0:
+        return False, f"Timer başlatılamadı: {res.stderr[:200]}"
+
+    return True, f"Otomatik güncelleme etkinleştirildi ({_TIMER_NAME}.timer)"
+
+
+def disable_auto_update() -> tuple[bool, str]:
+    """Disable the auto-update systemd timer.
+
+    Returns:
+        (success, message)
+    """
+    from core.security import safe_run as _safe_run
+    systemctl = shutil.which("systemctl")
+    if not systemctl:
+        return False, "systemctl bulunamadı — systemd kurulu değil"
+
+    _safe_run([systemctl, "stop", f"{_TIMER_NAME}.timer"], timeout=10)
+    res = _safe_run([systemctl, "disable", f"{_TIMER_NAME}.timer"], timeout=10)
+
+    if res.returncode == 0:
+        return True, f"Otomatik güncelleme devre dışı bırakıldı ({_TIMER_NAME}.timer)"
+    else:
+        return False, f"Timer devre dışı bırakılamadı: {res.stderr[:200]}"

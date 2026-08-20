@@ -203,3 +203,69 @@ def list_installed_plugins() -> list[dict[str, str]]:
             "size": str(f.stat().st_size),
         })
     return sorted(plugins, key=lambda p: p["name"])
+
+
+def update_plugin(name: str) -> tuple[bool, str, Path | None]:
+    """Update an installed plugin to the latest version.
+
+    Checks for newer version, downloads, verifies checksum, and replaces.
+
+    Returns:
+        (success, message, plugin_path)
+    """
+    installed = list_installed_plugins()
+    installed_names = {p["name"] for p in installed}
+
+    if name not in installed_names:
+        return False, f"Plugin '{name}' kurulu değil", None
+
+    try:
+        path = install_plugin(name, force=True)
+        return True, f"Plugin güncellendi: {name}", path
+    except FileNotFoundError as exc:
+        return False, str(exc), None
+    except RuntimeError as exc:
+        return False, f"Güncelleme başarısız: {exc}", None
+
+
+def audit_plugins() -> list[dict[str, str]]:
+    """Audit installed plugins for checksum integrity.
+
+    Returns:
+        List of dicts with name, status, message for each plugin.
+    """
+    installed = list_installed_plugins()
+    results = []
+
+    for plugin_info in installed:
+        name = plugin_info["name"]
+        plugin_path = Path(plugin_info["path"])
+
+        try:
+            current_hash = _sha256_file(plugin_path)
+
+            # Try to fetch expected hash from marketplace
+            available = fetch_available_plugins()
+            expected_hash = None
+            for p in available:
+                if p["name"] == name:
+                    try:
+                        sha_path = Path(plugin_path.parent) / f"{name}.py.sha256"
+                        _download_file(p["sha256_url"], sha_path)
+                        expected_hash = sha_path.read_text().strip().split()[0]
+                    except Exception:
+                        pass
+                    break
+
+            if expected_hash:
+                if current_hash == expected_hash:
+                    results.append({"name": name, "status": "ok", "message": "Checksum eşleşiyor"})
+                else:
+                    results.append({"name": name, "status": "changed", "message": f"Hash değişmiş: {current_hash[:16]}... → beklenen: {expected_hash[:16]}..."})
+            else:
+                results.append({"name": name, "status": "unknown", "message": "Checksum doğrulanamadı (marketplace erişilemez)"})
+
+        except Exception as exc:
+            results.append({"name": name, "status": "error", "message": f"Audit hatası: {exc}"})
+
+    return results
