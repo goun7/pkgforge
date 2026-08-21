@@ -6,7 +6,7 @@ which emit finished() synchronously without needing an event loop."""
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from config import ToolPaths
 
@@ -20,10 +20,10 @@ class TestRpmToDebConverter(unittest.TestCase):
     def test_rpm_to_deb_missing_file(self):
         from core.rpm_to_deb_converter import rpm_to_deb
         with tempfile.TemporaryDirectory() as td:
-            ok, msg, path = rpm_to_deb(Path("/nonexistent.rpm"), Path(td))
+            ok, msg, _path = rpm_to_deb(Path("/nonexistent.rpm"), Path(td))
             self.assertFalse(ok)
             self.assertIn("bulunamadı", msg)
-            self.assertIsNone(path)
+            self.assertIsNone(_path)
 
     def test_rpm_to_deb_no_rpm2cpio(self):
         from core.rpm_to_deb_converter import rpm_to_deb

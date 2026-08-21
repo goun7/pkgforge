@@ -211,15 +211,15 @@ class TestCompletion(unittest.TestCase):
 class TestReproducibleBuild(unittest.TestCase):
 
     def test_verify_missing_file(self):
-        from core.reproducible_build import verify_reproducible
         from config import ToolPaths
+        from core.reproducible_build import verify_reproducible
         res = verify_reproducible(Path("/nonexistent.pkg.tar.zst"), ToolPaths())
         self.assertFalse(res.verified)
         self.assertIn("bulunamadı", res.detail)
 
     def test_verify_no_makepkg(self):
-        from core.reproducible_build import verify_reproducible
         from config import ToolPaths
+        from core.reproducible_build import verify_reproducible
         with tempfile.NamedTemporaryFile(suffix=".pkg.tar.zst") as f:
             res = verify_reproducible(Path(f.name), ToolPaths())
             self.assertFalse(res.verified)
@@ -348,8 +348,9 @@ class TestDeltaUpdater(unittest.TestCase):
         self.assertIsInstance(is_xdelta3_available(), bool)
 
     def test_create_delta_missing_files(self):
-        from core.delta_updater import create_delta
         from unittest.mock import patch
+
+        from core.delta_updater import create_delta
         with patch("core.delta_updater.is_xdelta3_available", return_value=True):
             ok = create_delta(Path("/no/old"), Path("/no/new"), Path("/no/delta"))
             self.assertFalse(ok)
