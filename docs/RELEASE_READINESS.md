@@ -44,6 +44,8 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | F21 | bandit | 7 Medium → **0 High / 0 Medium** (B608/B310 fixed, B108 justified nosec) |
 | F22 | ruff | 352 → 79 (remaining are intentional defensive patterns) |
 | F23 | Provenance | Fixed 2 inverted hash conditions + package-search sidecar exclusion (7 sites) — re-runs no longer produce doubled `.provenance.json` |
+| F24 | Repo | REPO-001 resolved: `goun7/pkgforge` (private) + `goun7/pkgforge-plugins` (private); all refs updated; history pushed |
+| F25 | Component test | Real-user pass over all 28 CLI subcommands + GUI. Found & fixed: `graph` rejected direct file paths; `build_file_dep_graph` mis-parsed dotted versions; `save_attestation` doubled `.attestation.json` suffix |
 
 ---
 
@@ -51,14 +53,36 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **241 passed, 12 skipped, 0 failed** | PyQt6 present; green |
-| Line coverage (`core/`) | **41%** (6,244 stmts, 3,694 miss) | CI gate: 35% |
+| Test suite | **245 passed, 12 skipped, 0 failed** | PyQt6 present; green |
+| Line coverage (`core/`) | **41%** (6,249 stmts, 3,676 miss) | CI gate: 35% |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
 | ruff | **79 remaining** | 68 BLE001 (defensive blind-except) + 11 PLW1510 (manual returncode checks) — all intentional |
 | Wheel install | **WORKS** | clean venv, entry point + data-files verified |
 | E2E conversion | **WORKS** | deb → pkg.tar.zst, grade B |
 | GUI launch | **WORKS** | offscreen smoke test |
+
+### Component-by-component real-user test (F25)
+
+Every one of the 28 CLI subcommands was exercised for real (not just `--help`),
+plus the GUI main window, with a writable HOME:
+
+- **convert** (real, non-dry-run): hello.deb → hello-1.0.0-1-x86_64.pkg.tar.zst, grade B ✅
+- **list / audit / health**: conversion recorded and displayed ✅
+- **quality / provenance / sbom / attest**: all produce correct output ✅
+- **graph / graph --files**: work on direct file paths (after fix) ✅
+- **abi-check / benchmark --quick / verify-rollback / snapshot-cleanup --status**: ✅
+- **sign / verify**: graceful without a GPG key ✅
+- **check-updates / delta status / plugin list / plugin available**: ✅
+- **completion bash/zsh/fish**: ✅
+- **remove / rollback**: correct behaviour (pkexec needs setuid root — sandbox-only limit) ✅
+- **rpm-to-deb / flatpak-export / appimage-export / publish / from-source / scan-image**: graceful error paths ✅
+- **--check-deps / --offline / --clear-cache / --lang en / --version**: ✅
+- **GUI MainWindow**: instantiates and shows offscreen ✅
+
+Bugs found & fixed during this pass: `graph` path handling, dotted-version
+parsing in `build_file_dep_graph`, and the `save_attestation` suffix doubling
+(4 regression tests added).
 
 ---
 
