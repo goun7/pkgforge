@@ -15,8 +15,8 @@ Usage:
 """
 
 from __future__ import annotations
-import json
 
+import json
 import logging
 import shutil
 import tempfile
@@ -309,7 +309,7 @@ def export_flatpak_runtime(
                 "name": app.app_id.split(".")[-1],
                 "buildsystem": "simple",
                 "build-commands": [
-                    f"cp -r /app/* ${{FLATPAK_DEST}}/",
+                    "cp -r /app/* ${FLATPAK_DEST}/",
                 ],
                 "sources": [
                     {

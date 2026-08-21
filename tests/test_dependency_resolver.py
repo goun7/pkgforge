@@ -1,13 +1,13 @@
 """Unit tests for core/dependency_resolver.py (parsing + ELF detection)."""
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
 
 from core.dep_resolver import (
+    is_elf_file,
     parse_needed_sonames,
     parse_objdump_sonames,
-    is_elf_file,
 )
 
 

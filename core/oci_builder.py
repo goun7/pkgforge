@@ -64,8 +64,7 @@ def build_oci_image(
         pkg_name = pkg_path.stem
         # Clean up: remove arch suffix like .x86_64, .any
         for suffix in (".x86_64", ".any", ".i686", ".aarch64"):
-            if pkg_name.endswith(suffix):
-                pkg_name = pkg_name[:-len(suffix)]
+            pkg_name = pkg_name.removesuffix(suffix)
         tag = f"pkgforge/{pkg_name}:latest"
 
     if output_file is None:
@@ -85,7 +84,7 @@ def _build_with_buildah(
     output_file: Path,
 ) -> tuple[bool, str, Path | None]:
     """Build OCI image using buildah (rootless, daemonless)."""
-    with tempfile.TemporaryDirectory(prefix="pkgforge_oci_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="pkgforge_oci_"):
         container_name = f"pkgforge-build-{id(pkg_path) % 10000}"
 
         try:

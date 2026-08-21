@@ -78,7 +78,7 @@ class OfflineCache:
             log.debug("Cache read error: %s", exc)
             return None
 
-    def put(self, namespace: str, key: str, value: dict | list | str | int | float) -> None:
+    def put(self, namespace: str, key: str, value: dict | list | str | float) -> None:
         """Store a value in the cache.
 
         Args:
@@ -221,8 +221,9 @@ class OfflineCache:
     def is_offline(self) -> bool:
         """Quick check if we're likely offline."""
         try:
-            from config import APP_VERSION
             import urllib.request
+
+            from config import APP_VERSION
             req = urllib.request.Request(
                 "https://aur.archlinux.org",
                 method="HEAD",

@@ -6,9 +6,9 @@ from pathlib import Path
 
 from core.aur_publish import (
     _extract_pkg_info,
+    _generate_pkgbuild,
     _generate_srcinfo,
     detect_build_system,
-    _generate_pkgbuild,
 )
 
 

@@ -1,14 +1,15 @@
 """Unit tests for core/compatibility_checker.py."""
 
 import unittest
+
+from config import ToolPaths
 from core.compatibility_checker import (
-    CheckSeverity,
     CheckResult,
+    CheckSeverity,
     CompatibilityReport,
     _check_file_conflicts,
     _run_namcap,
 )
-from config import ToolPaths
 
 
 class TestCompatibilityChecker(unittest.TestCase):

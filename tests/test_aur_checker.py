@@ -1,6 +1,7 @@
 """Unit tests for core/aur_checker.py."""
 
 import unittest
+
 from core.aur_checker import _version_compare, check_aur
 
 

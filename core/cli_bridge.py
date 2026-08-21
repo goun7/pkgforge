@@ -3,18 +3,13 @@
 Provides synchronous wrappers around the converters so that the CLI
 can run without PyQt6.
 
-Two backends are supported:
-- **subprocess** (default): Uses stdlib subprocess, no Qt dependency.
-- **qt**: Uses QProcess via QCoreApplication in a daemon thread (legacy).
-
-The subprocess backend is always preferred. Qt is only used as a
-fallback when explicitly requested or when running in GUI mode.
+The subprocess backend uses stdlib subprocess + threading.Event and has
+no Qt dependency, which keeps the headless CLI lightweight.
 """
 
 from __future__ import annotations
 
 import logging
-import sys
 import threading
 from pathlib import Path
 
@@ -28,7 +23,7 @@ log = logging.getLogger(__name__)
 class ConversionResult:
     """Result of a synchronous CLI conversion."""
 
-    __slots__ = ("success", "message", "output_pkg")
+    __slots__ = ("message", "output_pkg", "success")
 
     def __init__(self) -> None:
         self.success: bool = False
@@ -106,28 +101,13 @@ def convert_rpm_sync(
         converter.convert(rpm_path, output_dir, meta)
     else:
         from core.package_analyzer import analyze_package
-        meta = analyze_package(rpm_path, tools)
+        try:
+            meta = analyze_package(rpm_path, tools)
+        except (FileNotFoundError, ValueError, OSError) as exc:
+            result.message = f"RPM analizi başarısız: {exc}"
+            return result
         converter.convert(rpm_path, output_dir, meta)
     done_event.wait(timeout=600)
 
     return result
 
-
-# ── Qt-based conversion (legacy, requires PyQt6) ───────────────
-
-def _ensure_qt_app() -> None:
-    """Create a QCoreApplication in a daemon thread (Qt backend only)."""
-    import ctypes
-    with threading.Lock():
-        try:
-            from PyQt6.QtCore import QCoreApplication
-            from PyQt6.QtWidgets import QApplication
-            app = QApplication.instance() or QApplication(sys.argv)
-        except ImportError:
-            return
-
-        def _run_loop() -> None:
-            app.exec()
-
-        t = threading.Thread(target=_run_loop, daemon=True, name="qt-cli-loop")
-        t.start()

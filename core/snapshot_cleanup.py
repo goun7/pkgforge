@@ -14,11 +14,10 @@ from __future__ import annotations
 
 import logging
 import os
-import time
 from pathlib import Path
 
 from core.security import safe_run
-from core.snapshot_manager import detect_backend, list_snapshots, delete_snapshot
+from core.snapshot_manager import detect_backend
 
 log = logging.getLogger(__name__)
 
@@ -109,7 +108,7 @@ echo "[$TIMESTAMP] Cleanup complete: $CLEANED deleted, $ERRORS errors" >> "$LOG_
 
 def _generate_service_unit() -> str:
     """Generate the systemd service unit file."""
-    return f"""[Unit]
+    return """[Unit]
 Description=PkgForge Snapshot Cleanup
 After=local-fs.target
 
@@ -179,7 +178,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
             input=script_content, timeout=10,
         )
         if res.returncode != 0:
-            return False, f"Script dosyası yazılamadı (pkexec reddedildi?)"
+            return False, "Script dosyası yazılamadı (pkexec reddedildi?)"
 
         safe_run(["pkexec", "chmod", "755", str(script_path)], timeout=5)
 

@@ -18,11 +18,11 @@ import shutil
 log = logging.getLogger(__name__)
 import tempfile
 import time
-from core.security import safe_run
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from config import ToolPaths, discover_tools
+from config import discover_tools
+from core.security import safe_run
 
 
 @dataclass
@@ -140,7 +140,7 @@ def run_benchmarks(
         r.input_size_bytes = test_file.stat().st_size
         mem_start = _get_memory_usage()
         t0 = time.monotonic()
-        from core.security import safe_run, sha256_hash
+        from core.security import sha256_hash
         h = sha256_hash(test_file)
         r.duration_ms = int((time.monotonic() - t0) * 1000)
         r.memory_peak_kb = _get_memory_usage() - mem_start
@@ -188,7 +188,10 @@ def run_benchmarks(
         mem_start = _get_memory_usage()
         t0 = time.monotonic()
         from core.security import (
-            validate_file_size, sha256_hash, check_path_traversal, check_compression_bomb,
+            check_compression_bomb,
+            check_path_traversal,
+            sha256_hash,
+            validate_file_size,
         )
         validate_file_size(test_file, 2048, 500)
         sha256_hash(test_file)

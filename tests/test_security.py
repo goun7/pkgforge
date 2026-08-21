@@ -1,19 +1,19 @@
 """Unit tests for core/security.py."""
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
 
+from config import ToolPaths
 from core.security import (
-    sha256_hash,
+    build_sandbox_cmd,
+    check_dangerous_files,
     check_path_traversal,
     check_symlink_attacks,
-    check_dangerous_files,
-    validate_file_size,
-    build_sandbox_cmd,
     is_valid_package_name,
+    sha256_hash,
+    validate_file_size,
 )
-from config import ToolPaths
 
 
 class TestSecurity(unittest.TestCase):
@@ -111,7 +111,7 @@ class TestSecurity(unittest.TestCase):
     def test_check_dangerous_files_suspicious_elf(self):
         suspicious = self.temp_dir / "evil.bin"
         suspicious.write_bytes(b"\x7fELF" + b"\x00" * 64 + b"nc -e /bin/sh")
-        errors, warnings = check_dangerous_files(self.temp_dir)
+        _errors, warnings = check_dangerous_files(self.temp_dir)
         self.assertIn("evil.bin", "\n".join(warnings))
 
     def test_check_symlink_attacks(self):

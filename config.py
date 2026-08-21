@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 APP_NAME = "PkgForge"
 APP_VERSION = "1.1.0"
@@ -20,8 +18,10 @@ SETTINGS_FILE = CONFIG_DIR / "settings.json"
 # Offline mode — when True, network-dependent checks (AUR, upstream) are skipped
 OFFLINE_MODE: bool = False
 
-# Size limits (re-export from core.constants for backward compatibility)
-from core.constants import MAX_PACKAGE_SIZE_MB, WARN_PACKAGE_SIZE_MB
+# Size limits (re-export from core.constants for backward compatibility).
+# These are imported by core.pipeline and others via "from config import ...",
+# so they must stay even though config.py does not use them directly.
+from core.constants import MAX_PACKAGE_SIZE_MB, WARN_PACKAGE_SIZE_MB  # noqa: F401
 
 # Supported architectures (Arch naming)
 SUPPORTED_ARCHES = frozenset({"x86_64", "any"})
@@ -235,7 +235,7 @@ def extract_package_name(filename: str) -> str:
             return parts[0]
         return stem
 
-    elif lower.endswith(".pkg.tar.zst") or lower.endswith(".pkg.tar.xz"):
+    elif lower.endswith((".pkg.tar.zst", ".pkg.tar.xz")):
         # Arch: name-version-release-arch.pkg.tar.*
         stem = name.rsplit(".", 1)[0]  # strip .zst or .xz
         stem = stem.rsplit(".", 1)[0]  # strip .tar

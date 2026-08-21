@@ -13,9 +13,11 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import shutil
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -29,6 +31,31 @@ PLUGIN_INDEX_URL = f"https://api.github.com/repos/{PLUGIN_ORG}/{PLUGIN_REPO}/rel
 
 # Local plugin install directory
 PLUGIN_DIR = Path.home() / ".config" / "pkgforge" / "plugins"
+
+# Strict plugin name: lowercase alphanumerics, '-' and '_' only, 1-64 chars.
+# Prevents path traversal (e.g. "../../evil") when building PLUGIN_DIR paths.
+_PLUGIN_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+
+
+def is_valid_plugin_name(name: str) -> bool:
+    """Return True if *name* is a safe plugin identifier."""
+    return bool(name) and _PLUGIN_NAME_RE.match(name) is not None
+
+
+def _validate_plugin_name(name: str) -> None:
+    """Raise ValueError if *name* is not a safe plugin identifier."""
+    if not is_valid_plugin_name(name):
+        raise ValueError(
+            f"Geçersiz plugin adı: {name!r}. "
+            f"Yalnızca küçük harf, rakam, '-' ve '_' içeren 1-64 karakterlik adlar kabul edilir."
+        )
+
+
+def _require_https(url: str) -> None:
+    """Raise ValueError unless *url* uses the https scheme."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"Güvenlik: plugin indirme yalnızca HTTPS üzerinden yapılır: {url}")
 
 
 def _get_user_agent() -> str:
@@ -47,17 +74,19 @@ def _sha256_file(path: Path) -> str:
 
 
 def _download_file(url: str, dest: Path, timeout: int = 30) -> None:
-    """Download a URL to a local path."""
+    """Download a URL to a local path (HTTPS only)."""
+    _require_https(url)
     req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
         with open(dest, "wb") as f:
             shutil.copyfileobj(resp, f)
 
 
 def _fetch_json(url: str, timeout: int = 10) -> dict:
-    """Fetch JSON from a URL."""
+    """Fetch JSON from a URL (HTTPS only)."""
+    _require_https(url)
     req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -117,9 +146,11 @@ def install_plugin(
         Path to the installed plugin file.
 
     Raises:
+        ValueError: Plugin name is not a safe identifier.
         FileNotFoundError: Plugin not found in marketplace.
         RuntimeError: Download or verification failed.
     """
+    _validate_plugin_name(name)
     PLUGIN_DIR.mkdir(parents=True, exist_ok=True)
 
     dest = PLUGIN_DIR / f"{name}.py"
@@ -150,21 +181,26 @@ def install_plugin(
         tmp_path = Path(tmpdir) / f"{name}.py"
         _download_file(plugin_info["download_url"], tmp_path)
 
-        # Verify checksum if available
+        # Verify checksum — FAIL CLOSED: if verification is requested and the
+        # checksum file cannot be fetched or parsed, the install is aborted.
+        # Silently skipping verification would let a tampered release through.
         if verify_checksum:
+            sha_path = Path(tmpdir) / f"{name}.py.sha256"
             try:
-                sha_path = Path(tmpdir) / f"{name}.py.sha256"
                 _download_file(plugin_info["sha256_url"], sha_path)
                 expected_sha = sha_path.read_text().strip().split()[0]
-                actual_sha = _sha256_file(tmp_path)
-                if actual_sha != expected_sha:
-                    raise RuntimeError(
-                        f"Checksum mismatch for {name}: "
-                        f"expected {expected_sha}, got {actual_sha}"
-                    )
-                log.info("Checksum verified: %s", name)
-            except (urllib.error.URLError, urllib.error.HTTPError, IndexError):
-                log.warning("Checksum file not available, skipping verification")
+            except (urllib.error.URLError, urllib.error.HTTPError, OSError, IndexError) as exc:
+                raise RuntimeError(
+                    f"Checksum dosyası alınamadı ({name}): {exc}. "
+                    f"Doğrulama yapılamadığı için kurulum iptal edildi."
+                ) from exc
+            actual_sha = _sha256_file(tmp_path)
+            if actual_sha.lower() != expected_sha.lower():
+                raise RuntimeError(
+                    f"Checksum mismatch for {name}: "
+                    f"expected {expected_sha}, got {actual_sha}"
+                )
+            log.info("Checksum verified: %s", name)
 
         # Install
         shutil.copy2(tmp_path, dest)
@@ -181,7 +217,11 @@ def uninstall_plugin(name: str) -> bool:
 
     Returns:
         True if removed, False if not found.
+
+    Raises:
+        ValueError: Plugin name is not a safe identifier.
     """
+    _validate_plugin_name(name)
     plugin_path = PLUGIN_DIR / f"{name}.py"
     if plugin_path.exists():
         plugin_path.unlink()
@@ -230,7 +270,7 @@ def update_plugin(name: str) -> tuple[bool, str, Path | None]:
         return True, f"Plugin güncellendi: {name}", path
     except FileNotFoundError as exc:
         return False, str(exc), None
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         return False, f"Güncelleme başarısız: {exc}", None
 
 

@@ -244,10 +244,10 @@ class HistoryDB:
                             status=row["status"],
                             output_pkg=row["output_pkg"],
                             details=row["details"],
-                            source_url=row["source_url"] if "source_url" in row.keys() else "",
-                            backup_pkg=row["backup_pkg"] if "backup_pkg" in row.keys() else "",
-                            http_etag=row["http_etag"] if "http_etag" in row.keys() else "",
-                            http_last_modified=row["http_last_modified"] if "http_last_modified" in row.keys() else "",
+                            source_url=row["source_url"] if "source_url" in row.keys() else "",  # noqa: SIM118
+                            backup_pkg=row["backup_pkg"] if "backup_pkg" in row.keys() else "",  # noqa: SIM118
+                            http_etag=row["http_etag"] if "http_etag" in row.keys() else "",  # noqa: SIM118
+                            http_last_modified=row["http_last_modified"] if "http_last_modified" in row.keys() else "",  # noqa: SIM118
                         )
                     )
         except sqlite3.Error as exc:
@@ -282,10 +282,10 @@ class HistoryDB:
                             status=row["status"],
                             output_pkg=row["output_pkg"],
                             details=row["details"],
-                            source_url=row["source_url"] if "source_url" in row.keys() else "",
-                            backup_pkg=row["backup_pkg"] if "backup_pkg" in row.keys() else "",
-                            http_etag=row["http_etag"] if "http_etag" in row.keys() else "",
-                            http_last_modified=row["http_last_modified"] if "http_last_modified" in row.keys() else "",
+                            source_url=row["source_url"] if "source_url" in row.keys() else "",  # noqa: SIM118
+                            backup_pkg=row["backup_pkg"] if "backup_pkg" in row.keys() else "",  # noqa: SIM118
+                            http_etag=row["http_etag"] if "http_etag" in row.keys() else "",  # noqa: SIM118
+                            http_last_modified=row["http_last_modified"] if "http_last_modified" in row.keys() else "",  # noqa: SIM118
                         )
                     )
         except sqlite3.Error as exc:

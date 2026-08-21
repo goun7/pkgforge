@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QPaintEvent
+from PyQt6.QtGui import QBrush, QColor, QPainter, QPaintEvent, QPen
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
 
 from i18n import tr
 from ui.styles import Colors
-
 
 # Step keys for i18n
 _STEP_KEYS = [

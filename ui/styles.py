@@ -8,11 +8,10 @@ Three theme modes:
 
 from __future__ import annotations
 
-from PyQt6.QtGui import QPalette, QColor
+from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QApplication
 
 from i18n import load_setting
-
 
 # ── Color Palettes ──────────────────────────────────────────────
 

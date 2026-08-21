@@ -17,8 +17,9 @@ from __future__ import annotations
 import logging
 import random
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 log = logging.getLogger(__name__)
 
@@ -109,8 +110,8 @@ def retry_download(
     Returns:
         Response body as bytes.
     """
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     def _do_download() -> bytes:
         from config import APP_VERSION
@@ -148,8 +149,8 @@ def retry_aur_rpc(
         Parsed JSON response dict.
     """
     import json
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     def _do_rpc() -> dict:
         from config import APP_VERSION

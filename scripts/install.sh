@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # PkgForge — Automated System Installer for Arch Linux / CachyOS
 
-set -e
-
-echo "📦 PkgForge v1.0.0 — Starting System Installation..."
+set -euo pipefail
 
 # Root / sudo check
 if [ "$EUID" -ne 0 ]; then
@@ -13,6 +11,12 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Read version from config.py (single source of truth)
+VERSION="$(python3 -c "import re,sys; sys.path.insert(0, '"$PROJECT_DIR"'); print(__import__('config').APP_VERSION)" 2>/dev/null || echo "unknown")"
+echo "📦 PkgForge v$VERSION — Starting System Installation..."
+
+INSTALL_DIR="/usr/lib/pkgforge"
 
 # Clean any stale or duplicate desktop files
 rm -f /usr/share/applications/org.pkgforge.app.desktop
@@ -27,27 +31,49 @@ python3 -c "import PyQt6" 2>/dev/null || {
     pacman -S --needed --noconfirm python-pyqt6 python-pyqt6-sip libarchive fakeroot bubblewrap || true
 }
 
-# 1. Binary wrapper installation
+# 1. Copy the application tree to a stable system location so the launcher
+#    keeps working even if the git clone is moved or deleted.
+echo "📂 Installing application files: $INSTALL_DIR"
+rm -rf "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"
+# Copy everything except VCS metadata, virtualenvs, caches and build output
+tar -C "$PROJECT_DIR" \
+    --exclude=.git --exclude=.venv --exclude=__pycache__ \
+    --exclude=.mypy_cache --exclude=.pytest_cache --exclude=.hypothesis \
+    --exclude=.ruff_cache --exclude=build --exclude=dist \
+    --exclude="*.egg-info" --exclude=.freebuff --exclude=utest \
+    --exclude="*.deb" --exclude="*.rpm" --exclude="*.pkg.tar.*" \
+    -cf - . | tar -C "$INSTALL_DIR" -xf -
+
+# 2. Binary wrapper installation
 echo "⚙️  Installing executable wrapper: /usr/local/bin/pkgforge"
 cat << EOF > /usr/local/bin/pkgforge
 #!/usr/bin/env bash
-exec python3 "$PROJECT_DIR/main.py" "\$@"
+exec python3 "$INSTALL_DIR/main.py" "\$@"
 EOF
-chmod +x /usr/local/bin/pkgforge
+chmod 755 /usr/local/bin/pkgforge
 
-# 2. Desktop launcher entry
+# 3. Desktop launcher entry
 echo "🖥️  Installing desktop entry: /usr/share/applications/pkgforge.desktop"
 mkdir -p /usr/share/applications
 cp "$PROJECT_DIR/data/pkgforge.desktop" /usr/share/applications/pkgforge.desktop
 chmod 644 /usr/share/applications/pkgforge.desktop
 
-# 3. Icon installation
+# 4. Icon installation
 echo "🎨 Installing application icon: /usr/share/icons/hicolor/scalable/apps/pkgforge.svg"
 mkdir -p /usr/share/icons/hicolor/scalable/apps
 cp "$PROJECT_DIR/data/pkgforge.svg" /usr/share/icons/hicolor/scalable/apps/pkgforge.svg
 chmod 644 /usr/share/icons/hicolor/scalable/apps/pkgforge.svg
 
-# 4. Shell completion installation
+# 5. Polkit policy (privilege gate for pacman -U installs)
+if [ -f "$PROJECT_DIR/data/org.pkgforge.app.policy" ]; then
+    echo "🔐 Installing polkit policy: /usr/share/polkit-1/actions/org.pkgforge.app.policy"
+    mkdir -p /usr/share/polkit-1/actions
+    cp "$PROJECT_DIR/data/org.pkgforge.app.policy" /usr/share/polkit-1/actions/org.pkgforge.app.policy
+    chmod 644 /usr/share/polkit-1/actions/org.pkgforge.app.policy
+fi
+
+# 6. Shell completion installation
 if [ -d "$PROJECT_DIR/data/completions" ]; then
     echo "⌨️  Installing shell completion scripts..."
     mkdir -p /usr/share/bash-completion/completions
@@ -61,6 +87,6 @@ fi
 update-desktop-database /usr/share/applications 2>/dev/null || true
 gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 
-echo "✅ PkgForge has been successfully installed on your system!"
+echo "✅ PkgForge v$VERSION has been successfully installed on your system!"
 echo "   Launch GUI: pkgforge gui (or from your Application Launcher)"
 echo "   Run CLI:    pkgforge"

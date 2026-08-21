@@ -8,14 +8,13 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
-    QHBoxLayout,
 )
 
 from config import APP_NAME, APP_VERSION
-from i18n import tr
 from ui.styles import get_colors
 
 

@@ -89,8 +89,8 @@ class DropZone(QWidget):
     def _set_icon(self, svg_data: str) -> None:
         """Update the drop zone icon."""
         self._icon_label.setText("")
+        from PyQt6.QtGui import QPainter, QPixmap
         from PyQt6.QtSvg import QSvgRenderer
-        from PyQt6.QtGui import QPixmap, QPainter
 
         renderer = QSvgRenderer(svg_data.encode("utf-8"))
         pixmap = QPixmap(64, 64)

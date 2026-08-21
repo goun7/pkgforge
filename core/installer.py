@@ -7,7 +7,6 @@ and post-installation verification.
 from __future__ import annotations
 
 import logging
-import shlex
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
@@ -17,8 +16,29 @@ from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
+def _find_install_helper() -> Path:
+    """Locate install_helper.sh in source tree or installed data dirs.
+
+    Search order:
+    1. Source checkout: <project>/scripts/install_helper.sh
+    2. pip/wheel install: <sys.prefix>/share/pkgforge/scripts/install_helper.sh
+    3. System install: /usr/share/pkgforge/scripts/install_helper.sh
+    """
+    import sys
+
+    candidates = [
+        Path(__file__).resolve().parent.parent / "scripts" / "install_helper.sh",
+        Path(sys.prefix) / "share" / "pkgforge" / "scripts" / "install_helper.sh",
+        Path("/usr/share/pkgforge/scripts/install_helper.sh"),
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return candidates[0]  # fallback path; caller checks is_file()
+
+
 # The install helper script that pkexec will execute
-INSTALL_HELPER = Path(__file__).resolve().parent.parent / "scripts" / "install_helper.sh"
+INSTALL_HELPER = _find_install_helper()
 
 
 class Installer(QObject):
@@ -69,7 +89,7 @@ class Installer(QObject):
         from i18n import load_setting
         if load_setting("snapshot", True):
             try:
-                from core.snapshot_manager import take_snapshot, detect_backend
+                from core.snapshot_manager import detect_backend, take_snapshot
                 backend = detect_backend()
                 if backend != "none":
                     self.output_line.emit(f"  📸 {backend.upper()} snapshot alınıyor...")

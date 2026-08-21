@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import logging
 import re
-import textwrap
 import subprocess
+import textwrap
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
 
-from config import ToolPaths, DEB_ARCH_MAP
+from config import ToolPaths
+from core.dep_resolver import resolve_runtime_dependencies
 from core.package_analyzer import PackageMetadata, analyze_package
 from core.security import (
     build_sandbox_cmd,
@@ -22,7 +23,6 @@ from core.security import (
     check_symlink_attacks,
     safe_run,
 )
-from core.dep_resolver import resolve_runtime_dependencies
 
 log = logging.getLogger(__name__)
 

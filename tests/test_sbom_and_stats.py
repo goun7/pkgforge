@@ -7,9 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from config import ToolPaths
 from core.history_db import HistoryDB
-from core.sbom import SBOMDocument, SBOMEntry, generate_sbom, save_sbom
+from core.sbom import SBOMDocument, SBOMEntry, save_sbom
 
 
 class TestSBOMDocument(unittest.TestCase):
@@ -251,8 +250,10 @@ class TestSBOMDiff(unittest.TestCase):
         self.assertEqual(diff.removed_files, [])
 
     def test_save_sbom_diff(self):
-        from core.sbom import SBOMDocument, SBOMEntry, diff_sboms, save_sbom_diff
-        import tempfile, json
+        import json
+        import tempfile
+
+        from core.sbom import SBOMDocument, diff_sboms, save_sbom_diff
         old = SBOMDocument(package_name="test")
         new = SBOMDocument(package_name="test")
         diff = diff_sboms(old, new)

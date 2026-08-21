@@ -7,7 +7,6 @@ package using an auto-generated PKGBUILD + makepkg.
 from __future__ import annotations
 
 import logging
-import os
 import shlex
 import textwrap
 from pathlib import Path
@@ -15,9 +14,9 @@ from pathlib import Path
 from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 
 from config import RPM_DEP_MAP, ToolPaths
+from core.dep_resolver import resolve_runtime_dependencies
 from core.package_analyzer import PackageMetadata
 from core.security import check_dangerous_files, check_symlink_attacks
-from core.dep_resolver import resolve_runtime_dependencies
 
 log = logging.getLogger(__name__)
 
@@ -181,7 +180,6 @@ class RpmConverter(QObject):
         pkg_out = build_dir / "pkgout"
         pkg_out.mkdir(parents=True, exist_ok=True)
 
-        from PyQt6.QtCore import QProcessEnvironment
         env = QProcessEnvironment.systemEnvironment()
         env.insert("PKGDEST", str(pkg_out))
         self._process.setProcessEnvironment(env)

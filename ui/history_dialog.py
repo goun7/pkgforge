@@ -14,7 +14,9 @@ from pathlib import Path
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QComboBox,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -25,13 +27,11 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
-    QFileDialog,
-    QComboBox,
 )
 
 from config import discover_tools
 from core.history_db import HistoryDB
-from core.security import safe_run, is_valid_package_name
+from core.security import is_valid_package_name, safe_run
 from i18n import tr
 
 log = logging.getLogger(__name__)

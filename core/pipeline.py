@@ -9,19 +9,19 @@ from __future__ import annotations
 
 import logging
 import shutil
+import threading
 from enum import IntEnum
 from pathlib import Path
-import threading
 from typing import TYPE_CHECKING, Any
 
 # ── PyQt6 availability gate ──────────────────────────────────────
 # Runtime: import real Qt classes when available, otherwise stubs.
 # Type-checking: always see the real signatures via TYPE_CHECKING.
 if TYPE_CHECKING:  # pragma: no cover
-    from PyQt6.QtCore import QObject, QThread, pyqtSignal, QEventLoop, QTimer
+    from PyQt6.QtCore import QEventLoop, QObject, QThread, QTimer, pyqtSignal
 else:
     try:
-        from PyQt6.QtCore import QObject, QThread, pyqtSignal, QEventLoop, QTimer
+        from PyQt6.QtCore import QEventLoop, QObject, QThread, QTimer, pyqtSignal
         _HAS_PYQT6 = True
     except ImportError:
         _HAS_PYQT6 = False
@@ -70,11 +70,14 @@ if TYPE_CHECKING:  # pragma: no cover
     _HAS_PYQT6 = True
 else:
     try:
-        from PyQt6.QtCore import QObject as _QObject  # noqa: F811
+        # Importing rpm_converter pulls in PyQt6; if it is missing the
+        # ImportError below switches to the subprocess backend.
         from core.rpm_converter import RpmConverter  # type: ignore[no-redef]
         _HAS_PYQT6 = True
     except ImportError:
-        from core.subprocess_converters import RpmConverterSubprocess as RpmConverter  # type: ignore[no-redef]
+        from core.subprocess_converters import (
+            RpmConverterSubprocess as RpmConverter,  # type: ignore[no-redef]
+        )
         _HAS_PYQT6 = False
 
 log = logging.getLogger(__name__)
@@ -107,9 +110,15 @@ class PipelineResult:
     """Final result of the conversion pipeline."""
 
     __slots__ = (
-        "success", "message", "metadata", "converted_pkg",
-        "compatibility", "signature", "sha256", "size_warning",
+        "compatibility",
+        "converted_pkg",
+        "message",
+        "metadata",
         "original_file",
+        "sha256",
+        "signature",
+        "size_warning",
+        "success",
     )
 
     def __init__(self) -> None:
@@ -162,9 +171,9 @@ class ConversionPipeline(QObject):
         self._decision_message: str | None = None
 
         # Converters and installer (will be created during pipeline)
-        self._deb_converter: "DebConverter | None" = None
+        self._deb_converter: DebConverter | None = None
         self._rpm_converter: RpmConverter | None = None
-        self._installer: "Installer | None" = None
+        self._installer: Installer | None = None
 
         # For waiting on async operations (thread-safe)
         self._waiting = False
@@ -354,7 +363,7 @@ class ConversionPipeline(QObject):
                 if db_warn:
                     self._log("warning", db_warn)
 
-                from core.malware_scanner import scan_file, is_clamav_available
+                from core.malware_scanner import is_clamav_available, scan_file
                 if is_clamav_available():
                     scan_result = scan_file(file_path, self._tools)
                     if scan_result.engine_version:

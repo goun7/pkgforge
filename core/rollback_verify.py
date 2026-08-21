@@ -18,12 +18,10 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
-import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.snapshot_manager import detect_backend, take_snapshot, delete_snapshot
+from core.snapshot_manager import delete_snapshot, detect_backend, take_snapshot
 
 log = logging.getLogger(__name__)
 
@@ -178,7 +176,7 @@ def verify_rollback_restore() -> RollbackVerifyResult:
     # State should match (we restored to the same state)
     if state_before == state_after:
         result.verified = True
-        result.detail = f"✅ Rollback başarılı — dosya sistemi durumu eşleşiyor"
+        result.detail = "✅ Rollback başarılı — dosya sistemi durumu eşleşiyor"
     else:
         result.detail = (
             f"⚠️ Rollback sonrası dosya sistemi farklı\n"

@@ -1,20 +1,17 @@
 """Integration tests for core/cli_bridge.py — synchronous conversion wrappers."""
 
-import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 from core.cli_bridge import (
     ConversionResult,
 )
 
 try:
-    from PyQt6.QtCore import QCoreApplication
     from core.cli_bridge import convert_deb_sync, convert_rpm_sync
-    HAS_PYQT6 = True
+    HAS_BRIDGE = True
 except ImportError:
-    HAS_PYQT6 = False
+    HAS_BRIDGE = False
 
 
 class TestConversionResult(unittest.TestCase):
@@ -31,7 +28,7 @@ class TestConversionResult(unittest.TestCase):
             r.nonexistent = True  # type: ignore
 
 
-@unittest.skipUnless(HAS_PYQT6, "PyQt6 not installed")
+@unittest.skipUnless(HAS_BRIDGE, "cli_bridge converters unavailable")
 class TestCliBridge(unittest.TestCase):
 
     def test_convert_deb_sync_no_file(self):
@@ -49,22 +46,6 @@ class TestCliBridge(unittest.TestCase):
             Path("/tmp/output"),
         )
         self.assertFalse(result.success)
-
-    def test_ensure_qt_app_creates_app(self):
-        """_ensure_qt_app should create a QCoreApplication."""
-        from core.cli_bridge import _ensure_qt_app
-        _ensure_qt_app()
-        app = QCoreApplication.instance()
-        self.assertIsNotNone(app)
-
-    def test_ensure_qt_app_idempotent(self):
-        """Calling _ensure_qt_app twice should not create a second app."""
-        from core.cli_bridge import _ensure_qt_app
-        _ensure_qt_app()
-        first = id(QCoreApplication.instance())
-        _ensure_qt_app()
-        second = id(QCoreApplication.instance())
-        self.assertEqual(first, second)
 
 
 if __name__ == "__main__":

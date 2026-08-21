@@ -35,6 +35,8 @@ optdepends=(
 provides=('pkgforge')
 conflicts=('pkgforge')
 backup=('etc/pkgforge.conf')
+# NOTE: The upstream repository/tag below does not exist yet (REPO-001).
+# Update this URL and the sha256sum once the project is published to GitHub.
 source=("$pkgver.tar.gz::https://github.com/pkgforge/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 

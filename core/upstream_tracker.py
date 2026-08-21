@@ -7,13 +7,12 @@ package download URLs without downloading full packages.
 from __future__ import annotations
 
 import logging
-import urllib.request
 import urllib.error
+import urllib.request
 from dataclasses import dataclass
-from typing import Any
 
-from core.history_db import HistoryDB, HistoryRecord
 from config import APP_VERSION
+from core.history_db import HistoryDB, HistoryRecord
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
         )
 
     try:
-        from core.retry import retry_with_backoff, RetryConfig
+        from core.retry import RetryConfig, retry_with_backoff
 
         def _do_head():
             req = urllib.request.Request(

@@ -4,10 +4,9 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-118%20passed-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](#)
-[![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
-[![Security](https://img.shields.io/badge/security-0%20anti--patterns-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-228%20passed-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-39%25-yellow)](#)
+[![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
 
 **PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **PyQt6 GUI**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
 
@@ -16,7 +15,7 @@
 ## 🎯 Key Features
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
-- **🛡️ 13 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
+- **🛡️ 12 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
 - **💻 Dual Interface (Headless CLI + PyQt6 GUI)**: CLI runs without PyQt6 or a display server. GUI mode requires PyQt6 (`sudo pacman -S python-pyqt6`).
 - **🌐 Direct URL Conversion**: Download and convert packages directly from HTTP/HTTPS links (`pkgforge convert https://...`).
 - **📸 Atomic Snapshot Rollback**: Automatically takes Btrfs/ZFS filesystem snapshots before installation for instant atomic rollback.
@@ -41,9 +40,11 @@ sudo ./scripts/install.sh
 ```
 
 This installs:
-- Executable binary wrapper to `/usr/local/bin/pkgforge`
-- Desktop shortcut to `/usr/share/applications/org.pkgforge.app.desktop`
+- The application tree to `/usr/lib/pkgforge`
+- Executable wrapper to `/usr/local/bin/pkgforge`
+- Desktop shortcut to `/usr/share/applications/pkgforge.desktop`
 - SVG application icon to `/usr/share/icons/hicolor/scalable/apps/pkgforge.svg`
+- Polkit policy to `/usr/share/polkit-1/actions/org.pkgforge.app.policy`
 - Shell completion scripts for **Bash** and **Zsh**
 
 To uninstall:
@@ -53,15 +54,16 @@ sudo ./scripts/uninstall.sh
 
 ---
 
-### Option 2: AUR Package (`pkgforge-git`)
-
-If installing via an AUR helper:
+### Option 2: pip / wheel
 
 ```bash
-paru -S pkgforge-git
-# or
-yay -S pkgforge-git
+pip install dist/pkgforge-1.1.0-py3-none-any.whl   # after: python -m build --wheel
+# or from a checkout:
+pip install .
 ```
+
+> **AUR note:** An AUR package is planned but **not yet published**. Until it
+> exists, use Option 1 (installer script) or Option 2 (pip/wheel).
 
 ---
 
@@ -161,11 +163,15 @@ converter can never make a genuinely malicious package safe, so the goal is to
 
 ## 🧪 Running Tests
 
-To run the automated test suite (39 unit tests):
+To run the automated test suite (228 tests, requires dev dependencies):
 
 ```bash
-python -m unittest discover -s tests
+pip install -e ".[dev]"
+python -m pytest tests/ -q --timeout=120
 ```
+
+Current status: **228 passed, 12 skipped** · **39% line coverage** on `core/` ·
+CI gate enforces ≥35%.
 
 ---
 

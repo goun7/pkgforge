@@ -1,14 +1,14 @@
 """Unit tests for downloader, cli, native_deb_converter, upstream_tracker, and cross_check."""
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from core.downloader import download_package
-from core.upstream_tracker import check_upstream_update
 from core.cross_check import cross_check_package
-from core.history_db import HistoryRecord, HistoryDB
+from core.downloader import download_package
+from core.history_db import HistoryDB, HistoryRecord
+from core.upstream_tracker import check_upstream_update
 
 
 class TestRoadmapModules(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestRoadmapModules(unittest.TestCase):
         mock_ctx.headers = mock_resp.headers
         mock_ctx.read = mock_resp.read
 
-        with patch("core.downloader.urllib.request.urlopen", return_value=mock_ctx):
+        with patch("core.downloader._open_url", return_value=mock_ctx):
             info: dict[str, str] = {}
             download_package("https://example.com/test.deb", self.temp_dir, response_info=info)
 
@@ -61,7 +61,7 @@ class TestRoadmapModules(unittest.TestCase):
         mock_ctx.headers = {}
         mock_ctx.read.side_effect = [b"data", b""]
 
-        with patch("core.downloader.urllib.request.urlopen", return_value=mock_ctx):
+        with patch("core.downloader._open_url", return_value=mock_ctx):
             # No response_info → should work fine
             path = download_package("https://example.com/test.deb", self.temp_dir)
             self.assertTrue(path.is_file())

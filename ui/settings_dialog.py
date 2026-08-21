@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -22,12 +23,18 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
-    QFileDialog,
 )
 
-from i18n import tr, available_languages, get_language, load_setting, save_settings, load_settings
 from config import discover_tools
 from core.plugins import list_plugins, reload_plugins
+from i18n import (
+    available_languages,
+    get_language,
+    load_setting,
+    load_settings,
+    save_settings,
+    tr,
+)
 
 
 class SettingsDialog(QDialog):

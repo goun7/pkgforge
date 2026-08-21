@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import platform
-import subprocess
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path

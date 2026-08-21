@@ -7,7 +7,6 @@ into Arch-compatible .pkg.tar.zst archives.
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal

@@ -32,11 +32,29 @@ pkgforge = "main:main"
 [project.gui-scripts]
 pkgforge-gui = "main:main"
 
+[tool.setuptools]
+py-modules = ["main", "cli", "config"]
+
 [tool.setuptools.packages.find]
-include = ["core*", "core.plugins*", "ui*", "i18n*", "data*"]
+include = ["core*", "core.plugins*", "ui*", "i18n*"]
 
 [tool.setuptools.package-data]
-data = ["*.json", "*.txt", "*.md"]
+"ui.resources" = ["*.svg", "*.png"]
+
+# Ship desktop entry, icons, polkit policy, completions and install helper
+# scripts inside the wheel so console scripts and the GUI can find them
+# after a pip install.
+[tool.setuptools.data-files]
+"share/applications" = ["data/pkgforge.desktop"]
+"share/icons/hicolor/scalable/apps" = ["data/pkgforge.svg"]
+"share/polkit-1/actions" = ["data/org.pkgforge.app.policy"]
+"share/pkgforge/scripts" = [
+    "scripts/install_helper.sh",
+    "scripts/install.sh",
+    "scripts/uninstall.sh",
+]
+"share/bash-completion/completions" = ["data/completions/pkgforge.bash"]
+"share/zsh/site-functions" = ["data/completions/_pkgforge"]
 
 [tool.pytest.ini_options]
 timeout = 120

@@ -340,8 +340,7 @@ def diff_sboms(old: SBOMDocument, new: SBOMDocument) -> SBOMDiff:
     diff.added_deps = sorted(new_deps - old_deps)
     diff.removed_deps = sorted(old_deps - new_deps)
 
-    # Version changes for common deps
-    common_deps = old_deps & new_deps
+    # Version changes for common deps (not yet tracked — reserved field)
     diff.version_changes = []
 
     log.info(

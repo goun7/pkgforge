@@ -163,7 +163,7 @@ def _parse_deb_control(text: str, meta: PackageMetadata) -> None:
     current_value = ""
 
     for line in text.splitlines():
-        if line.startswith(" ") or line.startswith("\t"):
+        if line.startswith((" ", "\t")):
             current_value += "\n" + line.strip()
         else:
             if current_key:
@@ -369,7 +369,7 @@ def _check_installed(meta: PackageMetadata, tools: ToolPaths) -> None:
     if result.returncode == 0:
         meta.already_installed = True
         for line in result.stdout.splitlines():
-            if line.startswith("Sürüm") or line.startswith("Version"):
+            if line.startswith(("Sürüm", "Version")):
                 meta.installed_version = line.split(":", 1)[1].strip()
                 break
         log.info("Mevcut kurulum: %s %s", meta.name, meta.installed_version)

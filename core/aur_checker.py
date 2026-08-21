@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import json
 import logging
-import urllib.request
-import urllib.parse
 import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from typing import Literal
 
-from config import AUR_RPC_URL, APP_VERSION
+from config import APP_VERSION, AUR_RPC_URL
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +95,7 @@ def _version_compare(ver_a: str, ver_b: str) -> int:
     Uses pacman's `vercmp` binary if available, falling back to a structured comparison.
     """
     import shutil
+
     from core.security import safe_run
 
     vercmp_bin = shutil.which("vercmp")

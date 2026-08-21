@@ -8,43 +8,43 @@ Supports multi-package queue, language switching, and theme changes.
 from __future__ import annotations
 
 import logging
-import sys
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QThread, QSize, pyqtSlot
-from PyQt6.QtGui import QIcon, QPixmap, QPainter
+from PyQt6.QtCore import QSize, Qt, QThread, pyqtSlot
+from PyQt6.QtGui import QIcon, QPainter, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (
     QApplication,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QStatusBar,
     QVBoxLayout,
     QWidget,
-    QStatusBar,
-    QFrame,
-    QScrollArea,
 )
 
 from config import APP_NAME, APP_VERSION, discover_tools
-from core.compatibility_checker import CompatibilityReport, CheckSeverity
+from core.compatibility_checker import CheckSeverity, CompatibilityReport
 from core.pipeline import ConversionPipeline, PipelineResult
-from core.queue_manager import QueueManager, QueueItemStatus
-from i18n import tr, set_language, get_language, load_setting, init_language
+from core.queue_manager import QueueItemStatus, QueueManager
+from i18n import get_language, load_setting, set_language, tr
 from ui.drop_zone import DropZone
 from ui.log_panel import LogPanel
-from ui.loading_indicator import LoadingIndicator
-from ui.about_dialog import AboutDialog
-from ui.confirm_dialog import confirm_action
+from ui.resources.icons import (
+    HEADER_ABOUT,
+    HEADER_HISTORY,
+    HEADER_SETTINGS,
+    HEADER_UPDATES,
+    HEADER_URL,
+)
 from ui.result_dialog import ResultDialog
 from ui.settings_dialog import SettingsDialog
 from ui.step_progress import StepProgress
 from ui.styles import build_stylesheet, get_colors
-from ui.resources.icons import (
-    HEADER_URL, HEADER_HISTORY, HEADER_UPDATES, HEADER_SETTINGS, HEADER_ABOUT,
-)
 
 log = logging.getLogger(__name__)
 
@@ -263,7 +263,7 @@ class MainWindow(QMainWindow):
 
     def _setup_shortcuts(self) -> None:
         """Set up keyboard shortcuts for improved accessibility."""
-        from PyQt6.QtGui import QShortcut, QKeySequence
+        from PyQt6.QtGui import QKeySequence, QShortcut
         QShortcut(QKeySequence("Ctrl+O"), self, self._show_url_dialog)
         QShortcut(QKeySequence("Ctrl+Q"), self, self.close)
         QShortcut(QKeySequence("F5"), self, self._check_upstream_updates)

@@ -4,11 +4,11 @@ Uses actual RPM/DEB files found on the system to test the full
 conversion pipeline, security checks, and metadata extraction.
 """
 
-import shutil
 import tempfile
 import unittest
-import pytest
 from pathlib import Path
+
+import pytest
 
 from config import discover_tools
 
@@ -166,18 +166,21 @@ class TestRealRPMConversion(unittest.TestCase):
         if not tools.ar or not tools.makepkg:
             self.skipTest("Required tools (ar, makepkg) not available")
 
-        with tempfile.TemporaryDirectory(prefix="pkgforge_e2e_") as tmpdir:
-            out_dir = Path(tmpdir)
-
+        with tempfile.TemporaryDirectory(prefix="pkgforge_e2e_"):
             # Step 1: Security checks
-            from core.security import validate_mime_type, validate_file_size, sha256_hash, check_compression_bomb
+            from core.security import (
+                check_compression_bomb,
+                sha256_hash,
+                validate_file_size,
+                validate_mime_type,
+            )
 
             mime = validate_mime_type(REAL_RPM, tools)
             self.assertEqual(mime, "application/x-rpm", f"Wrong MIME: {mime}")
             print(f"  ✓ MIME: {mime}")
 
             validate_file_size(REAL_RPM, 1024, 500)
-            print(f"  ✓ Size check passed")
+            print("  ✓ Size check passed")
 
             sha = sha256_hash(REAL_RPM)
             self.assertEqual(len(sha), 64)
@@ -245,6 +248,7 @@ class TestOfflineCache(unittest.TestCase):
     def test_cache_put_and_get(self):
         """Cache should store and retrieve values."""
         import tempfile
+
         from core.offline_cache import OfflineCache
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -257,6 +261,7 @@ class TestOfflineCache(unittest.TestCase):
     def test_cache_expiry(self):
         """Cache should expire after TTL."""
         import tempfile
+
         from core.offline_cache import OfflineCache
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -268,6 +273,7 @@ class TestOfflineCache(unittest.TestCase):
     def test_cache_clear(self):
         """Cache clear should remove all entries."""
         import tempfile
+
         from core.offline_cache import OfflineCache
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -281,6 +287,7 @@ class TestOfflineCache(unittest.TestCase):
     def test_cache_stats(self):
         """Cache stats should report correct counts."""
         import tempfile
+
         from core.offline_cache import OfflineCache
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -296,7 +303,7 @@ class TestPluginSystem(unittest.TestCase):
 
     def test_load_plugins(self):
         """Plugins should load from core/plugins/."""
-        from core.plugins import load_plugins, list_plugins
+        from core.plugins import load_plugins
         plugins = load_plugins()
         self.assertIsInstance(plugins, dict)
 
@@ -342,9 +349,7 @@ class TestNetworkDownloads(unittest.TestCase):
 
     def test_downloader_response_info_structure(self):
         """response_info dict should be populated correctly."""
-        from core.downloader import download_package
-        import tempfile, urllib.request, urllib.error
-        from config import create_temp_dir
+
 
         # Use a known HTTPS endpoint that returns headers
         # We won't actually download a full file, just test the header capture
@@ -356,8 +361,8 @@ class TestNetworkDownloads(unittest.TestCase):
 
     def test_sbom_generation_on_real_deb(self):
         """SBOM should be generated from a real .deb file."""
-        from core.sbom import generate_sbom, SBOMDocument
         from config import discover_tools
+        from core.sbom import SBOMDocument, generate_sbom
 
         deb_path = Path("utest/hello_1.0.0-1_amd64.deb")
         if not deb_path.is_file():
@@ -370,9 +375,14 @@ class TestNetworkDownloads(unittest.TestCase):
 
     def test_provenance_create_and_verify(self):
         """Provenance record should create and verify correctly."""
-        from core.provenance import create_provenance, save_provenance, load_provenance, verify_provenance
-        from config import discover_tools
         import tempfile
+
+        from core.provenance import (
+            create_provenance,
+            load_provenance,
+            save_provenance,
+            verify_provenance,
+        )
 
         deb_path = Path("utest/hello_1.0.0-1_amd64.deb")
         if not deb_path.is_file():
@@ -399,11 +409,14 @@ class TestNetworkDownloads(unittest.TestCase):
 
     def test_attestation_create(self):
         """In-toto attestation should be created from provenance."""
-        from core.provenance import (
-            create_provenance, create_attestation, save_attestation,
-            load_provenance, verify_attestation,
-        )
         import tempfile
+
+        from core.provenance import (
+            create_attestation,
+            create_provenance,
+            save_attestation,
+            verify_attestation,
+        )
 
         deb_path = Path("utest/hello_1.0.0-1_amd64.deb")
         if not deb_path.is_file():
@@ -440,7 +453,6 @@ class TestPluginMarketplace(unittest.TestCase):
     def test_list_installed_empty(self):
         from core.plugins.marketplace import list_installed_plugins
         with tempfile.TemporaryDirectory() as tmpdir:
-            from core.plugins.marketplace import PLUGIN_DIR
             import core.plugins.marketplace as mp
             original = mp.PLUGIN_DIR
             mp.PLUGIN_DIR = Path(tmpdir)

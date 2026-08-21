@@ -107,27 +107,29 @@ def verify_signature(package_path: Path) -> SignatureInfo:
 
     info = SignatureInfo()
 
-    # Parse GPG status output
+    # Parse GPG status output.
+    # Format: "[GNUPG:] GOODSIG <keyid> <signer>" — parts[0] is "[GNUPG:]",
+    # parts[1] is the status keyword, so payload starts at parts[2].
     for line in output.splitlines():
         line = line.strip()
         if line.startswith("[GNUPG:] GOODSIG"):
             parts = line.split()
-            if len(parts) >= 3:
-                info.key_id = parts[1]
-                info.signer = " ".join(parts[2:])
+            if len(parts) >= 4:
+                info.key_id = parts[2]
+                info.signer = " ".join(parts[3:])
             info.signed = True
         elif line.startswith("[GNUPG:] VALIDSIG"):
             info.valid = True
             parts = line.split()
-            if len(parts) >= 2:
-                info.key_fingerprint = parts[1]
+            if len(parts) >= 3:
+                info.key_fingerprint = parts[2]
         elif line.startswith("[GNUPG:] TRUST_"):
             if "FULL" in line or "ULTIMATE" in line:
                 info.valid = True
         elif line.startswith("[GNUPG:] SIG_ID"):
             parts = line.split()
-            if len(parts) >= 4:
-                info.timestamp = parts[3]
+            if len(parts) >= 5:
+                info.timestamp = parts[4]
 
     if info.valid:
         info.detail = f"İmza geçerli — {info.signer or info.key_id}"

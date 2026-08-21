@@ -9,9 +9,8 @@ from __future__ import annotations
 import logging
 import shutil
 from dataclasses import dataclass
-from typing import Literal
 
-from core.aur_checker import check_aur, _version_compare
+from core.aur_checker import _version_compare, check_aur
 from core.security import safe_run
 
 log = logging.getLogger(__name__)

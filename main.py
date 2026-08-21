@@ -144,7 +144,7 @@ def check_dependencies(install: bool = False) -> bool:
         return True
 
     if missing_required:
-        print(f"\n💡 Otomatik kurmak için: python main.py --install-deps")
+        print("\n💡 Otomatik kurmak için: python main.py --install-deps")
         return False
 
     return True

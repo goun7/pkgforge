@@ -13,9 +13,9 @@ import pytest
 # PyQt6 is not installed (the venv test suite runs without it).
 pytest.importorskip("PyQt6")
 
-from PyQt6.QtCore import QCoreApplication, QTimer  # noqa: E402
+from PyQt6.QtCore import QCoreApplication, QTimer
 
-from core.pipeline import ConversionPipeline  # noqa: E402
+from core.pipeline import ConversionPipeline
 
 
 def _ensure_app() -> QCoreApplication:

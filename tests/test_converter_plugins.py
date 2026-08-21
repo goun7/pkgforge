@@ -4,8 +4,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from config import ToolPaths
-
 
 class TestFlatpakConverter(unittest.TestCase):
     """Test flatpak_converter module."""

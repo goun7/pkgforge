@@ -46,9 +46,9 @@ class ConverterPlugin(ABC):
                 return True, "Converted", output_path
     """
 
-    name: str = ""              # Converter identifier (e.g., "deb", "rpm")
-    extensions: list[str] = []  # File extensions this converter handles
-    priority: int = 100         # Lower priority = preferred converter
+    name: str = ""                # Converter identifier (e.g., "deb", "rpm")
+    extensions: tuple[str, ...] = ()  # File extensions this converter handles
+    priority: int = 100           # Lower priority = preferred converter
     category: str = "converter" # Plugin category: converter, security, analyzer, utility
     description: str = ""       # Short description of the plugin
     author: str = ""            # Plugin author

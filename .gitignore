@@ -17,3 +17,7 @@ utest/
 *.provenance.json
 *.attestation.json
 *.spdx.json
+.coverage
+coverage.json
+htmlcov/
+.e2e_out/

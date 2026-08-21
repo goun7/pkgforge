@@ -19,7 +19,7 @@ class DebConverterPlugin(ConverterPlugin):
     """DEB package converter plugin."""
 
     name = "deb"
-    extensions = [".deb"]
+    extensions = (".deb",)
     priority = 10  # High priority — this is the primary converter
     category = "converter"
     description = "Native DEB to Arch Linux converter"
@@ -57,7 +57,6 @@ class DebConverterPlugin(ConverterPlugin):
 
             import threading
             done_event = threading.Event()
-            original_on_done = on_done
 
             def on_done_with_event(success: bool, msg: str, pkg: Any) -> None:
                 result["success"] = success

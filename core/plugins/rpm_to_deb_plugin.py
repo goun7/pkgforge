@@ -21,7 +21,7 @@ class RpmToDebConverter(ConverterPlugin):
     """Convert .rpm packages to .deb using alien."""
 
     name = "rpm-to-deb"
-    extensions = [".rpm"]
+    extensions = (".rpm",)
     priority = 200  # Lower priority than native RPM converter (100)
     category = "converter"
     description = "RPM to DEB converter using alien"

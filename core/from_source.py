@@ -7,11 +7,8 @@ a complete PKGBUILD with proper dependency specification.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
-import shutil
-import subprocess
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -270,7 +267,7 @@ def generate_pkgbuild_from_source(
                         continue
                     if line.startswith(("#", "!", "[", "<", "---", "===")):
                         continue
-                    if line.startswith("![") or line.startswith("[!["):
+                    if line.startswith(("![", "[![")):
                         continue
                     if len(line) > 15 and len(line) < 120:
                         description = line
@@ -322,7 +319,7 @@ def generate_pkgbuild_from_source(
             '    mkdir -p "$pkgdir/usr/lib/$pkgname"\n'
             '    cp -r dist/* "$pkgdir/usr/lib/$pkgname/"\n'
             '    mkdir -p "$pkgdir/usr/bin"\n'
-            f'    ln -s /usr/lib/$pkgname/main.js "$pkgdir/usr/bin/$pkgname"'
+            '    ln -s /usr/lib/$pkgname/main.js "$pkgdir/usr/bin/$pkgname"'
         )
     else:
         makedepends_base.append("gcc")
@@ -330,9 +327,6 @@ def generate_pkgbuild_from_source(
         install_cmds = '    make DESTDIR="$pkgdir" install'
 
     makedepends_str = " ".join(f"'{d}'" for d in makedepends_base)
-
-    # Generate source URL — try multiple patterns
-    source_line = f'        "$url/archive/v$pkgver.tar.gz"'
 
     pkgbuild = f"""# Maintainer: PkgForge <noreply@pkgforge.app>
 

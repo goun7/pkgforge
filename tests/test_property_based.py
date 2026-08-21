@@ -3,11 +3,11 @@
 Tests core functions with randomly generated inputs to find edge cases.
 """
 
-import hypothesis
-from hypothesis import given, strategies as st, settings
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from config import extract_package_name
-from core.security import sha256_hash, check_path_traversal
+from core.security import check_path_traversal, sha256_hash
 
 
 class TestExtractPackageNameProperties:

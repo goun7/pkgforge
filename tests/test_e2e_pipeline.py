@@ -2,14 +2,13 @@
 full conversion pipeline (security checks, analysis, conversion).
 """
 
-import os
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from config import ToolPaths, discover_tools
+from config import discover_tools
 
 
 def _create_minimal_deb(deb_path: Path) -> bool:

@@ -5,11 +5,10 @@ Shows a spinner animation and status text during long operations.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QPainter, QColor, QPen
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
-from i18n import tr
 from ui.styles import get_colors
 
 

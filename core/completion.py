@@ -62,11 +62,12 @@ def _bash_completion() -> str:
     flags = " ".join(GLOBAL_FLAGS)
     return f'''# PkgForge bash completion
 _pkgforge() {{
-    local cur prev commands
+    local cur prev commands flags
     COMPREPLY=()
     cur="${{COMP_WORDS[COMP_CWORD]}}"
     prev="${{COMP_WORDS[COMP_CWORD-1]}}"
     commands="{cmds}"
+    flags="{flags}"
 
     if [[ ${{COMP_CWORD}} -eq 1 ]]; then
         COMPREPLY=( $(compgen -W "$commands $flags" -- "$cur") )

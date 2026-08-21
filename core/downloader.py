@@ -6,14 +6,60 @@ Downloads .deb or .rpm packages directly from HTTP/HTTPS URLs into temporary sto
 from __future__ import annotations
 
 import logging
-import urllib.request
-import urllib.parse
 import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from config import APP_VERSION, MAX_PACKAGE_SIZE_MB, create_temp_dir
 
 log = logging.getLogger(__name__)
+
+
+class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Redirect handler that re-validates the URL scheme on every hop.
+
+    urllib follows 3xx redirects automatically; without this guard an
+    ``https://`` download could be redirected to plain ``http://`` (or a
+    non-HTTP scheme), bypassing the MITM protection applied to the
+    user-supplied URL only.
+    """
+
+    def __init__(self, require_https: bool = True):
+        super().__init__()
+        self._require_https = require_https
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+        parsed = urllib.parse.urlparse(newurl)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(
+                f"Yönlendirme güvenli olmayan şemaya gidiyor: {parsed.scheme}"
+            )
+        if self._require_https and parsed.scheme != "https":
+            raise ValueError(
+                "Güvenlik: HTTPS indirme http:// adresine yönlendirilemez "
+                "(MITM koruması). Yönlendirme reddedildi."
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open_url(
+    req: urllib.request.Request,
+    *,
+    timeout: int = 30,
+    require_https: bool = True,
+):
+    """Open *req* through an opener that guards redirects.
+
+    The redirect guard re-validates the URL scheme on every 3xx hop so an
+    ``https://`` download cannot be downgraded to ``http://`` (MITM) or
+    escape to a non-HTTP scheme. Kept as a separate function so tests can
+    patch it without touching global urllib state.
+    """
+    opener = urllib.request.build_opener(
+        _SchemeGuardRedirectHandler(require_https=require_https)
+    )
+    return opener.open(req, timeout=timeout)  # nosec B310
 
 
 def download_package(
@@ -67,12 +113,12 @@ def download_package(
     downloaded_bytes = 0
 
     # Retry with exponential backoff for network errors
-    from core.retry import retry_with_backoff, RetryConfig
+    from core.retry import RetryConfig, retry_with_backoff
 
     def _do_download():
         nonlocal downloaded_bytes
         downloaded_bytes = 0
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
+        with _open_url(req, timeout=30, require_https=require_https) as resp:
             content_length = resp.headers.get("Content-Length")
             if content_length and int(content_length) > max_bytes:
                 raise ValueError(f"Dosya boyutu çok büyük: {int(content_length) / (1024*1024):.1f} MB")

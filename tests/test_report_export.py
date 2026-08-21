@@ -4,9 +4,9 @@ import json
 import unittest
 
 from core.compatibility_checker import (
-    CompatibilityReport,
     CheckResult,
     CheckSeverity,
+    CompatibilityReport,
 )
 from core.report_export import report_to_dict, report_to_json
 

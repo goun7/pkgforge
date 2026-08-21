@@ -19,9 +19,20 @@ from config import ToolPaths
 log = logging.getLogger(__name__)
 
 __all__ = [
-    "validate_deb_file", "validate_rpm_file", "check_path_traversal",
-    "sha256_hash", "verify_gpg_signature", "safe_run", "is_valid_package_name",
-    "run_in_sandbox",
+    "SignatureResult",
+    "build_sandbox_cmd",
+    "check_compression_bomb",
+    "check_dangerous_files",
+    "check_path_traversal",
+    "check_symlink_attacks",
+    "is_valid_package_name",
+    "run_sandboxed",
+    "safe_run",
+    "sha256_hash",
+    "validate_file_size",
+    "validate_mime_type",
+    "verify_deb_signature",
+    "verify_rpm_signature",
 ]
 
 # Forbidden path components
@@ -236,7 +247,7 @@ def sha256_hash(file_path: Path) -> str:
 class SignatureResult:
     """Result of a GPG signature verification."""
 
-    __slots__ = ("has_signature", "valid", "signer", "detail")
+    __slots__ = ("detail", "has_signature", "signer", "valid")
 
     def __init__(
         self,

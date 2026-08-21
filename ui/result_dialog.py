@@ -10,13 +10,13 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
-    QFrame,
 )
 
 from core.compatibility_checker import CheckResult, CheckSeverity, CompatibilityReport
@@ -198,6 +198,7 @@ class ResultDialog(QDialog):
     def _on_export_report(self) -> None:
         """Save the compatibility report as a JSON file."""
         from PyQt6.QtWidgets import QFileDialog, QMessageBox
+
         from core.report_export import save_report_json
 
         pkg_name = self._metadata.name if self._metadata else "package"

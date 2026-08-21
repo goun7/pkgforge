@@ -1,11 +1,21 @@
 [Unit]
-Description=PkgForge Delta Auto-Update Check
+Description=PkgForge Upstream Update Check
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 -m pkgforge convert --check-updates
+# pkgforge is the installed console script (pyproject [project.scripts]).
+# check-updates is a top-level subcommand, NOT a convert flag.
+ExecStart=/usr/bin/pkgforge check-updates
+# NOTE: conversion history lives in each user ~/.config/pkgforge/history.db.
+# Running as root only sees root own history. For per-user update checks,
+# prefer a systemd USER unit (~/.config/systemd/user/) instead of this
+# system unit. Kept as root here for a simple system-wide smoke check.
 User=root
 Nice=19
 IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only

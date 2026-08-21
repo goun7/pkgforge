@@ -167,7 +167,6 @@ def _get_btrfs_root_subvolume() -> str:
 
 def _take_btrfs_snapshot(snap_name: str) -> SnapshotInfo:
     """Take a btrfs snapshot of the root subvolume."""
-    root_sv = _get_btrfs_root_subvolume()
     snap_path = f"/{snap_name}"
 
     res = safe_run(

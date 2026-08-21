@@ -15,12 +15,11 @@ import logging
 import os
 import subprocess
 import threading
-from dataclasses import dataclass, field
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
-from core.security import safe_run
 
 from config import ToolPaths
+from core.security import safe_run
 
 log = logging.getLogger(__name__)
 
@@ -75,9 +74,12 @@ class NativeDebConverterSubprocess:
     def _do_convert(self, deb_path: Path, output_dir: Path) -> None:
         """Run the full conversion synchronously."""
         try:
-            from core.package_analyzer import analyze_package
-            from core.security import safe_run, check_symlink_attacks, check_dangerous_files
             from core.dep_resolver import resolve_runtime_dependencies
+            from core.package_analyzer import analyze_package
+            from core.security import (
+                check_dangerous_files,
+                check_symlink_attacks,
+            )
 
             meta = analyze_package(deb_path, self._tools)
             self._emit(f"✓ Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
@@ -196,6 +198,9 @@ package() {{
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             env=env,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
         for line in (proc.stdout or []):
@@ -279,7 +284,7 @@ class RpmConverterSubprocess:
             self._emit("✓ RPM içeriği çıkarıldı")
 
             # Security checks
-            from core.security import check_symlink_attacks, check_dangerous_files
+            from core.security import check_dangerous_files, check_symlink_attacks
             escaping = check_symlink_attacks(pkg_dir)
             if escaping:
                 self.finished.emit(False, f"Güvenlik: symlink saldırısı: {escaping[:3]}", None)
@@ -321,6 +326,9 @@ class RpmConverterSubprocess:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 env=env,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             for line in (proc.stdout or []):
                 stripped = line.strip()
@@ -352,9 +360,13 @@ class RpmConverterSubprocess:
             self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
 
     def _generate_pkgbuild(self, meta, src_dir):
-        from core.rpm_converter import _sanitize_pkgname, _sanitize_version, _escape_bash
-        from core.dep_resolver import resolve_runtime_dependencies
         from config import RPM_DEP_MAP
+        from core.dep_resolver import resolve_runtime_dependencies
+        from core.rpm_converter import (
+            _escape_bash,
+            _sanitize_pkgname,
+            _sanitize_version,
+        )
 
         resolved = resolve_runtime_dependencies(src_dir, self._tools)
         if resolved:

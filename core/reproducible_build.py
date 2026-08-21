@@ -13,7 +13,6 @@ This is NOT a full SLSA verifier — it's a best-effort detection tool.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import shutil
 import tempfile

@@ -15,8 +15,8 @@ from enum import Enum
 from pathlib import Path
 
 from config import ToolPaths
-from core.security import safe_run, is_valid_package_name
 from core.dep_resolver import parse_needed_sonames, parse_objdump_sonames
+from core.security import is_valid_package_name, safe_run
 
 log = logging.getLogger(__name__)
 
@@ -196,7 +196,6 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
 
     resolved: list[str] = []
     missing: list[str] = []
-    version_mismatch: list[str] = []
 
     for dep in depends:
         # Strip version constraints for lookup

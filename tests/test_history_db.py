@@ -1,7 +1,7 @@
 """Unit tests for core/history_db.py."""
 
-import unittest
 import tempfile
+import unittest
 from pathlib import Path
 
 from core.history_db import HistoryDB

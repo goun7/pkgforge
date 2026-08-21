@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 import time
 from datetime import datetime, timezone
+from typing import ClassVar
 
 
 class JSONFormatter(logging.Formatter):
@@ -55,7 +55,7 @@ class JSONFormatter(logging.Formatter):
 class HumanFormatter(logging.Formatter):
     """Human-readable formatter for terminal output."""
 
-    COLORS = {
+    COLORS: ClassVar[dict[str, str]] = {
         "DEBUG": "\033[36m",     # Cyan
         "INFO": "\033[32m",      # Green
         "WARNING": "\033[33m",   # Yellow

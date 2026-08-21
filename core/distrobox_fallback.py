@@ -98,7 +98,7 @@ class DistroboxFallback(QObject):
 
     def _install_in_container(self) -> None:
         """Install the package inside the container."""
-        self.output_line.emit(f"▶ Paket container içinde kuruluyor...")
+        self.output_line.emit("▶ Paket container içinde kuruluyor...")
 
         pkg_type = "deb" if self._pkg_path.suffix.lower() == ".deb" else "rpm"
 

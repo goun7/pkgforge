@@ -3,17 +3,20 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from core.malware_scanner import ScanResult, scan_file
 from core.delta_updater import (
-    create_delta, apply_delta, find_local_previous, is_xdelta3_available,
+    apply_delta,
+    create_delta,
+    find_local_previous,
+    is_xdelta3_available,
 )
-from core.oci_builder import is_container_runtime_available, build_oci_image
+from core.malware_scanner import ScanResult, scan_file
+from core.oci_builder import build_oci_image
 from core.snapshot_manager import (
-    detect_backend, SnapshotInfo, take_snapshot,
+    detect_backend,
+    take_snapshot,
 )
-
 
 # ── Malware Scanner Tests ──────────────────────────────────────
 
@@ -109,7 +112,7 @@ class TestDeltaUpdater(unittest.TestCase):
 class TestOciBuilder(unittest.TestCase):
 
     def test_build_nonexistent_file(self):
-        ok, msg, path = build_oci_image(Path("/nonexistent.deb"), MagicMock())
+        ok, msg, _path = build_oci_image(Path("/nonexistent.deb"), MagicMock())
         self.assertFalse(ok)
         self.assertIn("bulunamadı", msg)
 
@@ -119,7 +122,7 @@ class TestOciBuilder(unittest.TestCase):
         """Both buildah and podman missing — should fail."""
         # Create a temp file so existence check passes
         with tempfile.NamedTemporaryFile(suffix=".deb") as f:
-            ok, msg, path = build_oci_image(Path(f.name), MagicMock())
+            ok, msg, _path = build_oci_image(Path(f.name), MagicMock())
             self.assertFalse(ok)
             self.assertIn("buildah", msg.lower())
 

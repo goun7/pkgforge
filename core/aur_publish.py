@@ -12,13 +12,12 @@ Usage:
 from __future__ import annotations
 
 import logging
-import re
+import shlex
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-import shlex
 from core.security import safe_run
 
 log = logging.getLogger(__name__)

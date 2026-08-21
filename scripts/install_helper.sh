@@ -38,8 +38,12 @@ if echo "$PKG_FILE" | grep -qE '\.\.'; then
     exit 5
 fi
 
-# Must be in a temp directory or user's home (not system dirs)
+# Must be in a temp directory or user's home (not system dirs).
+# TMPDIR is honored so custom temp locations (e.g. /run/user/1000) work too.
 ALLOWED_PREFIXES=("/tmp" "/home" "/var/tmp")
+if [ -n "${TMPDIR:-}" ]; then
+    ALLOWED_PREFIXES+=("${TMPDIR%/}")
+fi
 VALID=false
 for prefix in "${ALLOWED_PREFIXES[@]}"; do
     if [[ "$PKG_FILE" == "$prefix"* ]]; then

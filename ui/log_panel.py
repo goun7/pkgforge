@@ -6,11 +6,11 @@ from the conversion pipeline in real-time.
 
 from __future__ import annotations
 
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor, QFont
+from PyQt6.QtGui import QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -23,7 +23,6 @@ from PyQt6.QtWidgets import (
 
 from i18n import tr
 from ui.styles import Colors
-
 
 _LEVEL_STYLES: dict[str, tuple[str, str]] = {
     "info": (Colors.TEXT, ""),
@@ -131,8 +130,7 @@ class LogPanel(QWidget):
         )
         if file_path:
             with open(file_path, "w", encoding="utf-8") as f:
-                for ts, level, msg in self._log_lines:
-                    f.write(f"[{ts}] [{level.upper():7s}] {msg}\n")
+                f.writelines(f"[{ts}] [{level.upper():7s}] {msg}\n" for ts, level, msg in self._log_lines)
 
     def retranslate(self) -> None:
         self._toggle_btn.setText(

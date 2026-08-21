@@ -12,14 +12,10 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
-import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from urllib.request import Request, urlopen
-from urllib.error import URLError
 
 from config import ToolPaths
 
@@ -127,8 +123,8 @@ def _check_aur(name: str) -> tuple[bool, str]:
     """Check if a package is in the AUR."""
     # Method 1: Try AUR RPC with retry + offline cache
     try:
-        from core.retry import retry_aur_rpc
         from core.offline_cache import get_cache
+        from core.retry import retry_aur_rpc
 
         cache = get_cache()
         rpc_url = f"https://aur.archlinux.org/rpc/v5/info/{name}"
@@ -262,6 +258,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
 # Resolves ELF sonames to Arch packages via readelf + pacman -Fq
 
 import re as _re
+
 from core.security import safe_run
 
 _NEEDED_RE = _re.compile(r"NEEDED\)\s+Shared library:\s+\[([^\]]+)\]")
@@ -324,7 +321,7 @@ def sonames_to_packages(sonames: set[str], tools: ToolPaths) -> list[str]:
 
     packages: set[str] = set()
     for soname in sonames:
-        if soname.startswith("ld-") or soname.startswith("ld-linux"):
+        if soname.startswith(("ld-", "ld-linux")):
             packages.add("glibc")
             continue
         try:
