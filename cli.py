@@ -782,32 +782,28 @@ def _cmd_graph(args: argparse.Namespace) -> int:
     show_files = getattr(args, "files", False)
     fmt = getattr(args, "format", "ascii")
 
+    def _resolve_pkg_file(name: str) -> Path | None:
+        """Accept a direct file path, or search the pacman package cache."""
+        direct = Path(name).expanduser()
+        if direct.is_file():
+            return direct
+        import glob as globmod
+        for pattern in [f"/var/cache/pacman/pkg/{name}*.pkg.tar.zst",
+                        f"/var/cache/pacman/pkg/{name}*.pkg.tar.xz"]:
+            matches = globmod.glob(pattern)
+            if matches:
+                return Path(matches[0])
+        return None
+
+    pkg_file = _resolve_pkg_file(pkg_name)
+    if not pkg_file:
+        print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
+        print("   Bir .pkg.tar.zst dosya yolu verin veya paket kurulu olmalı.")
+        return 1
+
     if show_files:
-        # Find the package file
-        import glob as globmod
-        for pattern in [f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.zst",
-                        f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.xz"]:
-            matches = globmod.glob(pattern)
-            if matches:
-                graph = build_file_dep_graph(Path(matches[0]))
-                break
-        else:
-            print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
-            return 1
+        graph = build_file_dep_graph(pkg_file)
     else:
-        # Resolve wildcard to actual file path
-        import glob as globmod
-        pkg_file = None
-        for pattern in [f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.zst",
-                        f"/var/cache/pacman/pkg/{pkg_name}*.pkg.tar.xz"]:
-            matches = globmod.glob(pattern)
-            if matches:
-                pkg_file = Path(matches[0])
-                break
-        if not pkg_file:
-            print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
-            print("   Paket kurulu olmalı veya .pkg.tar.zst dosyası mevcut olmalı.")
-            return 1
         graph = build_dep_graph(pkg_file)
         if not graph.nodes:
             print(f"❌ Grafik oluşturulamadı: {pkg_name}")

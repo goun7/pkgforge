@@ -311,7 +311,19 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
         DepGraph with binary → library edges.
     """
     graph = DepGraph()
-    pkg_name = pkg_path.stem.split(".")[0]
+    # Derive the package name: strip the .pkg.tar.* suffix chain, then drop
+    # the trailing version-rel-arch segments. Using stem.split(".")[0] would
+    # break on dotted versions (hello-1.0.0-1-x86_64 -> "hello-1").
+    pkg_name = pkg_path.name
+    for suffix in (".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".pkg.tar"):
+        if pkg_name.endswith(suffix):
+            pkg_name = pkg_name[: -len(suffix)]
+            break
+    else:
+        pkg_name = pkg_path.stem
+    parts = pkg_name.split("-")
+    if len(parts) > 3:
+        pkg_name = "-".join(parts[:-3])  # Remove version-rel-arch
     graph.root = pkg_name
 
     if not pkg_path.is_file():

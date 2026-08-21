@@ -313,8 +313,12 @@ def save_attestation(
     attestation: InTotoStatement,
     output_path: Path,
 ) -> Path:
-    """Save in-toto attestation as JSON."""
-    out = output_path.with_suffix(".attestation.json")
+    """Save in-toto attestation as JSON at exactly the given path.
+
+    Callers pass the full desired filename (e.g. "<pkg>.attestation.json");
+    applying with_suffix() here would double the suffix.
+    """
+    out = output_path
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
         json.dumps(attestation.to_dict(), indent=2, ensure_ascii=False),
