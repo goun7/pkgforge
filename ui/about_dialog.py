@@ -79,9 +79,9 @@ class AboutDialog(QDialog):
 
         # Links
         links = QLabel(
-            '<a href="https://github.com/pkgforge/pkgforge" style="color: ' +
+            '<a href="https://github.com/goun7/pkgforge" style="color: ' +
             get_colors().TEAL + ';">GitHub</a> · '
-            '<a href="https://github.com/pkgforge/pkgforge/blob/main/LICENSE" style="color: ' +
+            '<a href="https://github.com/goun7/pkgforge/blob/master/LICENSE" style="color: ' +
             get_colors().TEAL + ';">Lisans</a>'
         )
         links.setOpenExternalLinks(True)

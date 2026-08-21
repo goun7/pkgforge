@@ -24,7 +24,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 # GitHub org and repo for community plugins
-PLUGIN_ORG = "pkgforge"
+PLUGIN_ORG = "goun7"
 PLUGIN_REPO = "pkgforge-plugins"
 PLUGIN_RELEASE_URL = f"https://github.com/{PLUGIN_ORG}/{PLUGIN_REPO}/releases/download"
 PLUGIN_INDEX_URL = f"https://api.github.com/repos/{PLUGIN_ORG}/{PLUGIN_REPO}/releases/latest"

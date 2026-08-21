@@ -35,7 +35,7 @@
 Clone the repository and run the automated system installer:
 
 ```bash
-git clone https://github.com/pkgforge/pkgforge.git
+git clone https://github.com/goun7/pkgforge.git
 cd pkgforge
 sudo ./scripts/install.sh
 ```

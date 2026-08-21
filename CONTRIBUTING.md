@@ -6,7 +6,7 @@ Thank you for your interest in contributing to PkgForge! This document provides 
 
 ```bash
 # Clone the repository
-git clone https://github.com/pkgforge/pkgforge.git
+git clone https://github.com/goun7/pkgforge.git
 cd pkgforge
 
 # Create virtual environment
@@ -60,7 +60,7 @@ from core.plugins import ConverterPlugin
 
 class MyConverter(ConverterPlugin):
     name = "myformat"
-    extensions = [".myformat"]
+    extensions = (".myformat",)
     priority = 50
     category = "converter"
     description = "My custom converter"

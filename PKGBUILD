@@ -1,10 +1,10 @@
-# Maintainer: PkgForge Contributors <https://github.com/pkgforge/pkgforge>
+# Maintainer: goun7 <https://github.com/goun7/pkgforge>
 pkgname=pkgforge
 pkgver=1.1.0
 pkgrel=1
 pkgdesc="Modern .deb/.rpm package converter, safety analyzer, and lifecycle manager for Arch Linux"
 arch=('any')
-url="https://github.com/pkgforge/pkgforge"
+url="https://github.com/goun7/pkgforge"
 license=('GPL-3.0-or-later')
 depends=(
     'python'
@@ -35,9 +35,9 @@ optdepends=(
 provides=('pkgforge')
 conflicts=('pkgforge')
 backup=('etc/pkgforge.conf')
-# NOTE: The upstream repository/tag below does not exist yet (REPO-001).
-# Update this URL and the sha256sum once the project is published to GitHub.
-source=("$pkgver.tar.gz::https://github.com/pkgforge/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
+# NOTE: Tag v1.1.0 must exist in the repo before building this PKGBUILD.
+# Update sha256sums once the release tarball is published.
+source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 prepare() {

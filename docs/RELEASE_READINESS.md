@@ -8,15 +8,16 @@
 
 ## 1. Executive Verdict
 
-> **CONDITIONALLY PRODUCTION-READY for personal/team use on Arch Linux.**
-> **NOT ready for public distribution** until the release blocker REPO-001
-> (no public repository / no AUR package) is resolved.
+> **PRODUCTION-READY for personal/team use on Arch Linux.**
+> Public release is gated on the final component-by-component real-user test
+> pass, after which: tag v1.1.0 → make repo public → submit to AUR.
 
-The code itself is in good shape: the full test suite is green (228 passed,
-12 skipped), the wheel installs and runs from a clean venv, the E2E conversion
-path works (verified `hello_1.0.0-1_amd64.deb` → `hello-1.0.0-1-x86_64.pkg.tar.zst`,
-grade B), and the GUI launches. What is missing is the *distribution* layer:
-a real remote, a real AUR package, and honest public-facing metadata.
+The code is in good shape: the full test suite is green (241 passed,
+12 skipped), mypy/bandit are clean, the wheel installs and runs from a clean
+venv, the E2E conversion path works (verified `hello_1.0.0-1_amd64.deb` →
+`hello-1.0.0-1-x86_64.pkg.tar.zst`, grade B), and the GUI launches.
+The distribution layer now exists: `github.com/goun7/pkgforge` (private,
+full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 ---
 
@@ -63,18 +64,21 @@ a real remote, a real AUR package, and honest public-facing metadata.
 
 ## 4. Release Blockers
 
-### 🔴 REPO-001 — No public repository or AUR package (BLOCKER)
+### ✅ REPO-001 — RESOLVED (2026-08-21)
 
-Verified on 2026-08-21:
-- `https://github.com/pkgforge/pkgforge` → **404**
-- `https://github.com/pkgforge/pkgforge-plugins` → **404**
-- AUR search for `pkgforge` → **0 results**
-- `git remote -v` → **empty** (no remote configured)
+- `https://github.com/goun7/pkgforge` — **exists, PRIVATE** (kept private until
+  component testing is complete; full local history pushed)
+- `https://github.com/goun7/pkgforge-plugins` — **exists, PRIVATE** (marketplace target)
+- All references (README, PKGBUILD, CONTRIBUTING, LICENSE, polkit policy,
+  about dialog, marketplace PLUGIN_ORG) updated to `goun7/pkgforge`
+- AUR submission intentionally deferred until the pre-release component test
+  pass is complete and the repo is made public.
 
-README, PKGBUILD, and the plugin marketplace all reference these nonexistent
-locations. **This cannot be fixed without a real remote** — it requires a human
-decision: create the GitHub org/repo, push, tag `v1.1.0`, then submit to AUR.
-Until then the project is not publicly distributable.
+Remaining release steps:
+1. Finish component-by-component real-user testing (this pass)
+2. Tag `v1.1.0` and create a GitHub release
+3. Make the repo public
+4. Submit `pkgforge` / `pkgforge-git` to AUR
 
 ### 🟡 SHOULD-FIX before a public 1.1.0
 
