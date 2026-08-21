@@ -347,18 +347,19 @@ class MainWindow(QMainWindow):
         else:
             self._status_bar.showMessage(tr("status.processing", name=item.name))
 
-        self._pipeline = ConversionPipeline()
-        self._pipeline.step_changed.connect(self._on_step_changed)
-        self._pipeline.progress.connect(self._on_progress)
-        self._pipeline.log_message.connect(self._on_log)
-        self._pipeline.compatibility_ready.connect(self._on_compatibility_ready)
-        self._pipeline.finished.connect(
+        pipeline = ConversionPipeline()
+        self._pipeline = pipeline
+        pipeline.step_changed.connect(self._on_step_changed)
+        pipeline.progress.connect(self._on_progress)
+        pipeline.log_message.connect(self._on_log)
+        pipeline.compatibility_ready.connect(self._on_compatibility_ready)
+        pipeline.finished.connect(
             lambda result, i=idx: self._on_pipeline_finished(result, i)
         )
 
         self._pipeline_thread = QThread()
-        self._pipeline.moveToThread(self._pipeline_thread)
-        self._pipeline_thread.started.connect(lambda: self._pipeline.run(item.file_path))
+        pipeline.moveToThread(self._pipeline_thread)
+        self._pipeline_thread.started.connect(lambda: pipeline.run(item.file_path))
         self._pipeline_thread.start()
 
     @pyqtSlot(list)
@@ -367,8 +368,11 @@ class MainWindow(QMainWindow):
         # Clear existing items
         while self._queue_list_layout.count() > 1:
             child = self._queue_list_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            if child is None:
+                continue
+            widget = child.widget()
+            if widget is not None:
+                widget.deleteLater()
 
         status_icons = {
             QueueItemStatus.PENDING: "⏳",
@@ -630,7 +634,7 @@ class MainWindow(QMainWindow):
         # Theme change
         new_theme = settings.get("theme", "dark")
         app = QApplication.instance()
-        if app:
+        if isinstance(app, QApplication):
             app.setStyleSheet(build_stylesheet(new_theme))
 
     def _retranslate_ui(self) -> None:

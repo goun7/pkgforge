@@ -108,7 +108,9 @@ class HistoryDialog(QDialog):
             tr("history.col_status"),
             tr("history.col_file"),
         ])
-        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header = self._table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self._table.setAlternatingRowColors(True)
@@ -282,7 +284,8 @@ class HistoryDialog(QDialog):
         )
 
     def _get_selected_pkg_name(self) -> str | None:
-        selected_rows = self._table.selectionModel().selectedRows()
+        sel_model = self._table.selectionModel()
+        selected_rows = sel_model.selectedRows() if sel_model is not None else []
         if not selected_rows:
             QMessageBox.warning(self, tr("common.warning"), tr("history.select_warning"))
             return None

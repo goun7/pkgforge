@@ -102,33 +102,42 @@ class DropZone(QWidget):
 
     # ── Drag & Drop ──────────────────────────────────────────────
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            for url in event.mimeData().urls():
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is not None and mime.hasUrls():
+            for url in mime.urls():
                 path = Path(url.toLocalFile())
                 if path.suffix.lower() in _ACCEPTED_SUFFIXES:
                     event.acceptProposedAction()
                     self.setProperty("dragActive", True)
-                    self.style().unpolish(self)
-                    self.style().polish(self)
+                    style = self.style()
+                    if style is not None:
+                        style.unpolish(self)
+                        style.polish(self)
                     self._set_icon(DROP_ICON_ACTIVE)
                     self._main_label.setText(tr("drop.active"))
                     return
         event.ignore()
 
-    def dragLeaveEvent(self, event: QDragLeaveEvent) -> None:
+    def dragLeaveEvent(self, event: QDragLeaveEvent | None) -> None:
         self._reset_drop_state()
-        event.accept()
+        if event is not None:
+            event.accept()
 
-    def dropEvent(self, event: QDropEvent) -> None:
+    def dropEvent(self, event: QDropEvent | None) -> None:
         self._reset_drop_state()
+        if event is None:
+            return
 
-        if not event.mimeData().hasUrls():
+        mime = event.mimeData()
+        if mime is None or not mime.hasUrls():
             event.ignore()
             return
 
         valid_paths: list[Path] = []
-        for url in event.mimeData().urls():
+        for url in mime.urls():
             path = Path(url.toLocalFile())
             if path.is_file() and path.suffix.lower() in _ACCEPTED_SUFFIXES:
                 valid_paths.append(path)
@@ -141,8 +150,10 @@ class DropZone(QWidget):
 
     def _reset_drop_state(self) -> None:
         self.setProperty("dragActive", False)
-        self.style().unpolish(self)
-        self.style().polish(self)
+        style = self.style()
+        if style is not None:
+            style.unpolish(self)
+            style.polish(self)
         self._set_icon(DROP_ICON)
         self._main_label.setText(tr("drop.hint"))
 

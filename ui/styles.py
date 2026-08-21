@@ -107,7 +107,7 @@ class SystemLightColors(Colors):
 def is_dark_theme() -> bool:
     """Detect if the current system theme is dark."""
     app = QApplication.instance()
-    if app is None:
+    if not isinstance(app, QApplication):
         return True
     palette = app.palette()
     bg = palette.color(QPalette.ColorRole.Window)

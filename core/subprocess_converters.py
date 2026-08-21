@@ -320,7 +320,7 @@ class RpmConverterSubprocess:
             raw_cmd = [self._tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"]
             prog, args = build_sandbox_cmd(raw_cmd, build_dir, self._tools)
 
-            proc = subprocess.Popen(
+            build_proc = subprocess.Popen(
                 [prog] + args,
                 cwd=str(build_dir),
                 stdout=subprocess.PIPE,
@@ -330,14 +330,14 @@ class RpmConverterSubprocess:
                 encoding="utf-8",
                 errors="replace",
             )
-            for line in (proc.stdout or []):
+            for line in (build_proc.stdout or []):
                 stripped = line.strip()
                 if stripped:
                     self._emit(f"  {stripped}")
-            proc.wait(timeout=600)
+            build_proc.wait(timeout=600)
 
-            if proc.returncode != 0:
-                self.finished.emit(False, f"makepkg başarısız (kod: {proc.returncode})", None)
+            if build_proc.returncode != 0:
+                self.finished.emit(False, f"makepkg başarısız (kod: {build_proc.returncode})", None)
                 return
 
             # Find output

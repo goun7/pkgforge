@@ -66,6 +66,7 @@ from core.security import (
 if TYPE_CHECKING:  # pragma: no cover
     from core.deb_converter import DebConverter
     from core.installer import Installer
+    from core.native_deb_converter import NativeDebConverter
     from core.rpm_converter import RpmConverter
     _HAS_PYQT6 = True
 else:
@@ -170,8 +171,10 @@ class ConversionPipeline(QObject):
         self._decision_approved = False
         self._decision_message: str | None = None
 
-        # Converters and installer (will be created during pipeline)
-        self._deb_converter: DebConverter | None = None
+        # Converters and installer (will be created during pipeline).
+        # _deb_converter may hold either the native converter or the debtap
+        # fallback; both expose cancel()/convert()/output_line/finished.
+        self._deb_converter: DebConverter | NativeDebConverter | None = None
         self._rpm_converter: RpmConverter | None = None
         self._installer: Installer | None = None
 
@@ -598,8 +601,9 @@ class ConversionPipeline(QObject):
         if _HAS_PYQT6:
             # Qt mode: use QEventLoop
             from core.native_deb_converter import NativeDebConverter
-            self._deb_converter = NativeDebConverter(self._tools, self)
-            self._deb_converter.output_line.connect(lambda msg: self._log("info", msg))
+            converter_qt = NativeDebConverter(self._tools, self)
+            self._deb_converter = converter_qt
+            converter_qt.output_line.connect(lambda msg: self._log("info", msg))
 
             loop = QEventLoop()
 
@@ -609,11 +613,11 @@ class ConversionPipeline(QObject):
                 self._async_pkg_path = pkg
                 loop.quit()
 
-            self._deb_converter.finished.connect(on_done)
-            self._deb_converter.convert(deb_path, output_dir)
+            converter_qt.finished.connect(on_done)
+            converter_qt.convert(deb_path, output_dir)
             loop.exec()
             try:
-                self._deb_converter.finished.disconnect(on_done)
+                converter_qt.finished.disconnect(on_done)
             except TypeError:
                 pass
         else:

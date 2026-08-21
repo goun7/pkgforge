@@ -62,7 +62,7 @@ class StepDot(QWidget):
         self._pulse_opacity = 0.3 + 0.3 * math.sin(self._pulse_phase)
         self.update()
 
-    def paintEvent(self, event: QPaintEvent) -> None:
+    def paintEvent(self, event: QPaintEvent | None) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -137,7 +137,7 @@ class StepConnector(QWidget):
         self._active = value
         self.update()
 
-    def paintEvent(self, event: QPaintEvent) -> None:
+    def paintEvent(self, event: QPaintEvent | None) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         y = self.height() // 2
@@ -201,8 +201,10 @@ class StepProgress(QWidget):
         dot, label = self._steps[step_index]
         dot.status = status
         label.setObjectName("stepLabelActive" if status == "running" else "stepLabel")
-        label.style().unpolish(label)
-        label.style().polish(label)
+        style = label.style()
+        if style is not None:
+            style.unpolish(label)
+            style.polish(label)
         for i, conn in enumerate(self._connectors):
             conn.active = i < step_index or (i == step_index and status in ("done", "warning"))
 
@@ -214,8 +216,10 @@ class StepProgress(QWidget):
             dot, label = self._steps[step_idx]
             dot.status = "pending"
             label.setObjectName("stepLabel")
-            label.style().unpolish(label)
-            label.style().polish(label)
+            style = label.style()
+            if style is not None:
+                style.unpolish(label)
+                style.polish(label)
         for conn in self._connectors:
             conn.active = False
         self._progress_bar.setValue(0)
