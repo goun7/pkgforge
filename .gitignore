@@ -21,3 +21,4 @@ utest/
 coverage.json
 htmlcov/
 .e2e_out/
+.test_home/
