@@ -46,6 +46,8 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | F23 | Provenance | Fixed 2 inverted hash conditions + package-search sidecar exclusion (7 sites) — re-runs no longer produce doubled `.provenance.json` |
 | F24 | Repo | REPO-001 resolved: `goun7/pkgforge` (private) + `goun7/pkgforge-plugins` (private); all refs updated; history pushed |
 | F25 | Component test | Real-user pass over all 28 CLI subcommands + GUI. Found & fixed: `graph` rejected direct file paths; `build_file_dep_graph` mis-parsed dotted versions; `save_attestation` doubled `.attestation.json` suffix |
+| F26 | **GUI crash (rpm/deb)** | ResultDialog toggle closures connected to `clicked(bool)` — pressing Enter/Space on a focused toggle button made Qt auto-click it, the emitted bool clobbered the captured widget default-arg → `AttributeError` inside Qt event dispatch → **app abort**. Fixed both closures with a leading `_checked` param. |
+| F27 | **GUI threading** | `main_window` connected `QThread.started` to a bare lambda, which PyQt queues onto the **main** thread — the whole pipeline ran on the UI thread and created `QProcess` children across a thread-affinity boundary ("Cannot create children for a parent that is in a different thread"). Fixed with `stage()` + `run_staged()` `@pyqtSlot` so `run()` executes on the worker thread. |
 
 ---
 
@@ -53,7 +55,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **245 passed, 12 skipped, 0 failed** | PyQt6 present; green |
+| Test suite | **261 passed, 12 skipped, 0 failed** | PyQt6 present; green |
 | Line coverage (`core/`) | **41%** (6,249 stmts, 3,676 miss) | CI gate: 35% |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
@@ -61,6 +63,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | Wheel install | **WORKS** | clean venv, entry point + data-files verified |
 | E2E conversion | **WORKS** | deb → pkg.tar.zst, grade B |
 | GUI launch | **WORKS** | offscreen smoke test |
+| GUI deep scan | **CLEAN** | every dialog/widget instantiated + key-hammered (11 smoke tests); rpm & deb driven end-to-end through the real pipeline; no crash-class or threading bugs remain |
 
 ### Component-by-component real-user test (F25)
 
@@ -83,6 +86,37 @@ plus the GUI main window, with a writable HOME:
 Bugs found & fixed during this pass: `graph` path handling, dotted-version
 parsing in `build_file_dep_graph`, and the `save_attestation` suffix doubling
 (4 regression tests added).
+
+---
+
+## 3.5 Refactoring Verdict (requested)
+
+**Verdict: NO large-scale refactor is needed for v1.1.0. Two targeted fixes
+were made instead (F26, F27), both crash-class bugs, both now regression-tested.**
+
+Assessment of the architecture:
+
+- **Size is healthy.** Largest file is `cli.py` at 1,500 LOC; `core/pipeline.py`
+  is 771 LOC. Nothing approaches an unmaintainable scale.
+- **Qt coupling is already well-contained.** Only 7 of 46 `core/` modules import
+  PyQt6 (the converters, installer, pipeline, queue, distrobox fallback). The
+  other 39 are pure-Python and fully testable headless. `pipeline.py` even has a
+  `_HAS_PYQT6` fallback path so the CLI works without PyQt6.
+- **The two bugs found were localized, not architectural.** F26 was a signal/slot
+  signature mismatch in one dialog; F27 was one bad `connect()` call in
+  `main_window`. Neither indicated a systemic design flaw — both were fixed in
+  place with regression tests.
+
+What a refactor would NOT buy us right now: the code is type-clean (mypy 0),
+security-clean (bandit 0 High/Medium), and green (261 tests). A broad refactor
+before release would only add churn and regression risk with no measurable gain.
+
+Recommended (optional, post-release) improvements, none blocking:
+1. Extract the 7 Qt-coupled `core/` modules behind a thin interface so `core/`
+   is 100% Qt-free (would let the CLI drop PyQt6 entirely).
+2. Split `cli.py` (1,500 LOC) into per-subcommand modules for easier navigation.
+3. Raise `core/` coverage from 41% toward 60% (converter guard paths are the
+   biggest gap).
 
 ---
 
