@@ -46,8 +46,8 @@ a real remote, a real AUR package, and honest public-facing metadata.
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **228 passed, 12 skipped, 0 failed** | PyQt6 present; green |
-| Line coverage (`core/`) | **39%** (6,243 stmts, 3,837 miss) | CI gate: 35% |
+| Test suite | **241 passed, 12 skipped, 0 failed** | PyQt6 present; green |
+| Line coverage (`core/`) | **41%** (6,244 stmts, 3,694 miss) | CI gate: 35% |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
 | ruff | **108 remaining** | 68 BLE001 (defensive blind-except), 11 PLW1510, etc. |
@@ -77,10 +77,9 @@ Until then the project is not publicly distributable.
 1. ~~**mypy 31 errors**~~ — **FIXED** in this audit (now 0 errors, 69 files).
 2. ~~**bandit 7 Medium**~~ — **RESOLVED** (now 0 High, 0 Medium). B608 SQL and
    B310 urlopen fixed; B108 tmp cases annotated with justified `# nosec`.
-3. **Coverage 39%** — the 0% modules (`installer`, `native_deb_converter`,
-   `deb_converter`, `distrobox_fallback`, `rpm_to_deb_converter`) are the riskiest
-   because they are the actual conversion paths. Add integration tests with real
-   fixtures before claiming broad reliability.
+3. **Coverage 41%** — the former 0% converter modules now have guard-path tests
+   (25–39% each). The remaining risk is the *happy path* of the actual conversion
+   pipeline; add integration tests with real fixtures before claiming broad reliability.
 4. **68 BLE001 blind-except** — acceptable as defensive style, but each should at
    least log the exception (most now do).
 

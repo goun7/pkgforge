@@ -32,3 +32,9 @@
 - F15 PKGBUILD: added REPO-001 note (upstream repo/tag does not exist yet)
 - F16 competitor data refreshed via AUR RPC (2026-08-21): debtap 3.6.3/331v, aurutils 20.5.8/303v, paru 2.1.0/1248v, yay 13.0.1/2647v, pkgbuilder 4.3.2/37v
 - F17 docs/RELEASE_READINESS.md written: verdict CONDITIONALLY READY (blocked on REPO-001), fix log F1-F15, measured state, competitor scoring table, release checklist
+- F18 full verification GREEN: 228→241 tests, CLI/E2E/GUI smoke all pass
+- F19 committed all fixes (94 files, +1525/-388)
+- mypy: 31 errors → 0 across 69 files (core Popen type conflict, pipeline union, ui Qt None-guards)
+- bandit: 7 Medium → 0 High/0 Medium (B608/B310 fixed, B108 justified nosec)
+- coverage: 28% → 41% (added test_converter_guards.py; all former 0% converter modules now 25-39%)
+- README badge restored for mypy=0; updated to 241 tests / 41% cov
