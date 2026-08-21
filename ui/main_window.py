@@ -359,7 +359,12 @@ class MainWindow(QMainWindow):
 
         self._pipeline_thread = QThread()
         pipeline.moveToThread(self._pipeline_thread)
-        self._pipeline_thread.started.connect(lambda: pipeline.run(item.file_path))
+        # Stage the path and connect to a SLOT of the pipeline (already
+        # moveToThread()ed) so run_staged() executes on the worker thread.
+        # A bare lambda here would be queued onto the main/UI thread instead,
+        # freezing the GUI and creating QObjects across thread boundaries.
+        pipeline.stage(item.file_path)
+        self._pipeline_thread.started.connect(pipeline.run_staged)
         self._pipeline_thread.start()
 
     @pyqtSlot(list)

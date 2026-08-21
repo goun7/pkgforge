@@ -18,10 +18,17 @@ from typing import TYPE_CHECKING, Any
 # Runtime: import real Qt classes when available, otherwise stubs.
 # Type-checking: always see the real signatures via TYPE_CHECKING.
 if TYPE_CHECKING:  # pragma: no cover
-    from PyQt6.QtCore import QEventLoop, QObject, QThread, QTimer, pyqtSignal
+    from PyQt6.QtCore import QEventLoop, QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 else:
     try:
-        from PyQt6.QtCore import QEventLoop, QObject, QThread, QTimer, pyqtSignal
+        from PyQt6.QtCore import (
+            QEventLoop,
+            QObject,
+            QThread,
+            QTimer,
+            pyqtSignal,
+            pyqtSlot,
+        )
         _HAS_PYQT6 = True
     except ImportError:
         _HAS_PYQT6 = False
@@ -32,6 +39,10 @@ else:
             pass
         def pyqtSignal(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
             return None
+        def pyqtSlot(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            def deco(fn: Any) -> Any:
+                return fn
+            return deco
         class QEventLoop:  # type: ignore[no-redef]
             def exec(self) -> None: pass
             def quit(self) -> None: pass
@@ -185,6 +196,10 @@ class ConversionPipeline(QObject):
         self._async_message = ""
         self._async_pkg_path: Path | None = None
 
+        # Path staged for run_staged(); set before the worker thread starts so
+        # the no-arg slot (connected to QThread.started) can pick it up.
+        self._staged_path: Path | None = None
+
     def cancel(self) -> None:
         """Cancel the pipeline at the earliest opportunity."""
         self._cancelled = True
@@ -251,6 +266,29 @@ class ConversionPipeline(QObject):
                     pass
 
         return self._decision_approved and not self._cancelled
+
+    def stage(self, file_path: Path) -> None:
+        """Stage *file_path* for run_staged(); call BEFORE starting the thread."""
+        self._staged_path = file_path
+
+    @pyqtSlot()
+    def run_staged(self) -> None:
+        """No-arg entry point for QThread.started connections.
+
+        Connecting ``started`` to a bare lambda queues the call onto the
+        *main* thread (lambdas have no thread affinity), which ran the whole
+        pipeline on the UI thread and created QProcess children across a
+        thread-affinity boundary ("Cannot create children for a parent that
+        is in a different thread"). Connecting to this slot of the pipeline
+        object -- which has already been moveToThread()ed -- executes it on
+        the worker thread instead.
+        """
+        if self._staged_path is None:
+            self._result.success = False
+            self._result.message = "Pipeline başlatılamadı: dosya yolu verilmedi"
+            self.finished.emit(self._result)
+            return
+        self.run(self._staged_path)
 
     def run(self, file_path: Path) -> None:
         """Execute the full pipeline synchronously (call from QThread)."""

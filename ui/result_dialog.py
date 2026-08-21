@@ -244,7 +244,11 @@ class ResultDialog(QDialog):
         preview.setVisible(False)
         layout.addWidget(preview)
 
-        def toggle(w=preview, b=toggle_btn) -> None:
+        # NOTE: clicked() emits a bool (checked state). The leading _checked
+        # parameter absorbs it so it cannot clobber the captured widget refs —
+        # without it, pressing Enter/Space on this focused button crashed the
+        # whole app (AttributeError inside Qt's event dispatch -> abort()).
+        def toggle(_checked: bool = False, w=preview, b=toggle_btn) -> None:
             vis = not w.isVisible()
             w.setVisible(vis)
             b.setText(("▼ " if vis else "▶ ") + tr("result.files_title", count=len(files)))
@@ -365,7 +369,8 @@ class ResultDialog(QDialog):
             details_widget.setWordWrap(True)
             details_widget.setVisible(False)
 
-            def toggle_details(w=details_widget, b=details_btn, c=check) -> None:
+            # Leading _checked absorbs clicked(bool); see note on toggle() above.
+            def toggle_details(_checked: bool = False, w=details_widget, b=details_btn, c=check) -> None:
                 vis = not w.isVisible()
                 w.setVisible(vis)
                 prefix = "▼" if vis else "▶"
