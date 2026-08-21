@@ -36,9 +36,13 @@ a real remote, a real AUR package, and honest public-facing metadata.
 | F10 | CI | Removed import check for nonexistent `core.smart_fallback`; honest coverage gate; badge steps owner-guarded |
 | F11 | Lint | ruff 352 → 108 issues (remaining are intentional defensive patterns) |
 | F12 | Wheel | Rebuilt clean; verified install + `--version`/`list`/`health`/`completion` in a fresh venv |
-| F13 | Tests | Coverage 28% → 39% (+72 new tests); found & fixed GPG status-parsing off-by-one |
-| F14 | CI gate | `--cov-fail-under` set to honest 35 (actual 39%) |
+| F13 | Tests | Coverage 28% → 41% (+85 new tests); found & fixed GPG status-parsing off-by-one |
+| F14 | CI gate | `--cov-fail-under` set to honest 35 (actual 41%) |
 | F15 | Docs | README/CHANGELOG/PKGBUILD honesty pass — real numbers, no aspirational badges |
+| F20 | mypy | 31 errors → **0** across 69 files (core Popen type conflict, pipeline union, ui Qt None-guards) |
+| F21 | bandit | 7 Medium → **0 High / 0 Medium** (B608/B310 fixed, B108 justified nosec) |
+| F22 | ruff | 352 → 82 (remaining are intentional defensive patterns) |
+| F23 | Provenance | Fixed 2 inverted hash conditions + package-search sidecar exclusion (7 sites) — re-runs no longer produce doubled `.provenance.json` |
 
 ---
 
@@ -50,7 +54,7 @@ a real remote, a real AUR package, and honest public-facing metadata.
 | Line coverage (`core/`) | **41%** (6,244 stmts, 3,694 miss) | CI gate: 35% |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
-| ruff | **108 remaining** | 68 BLE001 (defensive blind-except), 11 PLW1510, etc. |
+| ruff | **82 remaining** | 68 BLE001 (defensive blind-except), 11 PLW1510, 3 TRY401 — all intentional |
 | Wheel install | **WORKS** | clean venv, entry point + data-files verified |
 | E2E conversion | **WORKS** | deb → pkg.tar.zst, grade B |
 | GUI launch | **WORKS** | offscreen smoke test |
