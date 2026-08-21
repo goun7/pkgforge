@@ -49,7 +49,7 @@ a real remote, a real AUR package, and honest public-facing metadata.
 | Test suite | **228 passed, 12 skipped, 0 failed** | PyQt6 present; green |
 | Line coverage (`core/`) | **39%** (6,243 stmts, 3,837 miss) | CI gate: 35% |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
-| bandit | **0 High, 7 Medium** | B108 tmp ×3, B608 SQL ×1, B310 urlopen ×3 |
+| bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
 | ruff | **108 remaining** | 68 BLE001 (defensive blind-except), 11 PLW1510, etc. |
 | Wheel install | **WORKS** | clean venv, entry point + data-files verified |
 | E2E conversion | **WORKS** | deb → pkg.tar.zst, grade B |
@@ -75,8 +75,8 @@ Until then the project is not publicly distributable.
 ### 🟡 SHOULD-FIX before a public 1.1.0
 
 1. ~~**mypy 31 errors**~~ — **FIXED** in this audit (now 0 errors, 69 files).
-2. **bandit 7 Medium** — B608 SQL in `delta_updater.py` should use parameterized
-   queries; B310 `urlopen` should be wrapped by the scheme guard (partially done).
+2. ~~**bandit 7 Medium**~~ — **RESOLVED** (now 0 High, 0 Medium). B608 SQL and
+   B310 urlopen fixed; B108 tmp cases annotated with justified `# nosec`.
 3. **Coverage 39%** — the 0% modules (`installer`, `native_deb_converter`,
    `deb_converter`, `distrobox_fallback`, `rpm_to_deb_converter`) are the riskiest
    because they are the actual conversion paths. Add integration tests with real
@@ -136,7 +136,7 @@ invisible to users.
 - [ ] **REPO-001: create GitHub repo, push, tag v1.1.0** (needs human)
 - [ ] **Submit `pkgforge` / `pkgforge-git` to AUR** (needs human + repo)
 - [x] Fix or gate mypy errors (now 0 across 69 files)
-- [ ] Parameterize B608 SQL in delta_updater
+- [x] Resolve bandit Medium issues (now 0 High, 0 Medium)
 - [ ] Raise coverage on the 0% converter modules
 
 ---
