@@ -255,7 +255,9 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
         )
         if res.returncode != 0:
             # Fallback: write to temp and ask user to install
-            tmp_service = Path(f"/tmp/pkgforge-rollback-{os.getpid()}.service")
+            # nosec B108 — pid-suffixed name; content is a generated systemd unit,
+            # not attacker-controlled, and the file is only a hand-off for the user.
+            tmp_service = Path(f"/tmp/pkgforge-rollback-{os.getpid()}.service")  # nosec B108
             tmp_service.write_text(service_content, encoding="utf-8")
             msg = (
                 f"📦 Btrfs rollback planı hazırlandı:\n\n"

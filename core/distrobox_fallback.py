@@ -108,7 +108,8 @@ class DistroboxFallback(QObject):
         import hashlib
         import os
         unique = hashlib.sha256(f"{os.getpid()}:{self._pkg_path.name}".encode()).hexdigest()[:12]
-        tmp_target = f"/tmp/pkgforge_{unique}_{self._pkg_path.name}"
+        # nosec B108 — hard-to-guess suffix prevents symlink pre-creation (CWE-377).
+        tmp_target = f"/tmp/pkgforge_{unique}_{self._pkg_path.name}"  # nosec B108
         q_tmp = shlex.quote(tmp_target)
 
         if pkg_type == "deb":
