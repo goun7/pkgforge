@@ -565,6 +565,9 @@ class ConversionPipeline(QObject):
         self._set_step(PipelineStep.INSTALL, "running")
         self.progress.emit(90)
 
+        # Local import: core.installer pulls in PyQt6, so importing it at module
+        # level would break the PyQt6-free CLI path.
+        from core.installer import Installer
         self._installer = Installer(self._tools, self)
         self._installer.output_line.connect(lambda msg: self._log("info", msg))
 

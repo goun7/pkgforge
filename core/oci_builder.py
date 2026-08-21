@@ -54,8 +54,8 @@ def build_oci_image(
     if not buildah and not podman:
         return (
             False,
-            "Ne buildah ne podman bulundu — OCI görüntü oluşturulamadı. "
-            "Kurulum: sudo pacman -S buildah veya podman",
+            ("Ne buildah ne podman bulundu — OCI görüntü oluşturulamadı. "
+             "Kurulum: sudo pacman -S buildah veya podman"),
             None,
         )
 

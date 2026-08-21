@@ -89,11 +89,13 @@ class QueueManager(QObject):
     def add_files(self, paths: list[Path]) -> None:
         """Add files to the queue."""
         for path in paths:
-            if path.is_file() and path.suffix.lower() in (".deb", ".rpm"):
-                # Avoid duplicates
-                if not any(i.file_path == path for i in self._items):
-                    self._items.append(QueueItem(file_path=path))
-                    log.info("Kuyruğa eklendi: %s", path.name)
+            if (
+                path.is_file()
+                and path.suffix.lower() in (".deb", ".rpm")
+                and not any(i.file_path == path for i in self._items)  # avoid duplicates
+            ):
+                self._items.append(QueueItem(file_path=path))
+                log.info("Kuyruğa eklendi: %s", path.name)
 
         self.queue_changed.emit(self._items)
 

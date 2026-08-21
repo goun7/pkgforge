@@ -163,7 +163,7 @@ def get_converter_for_file(file_path: Path) -> ConverterPlugin | None:
 
     # Check if any plugin handles this extension
     candidates: list[tuple[int, ConverterPlugin]] = []
-    for name, plugin_cls in _REGISTRY.items():
+    for plugin_cls in _REGISTRY.values():
         plugin = plugin_cls()
         if suffix in plugin.extensions:
             candidates.append((plugin.priority, plugin))
@@ -226,7 +226,7 @@ def reload_plugins() -> dict[str, ConverterPlugin]:
     Returns:
         Dict of name -> plugin instance after reload.
     """
-    global _REGISTRY
+    # No 'global' needed: we mutate the dict in place, not rebind the name.
     _REGISTRY.clear()
     log.info("Plugin registry cleared, reloading...")
     return load_plugins()

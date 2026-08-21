@@ -278,8 +278,8 @@ class SBOMDiff:
     def summary(self) -> str:
         lines = [
             f"  📦 {self.old_name} {self.old_version} → {self.new_version}",
-            f"  📄 Dosyalar: {self.old_total_files} → {self.new_total_files} ("
-            f"+{len(self.added_files)} eklendi, -{len(self.removed_files)} silindi)",
+            (f"  📄 Dosyalar: {self.old_total_files} → {self.new_total_files} ("
+             f"+{len(self.added_files)} eklendi, -{len(self.removed_files)} silindi)"),
         ]
         if self.added_deps:
             lines.append(f"  ➕ Yeni bağımlılıklar: {', '.join(self.added_deps[:10])}")

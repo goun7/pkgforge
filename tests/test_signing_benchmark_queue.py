@@ -35,11 +35,11 @@ class TestPackageSigning(unittest.TestCase):
 
     def test_verify_signature_no_sig_file(self):
         from core.package_signing import verify_signature
-        with patch("core.package_signing.is_gpg_available", return_value=True):
-            with tempfile.NamedTemporaryFile(suffix=".pkg.tar.zst") as f:
-                info = verify_signature(Path(f.name))
-                self.assertFalse(info.valid)
-                self.assertIn("bulunamadı", info.detail)
+        with patch("core.package_signing.is_gpg_available", return_value=True), \
+             tempfile.NamedTemporaryFile(suffix=".pkg.tar.zst") as f:
+            info = verify_signature(Path(f.name))
+            self.assertFalse(info.valid)
+            self.assertIn("bulunamadı", info.detail)
 
     def test_verify_signature_parses_goodsig(self):
         from core.package_signing import verify_signature
@@ -50,16 +50,16 @@ class TestPackageSigning(unittest.TestCase):
         )
         mock_res = MagicMock(returncode=0, stdout=gpg_status, stderr="")
         with patch("core.package_signing.is_gpg_available", return_value=True), \
-             patch("core.package_signing.safe_run", return_value=mock_res):
-            with tempfile.TemporaryDirectory() as td:
-                pkg = Path(td) / "test.pkg.tar.zst"
-                pkg.write_bytes(b"data")
-                sig = Path(td) / "test.pkg.tar.zst.sig"
-                sig.write_bytes(b"sig")
-                info = verify_signature(pkg)
-                self.assertTrue(info.signed)
-                self.assertTrue(info.valid)
-                self.assertEqual(info.key_id, "ABCD1234")
+             patch("core.package_signing.safe_run", return_value=mock_res), \
+             tempfile.TemporaryDirectory() as td:
+            pkg = Path(td) / "test.pkg.tar.zst"
+            pkg.write_bytes(b"data")
+            sig = Path(td) / "test.pkg.tar.zst.sig"
+            sig.write_bytes(b"sig")
+            info = verify_signature(pkg)
+            self.assertTrue(info.signed)
+            self.assertTrue(info.valid)
+            self.assertEqual(info.key_id, "ABCD1234")
 
     def test_list_keys_parses_colons(self):
         from core.package_signing import list_keys

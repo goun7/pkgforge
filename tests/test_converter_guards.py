@@ -31,7 +31,7 @@ class TestRpmToDebConverter(unittest.TestCase):
             rpm = Path(td) / "test.rpm"
             rpm.write_bytes(b"fake")
             with patch("core.rpm_to_deb_converter.shutil.which", return_value=None):
-                ok, msg, path = rpm_to_deb(rpm, Path(td))
+                ok, msg, _path = rpm_to_deb(rpm, Path(td))
                 self.assertFalse(ok)
                 self.assertIn("rpm2cpio", msg)
 

@@ -186,20 +186,18 @@ def verify_provenance(prov: BuildProvenance) -> tuple[bool, str]:
         return False, f"Provenance hash uyuşmuyor: beklenen {expected[:16]}…, mevcut {prov.provenance_hash[:16]}…"
 
     # 2. Check source file exists and hash matches
-    if prov.source_file and Path(prov.source_file).is_file():
-        if prov.source_sha256:
-            from core.security import sha256_hash
-            actual = sha256_hash(Path(prov.source_file))
-            if actual != prov.source_sha256:
-                return False, f"Kaynak dosya hash uyuşmazlığı: {actual[:16]}… ≠ {prov.source_sha256[:16]}…"
+    if prov.source_file and Path(prov.source_file).is_file() and prov.source_sha256:
+        from core.security import sha256_hash
+        actual = sha256_hash(Path(prov.source_file))
+        if actual != prov.source_sha256:
+            return False, f"Kaynak dosya hash uyuşmazlığı: {actual[:16]}… ≠ {prov.source_sha256[:16]}…"
 
     # 3. Check output file exists and hash matches
-    if prov.output_file and Path(prov.output_file).is_file():
-        if prov.output_sha256:
-            from core.security import sha256_hash
-            actual = sha256_hash(Path(prov.output_file))
-            if actual != prov.output_sha256:
-                return False, f"Çıktı dosyası hash uyuşmazlığı: {actual[:16]}… ≠ {prov.output_sha256[:16]}…"
+    if prov.output_file and Path(prov.output_file).is_file() and prov.output_sha256:
+        from core.security import sha256_hash
+        actual = sha256_hash(Path(prov.output_file))
+        if actual != prov.output_sha256:
+            return False, f"Çıktı dosyası hash uyuşmazlığı: {actual[:16]}… ≠ {prov.output_sha256[:16]}…"
 
     return True, "Provenance doğrulandı ✓"
 
