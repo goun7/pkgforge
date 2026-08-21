@@ -126,6 +126,8 @@ class DebConverter(QObject):
     def _find_output_package(self) -> Path | None:
         """Find the .pkg.tar.zst (or similar) file produced by debtap."""
         for entry in self._output_dir.iterdir():
-            if entry.is_file() and ".pkg.tar" in entry.name:
+            # Exclude metadata sidecars (.sig, .provenance.json, ...) whose
+            # names also contain the ".pkg.tar" substring.
+            if entry.is_file() and ".pkg.tar" in entry.name and not entry.name.endswith((".sig", ".json")):
                 return entry
         return None

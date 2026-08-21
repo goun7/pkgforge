@@ -276,7 +276,7 @@ class RpmConverter(QObject):
             if not search_dir.is_dir():
                 continue
             for entry in search_dir.iterdir():
-                if entry.is_file() and ".pkg.tar" in entry.name:
+                if entry.is_file() and ".pkg.tar" in entry.name and not entry.name.endswith((".sig", ".json")):
                     return entry
         return None
 

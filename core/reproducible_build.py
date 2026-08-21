@@ -121,7 +121,7 @@ def verify_reproducible(
         # 4. Find the rebuilt package
         rebuilt = None
         for f in rebuild_pkg.iterdir():
-            if f.is_file() and ".pkg.tar" in f.name:
+            if f.is_file() and ".pkg.tar" in f.name and not f.name.endswith((".sig", ".json")):
                 rebuilt = f
                 break
 

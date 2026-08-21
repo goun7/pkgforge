@@ -110,7 +110,7 @@ def find_local_previous(package_name: str, pkg_dir: Path | None = None) -> Path 
     for f in pkg_dir.iterdir():
         if not f.is_file():
             continue
-        if ".pkg.tar" in f.name:
+        if ".pkg.tar" in f.name and not f.name.endswith((".sig", ".json")):
             # Match by base package name (strip version)
             base = f.name.split("-")[0] if "-" in f.name else f.stem
             if base and base.lower() in package_name.lower():

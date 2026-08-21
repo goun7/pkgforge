@@ -219,7 +219,7 @@ package() {{
         for search_dir in [pkg_out, output_dir]:
             if search_dir.is_dir():
                 for entry in search_dir.iterdir():
-                    if entry.is_file() and ".pkg.tar" in entry.name:
+                    if entry.is_file() and ".pkg.tar" in entry.name and not entry.name.endswith((".sig", ".json")):
                         pkg_file = entry
                         break
             if pkg_file:
@@ -345,7 +345,7 @@ class RpmConverterSubprocess:
             for d in [pkg_out, output_dir]:
                 if d.is_dir():
                     for entry in d.iterdir():
-                        if entry.is_file() and ".pkg.tar" in entry.name:
+                        if entry.is_file() and ".pkg.tar" in entry.name and not entry.name.endswith((".sig", ".json")):
                             pkg_file = entry
                             break
                 if pkg_file:
