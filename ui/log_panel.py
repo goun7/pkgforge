@@ -96,7 +96,8 @@ class LogPanel(QWidget):
         )
 
     def append_log(self, message: str, level: str = "info") -> None:
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        # astimezone() with no arg yields tz-aware local time (DTZ005-safe).
+        timestamp = datetime.now().astimezone().strftime("%H:%M:%S")
         self._log_lines.append((timestamp, level, message))
 
         color, prefix = _LEVEL_STYLES.get(level, (Colors.TEXT, ""))
@@ -125,7 +126,7 @@ class LogPanel(QWidget):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             tr("log.export_title"),
-            str(Path.home() / f"pkgforge_{datetime.now():%Y%m%d_%H%M%S}.log"),
+            str(Path.home() / f"pkgforge_{datetime.now().astimezone():%Y%m%d_%H%M%S}.log"),
             tr("log.export_filter"),
         )
         if file_path:

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,7 @@ def report_to_dict(
     data: dict[str, Any] = {
         "tool": APP_NAME,
         "tool_version": APP_VERSION,
-        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "generated_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
         "grade": getattr(report, "grade", "N/A") if report is not None else "N/A",
         "overall": report.overall.value if report is not None else "unknown",
         "sha256": sha256,
