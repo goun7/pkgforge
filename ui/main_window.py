@@ -583,7 +583,7 @@ class MainWindow(QMainWindow):
             dialog.file_downloaded.connect(lambda pkg_path: self._on_files_dropped([pkg_path]))
             dialog.exec()
         except Exception as exc:
-            log.exception("Error opening UrlDialog: %s", exc)
+            log.exception("Error opening UrlDialog")
             self._show_inline_error(f"URL dialog hatası: {exc}", "❌")
 
     def _show_history(self) -> None:
@@ -593,7 +593,7 @@ class MainWindow(QMainWindow):
             dialog = HistoryDialog(self)
             dialog.exec()
         except Exception as exc:
-            log.exception("Error opening HistoryDialog: %s", exc)
+            log.exception("Error opening HistoryDialog")
             self._show_inline_error(f"Geçmiş dialog hatası: {exc}", "❌")
 
     def _check_upstream_updates(self) -> None:
@@ -613,7 +613,7 @@ class MainWindow(QMainWindow):
             else:
                 QMessageBox.information(self, tr("updates.title"), tr("updates.up_to_date"))
         except Exception as exc:
-            log.exception("Error checking updates: %s", exc)
+            log.exception("Error checking updates")
             self._show_inline_error(f"Güncelleme kontrolü hatası: {exc}", "❌")
 
     # ── Settings ─────────────────────────────────────────────────
