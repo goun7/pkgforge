@@ -212,8 +212,13 @@ def handle_security_provenance(params):
     return prov.to_dict() if prov else None
 
 
-def _run_security_thread(fn, event_name="event.security_done"):
-    """Run a blocking security op on a daemon thread, emitting a done event."""
+def _run_thread(fn, event_name):
+    """Run a blocking op on a daemon thread, emitting a done event.
+
+    The done event carries {"ok": True, "result": ...} on success or
+    {"ok": False, "error": str} on failure. Used by all long-running
+    Faz 1 handlers (export, graph, source, system).
+    """
 
     def _worker():
         try:
@@ -223,6 +228,11 @@ def _run_security_thread(fn, event_name="event.security_done"):
             _event(event_name, {"ok": False, "error": str(exc)})
 
     threading.Thread(target=_worker, daemon=True).start()
+
+
+def _run_security_thread(fn, event_name="event.security_done"):
+    """Backwards-compatible alias for security ops."""
+    _run_thread(fn, event_name)
 
 
 def handle_security_sign(params):
@@ -316,6 +326,233 @@ def handle_delta_disable(params):
             "message": "Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)"}
 
 
+# ── Faz 1 / A1: export centers ──────────────────────────────────
+
+def handle_export_oci(params):
+    from core.oci_builder import build_oci_image
+
+    path = _require_pkg_file(params)
+    tools = discover_tools()
+    tag = params.get("tag") or None
+    output_file = Path(params["output_file"]) if params.get("output_file") else None
+
+    def _op():
+        ok, msg, out = build_oci_image(path, tools, tag=tag, output_file=output_file)
+        return {"ok": ok, "message": msg, "output_path": str(out) if out else ""}
+
+    _run_thread(_op, "event.export_done")
+    return {"started": True}
+
+
+def handle_export_appimage_to_deb(params):
+    from core.appimage_converter import appimage_to_deb
+
+    appimage = Path(params.get("appimage_path", ""))
+    if not appimage.is_file():
+        raise FileNotFoundError(f"AppImage not found: {appimage}")
+    out_dir = Path(params.get("output_dir", "."))
+
+    def _op():
+        ok, msg, deb = appimage_to_deb(appimage, out_dir)
+        return {"ok": ok, "message": msg, "deb_path": str(deb) if deb else ""}
+
+    _run_thread(_op, "event.export_done")
+    return {"started": True}
+
+
+def handle_export_flatpak_list(params):
+    from dataclasses import asdict
+
+    from core.flatpak_converter import list_installed_apps
+
+    return [asdict(app) for app in list_installed_apps()]
+
+
+def handle_export_flatpak_to_deb(params):
+    from core.flatpak_converter import flatpak_to_deb
+
+    app_id = params.get("app_id", "")
+    if not app_id:
+        raise ValueError("app_id is required")
+    branch = params.get("branch", "stable")
+    out_dir = Path(params.get("output_dir", "."))
+
+    def _op():
+        ok, msg, deb = flatpak_to_deb(app_id, out_dir, branch=branch)
+        return {"ok": ok, "message": msg, "deb_path": str(deb) if deb else ""}
+
+    _run_thread(_op, "event.export_done")
+    return {"started": True}
+
+
+# ── Faz 1 / A3: dependency graph ────────────────────────────────
+
+def handle_graph_build(params):
+    from dataclasses import asdict
+
+    from core.dep_graph import build_dep_graph, build_file_dep_graph
+
+    path = _require_pkg_file(params)
+    show_files = bool(params.get("files", False))
+
+    def _op():
+        graph = build_file_dep_graph(path) if show_files else build_dep_graph(path)
+        return {
+            "root": graph.root,
+            "nodes": {name: asdict(node) for name, node in graph.nodes.items()},
+            "stats": graph.stats(),
+            "mermaid": graph.to_mermaid(),
+            "warnings": graph.warnings,
+        }
+
+    _run_thread(_op, "event.graph_done")
+    return {"started": True}
+
+
+# ── Faz 1 / A5: from-source PKGBUILD ────────────────────────────
+
+def handle_source_generate(params):
+    import tempfile
+
+    from core.from_source import generate_pkgbuild_from_source
+    from core.security import safe_run
+
+    repo_url = params.get("repo_url", "").strip()
+    if not repo_url:
+        raise ValueError("repo_url is required")
+    out_dir = Path(params.get("output_dir", ".")).resolve()
+
+    def _op():
+        with tempfile.TemporaryDirectory(prefix="pkgforge_src_") as tmpdir:
+            tmp = Path(tmpdir)
+            _event("event.source_progress", {"step": "clone"})
+            res = safe_run(["git", "clone", "--depth=1", repo_url, str(tmp / "repo")], timeout=120)
+            if res.returncode != 0:
+                raise RuntimeError(f"git clone failed: {res.stderr[:200]}")
+            repo_dir = tmp / "repo"
+
+            proj_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
+            _event("event.source_progress", {"step": "detect"})
+            build_system = "unknown"
+            if (repo_dir / "CMakeLists.txt").exists():
+                build_system = "cmake"
+            elif (repo_dir / "meson.build").exists():
+                build_system = "meson"
+            elif (repo_dir / "Cargo.toml").exists():
+                build_system = "cargo"
+            elif (repo_dir / "configure").exists():
+                build_system = "autotools"
+            elif (repo_dir / "Makefile").exists() or (repo_dir / "makefile").exists():
+                build_system = "make"
+            elif (repo_dir / "setup.py").exists():
+                build_system = "python"
+
+            _event("event.source_progress", {"step": "generate"})
+            content = generate_pkgbuild_from_source(proj_name, repo_url, build_system, repo_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            pkgbuild_path = out_dir / f"PKGBUILD-{proj_name}"
+            pkgbuild_path.write_text(content, encoding="utf-8")
+            return {
+                "ok": True,
+                "proj_name": proj_name,
+                "build_system": build_system,
+                "pkgbuild_path": str(pkgbuild_path),
+                "pkgbuild_content": content,
+            }
+
+    _run_thread(_op, "event.source_done")
+    return {"started": True}
+
+
+# ── Faz 1 / A6: system tools ────────────────────────────────────
+
+def handle_system_health(params):
+    from core.history_db import HistoryDB
+
+    db = HistoryDB()
+    stats = db.get_usage_stats()
+    total = stats["total"]
+    by_status = stats["by_status"]
+    installed = by_status.get("installed", 0)
+    converted = by_status.get("converted", 0)
+    failed = by_status.get("install_failed", 0)
+    success_rate = ((installed + converted) / total * 100) if total > 0 else 0.0
+    return {
+        "total": total,
+        "installed": installed,
+        "converted": converted,
+        "failed": failed,
+        "success_rate": round(success_rate, 1),
+        "by_type": stats["by_type"],
+        "by_arch": stats["by_arch"],
+        "url_count": stats["url_count"],
+        "first_seen": stats["first_seen"],
+        "last_seen": stats["last_seen"],
+    }
+
+
+def handle_system_cross_check(params):
+    from dataclasses import asdict
+
+    from core.cross_check import cross_check_package
+
+    name = params.get("package_name", "")
+    if not name:
+        raise ValueError("package_name is required")
+    local_version = params.get("local_version", "")
+
+    def _op():
+        return asdict(cross_check_package(name, local_version))
+
+    _run_thread(_op, "event.cross_check_done")
+    return {"started": True}
+
+
+def handle_system_snapshot_status(params):
+    from core.snapshot_cleanup import get_cleanup_status
+
+    return get_cleanup_status()
+
+
+def handle_system_snapshot_install(params):
+    return {"ok": False, "requires_privilege": True,
+            "message": "Snapshot temizlik servisi kurulumu yetkili işlem gerektiriyor (pkexec)"}
+
+
+def handle_system_snapshot_remove(params):
+    return {"ok": False, "requires_privilege": True,
+            "message": "Snapshot temizlik servisi kaldırma yetkili işlem gerektiriyor (pkexec)"}
+
+
+def handle_system_verify_rollback(params):
+    from dataclasses import asdict
+
+    from core.rollback_verify import verify_rollback
+
+    def _op():
+        return asdict(verify_rollback())
+
+    _run_thread(_op, "event.system_done")
+    return {"started": True}
+
+
+def handle_system_benchmark(params):
+    from dataclasses import asdict
+
+    from core.benchmark import run_benchmarks
+
+    quick = bool(params.get("quick", False))
+
+    def _op():
+        report = run_benchmarks(quick=quick)
+        d = asdict(report)
+        d["passed"] = report.passed
+        return d
+
+    _run_thread(_op, "event.bench_done")
+    return {"started": True}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -342,6 +579,23 @@ METHODS = {
     "delta.status": handle_delta_status,
     "delta.enable": handle_delta_enable,
     "delta.disable": handle_delta_disable,
+    # Faz 1 / A1: export centers
+    "export.oci": handle_export_oci,
+    "export.appimage_to_deb": handle_export_appimage_to_deb,
+    "export.flatpak_list": handle_export_flatpak_list,
+    "export.flatpak_to_deb": handle_export_flatpak_to_deb,
+    # Faz 1 / A3: dependency graph
+    "graph.build": handle_graph_build,
+    # Faz 1 / A5: from-source
+    "source.generate": handle_source_generate,
+    # Faz 1 / A6: system tools
+    "system.health": handle_system_health,
+    "system.cross_check": handle_system_cross_check,
+    "system.snapshot_status": handle_system_snapshot_status,
+    "system.snapshot_install": handle_system_snapshot_install,
+    "system.snapshot_remove": handle_system_snapshot_remove,
+    "system.verify_rollback": handle_system_verify_rollback,
+    "system.benchmark": handle_system_benchmark,
 }
 
 
