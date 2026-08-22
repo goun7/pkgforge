@@ -97,9 +97,11 @@ def create_provenance(
     """Create a new BuildProvenance record with build environment info."""
     prov = BuildProvenance()
 
-    # Build ID: timestamp + random suffix
-    import random
-    prov.build_id = f"build-{int(time.time())}-{random.randint(1000, 9999)}"
+    # Build ID: timestamp + cryptographically-random suffix. A 4-digit
+    # random.randint was collision-prone (birthday bound ~100 builds/sec);
+    # secrets.token_hex gives 64 bits of entropy for true uniqueness.
+    import secrets
+    prov.build_id = f"build-{int(time.time())}-{secrets.token_hex(8)}"
 
     # Source
     prov.source_file = str(source_file)
