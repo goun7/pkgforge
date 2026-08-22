@@ -9,6 +9,10 @@ dist/
 src-tauri/target/
 src-tauri/gen/
 
+# Bundled sidecar binary (build artifact — regenerate via scripts/build-sidecar.sh)
+src-tauri/resources/pkgforge-sidecar
+src-tauri/binaries/
+
 # Logs
 *.log
 

@@ -58,20 +58,54 @@ fn find_project_root() -> Option<PathBuf> {
     None
 }
 
-/// Spawn the Python sidecar and start the stdout reader thread.
-pub fn spawn(app: &AppHandle) -> Result<(), String> {
-    let root = find_project_root()
-        .ok_or_else(|| "PkgForge project root not found (set PKGFORGE_ROOT)".to_string())?;
-    let py = std::env::var("PKGFORGE_PYTHON").unwrap_or_else(|_| "python3".into());
+/// Locate a bundled single-file sidecar binary, if present.
+/// Checked in the Tauri resource dir, next to the running executable, and in
+/// a sibling resources dir (dev layout).
+fn find_bundled_sidecar(app: &AppHandle) -> Option<PathBuf> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(res) = app.path().resource_dir() {
+        candidates.push(res.join("pkgforge-sidecar"));
+        candidates.push(res.join("resources").join("pkgforge-sidecar"));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("pkgforge-sidecar"));
+            candidates.push(dir.join("resources").join("pkgforge-sidecar"));
+            candidates.push(dir.join("../resources/pkgforge-sidecar"));
+            // dev layout: exe in src-tauri/target/{debug,release}, binary in src-tauri/resources
+            candidates.push(dir.join("../../resources/pkgforge-sidecar"));
+        }
+    }
+    candidates.into_iter().find(|c| c.is_file())
+}
 
-    let mut child = Command::new(&py)
-        .args(["main.py", "serve"])
-        .current_dir(&root)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .map_err(|e| format!("failed to spawn sidecar ({py}): {e}"))?;
+/// Spawn the Python sidecar and start the stdout reader thread.
+///
+/// Prefers a bundled single-file binary (production); falls back to running
+/// `python main.py serve` from the source tree (development).
+pub fn spawn(app: &AppHandle) -> Result<(), String> {
+    let mut child = if let Some(bin) = find_bundled_sidecar(app) {
+        Command::new(&bin)
+            .arg("serve")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .map_err(|e| format!("failed to spawn bundled sidecar ({}): {e}", bin.display()))?
+    } else {
+        let root = find_project_root().ok_or_else(|| {
+            "PkgForge sidecar not found (bundle pkgforge-sidecar or set PKGFORGE_ROOT)".to_string()
+        })?;
+        let py = std::env::var("PKGFORGE_PYTHON").unwrap_or_else(|_| "python3".into());
+        Command::new(&py)
+            .args(["main.py", "serve"])
+            .current_dir(&root)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .map_err(|e| format!("failed to spawn sidecar ({py}): {e}"))?
+    };
 
     let stdout = child.stdout.take().ok_or("sidecar stdout missing")?;
     let stdin = child.stdin.take().ok_or("sidecar stdin missing")?;

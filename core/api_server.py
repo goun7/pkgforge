@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import sys
 import threading
-
 from pathlib import Path
 
 from config import APP_NAME, APP_VERSION, discover_tools
