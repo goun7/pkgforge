@@ -48,6 +48,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | F25 | Component test | Real-user pass over all 28 CLI subcommands + GUI. Found & fixed: `graph` rejected direct file paths; `build_file_dep_graph` mis-parsed dotted versions; `save_attestation` doubled `.attestation.json` suffix |
 | F26 | **GUI crash (rpm/deb)** | ResultDialog toggle closures connected to `clicked(bool)` — pressing Enter/Space on a focused toggle button made Qt auto-click it, the emitted bool clobbered the captured widget default-arg → `AttributeError` inside Qt event dispatch → **app abort**. Fixed both closures with a leading `_checked` param. |
 | F27 | **GUI threading** | `main_window` connected `QThread.started` to a bare lambda, which PyQt queues onto the **main** thread — the whole pipeline ran on the UI thread and created `QProcess` children across a thread-affinity boundary ("Cannot create children for a parent that is in a different thread"). Fixed with `stage()` + `run_staged()` `@pyqtSlot` so `run()` executes on the worker thread. |
+| F28 | Test push | 261 → **449 tests** (+188), coverage 41% → **47%**: hermetic pure-logic suites (streaming, retry, sbom diff, from_source detection, security, completion, structured_log, cleanup generators, HistoryDB) + real end-to-end conversions through the Qt-free subprocess converters (deb + rpm fixtures) |
 
 ---
 
@@ -55,8 +56,8 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **261 passed, 12 skipped, 0 failed** | PyQt6 present; green |
-| Line coverage (`core/`) | **41%** (6,249 stmts, 3,676 miss) | CI gate: 35% |
+| Test suite | **449 passed, 12 skipped, 0 failed** | PyQt6 present; green |
+| Line coverage (`core/`) | **47%** (6,264 stmts, 3,326 miss) | CI gate: 35% |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
 | ruff | **79 remaining** | 68 BLE001 (defensive blind-except) + 11 PLW1510 (manual returncode checks) — all intentional |
@@ -108,15 +109,15 @@ Assessment of the architecture:
   place with regression tests.
 
 What a refactor would NOT buy us right now: the code is type-clean (mypy 0),
-security-clean (bandit 0 High/Medium), and green (261 tests). A broad refactor
+security-clean (bandit 0 High/Medium), and green (449 tests). A broad refactor
 before release would only add churn and regression risk with no measurable gain.
 
 Recommended (optional, post-release) improvements, none blocking:
 1. Extract the 7 Qt-coupled `core/` modules behind a thin interface so `core/`
    is 100% Qt-free (would let the CLI drop PyQt6 entirely).
 2. Split `cli.py` (1,500 LOC) into per-subcommand modules for easier navigation.
-3. Raise `core/` coverage from 41% toward 60% (converter guard paths are the
-   biggest gap).
+3. Raise `core/` coverage from 47% toward 60% (Qt-coupled converter paths are
+   the biggest remaining gap).
 
 ---
 
@@ -143,9 +144,11 @@ Remaining release steps:
 1. ~~**mypy 31 errors**~~ — **FIXED** in this audit (now 0 errors, 69 files).
 2. ~~**bandit 7 Medium**~~ — **RESOLVED** (now 0 High, 0 Medium). B608 SQL and
    B310 urlopen fixed; B108 tmp cases annotated with justified `# nosec`.
-3. **Coverage 41%** — the former 0% converter modules now have guard-path tests
-   (25–39% each). The remaining risk is the *happy path* of the actual conversion
-   pipeline; add integration tests with real fixtures before claiming broad reliability.
+3. ~~**Coverage 41%**~~ — now **47%** (449 tests). The happy-path risk called out
+   here is closed: real end-to-end conversions of the hello `.deb` and hello
+   `.rpm` fixtures now run through the Qt-free subprocess converters in CI
+   (`tests/test_subprocess_converters.py`), plus the GUI pipeline regression
+   suite. Remaining gap is Qt-coupled UI paths.
 4. **68 BLE001 blind-except** — acceptable as defensive style, but each should at
    least log the exception (most now do).
 
