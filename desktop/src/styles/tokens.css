@@ -1,0 +1,69 @@
+/* PkgForge design tokens — Faz 0 (dark-first)
+ * Brand: Convergence Mix 1 — Arch Blue #1793d1 x Ember #f97316
+ */
+:root {
+  /* Brand */
+  --brand-blue: #1793d1;
+  --brand-ember: #f97316;
+  --brand-gradient: linear-gradient(135deg, #1793d1, #f97316);
+
+  /* Surfaces (dark-first) */
+  --bg-base: #0a0e1a;
+  --bg-surface: #121829;
+  --bg-elevated: #1a2038;
+
+  /* Text */
+  --text-primary: #e8ecf4;
+  --text-secondary: #8b95a8;
+  --text-muted: #5a6478;
+
+  /* Semantic */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #38bdf8;
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  /* Radii */
+  --radius-btn: 8px;
+  --radius-input: 12px;
+  --radius-card: 16px;
+  --radius-modal: 24px;
+
+  /* Shadows (dark theme: subtle glow) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --glow-brand: 0 0 24px rgba(23, 147, 209, 0.25);
+
+  /* Typography */
+  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Spacing base unit: 4px (use 4/8/12/16/24/32) */
+}
+
+[data-theme="light"] {
+  --brand-blue: #0e7ab5;
+  --brand-ember: #d95f0e;
+  --brand-gradient: linear-gradient(135deg, #0e7ab5, #d95f0e);
+
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0f1f3;
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-strong: rgba(0, 0, 0, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --glow-brand: 0 0 24px rgba(14, 122, 181, 0.15);
+}
