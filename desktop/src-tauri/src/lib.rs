@@ -10,6 +10,7 @@ pub fn run() {
             sidecar::spawn(app.handle())?;
             Ok(())
         })
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![sidecar::rpc_call])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -1,51 +1,68 @@
-import { useCallback, useRef, useState, type DragEvent } from "react";
+import { useRef } from "react";
 import { PackageOpen } from "lucide-react";
 import { cn } from "../lib/utils";
 
+export const ACCEPTED_EXTENSIONS = [".deb", ".rpm"];
+
+/** Pure filter: keep only paths ending in an accepted extension. */
+export function filterAcceptedPaths(paths: string[]): string[] {
+  return paths.filter((p) => {
+    const lower = p.toLowerCase();
+    return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  });
+}
+
 export interface DropZoneProps {
-  onFiles: (files: File[]) => void;
+  /** Called with real filesystem paths (from native dialog or native drag-drop). */
+  onPaths: (paths: string[]) => void;
+  /** Whether a native drag is currently hovering (set by the page from Tauri events). */
+  dragging?: boolean;
   disabled?: boolean;
   hint?: string;
+  /** Opens the native file dialog; injected so tests can stub it. */
+  browse?: () => Promise<string[]>;
 }
 
-const ACCEPTED = [".deb", ".rpm"];
-
-function filterAccepted(files: File[]): File[] {
-  return files.filter((f) =>
-    ACCEPTED.some((ext) => f.name.toLowerCase().endsWith(ext)),
-  );
+async function defaultBrowse(): Promise<string[]> {
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const selected = await open({
+    multiple: true,
+    title: "Paket seç",
+    filters: [{ name: "Paketler", extensions: ["deb", "rpm"] }],
+  });
+  if (!selected) return [];
+  return Array.isArray(selected) ? selected : [selected];
 }
 
-export function DropZone({ onFiles, disabled = false, hint }: DropZoneProps) {
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+export function DropZone({
+  onPaths,
+  dragging = false,
+  disabled = false,
+  hint,
+  browse = defaultBrowse,
+}: DropZoneProps) {
+  const busy = useRef(false);
 
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setDragging(false);
-      if (disabled) return;
-      const files = filterAccepted(Array.from(e.dataTransfer.files));
-      if (files.length) onFiles(files);
-    },
-    [onFiles, disabled],
-  );
+  const handleBrowse = async () => {
+    if (disabled || busy.current) return;
+    busy.current = true;
+    try {
+      const paths = filterAcceptedPaths(await browse());
+      if (paths.length) onPaths(paths);
+    } finally {
+      busy.current = false;
+    }
+  };
 
   return (
     <div
       role="button"
       tabIndex={0}
       aria-label="drop-zone"
-      onClick={() => !disabled && inputRef.current?.click()}
+      onClick={handleBrowse}
       onKeyDown={(e) => {
-        if ((e.key === "Enter" || e.key === " ") && !disabled) inputRef.current?.click();
+        if (e.key === "Enter" || e.key === " ") handleBrowse();
       }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (!disabled) setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
       className={cn(
         "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border-2 border-dashed p-10 text-center transition-all",
         dragging
@@ -73,18 +90,6 @@ export function DropZone({ onFiles, disabled = false, hint }: DropZoneProps) {
           {hint ?? "veya seçmek için tıklayın"}
         </p>
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept=".deb,.rpm"
-        className="hidden"
-        onChange={(e) => {
-          const files = filterAccepted(Array.from(e.target.files ?? []));
-          if (files.length) onFiles(files);
-          e.target.value = "";
-        }}
-      />
     </div>
   );
 }
