@@ -38,3 +38,21 @@
 - bandit: 7 Medium → 0 High/0 Medium (B608/B310 fixed, B108 justified nosec)
 - coverage: 28% → 41% (added test_converter_guards.py; all former 0% converter modules now 25-39%)
 - README badge restored for mypy=0; updated to 241 tests / 41% cov
+
+## Test & coverage push (goal-063ba75e, 2026-08-21/22)
+- GUI crash fixes F26/F27 (ResultDialog toggle closures, QThread.started slot) + regression tests
+- Coverage 41% -> 52%, tests 261 -> 586 (13 skipped). Hermetic pure-logic suites:
+  streaming, retry, sbom diff, from_source detection, security, completion,
+  structured_log, cleanup generators, HistoryDB, DepGraph, aur_publish,
+  report_export, provenance, marketplace validation, config name-extraction,
+  converter sanitize/escape, plugin registry, abi/flatpak/downloader/benchmark/quality_score
+- Real E2E conversions of hello .deb + .rpm through Qt-free subprocess converters
+- BUG FOUND+FIXED: quality_score.score_package mis-parsed dotted package names
+  (lictest-1.0.0-1-any -> lictest-1); now prefers .PKGINFO pkgname + filename fallback
+- CI coverage gate raised 35 -> 48
+- REPO-001 resolved: goun7/pkgforge (private) + goun7/pkgforge-plugins (private); history pushed
+- Quality gates: mypy 0 (69 files), bandit 0 High/0 Medium, ruff 72 (all intentional)
+- Wheel builds clean with cli.py/main.py/config.py entry modules
+- Docs refreshed: README/RELEASE_READINESS/CHANGELOG to 586 tests / 52% cov;
+  competitor scoring + release checklist updated
+
