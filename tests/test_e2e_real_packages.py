@@ -18,11 +18,19 @@ from config import discover_tools
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
+# Committed fixtures are known-good, buildable packages — accept them
+# regardless of size (the hello .deb is a minimal 884-byte package). The
+# >1024-byte filter only applies to files discovered on the host, where it
+# skips empty/corrupt placeholders.
+_FIXTURE_RPM = _PROJECT_ROOT / ".test_home" / "rpmbuild" / "RPMS" / "x86_64" / "hello-1.0.0-1.x86_64.rpm"
+_FIXTURE_DEB = _PROJECT_ROOT / "utest" / "hello_1.0.0-1_amd64.deb"
+
+
 def _find_real_rpm() -> Path | None:
     """Find a real RPM file for testing (project fixture first, then host)."""
+    if _FIXTURE_RPM.is_file():
+        return _FIXTURE_RPM
     search_paths = [
-        _PROJECT_ROOT / ".test_home" / "rpmbuild" / "RPMS" / "x86_64",
-        _PROJECT_ROOT / "utest",
         Path.home() / "Masaüstü",
         Path.home() / "Desktop",
         Path.home() / "Downloads",
@@ -38,8 +46,9 @@ def _find_real_rpm() -> Path | None:
 
 def _find_real_deb() -> Path | None:
     """Find a real DEB file for testing (project fixture first, then host)."""
+    if _FIXTURE_DEB.is_file():
+        return _FIXTURE_DEB
     search_paths = [
-        _PROJECT_ROOT / "utest",
         Path.home() / "Masaüstü",
         Path.home() / "Desktop",
         Path.home() / "Downloads",
