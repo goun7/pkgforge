@@ -12,10 +12,17 @@ import pytest
 
 from config import discover_tools
 
+# Project root (tests/ lives one level below it). The committed fixtures under
+# utest/ and .test_home/ are real, buildable packages and are the preferred
+# source so these E2E tests run in CI without needing files on the host.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 def _find_real_rpm() -> Path | None:
-    """Find a real RPM file on the system for testing."""
+    """Find a real RPM file for testing (project fixture first, then host)."""
     search_paths = [
+        _PROJECT_ROOT / ".test_home" / "rpmbuild" / "RPMS" / "x86_64",
+        _PROJECT_ROOT / "utest",
         Path.home() / "Masaüstü",
         Path.home() / "Desktop",
         Path.home() / "Downloads",
@@ -30,8 +37,9 @@ def _find_real_rpm() -> Path | None:
 
 
 def _find_real_deb() -> Path | None:
-    """Find a real DEB file on the system for testing."""
+    """Find a real DEB file for testing (project fixture first, then host)."""
     search_paths = [
+        _PROJECT_ROOT / "utest",
         Path.home() / "Masaüstü",
         Path.home() / "Desktop",
         Path.home() / "Downloads",
@@ -234,11 +242,14 @@ class TestRealRPMConversion(unittest.TestCase):
     @unittest.skipIf(REAL_RPM is None, "No real RPM file found on system")
     def test_rpm_dep_graph(self):
         """Build dependency graph from real RPM file."""
+        from config import extract_package_name
         from core.dep_graph import build_file_dep_graph
         graph = build_file_dep_graph(REAL_RPM)
         # Even if no ELF binaries found, graph should exist
         self.assertIsNotNone(graph)
-        self.assertEqual(graph.root, REAL_RPM.stem.split(".")[0])
+        # Root must be the clean package name (NOT stem.split(".")[0], which
+        # mis-parses dotted versions: hello-1.0.0-1.x86_64 -> "hello-1").
+        self.assertEqual(graph.root, extract_package_name(REAL_RPM.name))
         print(f"  ✓ Graph: {len(graph.nodes)} nodes, {len(graph.warnings)} warnings")
 
 

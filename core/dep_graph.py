@@ -311,23 +311,15 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
         DepGraph with binary → library edges.
     """
     graph = DepGraph()
-    # Derive the package name: strip the .pkg.tar.* suffix chain, then drop
-    # the trailing version-rel-arch segments. Using stem.split(".")[0] would
-    # break on dotted versions (hello-1.0.0-1-x86_64 -> "hello-1").
-    pkg_name = pkg_path.name
-    for suffix in (".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".pkg.tar"):
-        if pkg_name.endswith(suffix):
-            pkg_name = pkg_name[: -len(suffix)]
-            break
-    else:
-        pkg_name = pkg_path.stem
-    parts = pkg_name.split("-")
-    if len(parts) > 3:
-        pkg_name = "-".join(parts[:-3])  # Remove version-rel-arch
-    graph.root = pkg_name
+    # Derive the package name via the authoritative extractor, which handles
+    # .deb (underscore), .rpm (dot-separated arch), and .pkg.tar.* (hyphen)
+    # naming. Using stem.split(".")[0] would break on dotted versions
+    # (hello-1.0.0-1-x86_64 -> "hello-1") and miss RPM dot-arch entirely.
+    from config import extract_package_name
+    graph.root = extract_package_name(pkg_path.name)
 
     if not pkg_path.is_file():
-        graph.warnings.append(f"Dosya bulunamadı: {pkg_name}")
+        graph.warnings.append(f"Dosya bulunamadı: {graph.root}")
         return graph
 
     with tempfile.TemporaryDirectory(prefix="pkgforge_graph_") as tmpdir:
