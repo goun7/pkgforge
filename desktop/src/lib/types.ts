@@ -45,6 +45,7 @@ export interface CompatibilityReadyEvent {
 export interface FinishedEvent {
   success: boolean;
   message: string;
+  output_pkg?: string;
 }
 
 /* --- Method result types --- */

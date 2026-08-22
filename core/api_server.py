@@ -92,7 +92,11 @@ def handle_pipeline_start(params):
     _pipeline.compatibility_ready.connect(
         lambda report: _event("event.compatibility_ready", {"report": report.to_dict()}))
     _pipeline.finished.connect(
-        lambda result: _event("event.finished", {"success": result.success, "message": result.message}))
+        lambda result: _event("event.finished", {
+            "success": result.success,
+            "message": result.message,
+            "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
+        }))
     _pipeline.stage(path)
     # run on a worker thread so stdin keeps being read
     threading.Thread(target=_pipeline.run_staged, daemon=True).start()
