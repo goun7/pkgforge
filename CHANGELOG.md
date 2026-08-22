@@ -16,9 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   was the full filename stem (`hello-1.0.0-1.x86_64`) because the hyphen-based
   version-rel-arch strip does not match RPM dot-separated arch. Now uses the
   authoritative `config.extract_package_name` (handles deb/rpm/arch naming).
+- **Name-misparse sweep**: the same `stem.split(".")[0]` / `stem.split("-")[0]`
+  truncation bug existed in four more fallback paths — `sbom.generate_sbom`,
+  `aur_publish._extract_pkg_info` (two sites), and `rpm_to_deb_converter.convert`.
+  All now delegate to `config.extract_package_name`, so dotted versions
+  (`hello-1.0.0-1-any`) and hyphenated names (`my-cool-app-…`) are preserved.
 
 ### Test & Coverage Push
-- **597 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
+- **607 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
   skips reduced 13 → 2 by pointing E2E discovery at the committed fixtures.
 - Hermetic pure-logic suites: streaming, retry/backoff, SBOM diff, from_source
   build-system/license detection, security (name validation, path traversal,
