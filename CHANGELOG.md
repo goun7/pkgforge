@@ -12,9 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   (`lictest-1.0.0-1-any` → `lictest-1`). Now reads the authoritative `pkgname`
   from `.PKGINFO` and falls back to stripping the `.pkg.tar.*` suffix chain +
   version-rel-arch (consistent with `core/dep_graph.py`).
+- **`dep_graph.build_file_dep_graph`**: for `.rpm`/`.deb` inputs the root name
+  was the full filename stem (`hello-1.0.0-1.x86_64`) because the hyphen-based
+  version-rel-arch strip does not match RPM dot-separated arch. Now uses the
+  authoritative `config.extract_package_name` (handles deb/rpm/arch naming).
 
 ### Test & Coverage Push
-- **586 tests** (up from 261), **52% line coverage** on `core/` (up from 41%).
+- **597 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
+  skips reduced 13 → 2 by pointing E2E discovery at the committed fixtures.
 - Hermetic pure-logic suites: streaming, retry/backoff, SBOM diff, from_source
   build-system/license detection, security (name validation, path traversal,
   symlink escape, ELF heuristics, bubblewrap sandbox builder), shell completion,
