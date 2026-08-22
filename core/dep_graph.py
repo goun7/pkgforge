@@ -19,6 +19,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from config import extract_package_name
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -192,21 +193,17 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
         graph.warnings.append("pacman bulunamadı — grafik oluşturulamıyor")
         return graph
 
-    # Extract package name from filename or use as-is
-    pkg_name = pkg_path.stem
-    if ".pkg.tar" in pkg_name:
-        # Filename like: package-1.0.0-1-x86_64.pkg.tar.zst
-        pkg_name = "-".join(pkg_name.split("-")[:-3])  # Remove version-rel-arch
-
-    graph.root = pkg_name
+    # Extract package name from filename or use as-is. Delegate to the
+    # authoritative extractor (handles .pkg.tar.* naming and bare names).
+    graph.root = extract_package_name(pkg_path.name)
 
     # Query package dependencies
     res = safe_run(
-        [pacman, "-Qi", pkg_name], timeout=10,
+        [pacman, "-Qi", graph.root], timeout=10,
     )
     if res.returncode != 0:
         graph.warnings.append(
-            f"'{pkg_name}' kurulu değil. Grafik için paketin kurulu olması veya "
+            f"'{graph.root}' kurulu değil. Grafik için paketin kurulu olması veya "
             f".pkg.tar.zst dosyasının mevcut olması gerekir."
         )
         # Try reading from .PKGINFO if the file is a .pkg.tar.zst
@@ -315,7 +312,6 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
     # .deb (underscore), .rpm (dot-separated arch), and .pkg.tar.* (hyphen)
     # naming. Using stem.split(".")[0] would break on dotted versions
     # (hello-1.0.0-1-x86_64 -> "hello-1") and miss RPM dot-arch entirely.
-    from config import extract_package_name
     graph.root = extract_package_name(pkg_path.name)
 
     if not pkg_path.is_file():
