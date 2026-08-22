@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   FileText,
   Puzzle,
+  PackageOpen,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -18,7 +19,8 @@ export type PageId =
   | "updates"
   | "security"
   | "reports"
-  | "plugins";
+  | "plugins"
+  | "export";
 
 export interface SidebarProps {
   active: PageId;
@@ -31,7 +33,8 @@ const NAV_ITEMS: { id: PageId; label: string; icon: typeof ArrowLeftRight; soon?
   { id: "browse", label: "AUR Gözat", icon: Globe, soon: true },
   { id: "updates", label: "Güncellemeler", icon: RefreshCw },
   { id: "security", label: "Güvenlik", icon: ShieldCheck },
-  { id: "reports", label: "Raporlar", icon: FileText, soon: true },
+  { id: "reports", label: "Raporlar", icon: FileText },
+  { id: "export", label: "Dışa Aktar", icon: PackageOpen },
   { id: "plugins", label: "Eklentiler", icon: Puzzle, soon: true },
   { id: "settings", label: "Ayarlar", icon: Settings },
 ];
