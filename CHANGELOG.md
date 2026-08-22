@@ -21,9 +21,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   `aur_publish._extract_pkg_info` (two sites), and `rpm_to_deb_converter.convert`.
   All now delegate to `config.extract_package_name`, so dotted versions
   (`hello-1.0.0-1-any`) and hyphenated names (`my-cool-app-…`) are preserved.
+- **`delta_updater.find_local_previous`**: base name was derived via
+  `split("-")[0]` (truncating `my-cool-app` → `my`) and matched with a substring
+  check, so a search for `my` over-matched unrelated packages. Now compares the
+  full clean package name exactly via `config.extract_package_name`.
 
 ### Test & Coverage Push
-- **607 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
+- **610 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
   skips reduced 13 → 2 by pointing E2E discovery at the committed fixtures.
 - Hermetic pure-logic suites: streaming, retry/backoff, SBOM diff, from_source
   build-system/license detection, security (name validation, path traversal,

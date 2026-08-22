@@ -52,6 +52,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | F29 | Test push + bug | 449 → **567 tests**, coverage 47% → **51%**: suites for abi_scanner, flatpak, downloader redirect-guard, benchmark, quality_score, DepGraph, aur_publish, report_export, provenance, marketplace validation, compatibility integration, oci/reproducible guards, converter sanitize/escape, config name-extraction, signing/malware guards. Found & fixed `score_package` mis-parsing dotted package names (`lictest-1.0.0-1-any` → `lictest-1`); now prefers `.PKGINFO` pkgname. CI gate raised 35 → 48. |
 | F30 | E2E unskip + bug | 567 → **597 tests** (skips 13 → 2): pointed `test_e2e_real_packages.py` discovery at the committed hello `.deb`/`.rpm` fixtures so 11 real E2E tests actually run. Found & fixed `build_file_dep_graph` mis-parsing RPM/deb names (`hello-1.0.0-1.x86_64.rpm` → full stem); now uses the authoritative `config.extract_package_name`. |
 | F31 | Name-misparse sweep | 597 → **607 tests**: audited every `stem.split(".")[0]` / `stem.split("-")[0]` fallback and fixed the 4 remaining sites (`sbom.generate_sbom`, `aur_publish._extract_pkg_info` ×2, `rpm_to_deb_converter.convert`) to delegate to `config.extract_package_name`. +10 regression tests locking dotted-version/hyphenated-name behavior. |
+| F32 | Delta over-match | 607 → **610 tests**: `delta_updater.find_local_previous` derived the base name via `split("-")[0]` (truncating `my-cool-app` → `my`) and matched with a substring check, so searching `my` over-matched unrelated packages. Now compares the full clean name exactly via `extract_package_name`. +3 regression tests. |
 
 ---
 
@@ -59,7 +60,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **607 passed, 2 skipped, 0 failed** | PyQt6 present; green |
+| Test suite | **610 passed, 2 skipped, 0 failed** | PyQt6 present; green |
 | Line coverage (`core/`) | **52%** (6,266 stmts, 3,015 miss) | CI gate: 48% (raised from 35%) |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
@@ -112,7 +113,7 @@ Assessment of the architecture:
   place with regression tests.
 
 What a refactor would NOT buy us right now: the code is type-clean (mypy 0),
-security-clean (bandit 0 High/Medium), and green (607 tests). A broad refactor
+security-clean (bandit 0 High/Medium), and green (610 tests). A broad refactor
 before release would only add churn and regression risk with no measurable gain.
 
 Recommended (optional, post-release) improvements, none blocking:
@@ -147,7 +148,7 @@ Remaining release steps:
 1. ~~**mypy 31 errors**~~ — **FIXED** in this audit (now 0 errors, 69 files).
 2. ~~**bandit 7 Medium**~~ — **RESOLVED** (now 0 High, 0 Medium). B608 SQL and
    B310 urlopen fixed; B108 tmp cases annotated with justified `# nosec`.
-3. ~~**Coverage 41%**~~ — now **52%** (607 tests). The happy-path risk called out
+3. ~~**Coverage 41%**~~ — now **52%** (610 tests). The happy-path risk called out
    here is closed: real end-to-end conversions of the hello `.deb` and hello
    `.rpm` fixtures now run through the Qt-free subprocess converters in CI
    (`tests/test_subprocess_converters.py`), plus the GUI pipeline regression
