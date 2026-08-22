@@ -170,6 +170,152 @@ def handle_history_clear(params):
     return {"ok": True}
 
 
+# ── Faz 1 / A2: security panel ──────────────────────────────────
+
+def _require_pkg_file(params) -> Path:
+    """Resolve and validate a package path param, raising if missing."""
+    path = Path(params.get("pkg_path", ""))
+    if not path.is_file():
+        raise FileNotFoundError(f"Package not found: {path}")
+    return path
+
+
+def handle_security_verify(params):
+    from dataclasses import asdict
+
+    from core.package_signing import verify_signature
+
+    path = _require_pkg_file(params)
+    return asdict(verify_signature(path))
+
+
+def handle_security_keys(params):
+    from core.package_signing import list_keys
+
+    return list_keys()
+
+
+def handle_security_sigstore_status(params):
+    from core.sigstore import get_sigstore_status
+
+    return get_sigstore_status()
+
+
+def handle_security_provenance(params):
+    from core.provenance import find_provenance, load_provenance
+
+    path = Path(params.get("pkg_path", ""))
+    prov_path = find_provenance(path)
+    if prov_path is None:
+        return None
+    prov = load_provenance(prov_path)
+    return prov.to_dict() if prov else None
+
+
+def _run_security_thread(fn, event_name="event.security_done"):
+    """Run a blocking security op on a daemon thread, emitting a done event."""
+
+    def _worker():
+        try:
+            result = fn()
+            _event(event_name, {"ok": True, "result": result})
+        except Exception as exc:  # noqa: BLE001
+            _event(event_name, {"ok": False, "error": str(exc)})
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def handle_security_sign(params):
+    from core.package_signing import sign_package
+
+    path = _require_pkg_file(params)
+    key_path = Path(params["key_path"]) if params.get("key_path") else None
+    passphrase = params.get("passphrase", "")
+
+    def _op():
+        ok, msg = sign_package(path, key_path=key_path, passphrase=passphrase)
+        return {"ok": ok, "message": msg}
+
+    _run_security_thread(_op)
+    return {"started": True}
+
+
+def handle_security_sbom(params):
+    from core.sbom import generate_sbom
+
+    path = _require_pkg_file(params)
+    include_hashes = bool(params.get("include_hashes", True))
+    tools = discover_tools()
+
+    def _op():
+        doc = generate_sbom(path, tools, include_hashes=include_hashes)
+        return doc.to_dict()
+
+    _run_security_thread(_op)
+    return {"started": True}
+
+
+def handle_security_quality(params):
+    from dataclasses import asdict
+
+    from core.quality_score import score_package
+
+    path = _require_pkg_file(params)
+    tools = discover_tools()
+
+    def _op():
+        report = score_package(path, tools)
+        d = asdict(report)
+        d["passed"] = report.passed
+        return d
+
+    _run_security_thread(_op)
+    return {"started": True}
+
+
+def handle_security_provenance_create(params):
+    from core.provenance import create_provenance, save_provenance
+
+    source_file = Path(params.get("source_file", ""))
+    output_file = Path(params.get("output_file", ""))
+    if not source_file.is_file():
+        raise FileNotFoundError(f"Source not found: {source_file}")
+
+    def _op():
+        prov = create_provenance(
+            source_file=source_file,
+            output_file=output_file,
+            source_type=params.get("source_type", ""),
+            source_url=params.get("source_url", ""),
+        )
+        save_path = Path(str(output_file) + ".provenance.json")
+        save_provenance(prov, save_path)
+        return prov.to_dict()
+
+    _run_security_thread(_op)
+    return {"started": True}
+
+
+# ── Faz 1 / A4: delta updater ───────────────────────────────────
+
+def handle_delta_status(params):
+    from core.delta_updater import get_auto_update_status
+
+    return get_auto_update_status()
+
+
+def handle_delta_enable(params):
+    # Enabling the systemd timer requires privilege escalation; the desktop
+    # UI triggers pkexec via its own privileged helper in a later phase.
+    return {"ok": False, "requires_privilege": True,
+            "message": "Delta auto-update etkinleştirme yetkili işlem gerektiriyor (pkexec)"}
+
+
+def handle_delta_disable(params):
+    return {"ok": False, "requires_privilege": True,
+            "message": "Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)"}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -183,6 +329,19 @@ METHODS = {
     "history.uninstall": handle_history_uninstall,
     "history.rollback": handle_history_rollback,
     "history.clear": handle_history_clear,
+    # Faz 1 / A2: security panel
+    "security.verify": handle_security_verify,
+    "security.sign": handle_security_sign,
+    "security.keys": handle_security_keys,
+    "security.sbom": handle_security_sbom,
+    "security.quality": handle_security_quality,
+    "security.provenance": handle_security_provenance,
+    "security.provenance_create": handle_security_provenance_create,
+    "security.sigstore_status": handle_security_sigstore_status,
+    # Faz 1 / A4: delta updater
+    "delta.status": handle_delta_status,
+    "delta.enable": handle_delta_enable,
+    "delta.disable": handle_delta_disable,
 }
 
 
