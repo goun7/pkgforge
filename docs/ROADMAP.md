@@ -8,7 +8,7 @@
 ## Faz Yapısı
 
 - **Faz 0 — Tasarım Sistemi & Marka**: logo finali, renk/tipografi token'ları, ikon seti, C-görsel design system — ✅ tamamlandı (Tauri v2 + React + Python-sidecar; Convert/Installed/Settings parity; paketlenmiş sidecar; 637 Python + 26 vitest testi; sürüm 2.0.0-alpha)
-- **Faz 1 — Alan A** (mevcut özellikleri GUI'ye taşı): A1–A6
+- **Faz 1 — Alan A** (mevcut özellikleri GUI'ye taşı): A1–A6 — ✅ tamamlandı (sidecar method'ları + Security/Updates/Reports/Export sayfaları + DepGraph + Convert genişletmeleri; 656 Python + 45 vitest testi)
 - **Faz 2 — Alan B** (yeni yetenekler): B1–B8
 - **Faz 3 — Alan C** (mimari genişleme): C1–C3
 
@@ -20,12 +20,12 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 
 | # | Madde | Core modül(ler) | Durum |
 |---|-------|-----------------|-------|
-| A1 | Export merkezleri: AppImage / Flatpak / OCI container çıktısı | `appimage_converter`, `flatpak_converter`, `oci_builder` | ⬜ yapılacak |
-| A2 | Güvenlik paneli: GPG imzala/doğrula, Sigstore, SBOM indir, SLSA provenance, kalite skoru | `package_signing`, `sigstore`, `sbom`, `provenance`, `quality_score` | ⬜ yapılacak |
-| A3 | Bağımlılık görselleştirici: interaktif graf (ASCII/mermaid yerine) | `dep_graph`, `dep_resolver` | ⬜ yapılacak |
-| A4 | Delta güncelleme yöneticisi: enable/disable/status + uygulama | `delta_updater` | ⬜ yapılacak |
-| A5 | From-source sihirbazı: PKGBUILD üret → derle | `from_source` | ⬜ yapılacak |
-| A6 | Sistem araçları: health check, audit log görüntüleyici, snapshot temizleyici, verify-rollback, benchmark | `cross_check`, `report_export`, `snapshot_cleanup`, `rollback_verify`, `benchmark` | ⬜ yapılacak |
+| A1 | Export merkezleri: AppImage / Flatpak / OCI container çıktısı | `appimage_converter`, `flatpak_converter`, `oci_builder` | ✅ Faz 1 (Export sayfası + Convert OCI butonu) |
+| A2 | Güvenlik paneli: GPG imzala/doğrula, Sigstore, SBOM indir, SLSA provenance, kalite skoru | `package_signing`, `sigstore`, `sbom`, `provenance`, `quality_score` | ✅ Faz 1 (Security sayfası) |
+| A3 | Bağımlılık görselleştirici: interaktif graf (ASCII/mermaid yerine) | `dep_graph`, `dep_resolver` | ✅ Faz 1 (DepGraph SVG bileşeni) |
+| A4 | Delta güncelleme yöneticisi: enable/disable/status + uygulama | `delta_updater` | ✅ Faz 1 (Updates sayfası; pkexec Faz 2) |
+| A5 | From-source sihirbazı: PKGBUILD üret → derle | `from_source` | ✅ Faz 1 (Convert/Kaynaktan sekmesi) |
+| A6 | Sistem araçları: health check, audit log görüntüleyici, snapshot temizleyici, verify-rollback, benchmark | `cross_check`, `report_export`, `snapshot_cleanup`, `rollback_verify`, `benchmark` | ✅ Faz 1 (Reports sayfası; pkexec Faz 2) |
 
 ## Alan B — Yeni yetenekler (yeni geliştirme)
 
