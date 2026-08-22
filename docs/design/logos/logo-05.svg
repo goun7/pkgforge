@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+<defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00f5a0"/><stop offset="1" stop-color="#00b4d8"/></linearGradient></defs>
+<rect width="240" height="240" fill="#0a0e1a"/>
+<!-- P as anvil -->
+<path d="M84 190 V50 h52 a44 44 0 0 1 0 88 h-24" fill="none" stroke="url(#g5)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- anvil base under P bowl -->
+<path d="M136 138 h30 v14 h-30" fill="url(#g5)" opacity="0.7"/>
+<circle cx="176" cy="60" r="6" fill="#00f5a0"/>
+</svg>

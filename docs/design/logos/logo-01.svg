@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+<defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00f5a0"/><stop offset="1" stop-color="#00b4d8"/></linearGradient></defs>
+<rect width="240" height="240" fill="#0a0e1a"/>
+<!-- hexagon package -->
+<path d="M120 52 L178 86 L178 154 L120 188 L62 154 L62 86 Z" fill="none" stroke="url(#g1)" stroke-width="10" stroke-linejoin="round"/>
+<!-- inner fold lines -->
+<path d="M62 86 L120 120 L178 86 M120 120 L120 188" fill="none" stroke="url(#g1)" stroke-width="6" stroke-linejoin="round" opacity="0.55"/>
+<!-- spark -->
+<circle cx="196" cy="52" r="7" fill="#00f5a0"/>
+<path d="M196 34 v10 M196 60 v10 M178 52 h10 M204 52 h10" stroke="#00f5a0" stroke-width="4" stroke-linecap="round"/>
+</svg>

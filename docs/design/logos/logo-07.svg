@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+<defs><linearGradient id="g7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00f5a0"/><stop offset="1" stop-color="#00b4d8"/></linearGradient></defs>
+<rect width="240" height="240" fill="#0a0e1a"/>
+<!-- gear -->
+<g transform="translate(120 120)">
+<g fill="url(#g7)">
+<rect x="-10" y="-86" width="20" height="26" rx="5"/>
+<rect x="-10" y="60" width="20" height="26" rx="5"/>
+<rect x="-86" y="-10" width="26" height="20" rx="5"/>
+<rect x="60" y="-10" width="26" height="20" rx="5"/>
+<rect x="-10" y="-86" width="20" height="26" rx="5" transform="rotate(45)"/>
+<rect x="-10" y="60" width="20" height="26" rx="5" transform="rotate(45)"/>
+<rect x="-86" y="-10" width="26" height="20" rx="5" transform="rotate(45)"/>
+<rect x="60" y="-10" width="26" height="20" rx="5" transform="rotate(45)"/>
+</g>
+<circle r="58" fill="none" stroke="url(#g7)" stroke-width="14"/>
+<!-- package in center -->
+<rect x="-22" y="-22" width="44" height="44" rx="8" fill="url(#g7)"/>
+<path d="M-22 -8 h44 M0 -22 v44" stroke="#0a0e1a" stroke-width="4"/>
+</g>
+</svg>

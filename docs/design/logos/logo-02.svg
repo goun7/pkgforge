@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+<defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00f5a0"/><stop offset="1" stop-color="#00c97d"/></linearGradient></defs>
+<rect width="240" height="240" fill="#0a0e1a"/>
+<!-- anvil body -->
+<path d="M60 96 h120 v18 c0 8 -14 12 -30 14 v14 h34 v22 H56 v-22 h34 v-14 c-16 -2 -30 -6 -30 -14 Z" fill="url(#g2)"/>
+<!-- anvil horn -->
+<path d="M180 96 c22 0 34 8 34 18 c0 6 -8 10 -20 10 h-14 Z" fill="url(#g2)"/>
+<!-- base -->
+<rect x="76" y="170" width="88" height="16" rx="4" fill="url(#g2)" opacity="0.8"/>
+<!-- spark on top -->
+<circle cx="120" cy="66" r="6" fill="#00f5a0"/>
+<path d="M120 50 v8 M104 66 h8 M128 66 h8" stroke="#00f5a0" stroke-width="4" stroke-linecap="round"/>
+</svg>

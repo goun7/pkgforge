@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+<defs><linearGradient id="g10" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00f5a0"/><stop offset="1" stop-color="#00b4d8"/></linearGradient></defs>
+<rect width="240" height="240" fill="#0a0e1a"/>
+<!-- terminal window -->
+<rect x="52" y="60" width="136" height="120" rx="14" fill="none" stroke="url(#g10)" stroke-width="10"/>
+<path d="M52 92 h136" stroke="url(#g10)" stroke-width="6" opacity="0.5"/>
+<circle cx="70" cy="76" r="4" fill="#00f5a0"/><circle cx="86" cy="76" r="4" fill="#00f5a0" opacity="0.6"/><circle cx="102" cy="76" r="4" fill="#00f5a0" opacity="0.3"/>
+<!-- prompt + package -->
+<path d="M74 116 l16 14 l-16 14" fill="none" stroke="url(#g10)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="112" y="122" width="44" height="26" rx="5" fill="url(#g10)"/>
+</svg>
