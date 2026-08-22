@@ -13,7 +13,9 @@ class TestReportExport(unittest.TestCase):
 
     def _report(self):
         from core.compatibility_checker import (
-            CheckResult, CheckSeverity, CompatibilityReport,
+            CheckResult,
+            CheckSeverity,
+            CompatibilityReport,
         )
         return CompatibilityReport(checks=[
             CheckResult(name="deps", severity=CheckSeverity.PASS, message="ok"),
@@ -76,7 +78,9 @@ class TestProvenance(unittest.TestCase):
 
     def test_save_load_roundtrip(self):
         from core.provenance import (
-            BuildProvenance, load_provenance, save_provenance,
+            BuildProvenance,
+            load_provenance,
+            save_provenance,
         )
         with tempfile.TemporaryDirectory() as td:
             prov = BuildProvenance(package_name="hello", package_version="1.0")

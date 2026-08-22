@@ -17,7 +17,8 @@ class TestRunCompatibilityChecks(unittest.TestCase):
     def test_real_package(self):
         from config import discover_tools
         from core.compatibility_checker import (
-            CompatibilityReport, run_compatibility_checks,
+            CompatibilityReport,
+            run_compatibility_checks,
         )
         tools = discover_tools()
         report = run_compatibility_checks(

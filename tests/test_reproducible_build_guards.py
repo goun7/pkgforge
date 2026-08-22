@@ -20,9 +20,10 @@ class TestVerifyReproducibleGuards(unittest.TestCase):
         self.assertIn("bulunamad", result.detail)  # bulunamadı (not found)
 
     def test_missing_makepkg(self):
+        import tempfile
+
         from config import ToolPaths
         from core.reproducible_build import verify_reproducible
-        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".pkg.tar.zst", delete=False) as f:
             f.write(b"fake")
             path = Path(f.name)

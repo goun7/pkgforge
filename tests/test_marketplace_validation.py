@@ -86,7 +86,8 @@ class TestCheckFileConflicts(unittest.TestCase):
     def test_empty_list_passes(self):
         from config import discover_tools
         from core.compatibility_checker import (
-            CheckSeverity, _check_file_conflicts,
+            CheckSeverity,
+            _check_file_conflicts,
         )
         result = _check_file_conflicts([], discover_tools())
         self.assertEqual(result.severity, CheckSeverity.PASS)
