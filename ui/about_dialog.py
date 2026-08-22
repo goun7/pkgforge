@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 )
 
 from config import APP_NAME, APP_VERSION
+from i18n import tr
 from ui.styles import get_colors
 
 
@@ -23,7 +24,7 @@ class AboutDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Hakkında — {APP_NAME}")
+        self.setWindowTitle(tr("about.title"))
         self.setMinimumWidth(420)
         self.setModal(True)
         self._setup_ui()
@@ -39,16 +40,13 @@ class AboutDialog(QDialog):
         layout.addWidget(title)
 
         # Version
-        version = QLabel(f"Versiyon {APP_VERSION}")
+        version = QLabel(tr("about.version").format(version=APP_VERSION))
         version.setStyleSheet(f"font-size: 14px; color: {get_colors().TEXT_DIM};")
         version.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(version)
 
         # Description
-        desc = QLabel(
-            "Modern .deb/.rpm paket dönüştürücü ve yaşam döngüsü yöneticisi.\n"
-            "Arch Linux ve CachyOS için tasarlandı."
-        )
+        desc = QLabel(tr("about.desc_long"))
         desc.setWordWrap(True)
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc.setStyleSheet(f"color: {get_colors().TEXT}; font-size: 13px;")
@@ -59,9 +57,9 @@ class AboutDialog(QDialog):
         info_layout.setSpacing(20)
 
         info_items = [
-            ("Lisans", "GPL-3.0-or-later"),
-            ("Python", "3.10+"),
-            ("Platform", "Linux"),
+            (tr("about.license_label"), "GPL-3.0-or-later"),
+            (tr("about.python_label"), "3.10+"),
+            (tr("about.platform_label"), "Linux"),
         ]
         for label, value in info_items:
             col = QVBoxLayout()
@@ -82,14 +80,14 @@ class AboutDialog(QDialog):
             '<a href="https://github.com/goun7/pkgforge" style="color: ' +
             get_colors().TEAL + ';">GitHub</a> · '
             '<a href="https://github.com/goun7/pkgforge/blob/master/LICENSE" style="color: ' +
-            get_colors().TEAL + ';">Lisans</a>'
+            get_colors().TEAL + ';">' + tr("about.license_label") + '</a>'
         )
         links.setOpenExternalLinks(True)
         links.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(links)
 
         # Close button
-        close_btn = QPushButton("Kapat")
+        close_btn = QPushButton(tr("about.close"))
         close_btn.clicked.connect(self.accept)
         close_btn.setStyleSheet(
             f"background-color: {get_colors().SURFACE_ALT}; color: {get_colors().TEXT}; "

@@ -149,6 +149,12 @@ STRINGS: dict[str, str] = {
 
     # ── About ────────────────────────────────────────────────────
     "about.title": "About PkgForge",
+    "about.version": "Version {version}",
+    "about.desc_long": "Modern .deb/.rpm package converter and lifecycle manager.\nDesigned for Arch Linux and CachyOS.",
+    "about.license_label": "License",
+    "about.python_label": "Python",
+    "about.platform_label": "Platform",
+    "about.close": "Close",
     "about.description": "Modern security-focused tool to convert and install .deb and .rpm packages on Arch Linux.",
     "about.author": "Developer: PkgForge Team",
     "about.license": "License: GPL-3.0-or-later",
