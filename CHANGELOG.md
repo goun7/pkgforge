@@ -7,6 +7,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed (Production-Readiness Audit)
+- **`quality_score.score_package`**: package name was derived via
+  `pkg_path.stem.split(".")[0]`, which mis-parsed dotted versions
+  (`lictest-1.0.0-1-any` → `lictest-1`). Now reads the authoritative `pkgname`
+  from `.PKGINFO` and falls back to stripping the `.pkg.tar.*` suffix chain +
+  version-rel-arch (consistent with `core/dep_graph.py`).
+
+### Test & Coverage Push
+- **586 tests** (up from 261), **52% line coverage** on `core/` (up from 41%).
+- Hermetic pure-logic suites: streaming, retry/backoff, SBOM diff, from_source
+  build-system/license detection, security (name validation, path traversal,
+  symlink escape, ELF heuristics, bubblewrap sandbox builder), shell completion,
+  structured-log formatters, snapshot-cleanup generators, HistoryDB (SQLite),
+  DepGraph rendering/stats/depth, aur_publish, report_export, provenance
+  round-trip + tamper detection, marketplace plugin validation, config
+  package-name extraction, converter sanitize/escape (command-injection guard),
+  plugin registry, abi_scanner/flatpak/downloader/benchmark/quality_score.
+- **Real end-to-end conversions** of the hello `.deb` and hello `.rpm` fixtures
+  through the Qt-free subprocess converters (`tests/test_subprocess_converters.py`),
+  plus `run_compatibility_checks` and `score_package` against the tracked
+  `lictest` `.pkg.tar.zst` fixture.
+- **CI coverage gate** raised 35 → 48 to lock in the progress.
+
+### Fixed (earlier audit items)
 - **Wheel packaging**: `py-modules = ["main","cli","config"]` added so the built
   wheel actually ships the entry-point modules (previously `pkgforge list` failed
   with `ModuleNotFoundError: No module named 'cli'` after `pip install`).
