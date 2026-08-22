@@ -191,6 +191,36 @@ class TestFindLocalPrevious(unittest.TestCase):
             found = find_local_previous("hello", pkg_dir=d)
             self.assertEqual(found.name, "hello-1.0-1-x86_64.pkg.tar.zst")
 
+    def test_hyphenated_name_matches_exactly(self):
+        """Regression: split("-")[0] truncated my-cool-app -> "my" and the
+        substring check over-matched. Full-name comparison is required."""
+        from core.delta_updater import find_local_previous
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            (d / "my-cool-app-1.0-1-x86_64.pkg.tar.zst").write_bytes(b"x")
+            # Exact hyphenated name must match.
+            found = find_local_previous("my-cool-app", pkg_dir=d)
+            self.assertIsNotNone(found)
+            self.assertEqual(found.name, "my-cool-app-1.0-1-x86_64.pkg.tar.zst")
+
+    def test_prefix_does_not_over_match(self):
+        """Searching for "my" must NOT match my-cool-app (old substring bug)."""
+        from core.delta_updater import find_local_previous
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            (d / "my-cool-app-1.0-1-x86_64.pkg.tar.zst").write_bytes(b"x")
+            found = find_local_previous("my", pkg_dir=d)
+            self.assertIsNone(found)
+
+    def test_dotted_version_name_matches(self):
+        """Dotted versions must still resolve to the clean base name."""
+        from core.delta_updater import find_local_previous
+        with tempfile.TemporaryDirectory() as td:
+            d = Path(td)
+            (d / "hello-1.0.0-1-x86_64.pkg.tar.zst").write_bytes(b"x")
+            found = find_local_previous("hello", pkg_dir=d)
+            self.assertIsNotNone(found)
+
 
 class TestCompatibilityReportProps(unittest.TestCase):
     """CompatibilityReport.overall / grade / errors / warnings / passed."""

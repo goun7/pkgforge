@@ -14,6 +14,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from config import extract_package_name
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -111,9 +112,11 @@ def find_local_previous(package_name: str, pkg_dir: Path | None = None) -> Path 
         if not f.is_file():
             continue
         if ".pkg.tar" in f.name and not f.name.endswith((".sig", ".json")):
-            # Match by base package name (strip version)
-            base = f.name.split("-")[0] if "-" in f.name else f.stem
-            if base and base.lower() in package_name.lower():
+            # Match by the full clean package name. Using split("-")[0]
+            # truncated hyphenated names (my-cool-app -> "my") and the
+            # substring check over-matched unrelated packages.
+            base = extract_package_name(f.name)
+            if base and base.lower() == package_name.lower():
                 candidates.append(f)
 
     # Return the most recent one (by modification time)
