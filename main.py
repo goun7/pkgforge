@@ -339,6 +339,9 @@ def main() -> int:
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
+    # serve subcommand (JSON-RPC sidecar for the desktop UI)
+    subparsers.add_parser("serve", help=tr("cli.serve_help"))
+
     # completion subcommand
     completion_parser = subparsers.add_parser("completion", help=tr("cli.completion_help"))
     completion_parser.add_argument("shell", choices=["bash", "zsh", "fish"], help=tr("cli.completion_shell"))
@@ -410,6 +413,11 @@ def main() -> int:
             print(f"\n⚠️  {failures}/{len(file_list)} dosya başarısız")
             return 1
         print(f"\n✅ {len(file_list)} dosya başarıyla dönüştürüldü")
+        return 0
+    if args.command == "serve":
+        from core.api_server import serve
+
+        serve()
         return 0
     if args.command and args.command != "gui":
         from cli import run_cli

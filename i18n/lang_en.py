@@ -296,6 +296,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_remove_help": "Remove a locally installed plugin",
     "cli.plugin_remove_name": "Plugin name to remove",
     "cli.gui_help": "Launch PyQt6 graphical interface",
+    "cli.serve_help": "Run the JSON-RPC sidecar (used by the desktop UI)",
     "cli.arg_target": "File path or URL to .deb/.rpm package",
     "cli.arg_install": "Automatically install after conversion",
     "cli.arg_yes": "Skip the install confirmation prompt",

@@ -296,6 +296,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_remove_help": "Yerel plugin'i kaldır",
     "cli.plugin_remove_name": "Kaldırılacak plugin adı",
     "cli.gui_help": "PyQt6 grafik arayüzünü başlatın",
+    "cli.serve_help": "JSON-RPC sidecarı çalıstır (masaüstü arayüzü kullanır)",
     "cli.arg_target": "Dönüştürülecek .deb/.rpm dosya yolu veya URL",
     "cli.arg_install": "Dönüşümden sonra otomatik kur",
     "cli.arg_yes": "Kurulum onay istemini atla",
