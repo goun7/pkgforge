@@ -179,15 +179,17 @@ layers, SBOM/provenance, and delta updates.
 | Conversion maturity | 6 | **9** | n/a | debtap is battle-tested (331 votes, years) |
 | Security posture | **8** | 3 | 5 | sandbox, MIME, GPG, path-traversal, ClamAV |
 | CLI/UX | 8 | 6 | 7 | PkgForge adds GUI + completions |
-| Packaging/distribution | **2** | 8 | 9 | PkgForge has no repo/AUR yet (REPO-001) |
+| Packaging/distribution | **3** | 8 | 9 | Private repo exists (REPO-001 resolved); still no public/AUR |
 | Community/adoption | **1** | 7 | 7 | 0 votes vs 331/303 |
 | Maintenance freshness | 8 | 5 | **8** | debtap last touched 2025-08 |
-| Test/CI quality | 6 | 2 | 6 | 228 tests + CI; debtap has minimal CI |
-| **Weighted total** | **6.0** | **5.5** | **6.0** | weights: maturity 20%, distribution 20%, features 15%, security 15%, adoption 15%, tests 10%, UX 5% |
+| Test/CI quality | **8** | 2 | 6 | 586 tests, 52% cov, CI gate 48; debtap has minimal CI |
+| **Weighted total** | **5.7** | **6.0** | **5.5** | weights: maturity 20%, distribution 20%, features 15%, security 15%, adoption 15%, tests 10%, UX 5% (aurutils maturity n/a → 0) |
 
-**Interpretation:** On *technology* PkgForge leads debtap clearly; on
-*distribution and trust* it is far behind. The gap is closable in one step:
-publish the repo + AUR package. Until then the superior feature set is
+**Interpretation:** On *technology* PkgForge leads debtap clearly (features,
+security, tests/CI all score higher); on *distribution and trust* it is still
+behind. The repo now exists (private) and the test/CI gap has been closed
+(586 tests, 52% coverage). The remaining gap is closable in one step: make the
+repo public + submit the AUR package. Until then the superior feature set is
 invisible to users.
 
 ---
