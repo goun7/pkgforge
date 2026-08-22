@@ -146,3 +146,25 @@ def test_pipeline_start_real_deb(sidecar, tmp_path):
     assert "event.finished" in methods
     fin = [e for e in events if e["method"] == "event.finished"][0]
     assert fin["params"]["success"] is False
+
+
+def test_history_list_empty(sidecar):
+    resp = _rpc(sidecar, "history.list")
+    assert resp["result"] == []
+
+
+def test_history_uninstall_invalid_name(sidecar):
+    resp = _rpc(sidecar, "history.uninstall", {"name": "bad;rm -rf /"})
+    assert "error" in resp
+    assert resp["error"]["code"] == -32000
+
+
+def test_history_rollback_no_backup(sidecar):
+    resp = _rpc(sidecar, "history.rollback", {"name": "nonexistent-pkg"})
+    assert "error" in resp
+    assert resp["error"]["code"] == -32000
+
+
+def test_history_clear(sidecar):
+    resp = _rpc(sidecar, "history.clear")
+    assert resp["result"]["ok"] is True

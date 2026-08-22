@@ -118,6 +118,59 @@ def handle_pipeline_dismiss(params):
     return {"ok": True}
 
 
+def handle_history_list(params):
+    from core.history_db import HistoryDB
+
+    db = HistoryDB()
+    records = db.get_history(limit=int(params.get("limit", 100)))
+    return [
+        {
+            "id": r.id,
+            "timestamp": r.timestamp,
+            "package_name": r.package_name,
+            "package_type": r.package_type,
+            "status": r.status,
+            "original_file": r.original_file,
+            "source_url": r.source_url or "",
+        }
+        for r in records
+    ]
+
+
+def handle_history_uninstall(params):
+    from core.security import is_valid_package_name
+
+    name = params.get("name", "")
+    if not is_valid_package_name(name):
+        raise ValueError(f"Invalid package name: {name}")
+    # Actual pacman -R requires privilege escalation; the desktop UI
+    # triggers pkexec via its own privileged helper in a later phase.
+    return {"ok": True, "requires_privilege": True, "package": name}
+
+
+def handle_history_rollback(params):
+    from core.history_db import HistoryDB
+    from core.security import is_valid_package_name
+
+    name = params.get("name", "")
+    if not is_valid_package_name(name):
+        raise ValueError(f"Invalid package name: {name}")
+    db = HistoryDB()
+    records = db.get_records_for_package(name)
+    backups = [r for r in records if r.backup_pkg and Path(r.backup_pkg).is_file()]
+    if not backups:
+        raise FileNotFoundError(f"No backup found for {name}")
+    return {"ok": True, "requires_privilege": True, "backup": backups[0].backup_pkg}
+
+
+def handle_history_clear(params):
+    from core.history_db import HistoryDB
+
+    db = HistoryDB()
+    db.clear_history()
+    return {"ok": True}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -127,6 +180,10 @@ METHODS = {
     "pipeline.cancel": handle_pipeline_cancel,
     "pipeline.approve": handle_pipeline_approve,
     "pipeline.dismiss": handle_pipeline_dismiss,
+    "history.list": handle_history_list,
+    "history.uninstall": handle_history_uninstall,
+    "history.rollback": handle_history_rollback,
+    "history.clear": handle_history_clear,
 }
 
 
