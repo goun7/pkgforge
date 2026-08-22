@@ -196,19 +196,20 @@ invisible to users.
 
 ## 6. Release Checklist
 
-- [x] Full test suite green (228 passed)
+- [x] Full test suite green (586 passed, 13 skipped)
 - [x] Wheel builds and installs cleanly; entry point works
-- [x] E2E conversion verified on a real .deb
-- [x] GUI launches
+- [x] E2E conversion verified on a real .deb and .rpm (subprocess converters)
+- [x] GUI launches; all dialogs smoke-tested; 2 crash bugs fixed (F26/F27)
 - [x] systemd units valid
 - [x] install/uninstall scripts coherent
 - [x] README/CHANGELOG/PKGBUILD honest (no false badges)
-- [x] CI gate honest and passing locally
-- [ ] **REPO-001: create GitHub repo, push, tag v1.1.0** (needs human)
-- [ ] **Submit `pkgforge` / `pkgforge-git` to AUR** (needs human + repo)
+- [x] CI gate honest and passing locally (raised to 48)
+- [x] **REPO-001: GitHub repo created (private), full history pushed**
+- [ ] **Make repo public + tag v1.1.0 + GitHub release** (needs human go-ahead)
+- [ ] **Submit `pkgforge` / `pkgforge-git` to AUR** (needs human + public repo)
 - [x] Fix or gate mypy errors (now 0 across 69 files)
 - [x] Resolve bandit Medium issues (now 0 High, 0 Medium)
-- [ ] Raise coverage on the 0% converter modules
+- [x] Raise coverage on the 0% converter modules (now 52% overall)
 
 ---
 
