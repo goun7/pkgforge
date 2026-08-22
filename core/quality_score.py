@@ -100,6 +100,24 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
     return info
 
 
+def _name_from_filename(pkg_path: Path) -> str:
+    """Derive a package name from a .pkg.tar.* filename.
+
+    Strips the .pkg.tar.* suffix chain, then drops the trailing
+    version-rel-arch components (e.g. lictest-1.0.0-1-any -> lictest).
+    Mirrors the parsing used by core/dep_graph.py so both agree.
+    """
+    name = pkg_path.name
+    for suffix in (".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".pkg.tar"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    parts = name.split("-")
+    if len(parts) > 3:
+        return "-".join(parts[:-3])  # Remove version-rel-arch
+    return name
+
+
 def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
     """Score a converted package on multiple quality dimensions.
 
@@ -117,7 +135,14 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
         QualityReport with detailed scoring.
     """
     report = QualityReport()
-    report.package_name = pkg_path.stem.split(".")[0]
+
+    # Read .PKGINFO once up front: it carries the authoritative pkgname and is
+    # reused by the compatibility/metadata checks below. Deriving the name from
+    # the filename via stem.split(".")[0] mis-parses dotted versions
+    # (lictest-1.0.0-1-any -> "lictest-1"), so prefer pkgname and fall back to
+    # stripping the .pkg.tar.* suffix chain + version-rel-arch.
+    pkginfo = _read_pkginfo(pkg_path)
+    report.package_name = pkginfo.get("pkgname", "") or _name_from_filename(pkg_path)
 
     # ── Security checks (25 pts) ────────────────────────────────
 
@@ -205,8 +230,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
     # ── Compatibility checks (25 pts) ───────────────────────────
 
     # Dependencies resolved (15 pts)
-    pkginfo = _read_pkginfo(pkg_path)
-
+    # (pkginfo already read up front above)
     try:
         from core.dep_resolver import resolve_dependencies
         deps = [v for k, v in pkginfo.items() if k == "depend"]
