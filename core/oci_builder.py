@@ -15,7 +15,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from config import ToolPaths
+from config import ToolPaths, extract_package_name
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -59,12 +59,11 @@ def build_oci_image(
             None,
         )
 
-    # Derive tag from package filename
+    # Derive tag from package filename. Use the authoritative extractor so
+    # the tag is the clean package name (hello), not the raw stem which
+    # leaves ".pkg.tar" and the version glued on (hello-1.0.0-1-x86_64.pkg.tar).
     if not tag:
-        pkg_name = pkg_path.stem
-        # Clean up: remove arch suffix like .x86_64, .any
-        for suffix in (".x86_64", ".any", ".i686", ".aarch64"):
-            pkg_name = pkg_name.removesuffix(suffix)
+        pkg_name = extract_package_name(pkg_path.name)
         tag = f"pkgforge/{pkg_name}:latest"
 
     if output_file is None:

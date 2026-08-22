@@ -152,9 +152,15 @@ class HistoryDB:
                             sz = _P(out).stat().st_size / (1024 * 1024)
                             total_size += sz
                             size_count += 1
-                            # Infer arch from filename: …-x86_64.pkg.tar.zst
-                            stem = _P(out).stem  # strip .zst
-                            parts = stem.rsplit("-", 1)
+                            # Infer arch from filename: …-x86_64.pkg.tar.zst.
+                            # Must strip the .pkg.tar.* suffix chain first;
+                            # .stem alone leaves ".pkg.tar" glued to the arch.
+                            base = _P(out).name
+                            for _sfx in (".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".pkg.tar"):
+                                if base.endswith(_sfx):
+                                    base = base[: -len(_sfx)]
+                                    break
+                            parts = base.rsplit("-", 1)
                             if len(parts) == 2:
                                 arch = parts[-1]  # e.g. x86_64
                                 stats["by_arch"][arch] = stats["by_arch"].get(arch, 0) + 1
