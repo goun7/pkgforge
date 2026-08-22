@@ -14,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     from PyQt6.QtCore import QEvent, Qt
     from PyQt6.QtGui import QKeyEvent
-    from PyQt6.QtWidgets import QApplication, QWidget
+    from PyQt6.QtWidgets import QApplication
     _HAS_QT = True
 except ImportError:
     _HAS_QT = False

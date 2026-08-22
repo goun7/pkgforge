@@ -55,7 +55,7 @@ class TestDepGraph(unittest.TestCase):
         self.assertIn("circular", out)
 
     def test_stats(self):
-        from core.dep_graph import DepGraph, DepNode
+        from core.dep_graph import DepGraph
         g = DepGraph(root="app")
         g.add_edge("app", "libc")
         g.nodes["libc"].is_installed = True

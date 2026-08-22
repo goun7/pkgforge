@@ -3,9 +3,7 @@
 All hermetic: in-memory ToolPaths and temp dirs only.
 """
 
-import tempfile
 import unittest
-from pathlib import Path
 
 
 class TestExtractPackageName(unittest.TestCase):
