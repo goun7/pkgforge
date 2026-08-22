@@ -423,12 +423,15 @@ class MainWindow(QMainWindow):
         result = items[index].result
         if not result or not getattr(result, "compatibility", None):
             return
+        # read_only=True: the pipeline already finished and cleaned up the
+        # converted package, so the report is view-only (no install actions).
         dialog = ResultDialog(
             report=result.compatibility,
             metadata=result.metadata,
             signature=result.signature,
             sha256=result.sha256,
             show_distrobox=False,
+            read_only=True,
             parent=self,
         )
         dialog.exec()

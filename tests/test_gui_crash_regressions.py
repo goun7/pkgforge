@@ -236,5 +236,70 @@ class TestResultDialogErrorInstallAnyway(unittest.TestCase):
         dlg.close()
 
 
+@unittest.skipUnless(_HAS_QT, "PyQt6 not available")
+class TestResultDialogReadOnly(unittest.TestCase):
+    """A reopened (read_only) report must show only Close, no install buttons.
+
+    The converted package is cleaned up once the pipeline finishes, so an
+    Install/Install Anyway button on a reopened report would be dead.
+    """
+
+    def _make_dialog(self, severity, read_only):
+        from core.compatibility_checker import (
+            CheckResult,
+            CompatibilityReport,
+        )
+        from core.package_analyzer import PackageMetadata
+        from ui.result_dialog import ResultDialog
+
+        report = CompatibilityReport(
+            checks=[
+                CheckResult(
+                    name="test",
+                    severity=severity,
+                    message="msg",
+                    details=["detail"],
+                )
+            ]
+        )
+        meta = PackageMetadata(
+            name="hello",
+            version="1.0.0-1",
+            arch="amd64",
+            arch_mapped="x86_64",
+            description="test",
+            file_list=["usr/bin/hello"],
+        )
+        return ResultDialog(report=report, metadata=meta, read_only=read_only)
+
+    def _button_texts(self, dlg):
+        from PyQt6.QtWidgets import QPushButton
+
+        return {w.text() for w in dlg.findChildren(QPushButton)}
+
+    def test_read_only_error_shows_only_close(self):
+        from core.compatibility_checker import CheckSeverity
+        from i18n import tr
+
+        _get_app()
+        dlg = self._make_dialog(CheckSeverity.ERROR, read_only=True)
+        texts = self._button_texts(dlg)
+        self.assertIn(tr("btn.close"), texts)
+        self.assertNotIn(tr("btn.install_anyway"), texts)
+        self.assertNotIn(tr("btn.install"), texts)
+        dlg.close()
+
+    def test_read_only_pass_shows_only_close(self):
+        from core.compatibility_checker import CheckSeverity
+        from i18n import tr
+
+        _get_app()
+        dlg = self._make_dialog(CheckSeverity.PASS, read_only=True)
+        texts = self._button_texts(dlg)
+        self.assertIn(tr("btn.close"), texts)
+        self.assertNotIn(tr("btn.install"), texts)
+        dlg.close()
+
+
 if __name__ == "__main__":
     unittest.main()

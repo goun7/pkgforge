@@ -544,10 +544,24 @@ class ConversionPipeline(QObject):
 
         if report.overall == CheckSeverity.ERROR:
             self._set_step(PipelineStep.COMPATIBILITY, "error")
-            self._result.message = "Uyumluluk testleri başarısız — kurulum önerilmez"
-            self._result.success = False
+            self._log("error", "Uyumluluk testleri başarısız — kullanıcı kararı bekleniyor")
             self.compatibility_ready.emit(report)
-            return
+            # Block until the UI records a decision (Install Anyway / Close),
+            # exactly like the WARNING branch. Previously this returned
+            # immediately, so the worker finished and cleaned up the temp
+            # dir (deleting the converted package) before the user could
+            # choose to proceed — leaving Install Anyway with no listener.
+            if not self._wait_for_decision():
+                self._set_step(PipelineStep.INSTALL, "error")
+                self._result.success = False
+                self._result.message = (
+                    "İptal edildi" if self._cancelled
+                    else self._decision_message
+                    or "Uyumluluk testleri başarısız — kurulum onaylanmadı"
+                )
+                return
+            self._user_approved = True
+            self._set_step(PipelineStep.COMPATIBILITY, "done")
         elif report.overall == CheckSeverity.WARNING:
             self._set_step(PipelineStep.COMPATIBILITY, "warning")
             self._log("warning", "Uyarılar var — kullanıcı onayı bekleniyor")

@@ -44,6 +44,7 @@ class ResultDialog(QDialog):
         signature: SignatureResult | None = None,
         sha256: str = "",
         show_distrobox: bool = False,
+        read_only: bool = False,
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
@@ -52,6 +53,11 @@ class ResultDialog(QDialog):
         self._signature = signature
         self._sha256 = sha256
         self._show_distrobox = show_distrobox
+        # read_only: the report is being reopened after the pipeline has
+        # already finished and cleaned up the converted package, so there
+        # is nothing left to install — hide the install actions to avoid
+        # a dead button.
+        self._read_only = read_only
         self.setWindowTitle(tr("result.window_title"))
         self.setMinimumSize(560, 480)
         self.setMaximumSize(800, 700)
@@ -164,7 +170,14 @@ class ResultDialog(QDialog):
         btn_layout.addWidget(export_btn)
         btn_layout.addStretch()
 
-        if overall == CheckSeverity.PASS:
+        if self._read_only:
+            # Reopened after the pipeline finished: the converted package was
+            # already cleaned up, so there is nothing to install. Show only
+            # Close to avoid a dead Install button.
+            close_btn = QPushButton(tr("btn.close"))
+            close_btn.clicked.connect(self.reject)
+            btn_layout.addWidget(close_btn)
+        elif overall == CheckSeverity.PASS:
             install_btn = QPushButton(tr("btn.install"))
             install_btn.setObjectName("primaryBtn")
             install_btn.setCursor(Qt.CursorShape.PointingHandCursor)
