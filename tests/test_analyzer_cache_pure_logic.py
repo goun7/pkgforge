@@ -3,7 +3,6 @@
 All hermetic: temp dirs and in-memory strings only.
 """
 
-import json
 import tempfile
 import time
 import unittest

@@ -62,6 +62,7 @@ class TestNativeDebConverterSubprocess(unittest.TestCase):
 
     def test_real_deb_conversion(self):
         import tempfile
+
         from config import discover_tools
         from core.subprocess_converters import NativeDebConverterSubprocess
 
@@ -90,6 +91,7 @@ class TestRpmConverterSubprocess(unittest.TestCase):
 
     def test_real_rpm_conversion(self):
         import tempfile
+
         from config import discover_tools
         from core.package_analyzer import analyze_package
         from core.subprocess_converters import RpmConverterSubprocess

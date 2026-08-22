@@ -12,6 +12,7 @@ class TestStreamHash(unittest.TestCase):
 
     def test_sha256(self):
         import hashlib
+
         from core.streaming import stream_hash
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"hello world")
@@ -24,6 +25,7 @@ class TestStreamHash(unittest.TestCase):
 
     def test_md5(self):
         import hashlib
+
         from core.streaming import stream_hash
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(b"abc")
@@ -36,6 +38,7 @@ class TestStreamHash(unittest.TestCase):
 
     def test_empty_file(self):
         import hashlib
+
         from core.streaming import stream_hash
         with tempfile.NamedTemporaryFile(delete=False) as f:
             path = Path(f.name)

@@ -80,9 +80,9 @@ class TestBenchmarkHelpers(unittest.TestCase):
             self.assertIn("data.tar.gz", members)
 
     def test_create_test_deb_roundtrip_analyze(self):
+        from config import discover_tools
         from core.benchmark import _create_test_deb
         from core.package_analyzer import analyze_package
-        from config import discover_tools
         with tempfile.TemporaryDirectory() as td:
             deb = Path(td) / "benchmark-test.deb"
             self.assertTrue(_create_test_deb(deb))

@@ -5,7 +5,6 @@ All hermetic: string generation and temp dirs only.
 
 import json
 import logging
-import tempfile
 import unittest
 from pathlib import Path
 

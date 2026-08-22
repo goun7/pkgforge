@@ -96,7 +96,9 @@ class TestAllDialogsKeyHammer(unittest.TestCase):
     def test_result_dialog(self):
         _get_app()
         from core.compatibility_checker import (
-            CheckResult, CheckSeverity, CompatibilityReport,
+            CheckResult,
+            CheckSeverity,
+            CompatibilityReport,
         )
         from core.package_analyzer import PackageMetadata
         from ui.result_dialog import ResultDialog

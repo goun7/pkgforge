@@ -178,7 +178,8 @@ class TestFindLocalPrevious(unittest.TestCase):
         self.assertIsNone(found)
 
     def test_picks_most_recent(self):
-        import os, time
+        import time
+
         from core.delta_updater import find_local_previous
         with tempfile.TemporaryDirectory() as td:
             d = Path(td)
@@ -196,7 +197,9 @@ class TestCompatibilityReportProps(unittest.TestCase):
 
     def _report(self, severities):
         from core.compatibility_checker import (
-            CheckResult, CheckSeverity, CompatibilityReport,
+            CheckResult,
+            CheckSeverity,
+            CompatibilityReport,
         )
         checks = [
             CheckResult(name=f"c{i}", severity=s, message="m")
