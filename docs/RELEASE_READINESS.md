@@ -57,7 +57,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | Metric | Value | Notes |
 |--------|-------|-------|
 | Test suite | **449 passed, 12 skipped, 0 failed** | PyQt6 present; green |
-| Line coverage (`core/`) | **47%** (6,264 stmts, 3,326 miss) | CI gate: 35% |
+| Line coverage (`core/`) | **47%** (6,264 stmts, 3,316 miss) | CI gate: 45% (raised from 35%) |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
 | ruff | **79 remaining** | 68 BLE001 (defensive blind-except) + 11 PLW1510 (manual returncode checks) — all intentional |
