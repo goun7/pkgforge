@@ -499,7 +499,7 @@ class MainWindow(QMainWindow):
             # without approving a host install.
             if self._pipeline:
                 self._pipeline.dismiss_install(
-                    "Kurulum distrobox konteynerine yönlendirildi"
+                    tr("pipe.distrobox_redirect")
                 )
             if result and result.metadata:
                 self._run_distrobox_fallback(result)
@@ -592,7 +592,7 @@ class MainWindow(QMainWindow):
             dialog.exec()
         except Exception as exc:
             log.exception("Error opening UrlDialog")
-            self._show_inline_error(f"URL dialog hatası: {exc}", "❌")
+            self._show_inline_error(tr("err.url_dialog").format(error=exc), "❌")
 
     def _show_history(self) -> None:
         """Open history & package manager dialog."""
@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
             dialog.exec()
         except Exception as exc:
             log.exception("Error opening HistoryDialog")
-            self._show_inline_error(f"Geçmiş dialog hatası: {exc}", "❌")
+            self._show_inline_error(tr("err.history_dialog").format(error=exc), "❌")
 
     def _check_upstream_updates(self) -> None:
         """Check all saved URLs for upstream updates.
@@ -639,7 +639,7 @@ class MainWindow(QMainWindow):
             self._updates_btn.setEnabled(True)
             self._status_bar.showMessage(tr("status.ready"))
             log.error("Error checking updates: %s", err_msg)
-            self._show_inline_error(f"Güncelleme kontrolü hatası: {err_msg}", "❌")
+            self._show_inline_error(tr("err.update_check").format(error=err_msg), "❌")
 
         run_in_background(_do_check, on_done=_on_done, on_error=_on_error)
 

@@ -175,7 +175,7 @@ class SettingsDialog(QDialog):
         if plugins:
             for p in plugins:
                 cb = QCheckBox(f"{p['name']} ({', '.join(p['extensions'])})")
-                cb.setToolTip(f"Öncelik: {p['priority']} — Sınıf: {p['class']}")
+                cb.setToolTip(tr("settings.plugin_tooltip").format(priority=p['priority'], cls=p['class']))
                 cb.setChecked(load_setting(f"plugin_{p['name']}", True))
                 self._plugin_checks[p['name']] = cb
                 plugins_layout.addWidget(cb)
@@ -193,7 +193,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(plugins_group)
 
         # ── Live Config Preview ──────────────────────────────────
-        preview_group = QGroupBox("👁️ Canlı Önizleme")
+        preview_group = QGroupBox(tr("settings.preview_title"))
         preview_layout = QVBoxLayout(preview_group)
 
         self._preview_text = QTextEdit()

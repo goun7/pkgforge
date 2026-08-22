@@ -153,7 +153,7 @@ class ResultDialog(QDialog):
             db_desc.setWordWrap(True)
             db_layout.addWidget(db_desc)
 
-            db_btn = QPushButton("🐳 Distrobox ile Kur")
+            db_btn = QPushButton(tr("result.distrobox_btn"))
             db_btn.setObjectName("primaryBtn")
             db_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             db_btn.clicked.connect(self._on_distrobox)

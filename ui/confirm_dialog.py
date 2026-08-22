@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from i18n import tr
 from ui.styles import get_colors
 
 
@@ -23,12 +24,14 @@ class ConfirmDialog(QDialog):
         self,
         title: str,
         message: str,
-        confirm_text: str = "Onayla",
-        cancel_text: str = "İptal",
+        confirm_text: str | None = None,
+        cancel_text: str | None = None,
         danger: bool = False,
         parent=None,
     ):
         super().__init__(parent)
+        confirm_text = confirm_text or tr("common.confirm")
+        cancel_text = cancel_text or tr("common.cancel")
         self.setWindowTitle(title)
         self.setMinimumWidth(400)
         self.setModal(True)
@@ -70,7 +73,7 @@ class ConfirmDialog(QDialog):
 def confirm_action(
     title: str,
     message: str,
-    confirm_text: str = "Onayla",
+    confirm_text: str | None = None,
     danger: bool = False,
     parent=None,
 ) -> bool:

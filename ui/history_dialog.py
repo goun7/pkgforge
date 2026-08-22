@@ -68,13 +68,13 @@ class HistoryDialog(QDialog):
         filter_row.setSpacing(8)
 
         self._search_input = QLineEdit()
-        self._search_input.setPlaceholderText("🔍 Paket adı veya dosya adı ara...")
+        self._search_input.setPlaceholderText(tr("history.search_placeholder"))
         self._search_input.setClearButtonEnabled(True)
         self._search_input.textChanged.connect(self._apply_filter)
         filter_row.addWidget(self._search_input, stretch=2)
 
         self._type_filter = QComboBox()
-        self._type_filter.addItem("Tümü", "")
+        self._type_filter.addItem(tr("history.filter_all"), "")
         self._type_filter.addItem("DEB", "deb")
         self._type_filter.addItem("RPM", "rpm")
         self._type_filter.addItem("URL", "url")
@@ -82,11 +82,11 @@ class HistoryDialog(QDialog):
         filter_row.addWidget(self._type_filter)
 
         self._status_filter = QComboBox()
-        self._status_filter.addItem("Tüm Durumlar", "")
-        self._status_filter.addItem("✅ Kuruldu", "installed")
-        self._status_filter.addItem("📦 Dönüştürüldü", "converted")
-        self._status_filter.addItem("❌ Başarısız", "install_failed")
-        self._status_filter.addItem("🐳 OCI", "oci_built")
+        self._status_filter.addItem(tr("history.filter_all_status"), "")
+        self._status_filter.addItem(tr("history.status_installed"), "installed")
+        self._status_filter.addItem(tr("history.status_converted"), "converted")
+        self._status_filter.addItem(tr("history.status_failed"), "install_failed")
+        self._status_filter.addItem(tr("history.status_oci"), "oci_built")
         self._status_filter.currentIndexChanged.connect(self._apply_filter)
         filter_row.addWidget(self._status_filter)
 
@@ -120,13 +120,13 @@ class HistoryDialog(QDialog):
         # Buttons
         btn_layout = QHBoxLayout()
 
-        self._import_btn = QPushButton("📥 CSV İçe Aktar")
+        self._import_btn = QPushButton(tr("history.import_btn"))
         self._import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._import_btn.setToolTip("CSV dosyasından toplu paket listesi içe aktar (sürükle-bırak da desteklenir)")
+        self._import_btn.setToolTip(tr("history.import_tooltip"))
         self._import_btn.clicked.connect(self._import_csv_dialog)
         btn_layout.addWidget(self._import_btn)
 
-        self._export_btn = QPushButton("📄 CSV Dışa Aktar")
+        self._export_btn = QPushButton(tr("history.export_btn"))
         self._export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._export_btn.clicked.connect(self._export_csv)
         btn_layout.addWidget(self._export_btn)
@@ -227,9 +227,9 @@ class HistoryDialog(QDialog):
         total = len(self._all_records)
         shown = len(records)
         if shown == total:
-            self._count_label.setText(f"📋 Toplam {total} kayıt")
+            self._count_label.setText(tr("history.count_total", total=total))
         else:
-            self._count_label.setText(f"📋 {shown}/{total} kayıt gösteriliyor")
+            self._count_label.setText(tr("history.count_shown", shown=shown, total=total))
 
     def _export_csv(self) -> None:
         """Export the currently filtered records to a CSV file."""
@@ -256,20 +256,20 @@ class HistoryDialog(QDialog):
             filtered.append(r)
 
         if not filtered:
-            QMessageBox.information(self, tr("history.title"), "Dışa aktarılacak kayıt yok.")
+            QMessageBox.information(self, tr("history.title"), tr("history.no_records"))
             return
 
         default_name = "pkgforge_history.csv"
         path, _ = QFileDialog.getSaveFileName(
-            self, "CSV Kaydet", default_name,
-            "CSV dosyaları (*.csv);;Tüm dosyalar (*)",
+            self, tr("history.export_title"), default_name,
+            tr("history.csv_filter"),
         )
         if not path:
             return
 
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["ID", "Tarih", "Paket Adı", "Tür", "Durum", "Orijinal Dosya", "Kaynak URL"])
+        writer.writerow([tr("history.col_id"), tr("history.col_date"), tr("history.col_name"), tr("history.col_type"), tr("history.col_status"), tr("history.col_file"), "Kaynak URL"])
         for r in filtered:
             writer.writerow([
                 r.id, r.timestamp, r.package_name,
@@ -279,8 +279,8 @@ class HistoryDialog(QDialog):
 
         Path(path).write_text(buf.getvalue(), encoding="utf-8")
         QMessageBox.information(
-            self, "Dışa Aktarıldı",
-            f"✅ {len(filtered)} kayıt kaydedildi:\n{path}",
+            self, tr("history.exported_title"),
+            tr("history.exported_msg").format(count=len(filtered), path=path),
         )
 
     def _get_selected_pkg_name(self) -> str | None:
@@ -367,8 +367,8 @@ class HistoryDialog(QDialog):
     def _import_csv_dialog(self) -> None:
         """Open file chooser for CSV import."""
         path, _ = QFileDialog.getOpenFileName(
-            self, "CSV İçe Aktar", "",
-            "CSV dosyaları (*.csv);;Tüm dosyalar (*)",
+            self, tr("history.import_title"), "",
+            tr("history.csv_filter"),
         )
         if path:
             self._import_csv(Path(path))
@@ -380,29 +380,28 @@ class HistoryDialog(QDialog):
         The import creates history records so the user can later track/rollback.
         """
         if not csv_path.is_file():
-            QMessageBox.critical(self, tr("common.error"), f"Dosya bulunamadı: {csv_path}")
+            QMessageBox.critical(self, tr("common.error"), tr("history.csv_not_found").format(path=csv_path))
             return
 
         try:
             content = csv_path.read_text(encoding="utf-8")
             reader = csv.DictReader(io.StringIO(content))
         except Exception as exc:
-            QMessageBox.critical(self, tr("common.error"), f"CSV okunamadı: {exc}")
+            QMessageBox.critical(self, tr("common.error"), tr("history.csv_read_error").format(error=exc))
             return
 
         imported = 0
         skipped = 0
         required_cols = {"package_name", "package_type", "original_file"}
         if reader.fieldnames is None:
-            QMessageBox.critical(self, tr("common.error"), "CSV dosyası boş veya başlık içermiyor.")
+            QMessageBox.critical(self, tr("common.error"), tr("history.csv_empty"))
             return
 
         missing_cols = required_cols - set(reader.fieldnames)
         if missing_cols:
             QMessageBox.critical(
                 self, tr("common.error"),
-                f"Eksik sütunlar: {', '.join(missing_cols)}\n"
-                f"Gerekli sütunlar: package_name, package_type, original_file",
+                tr("history.import_missing_cols").format(missing=', '.join(missing_cols)),
             )
             return
 
@@ -428,7 +427,7 @@ class HistoryDialog(QDialog):
             imported += 1
 
         self._load_data()
-        msg = f"✅ {imported} paket içe aktarıldı."
+        msg = tr("history.import_result").format(imported=imported)
         if skipped:
-            msg += f"\n⚠️ {skipped} satır atlandı (eksik veri)."
-        QMessageBox.information(self, "CSV İçe Aktarım", msg)
+            msg += tr("history.import_skipped").format(skipped=skipped)
+        QMessageBox.information(self, tr("history.import_result_title"), msg)
