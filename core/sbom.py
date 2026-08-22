@@ -20,7 +20,7 @@ import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from config import APP_NAME, APP_VERSION, ToolPaths
+from config import APP_NAME, APP_VERSION, ToolPaths, extract_package_name
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -146,7 +146,9 @@ def generate_sbom(
 
     # Package metadata from .PKGINFO
     pkginfo = _read_pkginfo(pkg_path)
-    sbom.package_name = pkginfo.get("pkgname", pkg_path.stem.split(".")[0])
+    # Fallback: authoritative name extraction (handles dotted versions and
+    # deb/rpm/arch naming; stem.split mis-parses dotted versions).
+    sbom.package_name = pkginfo.get("pkgname", "") or extract_package_name(pkg_path.name)
     sbom.package_version = pkginfo.get("pkgver", "")
     sbom.package_arch = pkginfo.get("arch", "")
     sbom.package_description = pkginfo.get("desc", "")

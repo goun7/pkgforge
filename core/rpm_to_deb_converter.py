@@ -17,6 +17,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from config import extract_package_name
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -75,7 +76,9 @@ def rpm_to_deb(
         else:
             lines = []
 
-        name = lines[0] if len(lines) > 0 else rpm_path.stem.split("-")[0]
+        # Fallback: authoritative extraction handles hyphenated names and
+        # dotted versions; stem.split("-")[0] truncates my-cool-app -> my.
+        name = lines[0] if len(lines) > 0 else extract_package_name(rpm_path.name)
         version = lines[1] if len(lines) > 1 else "1.0"
         release = lines[2] if len(lines) > 2 else "1"
         arch = lines[3] if len(lines) > 3 else "amd64"

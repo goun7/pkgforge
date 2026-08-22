@@ -18,6 +18,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from config import extract_package_name
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -60,7 +61,9 @@ def _extract_pkg_info(pkg_path: Path) -> dict:
             info["version"] = f"{parts[-3]}-{parts[-2]}"
             info["name"] = "-".join(parts[:-3])
         else:
-            info["name"] = stem.split(".")[0]
+            # Authoritative extraction handles dotted versions and
+            # deb/rpm/arch naming; stem.split mis-parses them.
+            info["name"] = extract_package_name(pkg_path.name)
 
     return info
 
@@ -194,7 +197,7 @@ def prepare_aur_package(
         (success, message, AURPackage)
     """
     info = _extract_pkg_info(pkg_path)
-    name = info.get("name", pkg_path.stem.split(".")[0])
+    name = info.get("name", "") or extract_package_name(pkg_path.name)
     version = info.get("version", "1.0.0")
 
     # Detect build system from repo directory if provided
