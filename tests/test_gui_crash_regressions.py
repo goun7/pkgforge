@@ -137,5 +137,104 @@ class TestPipelineWorkerThread(unittest.TestCase):
         self.assertEqual(params, [], "run_staged must take no args besides self")
 
 
+@unittest.skipUnless(_HAS_QT, "PyQt6 not available")
+class TestResultDialogErrorInstallAnyway(unittest.TestCase):
+    """ERROR (not recommended) reports must still offer Install Anyway.
+
+    Previously the ERROR branch rendered only a Close button, so a user
+    who wanted to proceed with a not-recommended package had no way to
+    do so after closing the report. Both WARNING and ERROR now expose
+    Close + Install Anyway.
+    """
+
+    def _make_dialog(self, severity):
+        from core.compatibility_checker import (
+            CheckResult,
+            CompatibilityReport,
+        )
+        from core.package_analyzer import PackageMetadata
+        from ui.result_dialog import ResultDialog
+
+        report = CompatibilityReport(
+            checks=[
+                CheckResult(
+                    name="test",
+                    severity=severity,
+                    message="msg",
+                    details=["detail"],
+                )
+            ]
+        )
+        meta = PackageMetadata(
+            name="hello",
+            version="1.0.0-1",
+            arch="amd64",
+            arch_mapped="x86_64",
+            description="test",
+            file_list=["usr/bin/hello"],
+        )
+        return ResultDialog(report=report, metadata=meta)
+
+    def _button_texts(self, dlg):
+        from PyQt6.QtWidgets import QPushButton
+
+        return {w.text() for w in dlg.findChildren(QPushButton)}
+
+    def test_error_offers_install_anyway(self):
+        """ERROR report must expose an Install Anyway button."""
+        from core.compatibility_checker import CheckSeverity
+        from i18n import tr
+
+        _get_app()
+        dlg = self._make_dialog(CheckSeverity.ERROR)
+        texts = self._button_texts(dlg)
+        self.assertIn(tr("btn.install_anyway"), texts)
+        self.assertIn(tr("btn.close"), texts)
+        dlg.close()
+
+    def test_warning_offers_install_anyway(self):
+        """WARNING report keeps Close + Install Anyway."""
+        from core.compatibility_checker import CheckSeverity
+        from i18n import tr
+
+        _get_app()
+        dlg = self._make_dialog(CheckSeverity.WARNING)
+        texts = self._button_texts(dlg)
+        self.assertIn(tr("btn.install_anyway"), texts)
+        self.assertIn(tr("btn.close"), texts)
+        dlg.close()
+
+    def test_pass_offers_plain_install(self):
+        """PASS report offers the plain Install button (no anyway)."""
+        from core.compatibility_checker import CheckSeverity
+        from i18n import tr
+
+        _get_app()
+        dlg = self._make_dialog(CheckSeverity.PASS)
+        texts = self._button_texts(dlg)
+        self.assertIn(tr("btn.install"), texts)
+        self.assertNotIn(tr("btn.install_anyway"), texts)
+        dlg.close()
+
+    def test_error_install_anyway_emits_approved(self):
+        """Clicking Install Anyway on an ERROR report emits install_approved."""
+        from PyQt6.QtWidgets import QPushButton
+
+        from core.compatibility_checker import CheckSeverity
+        from i18n import tr
+
+        _get_app()
+        dlg = self._make_dialog(CheckSeverity.ERROR)
+        approved = []
+        dlg.install_approved.connect(lambda: approved.append(True))
+        btn = next(
+            w for w in dlg.findChildren(QPushButton)
+            if w.text() == tr("btn.install_anyway")
+        )
+        btn.click()
+        self.assertEqual(approved, [True])
+        dlg.close()
+
+
 if __name__ == "__main__":
     unittest.main()

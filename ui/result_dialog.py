@@ -164,26 +164,26 @@ class ResultDialog(QDialog):
         btn_layout.addWidget(export_btn)
         btn_layout.addStretch()
 
-        if overall == CheckSeverity.WARNING:
-            cancel_btn = QPushButton(tr("btn.close"))
-            cancel_btn.clicked.connect(self.reject)
-            btn_layout.addWidget(cancel_btn)
-
-            install_btn = QPushButton(tr("btn.install_anyway"))
-            install_btn.setObjectName("dangerBtn")
-            install_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            install_btn.clicked.connect(self._on_approve)
-            btn_layout.addWidget(install_btn)
-        elif overall == CheckSeverity.PASS:
+        if overall == CheckSeverity.PASS:
             install_btn = QPushButton(tr("btn.install"))
             install_btn.setObjectName("primaryBtn")
             install_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             install_btn.clicked.connect(self._on_approve)
             btn_layout.addWidget(install_btn)
         else:
+            # WARNING and ERROR both offer Close + Install Anyway. The user
+            # keeps the final say even when installation is not
+            # recommended (ERROR); previously ERROR showed only Close,
+            # which left no way to proceed with a not-recommended package.
             close_btn = QPushButton(tr("btn.close"))
             close_btn.clicked.connect(self.reject)
             btn_layout.addWidget(close_btn)
+
+            install_btn = QPushButton(tr("btn.install_anyway"))
+            install_btn.setObjectName("dangerBtn")
+            install_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            install_btn.clicked.connect(self._on_approve)
+            btn_layout.addWidget(install_btn)
 
         layout.addLayout(btn_layout)
 
