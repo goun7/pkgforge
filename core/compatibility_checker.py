@@ -81,6 +81,22 @@ class CompatibilityReport:
             return "B"
         return "A"
 
+    def to_dict(self) -> dict:
+        """Serialize the report for the JSON-RPC sidecar / desktop UI."""
+        return {
+            "overall": self.overall.value,
+            "grade": self.grade,
+            "checks": [
+                {
+                    "name": c.name,
+                    "severity": c.severity.value,
+                    "message": c.message,
+                    "details": list(c.details),
+                }
+                for c in self.checks
+            ],
+        }
+
 
 def run_compatibility_checks(
     pkg_path: Path,

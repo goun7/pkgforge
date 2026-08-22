@@ -72,3 +72,77 @@ def test_unknown_method_returns_error(sidecar):
     resp = _rpc(sidecar, "no.such.method")
     assert "error" in resp
     assert resp["error"]["code"] == -32601
+
+
+class _LineReader:
+    """Background reader pushing stdout lines into a queue.
+
+    select() is unreliable on the buffered TextIOWrapper (data can sit in
+    Python's internal buffer while select reports not-ready), so a plain
+    blocking readline on a daemon thread is used instead.
+    """
+
+    def __init__(self, stream):
+        import queue
+        import threading
+
+        self._q = queue.Queue()
+        self._t = threading.Thread(target=self._run, args=(stream,), daemon=True)
+        self._t.start()
+
+    def _run(self, stream):
+        for line in stream:
+            self._q.put(line.rstrip())
+        self._q.put(None)
+
+    def next_line(self, timeout=0.5):
+        import queue
+
+        try:
+            return self._q.get(timeout=timeout)
+        except queue.Empty:
+            return ""
+
+
+def _read_events(proc, timeout=30.0):
+    """Read event lines (no id) until event.finished arrives."""
+    import time
+
+    reader = _LineReader(proc.stdout)
+    events = []
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        line = reader.next_line(timeout=0.5)
+        if line is None:
+            break
+        if not line:
+            continue
+        data = json.loads(line)
+        if "id" not in data and data.get("method", "").startswith("event."):
+            events.append(data)
+            if data["method"] == "event.finished":
+                break
+    return events
+
+
+def test_pipeline_start_invalid_path(sidecar):
+    resp = _rpc(sidecar, "pipeline.start", {"path": "/nonexistent/x.deb"})
+    assert "error" in resp
+    # Must be a handler error (-32000), NOT "method not found" (-32601)
+    assert resp["error"]["code"] == -32000
+
+
+def test_pipeline_start_real_deb(sidecar, tmp_path):
+    # minimal fake .deb (ar archive) — pipeline fails at the analysis step
+    # (malformed archive) and must still emit event.finished, never hang.
+    # (A real .deb would reach compatibility_ready; that path is covered
+    # by tests/test_pipeline_error_decision.py against the core directly.)
+    deb = tmp_path / "fake_1.0_amd64.deb"
+    deb.write_bytes(b"!<arch>\n" + b"0" * 64)
+    resp = _rpc(sidecar, "pipeline.start", {"path": str(deb)})
+    assert resp["result"]["started"] is True
+    events = _read_events(sidecar, timeout=60)
+    methods = [e["method"] for e in events]
+    assert "event.finished" in methods
+    fin = [e for e in events if e["method"] == "event.finished"][0]
+    assert fin["params"]["success"] is False
