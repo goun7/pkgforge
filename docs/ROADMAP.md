@@ -7,7 +7,7 @@
 
 ## Faz Yapısı
 
-- **Faz 0 — Tasarım Sistemi & Marka**: logo finali, renk/tipografi token'ları, ikon seti, C-görsel design system
+- **Faz 0 — Tasarım Sistemi & Marka**: logo finali, renk/tipografi token'ları, ikon seti, C-görsel design system — ✅ tamamlandı (Tauri v2 + React + Python-sidecar; Convert/Installed/Settings parity; paketlenmiş sidecar; 637 Python + 26 vitest testi; sürüm 2.0.0-alpha)
 - **Faz 1 — Alan A** (mevcut özellikleri GUI'ye taşı): A1–A6
 - **Faz 2 — Alan B** (yeni yetenekler): B1–B8
 - **Faz 3 — Alan C** (mimari genişleme): C1–C3
