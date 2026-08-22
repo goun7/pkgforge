@@ -223,11 +223,13 @@ STRINGS: dict[str, str] = {
     "url.info": "İndirmek istediğiniz .deb veya .rpm paketinin bağlantısını (URL) girin:",
     "url.placeholder": "https://example.com/package.deb",
     "url.download_btn": "🌐 İndir ve Dönüştür",
+    "url.downloading": "⏳ İndiriliyor…",
     "url.invalid": "Lütfen geçerli bir http:// veya https:// bağlantısı girin.",
     "url.error": "Paket indirilemedi: {error}",
 
     # ── Upstream Güncellemeleri ───────────────────────────────────
     "updates.title": "Upstream Güncellemeleri",
+    "updates.checking": "Upstream güncellemeleri kontrol ediliyor…",
     "updates.no_pkgs": "Güncelleme kontrolü yapılacak kayıtlı URL paketi bulunamadı.",
     "updates.found": "{count} paket için yeni sürüm tespit edildi:\n\n{details}",
     "updates.up_to_date": "Tüm paketleriniz güncel!",

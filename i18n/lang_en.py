@@ -223,11 +223,13 @@ STRINGS: dict[str, str] = {
     "url.info": "Enter the HTTP or HTTPS download URL for the .deb or .rpm package:",
     "url.placeholder": "https://example.com/package.deb",
     "url.download_btn": "🌐 Download & Convert",
+    "url.downloading": "⏳ Downloading…",
     "url.invalid": "Please enter a valid http:// or https:// URL.",
     "url.error": "Failed to download package: {error}",
 
     # ── Upstream Updates ───────────────────────────────────────────
     "updates.title": "Upstream Updates",
+    "updates.checking": "Checking for upstream updates…",
     "updates.no_pkgs": "No URL-downloaded packages found to check.",
     "updates.found": "{count} package(s) have new upstream releases:\n\n{details}",
     "updates.up_to_date": "All your URL-installed packages are up to date!",

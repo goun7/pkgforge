@@ -60,10 +60,10 @@ class UrlDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        download_btn = QPushButton(tr("url.download_btn"))
-        download_btn.setObjectName("primaryBtn")
-        download_btn.clicked.connect(self._start_download)
-        btn_layout.addWidget(download_btn)
+        self._download_btn = QPushButton(tr("url.download_btn"))
+        self._download_btn.setObjectName("primaryBtn")
+        self._download_btn.clicked.connect(self._start_download)
+        btn_layout.addWidget(self._download_btn)
 
         layout.addLayout(btn_layout)
 
@@ -73,12 +73,27 @@ class UrlDialog(QDialog):
             QMessageBox.warning(self, tr("url.title"), tr("url.invalid"))
             return
 
-        try:
-            downloaded_file = download_package(
+        # Download on a background thread so the GUI stays responsive.
+        # Previously this ran synchronously and froze the dialog for the
+        # whole download.
+        from ui.background_worker import run_in_background
+
+        self._download_btn.setEnabled(False)
+        self._download_btn.setText(tr("url.downloading"))
+
+        def _do_download():
+            return download_package(
                 url, require_https=not load_setting("allow_insecure_http", False)
             )
+
+        def _on_done(downloaded_file):
             self.file_downloaded.emit(downloaded_file)
             self.accept()
-        except Exception as exc:
-            msg = tr("url.error").format(error=str(exc))
+
+        def _on_error(err_msg: str):
+            self._download_btn.setEnabled(True)
+            self._download_btn.setText(tr("url.download_btn"))
+            msg = tr("url.error").format(error=err_msg)
             QMessageBox.critical(self, tr("url.title"), msg)
+
+        run_in_background(_do_download, on_done=_on_done, on_error=_on_error)

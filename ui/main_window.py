@@ -605,10 +605,24 @@ class MainWindow(QMainWindow):
             self._show_inline_error(f"Geçmiş dialog hatası: {exc}", "❌")
 
     def _check_upstream_updates(self) -> None:
-        """Check all saved URLs for upstream updates."""
-        try:
+        """Check all saved URLs for upstream updates.
+
+        Runs the HTTP HEAD checks on a background thread so the GUI stays
+        responsive (previously this froze the window for every saved URL).
+        """
+        from ui.background_worker import run_in_background
+
+        self._updates_btn.setEnabled(False)
+        self._status_bar.showMessage(tr("updates.checking"))
+
+        def _do_check():
             from core.upstream_tracker import check_all_installed_updates
-            results = check_all_installed_updates()
+
+            return check_all_installed_updates()
+
+        def _on_done(results) -> None:
+            self._updates_btn.setEnabled(True)
+            self._status_bar.showMessage(tr("status.ready"))
             if not results:
                 QMessageBox.information(self, tr("updates.title"), tr("updates.no_pkgs"))
                 return
@@ -620,9 +634,14 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, tr("updates.title"), msg)
             else:
                 QMessageBox.information(self, tr("updates.title"), tr("updates.up_to_date"))
-        except Exception as exc:
-            log.exception("Error checking updates")
-            self._show_inline_error(f"Güncelleme kontrolü hatası: {exc}", "❌")
+
+        def _on_error(err_msg: str) -> None:
+            self._updates_btn.setEnabled(True)
+            self._status_bar.showMessage(tr("status.ready"))
+            log.error("Error checking updates: %s", err_msg)
+            self._show_inline_error(f"Güncelleme kontrolü hatası: {err_msg}", "❌")
+
+        run_in_background(_do_check, on_done=_on_done, on_error=_on_error)
 
     # ── Settings ─────────────────────────────────────────────────
 
