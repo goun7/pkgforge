@@ -3,7 +3,7 @@
 > **Bu belge bağlayıcıdır.** Kullanıcı 2026-08-22 tarihinde A, B ve C alanlarındaki
 > TÜM maddelerin yapılmasını onayladı. Hiçbir madde atlanmayacak.
 > UI mimarisi: **C-görsel (web/Tauri) + Python-sidecar** (Python core yeniden YAZILMAYACAK).
-> Logo: **#1 Convergence** (Arch Blue × Ember mix — final palet onayı bekleniyor).
+> Logo: **#1 Convergence — Mix 1** (Arch Blue #1793d1 × Ember #f97316, kesişim gradyan). FINAL.
 
 ## Faz Yapısı
 
@@ -68,6 +68,6 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 ## Marka Kararları (2026-08-22)
 
 - Logo konsepti: **#1 Convergence** (iki paket → kesişimde Arch paketi)
-- Renk: Arch Blue × Ember mix (6 varyasyon üretildi, final onayı bekleniyor;
-  mix olmazsa fallback: saf Arch Blue)
+- Renk: **Mix 1 — FINAL** (Arch Blue #1793d1 × Ember #f97316, kesişim mavi→turuncu gradyan)
+- Final assetler: `assets/logo/` (SVG master, PNG 16–1024px, ICO çoklu-boyut, macOS iconset)
 - Mockup'lar: `docs/design/mockups/`, logo turları: `docs/design/logos/`
