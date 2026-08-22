@@ -5,6 +5,8 @@ import { ToastProvider } from "./components/ui/Toast";
 import { Convert } from "./pages/Convert";
 import { Installed } from "./pages/Installed";
 import { Settings } from "./pages/Settings";
+import { Security } from "./pages/Security";
+import { Updates } from "./pages/Updates";
 import { EmptyState } from "./components/EmptyState";
 import { Construction } from "lucide-react";
 
@@ -19,7 +21,7 @@ const PAGE_TITLES: Record<PageId, string> = {
   plugins: "Eklentiler",
 };
 
-const READY_PAGES: PageId[] = ["convert", "installed", "settings"];
+const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates"];
 
 export default function App() {
   const [page, setPage] = useState<PageId>("convert");
@@ -34,6 +36,8 @@ export default function App() {
             {page === "convert" && <Convert />}
             {page === "installed" && <Installed />}
             {page === "settings" && <Settings />}
+            {page === "security" && <Security />}
+            {page === "updates" && <Updates />}
             {!READY_PAGES.includes(page) && (
               <EmptyState
                 icon={Construction}

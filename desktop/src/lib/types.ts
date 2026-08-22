@@ -71,3 +71,186 @@ export interface HistoryRecord {
   original_file: string;
   source_url: string;
 }
+
+/* --- Faz 1 / A2: security panel --- */
+
+export interface SignatureInfo {
+  signed: boolean;
+  valid: boolean;
+  key_id: string;
+  key_fingerprint: string;
+  signer: string;
+  timestamp: string;
+  detail: string;
+}
+
+export interface SbomEntry {
+  path: string;
+  file_type: string;
+  size_bytes: number;
+  sha256: string;
+}
+
+export interface SbomDocument {
+  package_name: string;
+  package_version: string;
+  package_arch: string;
+  package_description: string;
+  files: SbomEntry[];
+  dependencies: string[];
+  total_files: number;
+  total_size_bytes: number;
+  elf_count: number;
+  text_count: number;
+  symlink_count: number;
+  dir_count: number;
+}
+
+export interface QualityCheck {
+  name: string;
+  category: string;
+  passed: boolean;
+  score: number;
+  max_score: number;
+  detail: string;
+}
+
+export interface QualityReport {
+  package_name: string;
+  total_score: number;
+  max_score: number;
+  checks: QualityCheck[];
+  grade: string;
+  passed: boolean;
+}
+
+export interface Provenance {
+  source_file: string;
+  source_type: string;
+  source_url: string;
+  source_sha256: string;
+  output_file: string;
+  output_sha256: string;
+  [key: string]: unknown;
+}
+
+export interface SigstoreStatus {
+  cosign_available: boolean;
+  cosign_path: string;
+  cosign_version: string;
+}
+
+/* --- Faz 1 / A4: delta updater --- */
+
+export interface DeltaStatus {
+  installed: boolean;
+  active: boolean;
+  next_run: string;
+}
+
+/* --- Faz 1 / A6: system tools --- */
+
+export interface HealthStats {
+  total: number;
+  installed: number;
+  converted: number;
+  failed: number;
+  success_rate: number;
+  by_type: Record<string, number>;
+  by_arch: Record<string, number>;
+  url_count: number;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface CrossCheckReport {
+  package_name: string;
+  local_version: string;
+  aur_version: string;
+  flatpak_version: string;
+  recommended_source: string;
+  recommendation_reason: string;
+}
+
+export interface SnapshotStatus {
+  [key: string]: unknown;
+}
+
+export interface RollbackVerifyResult {
+  verified: boolean;
+  backend: string;
+  snapshot_name: string;
+  detail: string;
+  files_checked: number;
+  state_before: string;
+  state_after: string;
+}
+
+export interface BenchmarkResult {
+  name: string;
+  duration_ms: number;
+  memory_peak_kb: number;
+  input_size_bytes: number;
+  output_size_bytes: number;
+  details: string;
+  passed: boolean;
+}
+
+export interface BenchmarkReport {
+  results: BenchmarkResult[];
+  total_duration_ms: number;
+  passed: boolean;
+}
+
+/* --- Faz 1 / A1: export centers --- */
+
+export interface FlatpakApp {
+  app_id: string;
+  name: string;
+  version: string;
+  branch: string;
+  description: string;
+  origin: string;
+}
+
+export interface ExportResult {
+  ok: boolean;
+  message: string;
+  output_path?: string;
+  deb_path?: string;
+}
+
+/* --- Faz 1 / A3: dependency graph --- */
+
+export interface DepNode {
+  name: string;
+  version: string;
+  deps: string[];
+  needed_by: string[];
+  is_installed: boolean;
+  is_foreign: boolean;
+}
+
+export interface DepGraphData {
+  root: string;
+  nodes: Record<string, DepNode>;
+  stats: {
+    total: number;
+    installed: number;
+    missing: number;
+    foreign: number;
+    max_depth: number;
+  };
+  mermaid: string;
+  warnings: string[];
+}
+
+/* --- Faz 1 / A5: from-source --- */
+
+export interface SourceResult {
+  ok: boolean;
+  proj_name: string;
+  build_system: string;
+  pkgbuild_path: string;
+  pkgbuild_content: string;
+}
