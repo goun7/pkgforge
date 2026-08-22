@@ -25,9 +25,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   `split("-")[0]` (truncating `my-cool-app` → `my`) and matched with a substring
   check, so a search for `my` over-matched unrelated packages. Now compares the
   full clean package name exactly via `config.extract_package_name`.
+- **`history_db.get_usage_stats`**: arch was bucketed as `x86_64.pkg.tar`
+  because `.stem` leaves the `.pkg.tar` chain glued to the arch segment; the
+  suffix chain is now stripped before parsing.
+- **`oci_builder.build_oci_image`**: the image tag was derived from the raw
+  stem (`pkgforge/hello-1.0.0-1-x86_64.pkg.tar:latest`); now uses
+  `config.extract_package_name` (`pkgforge/hello:latest`).
 
 ### Test & Coverage Push
-- **610 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
+- **614 tests** (up from 261), **52% line coverage** on `core/` (up from 41%);
   skips reduced 13 → 2 by pointing E2E discovery at the committed fixtures.
 - Hermetic pure-logic suites: streaming, retry/backoff, SBOM diff, from_source
   build-system/license detection, security (name validation, path traversal,

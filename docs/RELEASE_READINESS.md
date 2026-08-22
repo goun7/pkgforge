@@ -53,6 +53,8 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | F30 | E2E unskip + bug | 567 → **597 tests** (skips 13 → 2): pointed `test_e2e_real_packages.py` discovery at the committed hello `.deb`/`.rpm` fixtures so 11 real E2E tests actually run. Found & fixed `build_file_dep_graph` mis-parsing RPM/deb names (`hello-1.0.0-1.x86_64.rpm` → full stem); now uses the authoritative `config.extract_package_name`. |
 | F31 | Name-misparse sweep | 597 → **607 tests**: audited every `stem.split(".")[0]` / `stem.split("-")[0]` fallback and fixed the 4 remaining sites (`sbom.generate_sbom`, `aur_publish._extract_pkg_info` ×2, `rpm_to_deb_converter.convert`) to delegate to `config.extract_package_name`. +10 regression tests locking dotted-version/hyphenated-name behavior. |
 | F32 | Delta over-match | 607 → **610 tests**: `delta_updater.find_local_previous` derived the base name via `split("-")[0]` (truncating `my-cool-app` → `my`) and matched with a substring check, so searching `my` over-matched unrelated packages. Now compares the full clean name exactly via `extract_package_name`. +3 regression tests. |
+| F33 | Arch glue | `history_db.get_usage_stats` bucketed arch as `x86_64.pkg.tar` because `.stem` leaves the `.pkg.tar` chain glued to the arch segment; now strips the suffix chain first. +2 regression tests. |
+| F34 | OCI tag | `oci_builder.build_oci_image` derived the image tag from the raw stem (`pkgforge/hello-1.0.0-1-x86_64.pkg.tar:latest`); now uses `extract_package_name` (`pkgforge/hello:latest`). +2 regression tests. Suite now **614 passed, 2 skipped**. |
 
 ---
 
@@ -60,7 +62,7 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **610 passed, 2 skipped, 0 failed** | PyQt6 present; green |
+| Test suite | **614 passed, 2 skipped, 0 failed** | PyQt6 present; green |
 | Line coverage (`core/`) | **52%** (6,266 stmts, 3,015 miss) | CI gate: 48% (raised from 35%) |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |

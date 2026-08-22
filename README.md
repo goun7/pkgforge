@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-610%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-614%20passed-brightgreen)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-41%25-yellow)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
@@ -164,14 +164,14 @@ converter can never make a genuinely malicious package safe, so the goal is to
 
 ## 🧪 Running Tests
 
-To run the automated test suite (610 tests, requires dev dependencies):
+To run the automated test suite (614 tests, requires dev dependencies):
 
 ```bash
 pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **610 passed, 2 skipped** · **52% line coverage** on `core/` ·
+Current status: **614 passed, 2 skipped** · **52% line coverage** on `core/` ·
 CI gate enforces ≥35%.
 
 ---
