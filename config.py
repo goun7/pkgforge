@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -14,6 +15,57 @@ APP_ID = "org.pkgforge.app"
 # Settings
 CONFIG_DIR = Path.home() / ".config" / "pkgforge"
 SETTINGS_FILE = CONFIG_DIR / "settings.json"
+
+# ── Profiles (C2) ────────────────────────────────────────────────
+# The base dir stays CONFIG_DIR; the active profile rebinds where
+# settings.json / history.db live. "default" maps to CONFIG_DIR itself so
+# existing installs keep their data without migration. All access goes through
+# these functions (never capture CONFIG_DIR bindings elsewhere) so tests can
+# monkeypatch config.CONFIG_DIR and every resolver follows.
+DEFAULT_PROFILE = "default"
+PROFILE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+
+
+def profiles_dir() -> Path:
+    """Root directory holding non-default profiles."""
+    return CONFIG_DIR / "profiles"
+
+
+def active_profile_file() -> Path:
+    """Marker file storing the active profile name."""
+    return CONFIG_DIR / "active_profile"
+
+
+def get_active_profile() -> str:
+    """Return the active profile name ('default' when unset/corrupt)."""
+    try:
+        name = active_profile_file().read_text(encoding="utf-8").strip()
+    except OSError:
+        return DEFAULT_PROFILE
+    return name if name and PROFILE_NAME_RE.match(name) else DEFAULT_PROFILE
+
+
+def profile_config_dir(profile: str | None = None) -> Path:
+    """Config dir for a profile: CONFIG_DIR for 'default', profiles/<n> otherwise."""
+    name = profile or get_active_profile()
+    if name == DEFAULT_PROFILE:
+        return CONFIG_DIR
+    return profiles_dir() / name
+
+
+def settings_file(profile: str | None = None) -> Path:
+    """Active-profile-aware path to settings.json."""
+    return profile_config_dir(profile) / "settings.json"
+
+
+def history_db_path(profile: str | None = None) -> Path:
+    """Active-profile-aware path to history.db."""
+    return profile_config_dir(profile) / "history.db"
+
+
+def backup_dir(profile: str | None = None) -> Path:
+    """Active-profile-aware path to the package backups directory."""
+    return profile_config_dir(profile) / "backups"
 
 # Offline mode — when True, network-dependent checks (AUR, upstream) are skipped
 OFFLINE_MODE: bool = False

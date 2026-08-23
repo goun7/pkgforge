@@ -8,14 +8,11 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 from typing import Any
 
-log = logging.getLogger(__name__)
+from config import profile_config_dir, settings_file
 
-# Settings directory
-_CONFIG_DIR = Path.home() / ".config" / "pkgforge"
-_SETTINGS_FILE = _CONFIG_DIR / "settings.json"
+log = logging.getLogger(__name__)
 
 # Current language (module-level state)
 _current_lang: str = "tr"
@@ -101,23 +98,25 @@ def available_languages() -> list[tuple[str, str]]:
 # ── Settings persistence ─────────────────────────────────────────
 
 def _ensure_config_dir() -> None:
-    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    # Resolved per call so the active profile (C2) takes effect immediately.
+    profile_config_dir().mkdir(parents=True, exist_ok=True)
 
 
 def load_settings() -> dict[str, Any]:
-    """Load all settings from disk."""
-    if _SETTINGS_FILE.is_file():
+    """Load all settings from the active profile."""
+    path = settings_file()
+    if path.is_file():
         try:
-            return json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
+            return json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as exc:
             log.warning("Ayarlar okunamadı: %s", exc)
     return {}
 
 
 def save_settings(settings: dict[str, Any]) -> None:
-    """Save all settings to disk."""
+    """Save all settings to the active profile."""
     _ensure_config_dir()
-    _SETTINGS_FILE.write_text(
+    settings_file().write_text(
         json.dumps(settings, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )

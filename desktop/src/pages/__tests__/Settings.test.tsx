@@ -63,4 +63,75 @@ describe("Settings page", () => {
     fireEvent.click(dryRun);
     expect(dryRun.checked).toBe(true);
   });
+
+  it("renders the profile list (C2)", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "profile.list"
+            ? [
+                { name: "default", active: true },
+                { name: "work", active: false },
+              ]
+            : {},
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Profiller")).toBeInTheDocument());
+    expect(screen.getByText("default")).toBeInTheDocument();
+    expect(screen.getByText("work")).toBeInTheDocument();
+  });
+
+  it("creates a profile via profile.create", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "profile.list"
+            ? [{ name: "default", active: true }]
+            : { name: "deneme" },
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByPlaceholderText("Yeni profil adı…")).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText("Yeni profil adı…"), {
+      target: { value: "deneme" },
+    });
+    fireEvent.click(screen.getByText("Oluştur"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "profile.create" }),
+      ),
+    );
+  });
+
+  it("switches profile via radio and profile.switch", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "profile.list"
+            ? [
+                { name: "default", active: true },
+                { name: "work", active: false },
+              ]
+            : { name: "work" },
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("work")).toBeInTheDocument());
+    const radio = screen.getByLabelText(/work/) as HTMLInputElement;
+    fireEvent.click(radio);
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "profile.switch" }),
+      ),
+    );
+  });
 });

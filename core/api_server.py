@@ -6,6 +6,7 @@ This module wraps the existing core modules; it adds NO new business logic.
 from __future__ import annotations
 
 import json
+import logging
 import sys
 import threading
 import time
@@ -972,6 +973,50 @@ def _ensure_scheduler():
         threading.Thread(target=_scheduler_tick, daemon=True).start()
 
 
+
+# -- C2: multi-profile management -------------------------------
+def handle_profile_list(params):
+    from core.profiles import list_profiles
+
+    return list_profiles()
+
+
+def handle_profile_current(params):
+    from core.profiles import current_profile
+
+    return {"name": current_profile()}
+
+
+def _profile_name(params) -> str:
+    return str(params.get("name", "")).strip()
+
+
+def handle_profile_create(params):
+    from core.profiles import create_profile
+
+    return create_profile(_profile_name(params))
+
+
+def handle_profile_switch(params):
+    from core.profiles import switch_profile
+
+    result = switch_profile(_profile_name(params))
+    # Rebind cached UI state (language) to the new profile settings.
+    try:
+        from i18n import init_language
+
+        init_language()
+    except Exception as exc:  # noqa: BLE001 - cosmetic; never fail the switch
+        logging.getLogger(__name__).debug("init_language after switch failed: %s", exc)
+    return result
+
+
+def handle_profile_delete(params):
+    from core.profiles import delete_profile
+
+    return delete_profile(_profile_name(params))
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -1039,6 +1084,11 @@ METHODS = {
     # Faz 2 / B3: scheduled tasks
     "schedule.get": handle_schedule_get,
     "schedule.set": handle_schedule_set,
+    "profile.list": handle_profile_list,
+    "profile.current": handle_profile_current,
+    "profile.create": handle_profile_create,
+    "profile.switch": handle_profile_switch,
+    "profile.delete": handle_profile_delete,
 }
 
 

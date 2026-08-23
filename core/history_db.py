@@ -17,12 +17,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from config import CONFIG_DIR
+from config import backup_dir, history_db_path
 
 log = logging.getLogger(__name__)
-
-DB_PATH = CONFIG_DIR / "history.db"
-BACKUP_DIR = CONFIG_DIR / "backups"
 
 # Busy-wait ceiling (ms) when another connection holds a write lock.
 _BUSY_TIMEOUT_MS = 5_000
@@ -49,10 +46,11 @@ class HistoryRecord:
 class HistoryDB:
     """Manages SQLite database for package conversion history and backup lifecycle."""
 
-    def __init__(self, db_path: Path = DB_PATH):
-        self.db_path = db_path
+    def __init__(self, db_path: Path | None = None):
+        # Resolved per instantiation so the active profile (C2) takes effect.
+        self.db_path = db_path if db_path is not None else history_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        backup_dir().mkdir(parents=True, exist_ok=True)
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -209,7 +207,7 @@ class HistoryDB:
         if not pkg_path.is_file():
             return None
         try:
-            dest = BACKUP_DIR / pkg_path.name
+            dest = backup_dir() / pkg_path.name
             # Use streaming copy for files > 10MB to reduce memory usage
             if pkg_path.stat().st_size > 10 * 1024 * 1024:
                 from core.streaming import stream_copy

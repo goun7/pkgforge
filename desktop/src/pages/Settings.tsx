@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { call } from "../lib/rpc";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -54,6 +54,10 @@ export function Settings() {
   const [settings, setSettings] = useState<SettingsShape>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // C2: profiles
+  const [profiles, setProfiles] = useState<{ name: string; active: boolean }[]>([]);
+  const [newProfile, setNewProfile] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,9 +71,19 @@ export function Settings() {
     }
   }, [toast]);
 
+  const loadProfiles = useCallback(async () => {
+    try {
+      const list = await call<{ name: string; active: boolean }[]>("profile.list");
+      if (Array.isArray(list)) setProfiles(list);
+    } catch {
+      // Profile support unavailable (old sidecar) - leave the card empty.
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadProfiles();
+  }, [load, loadProfiles]);
 
   const set = <K extends keyof SettingsShape>(key: K, value: SettingsShape[K]) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -85,6 +99,52 @@ export function Settings() {
       toast("error", (e as Error).message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([load(), loadProfiles()]);
+  }, [load, loadProfiles]);
+
+  const handleCreateProfile = async () => {
+    const name = newProfile.trim();
+    if (!name) return;
+    setProfileBusy(true);
+    try {
+      await call("profile.create", { name });
+      setNewProfile("");
+      await loadProfiles();
+      toast("success", `Profil oluşturuldu: ${name}`);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setProfileBusy(false);
+    }
+  };
+
+  const handleSwitchProfile = async (name: string) => {
+    setProfileBusy(true);
+    try {
+      await call("profile.switch", { name });
+      await refreshAll();
+      toast("success", `Profil değiştirildi: ${name}`);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setProfileBusy(false);
+    }
+  };
+
+  const handleDeleteProfile = async (name: string) => {
+    setProfileBusy(true);
+    try {
+      await call("profile.delete", { name });
+      await loadProfiles();
+      toast("success", `Profil silindi: ${name}`);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setProfileBusy(false);
     }
   };
 
@@ -176,6 +236,57 @@ export function Settings() {
                 onChange={(e) => set("output_dir", e.target.value)}
               />
             </label>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Profiller</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {profiles.length === 0 && (
+              <p className="text-sm text-[var(--text-muted)]">
+                Profil yüklenemedi veya kullanılamıyor.
+              </p>
+            )}
+            {profiles.map((p) => (
+              <div key={p.name} className="flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="active-profile"
+                    checked={p.active}
+                    disabled={p.active || profileBusy}
+                    onChange={() => void handleSwitchProfile(p.name)}
+                    className="h-4 w-4 accent-[var(--brand-blue)]"
+                  />
+                  <span className="font-medium text-[var(--text-primary)]">{p.name}</span>
+                  {p.active && (
+                    <span className="text-xs text-[var(--text-muted)]">(etkin)</span>
+                  )}
+                </label>
+                {p.name !== "default" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={profileBusy}
+                    onClick={() => void handleDeleteProfile(p.name)}
+                  >
+                    <Trash2 size={14} /> Sil
+                  </Button>
+                )}
+              </div>
+            ))}
+            <div className="flex items-center gap-2 pt-1">
+              <Input
+                placeholder="Yeni profil adı…"
+                value={newProfile}
+                onChange={(e) => setNewProfile(e.target.value)}
+              />
+              <Button onClick={() => void handleCreateProfile()} disabled={profileBusy}>
+                <Plus size={15} /> Oluştur
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
