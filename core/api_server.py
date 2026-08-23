@@ -1303,6 +1303,111 @@ def _rate_limited(ip: str, now: float) -> bool:
     return False
 
 
+def build_openapi_schema() -> dict:
+    """Minimal OpenAPI 3 description of the JSON-RPC surface (F4.8).
+
+    Method names and doc summaries are public metadata by design; executing
+    methods still requires the operator/read tokens enforced in do_POST.
+    """
+    paths: dict = {}
+    for name in sorted(METHODS):
+        handler = METHODS[name]
+        doc = (getattr(handler, "__doc__", None) or "").strip()
+        summary = doc.splitlines()[0] if doc else "JSON-RPC metodu: " + name
+        paths["/rpc/" + name] = {
+            "post": {
+                "operationId": name.replace(".", "_"),
+                "summary": summary,
+                "tags": [name.split(".")[0]],
+                "requestBody": {
+                    "required": False,
+                    "content": {"application/json": {"schema": {
+                        "type": "object",
+                        "properties": {
+                            "params": {"type": "object",
+                                       "additionalProperties": True},
+                        },
+                    }}}},
+                "responses": {
+                    "200": {"description": "JSON-RPC yanıtı"},
+                    "401": {"description": "token gerekli"},
+                    "403": {"description": "okuma yetkisi yok"},
+                    "429": {"description": "hız limiti"},
+                },
+            }
+        }
+    return {
+        "openapi": "3.0.3",
+        "info": {
+            "title": "PkgForge API",
+            "version": APP_VERSION,
+            "description": ("JSON-RPC yüzeyi. Yazma işlemleri operator "
+                            "token, salt-okuma metodları read-token ile "
+                            "açılır."),
+        },
+        "servers": [{"url": "/"}],
+        "paths": paths,
+    }
+
+
+_DASHBOARD_HTML = (
+    "<!doctype html><html lang='tr'><head><meta charset='utf-8'>"
+    "<title>PkgForge Panosu</title><style>"
+    "body{font:14px/1.5 system-ui;background:#111;color:#eee;margin:0;"
+    "display:flex;min-height:100vh}"
+    ".side{width:260px;padding:16px;background:#1a1a1a;overflow:auto}"
+    ".main{flex:1;padding:24px}"
+    "input,select,textarea,button{background:#222;color:#eee;border:1px solid #444;"
+    "border-radius:6px;padding:6px 8px;font:inherit;width:100%;box-sizing:border-box}"
+    "button{cursor:pointer;background:#2563eb;border-color:#2563eb;margin-top:8px}"
+    "pre{white-space:pre-wrap;word-break:break-word}"
+    "</style></head><body>"
+    "<div class='side'>PkgForge Panosu"
+    "<input id='tok' placeholder='Token (Bearer)' type='password' "
+    "style='margin-top:10px'>"
+    "<select id='mth' size='20' style='margin-top:10px;height:auto'></select>"
+    "</div><div class='main'>"
+    "<textarea id='prm' rows='6' placeholder='{ \"params\": {} }'>{}</textarea>"
+    "<button onclick=\"go()\">Gönder</button>"
+    "<pre id='out'>yanıt burada görünücek</pre></div>"
+    "<script>"
+    "const S=k=>sessionStorage.getItem(k);"
+    "const setK=(k,v)=>sessionStorage.setItem(k,v);"
+    "const tok=document.getElementById('tok');"
+    "tok.value=S('pf_tok')||'';"
+    "tok.oninput=()=>setK('pf_tok',tok.value);"
+    "fetch('/openapi.json').then(r=>r.json()).then(o=>{"
+    "const m=document.getElementById('mth');"
+    "Object.keys(o.paths).forEach(p=>{"
+    "const op=document.createElement('option');op.textContent=p.slice(5);"
+    "m.appendChild(op);});"
+    "m.onchange=()=>{const p=o.paths['/rpc/'+m.value].post;"
+    "document.getElementById('prm').value=JSON.stringify("
+    "{},null,2);};});"
+    "function go(){const m=document.getElementById('mth').value;"
+    "let body={};try{body=JSON.parse(document.getElementById('prm').value)}"
+    "catch(e){}"
+    "fetch('/',{method:'POST',headers:{'Content-Type':'application/json',"
+    "'Authorization':'Bearer '+tok.value}," 
+    "body:JSON.stringify({jsonrpc:'2.0',id:1,method:m,params:body.params||body)})"
+    ".then(r=>r.text()).then(t=>document.getElementById('out').textContent=t)"
+    ".catch(e=>document.getElementById('out').textContent='hata: '+e);}"
+    "</script></body></html>"
+)
+
+
+_DOCS_HTML = (
+    "<!doctype html><html><head><meta charset='utf-8'>"
+    "<title>PkgForge API - Swagger</title>"
+    "<link rel='stylesheet' href='https://unpkg.com/swagger-ui-dist@5/swagger-ui.css'>"
+    "</head><body><div id='swagger-ui'></div>"
+    "<script src='https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js'>" 
+    "</script><script>window.addEventListener('load',function(){ "
+    "SwaggerUIBundle({url:'/openapi.json',dom_id:'#swagger-ui'});});</script>"
+    "</body></html>"
+)
+
+
 def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
                read_token: str = "") -> None:
     """Run the JSON-RPC API over HTTP for LAN remote management (B7/F4.2).
@@ -1345,10 +1450,25 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
                 return "reader"
             return None
 
+        def _raw(self, code: int, body: bytes, ctype: str) -> None:
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         def do_GET(self) -> None:
             if self.path == "/health":
                 self._reply(200, {"ok": True, "service": "pkgforge-http",
                                   "version": APP_VERSION})
+            elif self.path == "/openapi.json":
+                self._raw(200, json.dumps(build_openapi_schema()).encode(),
+                          "application/json")
+            elif self.path == "/docs":
+                self._raw(200, _DOCS_HTML.encode(), "text/html; charset=utf-8")
+            elif self.path in ("/", "/index.html"):
+                self._raw(200, _DASHBOARD_HTML.encode(),
+                          "text/html; charset=utf-8")
             else:
                 self._reply(404, {"error": "not found"})
 
