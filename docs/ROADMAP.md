@@ -9,7 +9,7 @@
 
 - **Faz 0 — Tasarım Sistemi & Marka**: logo finali, renk/tipografi token'ları, ikon seti, C-görsel design system — ✅ tamamlandı (Tauri v2 + React + Python-sidecar; Convert/Installed/Settings parity; paketlenmiş sidecar; 637 Python + 26 vitest testi; sürüm 2.0.0-alpha)
 - **Faz 1 — Alan A** (mevcut özellikleri GUI'ye taşı): A1–A6 — ✅ tamamlandı (sidecar method'ları + Security/Updates/Reports/Export sayfaları + DepGraph + Convert genişletmeleri; 656 Python + 45 vitest testi)
-- **Faz 2 — Alan B** (yeni yetenekler): B1–B8
+- **Faz 2 — Alan B** (yeni yetenekler): B1–B8 — ✅ tamamlandı (AUR tarayıcı, tray+bildirim, zamanlayıcı, CVE taraması, paket karşılaştırma, toplu kuyruk, HTTP/LAN API, plugin pazarı; kritik event-adı düzeltmesi; 686 Python + 57 vitest testi)
 - **Faz 3 — Alan C** (mimari genişleme): C1–C3
 
 Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
@@ -31,14 +31,14 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 
 | # | Madde | Durum |
 |---|-------|-------|
-| B1 | Paket tarayıcı/arama: AUR'da ara, popüler paketler, tek tıkla dönüştür | ⬜ yapılacak |
-| B2 | Tray ikonu + masaüstü bildirimleri (arka planda güncelleme izleme) | ⬜ yapılacak |
-| B3 | Zamanlanmış görevler (cron benzeri: "her gün 03:00'te güncelleme kontrolü") | ⬜ yapılacak |
-| B4 | CVE/güvenlik açığı taraması (bağımlılıkları bilinen açıklarla karşılaştırma) | ⬜ yapılacak |
-| B5 | Paket karşılaştırma: iki versiyonu diff'le (dosya listesi, boyut, bağımlılıklar) | ⬜ yapılacak |
-| B6 | Toplu işlem iyileştirmeleri: filtreleme, önceliklendirme, paralel dönüştürme | ⬜ yapılacak |
-| B7 | Web arayüzü: LAN üzerinden uzaktan yönetim | ⬜ yapılacak |
-| B8 | Plugin pazarı UI: mevcut plugin sistemini görselleştir/yönet | ⬜ yapılacak |
+| B1 | Paket tarayıcı/arama: AUR'da ara, popüler paketler, tek tıkla dönüştür | ✅ Faz 2 (Browse sayfası + search_aur + aur.build) |
+| B2 | Tray ikonu + masaüstü bildirimleri (arka planda güncelleme izleme) | ✅ Faz 2 (Tauri tray + notification plugin) |
+| B3 | Zamanlanmış görevler (cron benzeri: "her gün 03:00'te güncelleme kontrolü") | ✅ Faz 2 (schedule.* + scheduler thread) |
+| B4 | CVE/güvenlik açığı taraması (bağımlılıkları bilinen açıklarla karşılaştırma) | ✅ Faz 2 (cve_scanner.py + OSV.dev) |
+| B5 | Paket karşılaştırma: iki versiyonu diff'le (dosya listesi, boyut, bağımlılıklar) | ✅ Faz 2 (Compare sayfası + diff_sboms) |
+| B6 | Toplu işlem iyileştirmeleri: filtreleme, önceliklendirme, paralel dönüştürme | ✅ Faz 2 (queue.* + Convert/Toplu sekmesi) |
+| B7 | Web arayüzü: LAN üzerinden uzaktan yönetim | ✅ Faz 2 (serve --http, bearer token) |
+| B8 | Plugin pazarı UI: mevcut plugin sistemini görselleştir/yönet | ✅ Faz 2 (Plugins sayfası + plugin.*) |
 
 ## Alan C — Mimari genişleme
 
