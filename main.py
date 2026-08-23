@@ -349,6 +349,8 @@ def main() -> int:
                               help="Bearer token required for HTTP requests")
     serve_parser.add_argument("--host", default="127.0.0.1",
                               help="HTTP bind address (with --http)")
+    serve_parser.add_argument("--dbus", action="store_true",
+                              help="Also expose the JSON-RPC registry on the D-Bus session bus")
 
     # completion subcommand
     completion_parser = subparsers.add_parser("completion", help=tr("cli.completion_help"))
@@ -428,6 +430,20 @@ def main() -> int:
 
             serve_http(port=args.port, token=args.token, host=args.host)
         else:
+            if getattr(args, "dbus", False):
+                import threading as _threading
+
+                def _start_dbus():
+                    from core.dbus_service import start_default
+
+                    try:
+                        start_default()
+                        print("D-Bus servisi yayında:", "org.pkgforge.App")
+                    except Exception as exc:  # noqa: BLE001
+                        logging.getLogger(__name__).error(
+                            "D-Bus servisi başlatılamadı: %s", exc)
+
+                _threading.Thread(target=_start_dbus, daemon=True).start()
             from core.api_server import serve
 
             serve()

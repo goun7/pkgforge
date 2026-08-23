@@ -178,4 +178,47 @@ describe("Settings page", () => {
       ),
     );
   });
+
+  it("renders D-Bus status card (C1)", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "dbus.status"
+            ? { available: true, running: false, bus_name: "org.pkgforge.App" }
+            : payload.method === "profile.list"
+              ? [{ name: "default", active: true }]
+              : {},
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("D-Bus Servisi")).toBeInTheDocument());
+    expect(screen.getByText("org.pkgforge.App")).toBeInTheDocument();
+    expect(screen.getByText("Kapalı")).toBeInTheDocument();
+  });
+
+  it("starts the D-Bus service via dbus.start", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "dbus.status"
+            ? { available: true, running: false, bus_name: "org.pkgforge.App" }
+            : payload.method === "profile.list"
+              ? [{ name: "default", active: true }]
+              : { started: true },
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Başlat")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Başlat"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "dbus.start" }),
+      ),
+    );
+  });
 });

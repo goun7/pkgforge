@@ -65,6 +65,11 @@ export function Settings() {
   const [syncUser, setSyncUser] = useState("");
   const [syncPass, setSyncPass] = useState("");
   const [syncBusy, setSyncBusy] = useState(false);
+  // C1: D-Bus service
+  const [dbusStatus, setDbusStatus] = useState<
+    { available: boolean; running: boolean; bus_name: string } | null
+  >(null);
+  const [dbusBusy, setDbusBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,10 +96,24 @@ export function Settings() {
     }
   }, []);
 
+  const loadDbusStatus = useCallback(async () => {
+    try {
+      const st = await call<{
+        available: boolean;
+        running: boolean;
+        bus_name: string;
+      }>("dbus.status");
+      setDbusStatus(st);
+    } catch {
+      setDbusStatus(null);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
     void loadProfiles();
-  }, [load, loadProfiles]);
+    void loadDbusStatus();
+  }, [load, loadProfiles, loadDbusStatus]);
 
   const set = <K extends keyof SettingsShape>(key: K, value: SettingsShape[K]) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -186,6 +205,35 @@ export function Settings() {
     } finally {
       setSyncBusy(false);
     }
+  };
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void onEvent<{ ok: boolean; error?: string }>(
+      "event/dbus_done",
+      (payload) => {
+        if (payload.ok) {
+          toast("success", "D-Bus servisi yayında");
+        } else {
+          toast("error", payload.error ?? "D-Bus servisi başlatılamadı");
+        }
+        void loadDbusStatus();
+      },
+    ).then((fn) => {
+      unlisten = fn as () => void;
+    });
+    return () => unlisten?.();
+  }, [toast, loadDbusStatus]);
+
+  const handleDbusStart = async () => {
+    setDbusBusy(true);
+    try {
+      await call("dbus.start");
+    } catch (e) {
+      toast("error", (e as Error).message);
+      setDbusBusy(false);
+    }
+    // status refresh arrives via event/dbus_done handler
   };
 
   if (loading) {
@@ -423,6 +471,55 @@ export function Settings() {
                 </Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>D-Bus Servisi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {dbusStatus === null ? (
+              <p className="text-sm text-[var(--text-muted)]">
+                D-Bus durumu okunamadı.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Üçüncü taraf araçlar aynı JSON-RPC yöntemlerini oturum
+                  veriyolu üzerinden çağırabilir.
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
+                    {dbusStatus.bus_name}
+                  </span>
+                  <span
+                    className={
+                      "rounded-full px-2 py-0.5 text-xs " +
+                      (dbusStatus.running
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-[var(--bg-elevated)] text-[var(--text-muted)]")
+                    }
+                  >
+                    {dbusStatus.running ? "Çalışıyor" : "Kapalı"}
+                  </span>
+                </div>
+                {!dbusStatus.available && (
+                  <p className="text-xs text-[var(--text-muted)]">
+                    jeepney paketi gerekli: pip install jeepney
+                  </p>
+                )}
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    disabled={dbusBusy || !dbusStatus.available || dbusStatus.running}
+                    onClick={() => void handleDbusStart()}
+                  >
+                    Başlat
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

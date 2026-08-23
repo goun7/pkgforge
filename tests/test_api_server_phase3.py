@@ -122,3 +122,37 @@ def test_sync_config_stores_url(sidecar):
     got = _rpc(sidecar, "settings.get", req_id=2)["result"]
     assert got["sync_url"] == "https://cloud.example/dav/"
     assert got["sync_username"] == "u"
+
+
+# --- C1: dbus.* ---------------------------------------------------------------
+
+def test_dbus_status_shape(sidecar):
+    resp = _rpc(sidecar, "dbus.status")
+    res = resp["result"]
+    assert set(res) == {"available", "running", "bus_name"}
+    assert res["bus_name"] == "org.pkgforge.App"
+    assert isinstance(res["available"], bool)
+    assert res["running"] is False
+
+
+def test_dbus_start_starts_service(sidecar):
+    import core.dbus_service as d
+
+    if not d.is_available() or not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        pytest.skip("jeepney or session bus unavailable")
+
+    assert _rpc(sidecar, "dbus.start")["result"]["started"] is True
+
+    def _read_until_done():
+        for _ in range(20):
+            line = sidecar.stdout.readline()
+            data = json.loads(line)
+            if data.get("method") == "event/dbus_done":
+                return data["params"]
+        raise AssertionError("dbus_done event never arrived")
+
+    params = _read_until_done()
+    assert params["ok"] is True, params
+
+    status = _rpc(sidecar, "dbus.status", req_id=99)["result"]
+    assert status["running"] is True

@@ -1058,6 +1058,22 @@ def handle_sync_pull(params):
     return {"started": True}
 
 
+
+# -- C1: D-Bus service bridge ------------------------------------
+def handle_dbus_status(params):
+    from core.dbus_service import service_status
+
+    return service_status()
+
+
+def handle_dbus_start(params):
+    from core.dbus_service import start_default
+
+    # Quick op (spawns its own serve thread); result/error via done event.
+    _run_thread(start_default, "event/dbus_done")
+    return {"started": True}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -1135,6 +1151,8 @@ METHODS = {
     "sync.config": handle_sync_config,
     "sync.push": handle_sync_push,
     "sync.pull": handle_sync_pull,
+    "dbus.status": handle_dbus_status,
+    "dbus.start": handle_dbus_start,
 }
 
 

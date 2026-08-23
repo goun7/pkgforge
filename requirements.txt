@@ -9,6 +9,10 @@
 # Install for: pkgforge gui
 PyQt6>=6.5.0; python_version>="3.10"
 
+# ── Optional: D-Bus service bridge (C1) ───────────────────────
+# Pure-Python; install to enable `pkgforge serve --dbus` / dbus.start
+# jeepney>=0.8
+
 # ── Development ────────────────────────────────────────────────
 # Install with: pip install -r requirements-dev.txt
 # pytest>=7.0
