@@ -246,6 +246,27 @@ export interface DepGraphData {
   warnings: string[];
 }
 
+/* --- Faz 2 / B6: batch conversion queue --- */
+
+export interface BatchItem {
+  id: string;
+  path: string;
+  name: string;
+  status: string;
+  priority: number;
+  message: string;
+}
+
+/* --- Faz 2 / B3: scheduled tasks --- */
+
+export interface ScheduleState {
+  enabled: boolean;
+  interval_hours: number;
+  task: string;
+  last_run: string;
+  next_run: string;
+}
+
 /* --- Faz 2 / B4: CVE scan --- */
 
 export interface CveVuln {

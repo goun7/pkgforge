@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Play, Square, Container, Network, Code2, Loader2 } from "lucide-react";
+import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { call } from "../lib/rpc";
 import type {
   StepChangedEvent,
@@ -10,6 +10,7 @@ import type {
   FinishedEvent,
   DepGraphData,
   SourceResult,
+  BatchItem,
 } from "../lib/types";
 import { DropZone, filterAcceptedPaths } from "../components/DropZone";
 import { StepIndicator, PIPELINE_STEPS, type StepStatus } from "../components/StepIndicator";
@@ -31,7 +32,7 @@ function stepName(index: number): string {
   return PIPELINE_STEPS[index] ?? "unknown";
 }
 
-type ConvertTab = "convert" | "fromsource";
+type ConvertTab = "convert" | "fromsource" | "batch";
 
 export function Convert() {
   const { toast } = useToast();
@@ -54,6 +55,12 @@ export function Convert() {
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceStep, setSourceStep] = useState("");
   const [sourceResult, setSourceResult] = useState<SourceResult | null>(null);
+
+  // batch queue (B6)
+  const [batch, setBatch] = useState<BatchItem[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [parallel, setParallel] = useState("1");
+  const [batchFilter, setBatchFilter] = useState("");
 
   // Refs so event callbacks always see fresh state without re-subscribing.
   const queueRef = useRef(queue);
@@ -242,6 +249,88 @@ export function Convert() {
     }
   };
 
+  // --- batch queue (B6) ---
+  const loadBatch = useCallback(async () => {
+    try {
+      const res = await call<BatchItem[]>("queue.list");
+      setBatch(res);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (tab === "batch") void loadBatch();
+  }, [tab, loadBatch]);
+
+  // batch finished event
+  useEffect(() => {
+    let un: (() => void) | undefined;
+    void listen("event.queue_done", () => {
+      setBatchRunning(false);
+      void loadBatch();
+    }).then((u) => { un = u; });
+    return () => { if (un) un(); };
+  }, [loadBatch]);
+
+  const handleBatchAdd = async (paths: string[]) => {
+    if (!paths.length) return;
+    try {
+      await call("queue.add", { paths });
+      void loadBatch();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleBatchStart = async () => {
+    const p = parseInt(parallel, 10) || 1;
+    setBatchRunning(true);
+    try {
+      const res = await call<{ started: boolean; reason?: string }>("queue.start", { parallel: p });
+      if (!res.started) {
+        setBatchRunning(false);
+        toast("info", res.reason === "no pending items" ? "Bekleyen öğe yok" : "Zaten çalışıyor");
+      }
+    } catch (e) {
+      setBatchRunning(false);
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleBatchPriority = async (id: string, delta: number) => {
+    const item = batch.find((b) => b.id === id);
+    if (!item) return;
+    try {
+      await call("queue.priority", { id, priority: item.priority + delta });
+      void loadBatch();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleBatchRemove = async (id: string) => {
+    try {
+      await call("queue.remove", { id });
+      void loadBatch();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleBatchClear = async () => {
+    try {
+      await call("queue.clear", {});
+      void loadBatch();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const filteredBatch = batchFilter
+    ? batch.filter((b) => b.name.toLowerCase().includes(batchFilter.toLowerCase()))
+    : batch;
+
   const overall = report?.overall ?? "pass";
   const needsDecision = report !== null;
 
@@ -270,6 +359,17 @@ export function Convert() {
           )}
         >
           <Code2 size={15} /> Kaynaktan
+        </button>
+        <button
+          onClick={() => setTab("batch")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-t-md px-3 py-2 text-sm font-medium transition-colors",
+            tab === "batch"
+              ? "border-b-2 border-[var(--brand-blue)] text-[var(--brand-blue)]"
+              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+          )}
+        >
+          <ListChecks size={15} /> Toplu
         </button>
       </div>
 
@@ -379,6 +479,80 @@ export function Convert() {
                 >
                   {sourceResult.pkgbuild_content}
                 </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {tab === "batch" && (
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Toplu Dönüştürme</CardTitle>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Filtrele…"
+                value={batchFilter}
+                onChange={(e) => setBatchFilter(e.target.value)}
+                className="h-8 w-40"
+              />
+              <Button variant="secondary" size="sm" onClick={() => void loadBatch()}>
+                Yenile
+              </Button>
+              <Button variant="danger" size="sm" onClick={() => void handleBatchClear()} disabled={batchRunning}>
+                <Trash2 size={13} /> Temizle
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <DropZone onPaths={(p) => void handleBatchAdd(p)} dragging={false} disabled={batchRunning} />
+
+            <div className="flex items-center gap-2">
+              <Button onClick={() => void handleBatchStart()} disabled={batchRunning || !batch.some((b) => b.status === "pending")}>
+                {batchRunning ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+                Toplu Başlat
+              </Button>
+              <span className="text-xs text-[var(--text-muted)]">Paralel:</span>
+              <Input
+                type="number"
+                min={1}
+                max={4}
+                value={parallel}
+                onChange={(e) => setParallel(e.target.value)}
+                className="h-8 w-16"
+              />
+              {batchRunning && <Badge tone="info">çalışıyor…</Badge>}
+            </div>
+
+            {filteredBatch.length === 0 ? (
+              <p className="text-sm text-[var(--text-muted)]">Kuyruk boş. Paket dosyalarını yukarı sürükleyin.</p>
+            ) : (
+              <div className="space-y-1">
+                {filteredBatch.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between rounded-md bg-[var(--bg-elevated)] px-3 py-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="truncate font-medium">{b.name}</span>
+                        <Badge tone={b.status === "done" ? "success" : b.status === "error" ? "danger" : b.status === "running" ? "info" : "neutral"}>
+                          {b.status}
+                        </Badge>
+                        <span className="text-xs text-[var(--text-muted)]">öncelik {b.priority}</span>
+                      </div>
+                      {b.message && <p className="truncate text-xs text-[var(--text-muted)]">{b.message}</p>}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <button aria-label={`öncelik artır ${b.name}`} title="Önceliği artır" onClick={() => void handleBatchPriority(b.id, 1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
+                        <ArrowUp size={14} />
+                      </button>
+                      <button aria-label={`öncelik azalt ${b.name}`} title="Önceliği azalt" onClick={() => void handleBatchPriority(b.id, -1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
+                        <ArrowDown size={14} />
+                      </button>
+                      <button aria-label={`kaldır ${b.name}`} title="Kaldır" onClick={() => void handleBatchRemove(b.id)} disabled={b.status === "running"} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--danger)]">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

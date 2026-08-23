@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Timer, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Timer, Search, Loader2, CalendarClock } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
-import type { DeltaStatus, CrossCheckReport } from "../lib/types";
+import type { DeltaStatus, CrossCheckReport, ScheduleState } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -16,6 +16,8 @@ export function Updates() {
   const [pkgName, setPkgName] = useState("");
   const [checking, setChecking] = useState(false);
   const [cross, setCross] = useState<CrossCheckReport | null>(null);
+  const [schedule, setSchedule] = useState<ScheduleState | null>(null);
+  const [intervalInput, setIntervalInput] = useState("24");
 
   const loadDelta = useCallback(async () => {
     setLoading(true);
@@ -29,9 +31,43 @@ export function Updates() {
     }
   }, [toast]);
 
+  const loadSchedule = useCallback(async () => {
+    try {
+      const res = await call<ScheduleState>("schedule.get");
+      setSchedule(res);
+      setIntervalInput(String(res.interval_hours));
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  }, [toast]);
+
   useEffect(() => {
     void loadDelta();
-  }, [loadDelta]);
+    void loadSchedule();
+  }, [loadDelta, loadSchedule]);
+
+  const handleScheduleToggle = async (enabled: boolean) => {
+    try {
+      await call("schedule.set", { enabled });
+      void loadSchedule();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleScheduleInterval = async () => {
+    const h = parseFloat(intervalInput);
+    if (!h || h < 1) {
+      toast("error", "Aralık en az 1 saat olmalı");
+      return;
+    }
+    try {
+      await call("schedule.set", { interval_hours: h });
+      void loadSchedule();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
 
   const handleEnable = async () => {
     try {
@@ -120,6 +156,54 @@ export function Updates() {
               </div>
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      {/* Scheduled tasks card (B3) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Zamanlanmış Görevler</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {schedule ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                <CalendarClock size={18} className="text-[var(--text-muted)]" />
+                <Badge tone={schedule.enabled ? "success" : "neutral"}>
+                  {schedule.enabled ? "Etkin" : "Devre dışı"}
+                </Badge>
+                {schedule.next_run && (
+                  <span className="text-xs text-[var(--text-muted)]">Sonraki: {schedule.next_run}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  value={intervalInput}
+                  onChange={(e) => setIntervalInput(e.target.value)}
+                  className="h-9 w-24"
+                />
+                <span className="text-xs text-[var(--text-muted)]">saat arayla</span>
+                <Button size="sm" variant="secondary" onClick={() => void handleScheduleInterval()}>
+                  Kaydet
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => void handleScheduleToggle(true)} disabled={schedule.enabled}>
+                  Etkinleştir
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => void handleScheduleToggle(false)} disabled={!schedule.enabled}>
+                  Kapat
+                </Button>
+              </div>
+              {schedule.last_run && (
+                <p className="text-xs text-[var(--text-muted)]">Son çalışma: {schedule.last_run}</p>
+              )}
+            </div>
+          ) : (
+            <Skeleton className="h-16 w-full" />
+          )}
         </CardContent>
       </Card>
 

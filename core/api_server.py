@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sys
 import threading
+import time
 from pathlib import Path
 
 from config import APP_NAME, APP_VERSION, discover_tools
@@ -739,6 +740,232 @@ def handle_aur_build(params):
     return {"started": True}
 
 
+# ── Faz 2 / B6: batch conversion queue ──────────────────────────
+
+_queue_lock = threading.Lock()
+_queue_items: dict = {}   # id -> {id, path, status, priority, message}
+_queue_seq = 0
+_queue_running = False
+
+
+def _make_pipeline(path, item_id, auto_approve=False):
+    """Build a ConversionPipeline whose events are tagged with item_id.
+
+    For unattended batch runs, auto_approve wires compatibility_ready to
+    approve_install() so the decision gate never blocks the dispatcher.
+    """
+    from core.pipeline import ConversionPipeline
+
+    _ensure_qapp()
+    p = ConversionPipeline()
+    p.step_changed.connect(
+        lambda step, status: _event("event.step_changed", {"step": step, "status": status, "item_id": item_id}))
+    p.progress.connect(
+        lambda v: _event("event.progress", {"value": v, "item_id": item_id}))
+    p.log_message.connect(
+        lambda msg, level: _event("event.log", {"message": msg, "level": level, "item_id": item_id}))
+    p.compatibility_ready.connect(
+        lambda report: _event("event.compatibility_ready", {"report": report.to_dict(), "item_id": item_id}))
+    if auto_approve:
+        p.compatibility_ready.connect(lambda report: p.approve_install())
+    p.finished.connect(
+        lambda result: _event("event.finished", {
+            "success": result.success,
+            "message": result.message,
+            "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
+            "item_id": item_id,
+        }))
+    return p
+
+
+def _set_item(item_id, **fields):
+    with _queue_lock:
+        if item_id in _queue_items:
+            _queue_items[item_id].update(fields)
+
+
+def handle_queue_add(params):
+    global _queue_seq
+    paths = params.get("paths", [])
+    if isinstance(paths, str):
+        paths = [paths]
+    added = 0
+    with _queue_lock:
+        for raw in paths:
+            path = Path(str(raw))
+            if not path.is_file():
+                continue
+            if path.suffix.lower() not in (".deb", ".rpm"):
+                continue
+            _queue_seq += 1
+            item_id = f"q{_queue_seq}"
+            _queue_items[item_id] = {
+                "id": item_id,
+                "path": str(path),
+                "name": path.name,
+                "status": "pending",
+                "priority": int(params.get("priority", 0)),
+                "message": "",
+            }
+            added += 1
+    return {"added": added}
+
+
+def handle_queue_list(params):
+    with _queue_lock:
+        items = list(_queue_items.values())
+    items.sort(key=lambda it: (-it["priority"], it["id"]))
+    return items
+
+
+def handle_queue_priority(params):
+    item_id = params.get("id", "")
+    with _queue_lock:
+        if item_id not in _queue_items:
+            raise KeyError(f"Queue item not found: {item_id}")
+        _queue_items[item_id]["priority"] = int(params.get("priority", 0))
+    return {"ok": True}
+
+
+def handle_queue_remove(params):
+    item_id = params.get("id", "")
+    with _queue_lock:
+        _queue_items.pop(item_id, None)
+    return {"ok": True}
+
+
+def handle_queue_clear(params):
+    status = params.get("status", "")
+    with _queue_lock:
+        if not status:
+            _queue_items.clear()
+        else:
+            for k in [k for k, v in _queue_items.items() if v["status"] == status]:
+                del _queue_items[k]
+    return {"ok": True}
+
+
+def _queue_dispatch(parallel):
+    """Worker: process pending queue items by priority until none remain."""
+    global _queue_running
+    try:
+        while True:
+            with _queue_lock:
+                pending = [it for it in _queue_items.values() if it["status"] == "pending"]
+            if not pending:
+                break
+            pending.sort(key=lambda it: (-it["priority"], it["id"]))
+            batch = pending[: max(1, parallel)]
+            threads = []
+            for it in batch:
+                _set_item(it["id"], status="running", message="")
+                p = _make_pipeline(Path(it["path"]), it["id"], auto_approve=True)
+                p.stage(Path(it["path"]))
+
+                def _on_finished(result, iid=it["id"]):
+                    _set_item(iid, status="done" if result.success else "error", message=result.message)
+
+                p.finished.connect(_on_finished)
+                t = threading.Thread(target=p.run_staged, daemon=True)
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
+    finally:
+        _queue_running = False
+        _event("event.queue_done", {"ok": True})
+
+
+def handle_queue_start(params):
+    global _queue_running
+    parallel = int(params.get("parallel", 1))
+    with _queue_lock:
+        has_pending = any(it["status"] == "pending" for it in _queue_items.values())
+    if not has_pending:
+        return {"started": False, "reason": "no pending items"}
+    if _queue_running:
+        return {"started": False, "reason": "already running"}
+    _queue_running = True
+    threading.Thread(target=_queue_dispatch, args=(parallel,), daemon=True).start()
+    return {"started": True}
+
+
+# ── Faz 2 / B3: scheduled tasks ─────────────────────────────────
+
+_scheduler_started = False
+
+
+def _schedule_state():
+    s = load_settings()
+    return {
+        "enabled": bool(s.get("schedule_enabled", False)),
+        "interval_hours": float(s.get("schedule_interval_hours", 24)),
+        "task": str(s.get("schedule_task", "check_updates")),
+        "last_run": str(s.get("schedule_last_run", "")),
+    }
+
+
+def handle_schedule_get(params):
+    st = _schedule_state()
+    next_run = ""
+    if st["enabled"]:
+        try:
+            if st["last_run"]:
+                last = time.mktime(time.strptime(st["last_run"], "%Y-%m-%d %H:%M:%S"))
+                next_run = time.strftime("%Y-%m-%d %H:%M:%S",
+                                         time.localtime(last + st["interval_hours"] * 3600))
+            else:
+                next_run = time.strftime("%Y-%m-%d %H:%M:%S",
+                                         time.localtime(time.time() + st["interval_hours"] * 3600))
+        except (ValueError, OverflowError, OSError):
+            next_run = ""
+    st["next_run"] = next_run
+    return st
+
+
+def handle_schedule_set(params):
+    s = load_settings()
+    if "enabled" in params:
+        s["schedule_enabled"] = bool(params["enabled"])
+    if "interval_hours" in params:
+        s["schedule_interval_hours"] = max(1.0, float(params["interval_hours"]))
+    if "task" in params:
+        s["schedule_task"] = str(params["task"])
+    save_settings(s)
+    return {"ok": True}
+
+
+def _scheduler_tick():
+    """Daemon loop: run the scheduled task when its interval elapses."""
+    while True:
+        try:
+            st = _schedule_state()
+            if st["enabled"]:
+                due = True
+                if st["last_run"]:
+                    try:
+                        last = time.mktime(time.strptime(st["last_run"], "%Y-%m-%d %H:%M:%S"))
+                        due = (time.time() - last) >= st["interval_hours"] * 3600
+                    except (ValueError, OverflowError, OSError):
+                        due = True
+                if due:
+                    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                    s = load_settings()
+                    s["schedule_last_run"] = now
+                    save_settings(s)
+                    _event("event.schedule_ran", {"task": st["task"], "at": now})
+        except Exception as exc:  # noqa: BLE001
+            _event("event.schedule_ran", {"task": "", "error": str(exc)})
+        time.sleep(60)
+
+
+def _ensure_scheduler():
+    global _scheduler_started
+    if not _scheduler_started:
+        _scheduler_started = True
+        threading.Thread(target=_scheduler_tick, daemon=True).start()
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -796,6 +1023,16 @@ METHODS = {
     "aur.search": handle_aur_search,
     "aur.info": handle_aur_info,
     "aur.build": handle_aur_build,
+    # Faz 2 / B6: batch conversion queue
+    "queue.add": handle_queue_add,
+    "queue.list": handle_queue_list,
+    "queue.priority": handle_queue_priority,
+    "queue.remove": handle_queue_remove,
+    "queue.clear": handle_queue_clear,
+    "queue.start": handle_queue_start,
+    # Faz 2 / B3: scheduled tasks
+    "schedule.get": handle_schedule_get,
+    "schedule.set": handle_schedule_set,
 }
 
 
@@ -823,6 +1060,7 @@ def serve() -> None:
     import select
 
     app = _ensure_qapp()
+    _ensure_scheduler()
     while True:
         app.processEvents()
         try:

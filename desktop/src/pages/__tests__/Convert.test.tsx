@@ -101,4 +101,17 @@ describe("Convert page", () => {
       ),
     );
   });
+
+  it("renders the batch tab and loads the queue on switch", async () => {
+    invokeMock.mockResolvedValue([]);
+    renderConvert();
+    fireEvent.click(screen.getByText("Toplu"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "queue.list" }),
+      ),
+    );
+    expect(screen.getByText("Toplu Dönüştürme")).toBeInTheDocument();
+  });
 });
