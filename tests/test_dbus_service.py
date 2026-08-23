@@ -10,7 +10,6 @@ import pytest
 from core import dbus_service
 from core.dbus_service import PkgForgeService, ServiceError
 
-
 # --- pure / offline units ---------------------------------------------------
 
 def test_is_available_returns_bool():

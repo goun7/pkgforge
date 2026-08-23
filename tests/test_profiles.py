@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import config
-import core.profiles as profiles
+from core import profiles
 from core.history_db import HistoryDB
 from core.profiles import ProfileError
 

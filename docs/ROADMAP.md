@@ -10,7 +10,7 @@
 - **Faz 0 — Tasarım Sistemi & Marka**: logo finali, renk/tipografi token'ları, ikon seti, C-görsel design system — ✅ tamamlandı (Tauri v2 + React + Python-sidecar; Convert/Installed/Settings parity; paketlenmiş sidecar; 637 Python + 26 vitest testi; sürüm 2.0.0-alpha)
 - **Faz 1 — Alan A** (mevcut özellikleri GUI'ye taşı): A1–A6 — ✅ tamamlandı (sidecar method'ları + Security/Updates/Reports/Export sayfaları + DepGraph + Convert genişletmeleri; 656 Python + 45 vitest testi)
 - **Faz 2 — Alan B** (yeni yetenekler): B1–B8 — ✅ tamamlandı (AUR tarayıcı, tray+bildirim, zamanlayıcı, CVE taraması, paket karşılaştırma, toplu kuyruk, HTTP/LAN API, plugin pazarı; kritik event-adı düzeltmesi; 686 Python + 57 vitest testi)
-- **Faz 3 — Alan C** (mimari genişleme): C1–C3
+- **Faz 3 — Alan C** (mimari genişleme): C1–C3 — ✅ tamamlandı (çoklu profil, yedek/WebDAV senkron, D-Bus servisi; kritik event-adı düzeltmesi sonrası; 727 Python + 64 vitest testi)
 
 Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 
@@ -44,9 +44,9 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 
 | # | Madde | Durum |
 |---|-------|-------|
-| C1 | REST API / D-Bus servisi (üçüncü taraf entegrasyonu; sidecar IPC'nin temeli) | ⬜ yapılacak |
-| C2 | Çoklu profil: farklı ayar kümeleri (iş/kişisel) | ⬜ yapılacak |
-| C3 | Bulut senkronizasyonu: ayarlar + geçmiş yedekleme | ⬜ yapılacak |
+| C1 | REST API / D-Bus servisi (üçüncü taraf entegrasyonu; sidecar IPC'nin temeli) | ✅ Faz 3 (serve --http JSON-RPC + jeepney D-Bus köprüsü org.pkgforge.App) |
+| C2 | Çoklu profil: farklı ayar kümeleri (iş/kişisel) | ✅ Faz 3 (profile.* + profil başına ayar/geçmiş, Settings kartı) |
+| C3 | Bulut senkronizasyonu: ayarlar + geçmiş yedekleme | ✅ Faz 3 (profil-farkındalıklı zip yedek + WebDAV push/pull) |
 
 ---
 

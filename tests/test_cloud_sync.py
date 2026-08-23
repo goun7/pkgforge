@@ -10,7 +10,13 @@ from pathlib import Path
 import pytest
 
 import config
-from core.cloud_sync import SyncError, export_backup, import_backup, webdav_pull, webdav_push
+from core.cloud_sync import (
+    SyncError,
+    export_backup,
+    import_backup,
+    webdav_pull,
+    webdav_push,
+)
 
 
 @pytest.fixture
@@ -46,7 +52,7 @@ def test_export_creates_bundle_with_marker_and_data(cfg_root: Path):
 
 
 def test_export_covers_all_profiles(cfg_root: Path):
-    import core.profiles as profiles
+    from core import profiles
     from i18n import save_settings
 
     _seed_default_state()
