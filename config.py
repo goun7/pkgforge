@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 APP_NAME = "PkgForge"
-APP_VERSION = "1.1.0"
+APP_VERSION = "2.0.0"
 APP_ID = "org.pkgforge.app"
 
 # Settings
