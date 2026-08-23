@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policyconfig>
+
+  <action id="org.pkgforge.install">
+    <description>PkgForge paket kurulumu</description>
+    <message>Donusturulen paketi pacman ile kurmak icin yetkilendirme</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policy.exec.path">/usr/share/pkgforge/scripts/install_helper.sh</annotate>
+  </action>
+  <action id="org.pkgforge.delta-update">
+    <description>PkgForge delta otomatik guncelleme</description>
+    <message>Delta updater servis dosyalarini yazmak icin yetkilendirme</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policy.exec.path">/usr/share/pkgforge/scripts/install_helper.sh</annotate>
+  </action>
+  <action id="org.pkgforge.snapshot-cleanup">
+    <description>PkgForge snapshot temizligi</description>
+    <message>Zamanlanmis snapshot temizlik servisini yonetmek icin yetkilendirme</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policy.exec.path">/usr/share/pkgforge/scripts/install_helper.sh</annotate>
+  </action>
+
+</policyconfig>
