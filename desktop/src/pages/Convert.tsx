@@ -60,6 +60,8 @@ export function Convert() {
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
   const [parallel, setParallel] = useState("1");
+  // F4.3: batch defaults to CONVERSION-ONLY; installing is an explicit opt-in.
+  const [batchInstall, setBatchInstall] = useState(false);
   const [batchFilter, setBatchFilter] = useState("");
 
   // Refs so event callbacks always see fresh state without re-subscribing.
@@ -287,7 +289,10 @@ export function Convert() {
     const p = parseInt(parallel, 10) || 1;
     setBatchRunning(true);
     try {
-      const res = await call<{ started: boolean; reason?: string }>("queue.start", { parallel: p });
+      const res = await call<{ started: boolean; reason?: string }>(
+        "queue.start",
+        { parallel: batchInstall ? 1 : p, install: batchInstall },
+      );
       if (!res.started) {
         setBatchRunning(false);
         toast("info", res.reason === "no pending items" ? "Bekleyen öğe yok" : "Zaten çalışıyor");
@@ -521,6 +526,15 @@ export function Convert() {
                 onChange={(e) => setParallel(e.target.value)}
                 className="h-8 w-16"
               />
+              <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                <input
+                  type="checkbox"
+                  checked={batchInstall}
+                  onChange={(e) => setBatchInstall(e.target.checked)}
+                  className="h-3.5 w-3.5 accent-[var(--brand-blue)]"
+                />
+                Kur (seri)
+              </label>
               {batchRunning && <Badge tone="info">çalışıyor…</Badge>}
             </div>
 

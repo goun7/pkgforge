@@ -298,7 +298,7 @@ class ConversionPipeline(QObject):
 
         try:
             self._run_pipeline(file_path)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self._result.success = False
             self._result.message = f"Beklenmeyen hata: {exc}"
             self._log("error", str(exc))
@@ -320,7 +320,7 @@ class ConversionPipeline(QObject):
                 output_pkg=str(self._result.converted_pkg) if self._result.converted_pkg else "",
                 details=self._result.message,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.warning("Geçmiş kaydı tutulamadı: %s", exc)
 
 
@@ -421,7 +421,7 @@ class ConversionPipeline(QObject):
                 else:
                     self._log("warning", "clamscan bulunamadı — malware taraması atlandı")
                 self._set_step(PipelineStep.MALWARE_SCAN, "done")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 self._log("warning", f"Malware taraması başarısız: {exc}")
                 self._set_step(PipelineStep.MALWARE_SCAN, "done")
             self.progress.emit(25)
@@ -435,7 +435,7 @@ class ConversionPipeline(QObject):
         try:
             meta = analyze_package(file_path, self._tools)
             self._result.metadata = meta
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self._set_step(PipelineStep.ANALYSIS, "error")
             self._result.message = f"Paket analizi başarısız: {exc}"
             self._log("error", str(exc))
@@ -481,7 +481,7 @@ class ConversionPipeline(QObject):
                     self._log("info", f"Yerel paket AUR'dakinden daha yeni: {meta.version} > {aur_res.aur_version}")
                 elif aur_res.status == "not_found":
                     self._log("info", "Paket AUR'da bulunamadı, özel dönüşüm yapılıyor")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 log.warning("AUR kontrolü atlandı: %s", exc)
                 self._log("warning", f"AUR kontrolü yapılamadı: {exc}")
 
@@ -552,6 +552,15 @@ class ConversionPipeline(QObject):
             # dir (deleting the converted package) before the user could
             # choose to proceed — leaving Install Anyway with no listener.
             if not self._wait_for_decision():
+                if not self._cancelled and getattr(self, "_skip_install_message", ""):
+                    # F4.3 batch mode: conversion succeeded, install opted out.
+                    msg = self._skip_install_message
+                    self._set_step(PipelineStep.INSTALL, "done")
+                    self.progress.emit(100)
+                    self._result.success = True
+                    self._result.message = msg
+                    self._log("info", msg)
+                    return
                 self._set_step(PipelineStep.INSTALL, "error")
                 self._result.success = False
                 self._result.message = (
@@ -570,6 +579,14 @@ class ConversionPipeline(QObject):
             # dismiss_install). The temp dir — and therefore the converted
             # package — stays alive while the user reviews the report.
             if not self._wait_for_decision():
+                if not self._cancelled and getattr(self, "_skip_install_message", ""):
+                    msg = self._skip_install_message
+                    self._set_step(PipelineStep.INSTALL, "done")
+                    self.progress.emit(100)
+                    self._result.success = True
+                    self._result.message = msg
+                    self._log("info", msg)
+                    return
                 self._set_step(PipelineStep.INSTALL, "error")
                 self._result.success = False
                 self._result.message = (

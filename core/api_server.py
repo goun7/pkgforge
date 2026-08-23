@@ -754,35 +754,59 @@ _queue_lock = threading.Lock()
 _queue_items: dict = {}   # id -> {id, path, status, priority, message}
 _queue_seq = 0
 _queue_running = False
+# Live batch pipelines keyed by item_id (F4.3 honesty fix).
+_active_pipelines: dict = {}
 
 
-def _make_pipeline(path, item_id, auto_approve=False):
+def _make_pipeline(path, item_id, do_install=False):
     """Build a ConversionPipeline whose events are tagged with item_id.
 
-    For unattended batch runs, auto_approve wires compatibility_ready to
-    approve_install() so the decision gate never blocks the dispatcher.
+    F4.3 honesty: batch is CONVERSION-ONLY by default. The decision gate is
+    released via dismiss_install() so no package touches the system unless
+    the caller explicitly opted in with do_install=True.
     """
+    from PyQt6.QtCore import Qt
+
     from core.pipeline import ConversionPipeline
 
     _ensure_qapp()
     p = ConversionPipeline()
+
+    # F4.3: slots run DIRECTLY on the emitting thread. Batch dispatcher
+    # threads have no Qt event loop; queued delivery would never fire the
+    # auto-approve gate and deadlock the item. These lambdas only touch
+    # thread-safe state (_event -> write lock, dict under _queue_lock).
+    direct = Qt.ConnectionType.DirectConnection
+
+    def _track_finished(result):
+        _active_pipelines.pop(item_id, None)
+        _set_item(item_id, status="done" if result.success else "error",
+                  message=result.message)
+
     p.step_changed.connect(
-        lambda step, status: _event("event/step_changed", {"step": step, "status": status, "item_id": item_id}))
+        lambda step, status: _event("event/step_changed", {"step": step, "status": status, "item_id": item_id}), type=direct)
     p.progress.connect(
-        lambda v: _event("event/progress", {"value": v, "item_id": item_id}))
+        lambda v: _event("event/progress", {"value": v, "item_id": item_id}), type=direct)
     p.log_message.connect(
-        lambda msg, level: _event("event/log", {"message": msg, "level": level, "item_id": item_id}))
+        lambda msg, level: _event("event/log", {"message": msg, "level": level, "item_id": item_id}), type=direct)
     p.compatibility_ready.connect(
-        lambda report: _event("event/compatibility_ready", {"report": report.to_dict(), "item_id": item_id}))
-    if auto_approve:
-        p.compatibility_ready.connect(lambda report: p.approve_install())
+        lambda report: _event("event/compatibility_ready", {"report": report.to_dict(), "item_id": item_id}), type=direct)
+    if do_install:
+        p.compatibility_ready.connect(lambda report: p.approve_install(), type=direct)
+    else:
+        pkg_label = Path(path).name
+        p._skip_install_message = f"{pkg_label} dönüştürüldü (kurulum atlandı)"
+        p.compatibility_ready.connect(
+            lambda report: p.dismiss_install(), type=direct)
+    p.finished.connect(_track_finished, type=direct)
     p.finished.connect(
         lambda result: _event("event/finished", {
             "success": result.success,
             "message": result.message,
             "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
             "item_id": item_id,
-        }))
+        }), type=direct)
+    _active_pipelines[item_id] = p
     return p
 
 
@@ -853,9 +877,13 @@ def handle_queue_clear(params):
     return {"ok": True}
 
 
-def _queue_dispatch(parallel):
+def _queue_dispatch(parallel, do_install=False):
     """Worker: process pending queue items by priority until none remain."""
     global _queue_running
+    parallel = max(1, min(4, int(parallel)))
+    if do_install:
+        # pacman's database lock makes concurrent installs race; serialize.
+        parallel = 1
     try:
         while True:
             with _queue_lock:
@@ -867,13 +895,8 @@ def _queue_dispatch(parallel):
             threads = []
             for it in batch:
                 _set_item(it["id"], status="running", message="")
-                p = _make_pipeline(Path(it["path"]), it["id"], auto_approve=True)
+                p = _make_pipeline(Path(it["path"]), it["id"], do_install=do_install)
                 p.stage(Path(it["path"]))
-
-                def _on_finished(result, iid=it["id"]):
-                    _set_item(iid, status="done" if result.success else "error", message=result.message)
-
-                p.finished.connect(_on_finished)
                 t = threading.Thread(target=p.run_staged, daemon=True)
                 t.start()
                 threads.append(t)
@@ -884,9 +907,28 @@ def _queue_dispatch(parallel):
         _event("event/queue_done", {"ok": True})
 
 
+def handle_queue_cancel(params):
+    """Cancel one (item_id) or all running batch pipelines."""
+    item_id = str(params.get("item_id", "")).strip()
+    with _queue_lock:
+        targets = [(iid, pl) for iid, pl in _active_pipelines.items()
+                   if not item_id or iid == item_id]
+    cancelled = 0
+    for _iid, pl in targets:
+        try:
+            pl.cancel()
+            cancelled += 1
+        except Exception as exc:  # noqa: BLE001 - keep cancelling the rest
+            logging.getLogger(__name__).warning("queue cancel failed: %s", exc)
+    return {"cancelled": cancelled}
+
+
 def handle_queue_start(params):
     global _queue_running
-    parallel = int(params.get("parallel", 1))
+    do_install = bool(params.get("install", False))
+    parallel = max(1, min(4, int(params.get("parallel", 1))))
+    if do_install:
+        parallel = 1
     with _queue_lock:
         has_pending = any(it["status"] == "pending" for it in _queue_items.values())
     if not has_pending:
@@ -894,7 +936,8 @@ def handle_queue_start(params):
     if _queue_running:
         return {"started": False, "reason": "already running"}
     _queue_running = True
-    threading.Thread(target=_queue_dispatch, args=(parallel,), daemon=True).start()
+    threading.Thread(target=_queue_dispatch, args=(parallel, do_install),
+                       daemon=True).start()
     return {"started": True}
 
 
@@ -1146,6 +1189,7 @@ METHODS = {
     "queue.remove": handle_queue_remove,
     "queue.clear": handle_queue_clear,
     "queue.start": handle_queue_start,
+    "queue.cancel": handle_queue_cancel,
     # Faz 2 / B3: scheduled tasks
     "schedule.get": handle_schedule_get,
     "schedule.set": handle_schedule_set,
