@@ -195,3 +195,29 @@ jobs:
       - name: Cargo check
         working-directory: desktop/src-tauri
         run: cargo check --all-features
+
+  keyring-live:
+    # F5.6: validate jeepney marshalling against a REAL Secret Service.
+    # Local dev machines often lack one (KDE kwalletd squats the name but
+    # does not implement org.freedesktop.secrets.Service), so the live
+    # test skips there; here gnome-keyring provides the reference impl.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dbus gnome-keyring libglib2.0-bin
+      - name: Install python deps
+        run: pip install jeepney pytest pytest-timeout
+      - name: Live Secret Service roundtrip
+        run: |
+          dbus-run-session -- bash -c '
+            set -e
+            eval "$(echo -n "" | gnome-keyring-daemon --unlock --daemonize --components=secrets)"
+            python -m pytest tests/test_secrets_store.py -k live -q
+          '

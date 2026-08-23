@@ -21,9 +21,12 @@ class SecretStoreError(RuntimeError):
 
 
 def bus_has_service() -> bool:
-    """True when org.freedesktop.secrets is currently owned on the session bus."""
+    """True when the Secret Service name is owned or activatable right now.
+
+    Kept for diagnostics; available() is the authoritative probe because it
+    exercises a real OpenSession (activation-safe).
+    """
     try:
-        from jeepney import DBusNameFlags
         from jeepney.bus_messages import message_bus
         from jeepney.io.blocking import open_dbus_connection
     except ImportError:
@@ -34,9 +37,7 @@ def bus_has_service() -> bool:
     try:
         conn = open_dbus_connection()
         reply = conn.send_and_get_reply(
-            message_bus.NameHasOwner(SERVICE, int(DBusNameFlags.do_not_queue)))
-        if reply.header.message_type == reply.header.message_type.ERROR:
-            return False
+            message_bus.NameHasOwner(SERVICE))
         return bool(reply.body[0])
     except Exception:  # noqa: BLE001 - any bus failure means unavailable
         return False
@@ -49,12 +50,33 @@ def bus_has_service() -> bool:
 
 
 def available() -> bool:
-    """jeepney importable AND a Secret Service is on the bus."""
+    """jeepney importable AND a Secret Service answers OpenSession.
+
+    F5.6: NameHasOwner alone is not enough — services like kwalletd's
+    secretservicecompat are D-Bus-activatable and only appear after the
+    first call. We therefore probe with a real (throwaway) OpenSession and
+    fail closed on any error.
+    """
     try:
         import jeepney  # noqa: F401
     except ImportError:
         return False
-    return bus_has_service()
+    if not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        return False
+    probe = SecretStore({"service": "pkgforge", "kind": "probe"})
+    conn = None
+    try:
+        conn = probe._conn()
+        session = probe._open_session(conn)
+        return bool(session)
+    except Exception:  # noqa: BLE001 - activation failure == unavailable
+        return False
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except OSError:
+                pass
 
 
 class SecretStore:
@@ -78,9 +100,10 @@ class SecretStore:
                           interface="org.freedesktop.secrets.Service")
         call = new_method_call(svc, "OpenSession", "sv",
                                ("plain", ("s", "")))
-        reply = conn.send_and_get_reply(call)
-        if reply.header.message_type == reply.header.message_type.ERROR:
-            raise SecretStoreError(f"OpenSession failed: {reply.body}")
+        try:
+            reply = conn.send_and_get_reply(call)
+        except Exception as exc:
+            raise SecretStoreError(f"OpenSession failed: {exc}") from exc
         return str(reply.body[0])
 
     def _search_items(self, conn) -> tuple[list[str], list[str]]:
@@ -89,10 +112,16 @@ class SecretStore:
         svc = DBusAddress(SERVICE_PATH, bus_name=SERVICE,
                           interface="org.freedesktop.secrets.Service")
         call = new_method_call(svc, "SearchItems", "a{ss}", (self.attributes,))
-        reply = conn.send_and_get_reply(call)
-        if reply.header.message_type == reply.header.message_type.ERROR:
-            raise SecretStoreError(f"SearchItems failed: {reply.body}")
-        unlocked, locked = reply.body
+        try:
+            reply = conn.send_and_get_reply(call)
+        except Exception as exc:
+            raise SecretStoreError(f"SearchItems failed: {exc}") from exc
+        # Spec says (unlocked, locked); kwalletd returns a single list.
+        if len(reply.body) == 2:
+            unlocked, locked = reply.body
+        else:
+            unlocked = reply.body[0] if reply.body else []
+            locked = []
         return [str(x) for x in unlocked], [str(x) for x in locked]
 
     def _create_item(self, conn, session: str) -> str:
@@ -104,12 +133,15 @@ class SecretStore:
             "org.freedesktop.Secret.Item.Label": ("s", self.label),
             "org.freedesktop.Secret.Item.Attributes": ("a{ss}", self.attributes),
         }
-        secret = (session, b"", "text/plain", "")
+        # Secret struct per spec: (session:o, parameters:ay, value:ay,
+        # content_type:s) — the params/value split is easy to get wrong.
+        secret = (session, b"", b"", "text/plain")
         call = new_method_call(coll, "CreateItem", "a{sv}(oayays)b",
                                (props, secret, True))
-        reply = conn.send_and_get_reply(call)
-        if reply.header.message_type == reply.header.message_type.ERROR:
-            raise SecretStoreError(f"CreateItem failed: {reply.body}")
+        try:
+            reply = conn.send_and_get_reply(call)
+        except Exception as exc:
+            raise SecretStoreError(f"CreateItem failed: {exc}") from exc
         item, prompt = str(reply.body[0]), str(reply.body[1])
         if prompt not in ("", "/"):
             raise SecretStoreError(
@@ -122,9 +154,10 @@ class SecretStore:
         addr = DBusAddress(item, bus_name=SERVICE,
                            interface="org.freedesktop.secrets.Item")
         call = new_method_call(addr, "GetSecret", "o", (session,))
-        reply = conn.send_and_get_reply(call)
-        if reply.header.message_type == reply.header.message_type.ERROR:
-            raise SecretStoreError(f"GetSecret failed: {reply.body}")
+        try:
+            reply = conn.send_and_get_reply(call)
+        except Exception as exc:
+            raise SecretStoreError(f"GetSecret failed: {exc}") from exc
         _sess, _params, value, _ctype = reply.body[0]
         return bytes(value)
 
