@@ -53,7 +53,7 @@ export function Export() {
     setResult: (r: ExportResult) => void,
   ) => {
     const un = await onEvent<{ ok: boolean; result?: ExportResult; error?: string }>(
-      "event.export_done",
+      "event/export_done",
       (p) => {
         setBusy(false);
         if (p.ok && p.result) {

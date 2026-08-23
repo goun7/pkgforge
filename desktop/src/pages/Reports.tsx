@@ -48,7 +48,7 @@ export function Reports() {
     setBenching(true);
     setBench(null);
     const un = await onEvent<{ ok: boolean; result?: BenchmarkReport; error?: string }>(
-      "event.bench_done",
+      "event/bench_done",
       (p) => {
         setBenching(false);
         if (p.ok && p.result) setBench(p.result);
@@ -68,7 +68,7 @@ export function Reports() {
     setVerifying(true);
     setRollback(null);
     const un = await onEvent<{ ok: boolean; result?: RollbackVerifyResult; error?: string }>(
-      "event.system_done",
+      "event/system_done",
       (p) => {
         setVerifying(false);
         if (p.ok && p.result) setRollback(p.result);

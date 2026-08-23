@@ -28,7 +28,7 @@ export async function call<T = unknown>(
   return resp.result as T;
 }
 
-/** Subscribe to a sidecar push event (e.g. "event.log"). */
+/** Subscribe to a sidecar push event (e.g. "event/log"). */
 export async function onEvent<T>(
   method: string,
   cb: (params: T) => void,

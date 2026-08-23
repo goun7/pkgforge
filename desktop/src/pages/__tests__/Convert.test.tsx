@@ -52,10 +52,10 @@ describe("Convert page", () => {
 
   it("subscribes to pipeline events on mount", () => {
     renderConvert();
-    expect(listeners.has("event.step_changed")).toBe(true);
-    expect(listeners.has("event.progress")).toBe(true);
-    expect(listeners.has("event.log")).toBe(true);
-    expect(listeners.has("event.finished")).toBe(true);
+    expect(listeners.has("event/step_changed")).toBe(true);
+    expect(listeners.has("event/progress")).toBe(true);
+    expect(listeners.has("event/log")).toBe(true);
+    expect(listeners.has("event/finished")).toBe(true);
   });
 
   it("starts the pipeline when a path is dropped", async () => {
@@ -75,7 +75,7 @@ describe("Convert page", () => {
     renderConvert();
     emit("tauri://drag-drop", { paths: ["/tmp/bad.deb"] });
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalled());
-    emit("event.finished", { success: false, message: "analiz hatası" });
+    emit("event/finished", { success: false, message: "analiz hatası" });
     await vi.waitFor(() => expect(screen.getByText("failed")).toBeInTheDocument());
   });
 
@@ -83,7 +83,7 @@ describe("Convert page", () => {
     renderConvert();
     emit("tauri://drag-drop", { paths: ["/tmp/warn.deb"] });
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalled());
-    emit("event.compatibility_ready", {
+    emit("event/compatibility_ready", {
       report: {
         overall: "warning",
         grade: "B",

@@ -3,7 +3,7 @@
 //! The sidecar speaks line-delimited JSON-RPC 2.0 over stdio. Requests are
 //! written to its stdin; a reader thread consumes stdout, routing id-tagged
 //! responses to pending oneshot channels and id-less messages to Tauri events
-//! (named after the JSON-RPC "method", e.g. "event.log").
+//! (named after the JSON-RPC "method", e.g. "event/log").
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};

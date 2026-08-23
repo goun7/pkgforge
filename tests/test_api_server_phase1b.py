@@ -170,5 +170,5 @@ def test_source_generate_empty_url(sidecar):
 def test_source_generate_invalid_url_emits_failure(sidecar):
     resp = _rpc(sidecar, "source.generate", {"repo_url": "not-a-valid-url"})
     assert resp["result"]["started"] is True
-    params = _read_until_event(sidecar, "event.source_done", timeout=60)
+    params = _read_until_event(sidecar, "event/source_done", timeout=60)
     assert params["ok"] is False

@@ -23,7 +23,7 @@ export function Browse() {
   useEffect(() => {
     const unsubs: (() => void)[] = [];
     void onEvent<{ ok: boolean; result?: AurSearchResult[]; error?: string }>(
-      "event.aur_search_done",
+      "event/aur_search_done",
       (p) => {
         setSearching(false);
         setSearched(true);
@@ -32,18 +32,18 @@ export function Browse() {
       },
     ).then((u) => unsubs.push(u));
     void onEvent<{ ok: boolean; result?: AurInfo; error?: string }>(
-      "event.aur_info_done",
+      "event/aur_info_done",
       (p) => {
         if (p.ok && p.result) setInfo(p.result);
         else toast("error", p.error ?? "Bilgi alınamadı");
       },
     ).then((u) => unsubs.push(u));
     void onEvent<{ name: string; step: string }>(
-      "event.aur_build_progress",
+      "event/aur_build_progress",
       (p) => setBuildStep(p.step),
     ).then((u) => unsubs.push(u));
     void onEvent<{ ok: boolean; result?: { name: string; pkg_path: string; installed: boolean }; error?: string }>(
-      "event.aur_build_done",
+      "event/aur_build_done",
       (p) => {
         setBuilding("");
         setBuildStep("");

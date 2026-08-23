@@ -118,9 +118,9 @@ def _read_events(proc, timeout=30.0):
         if not line:
             continue
         data = json.loads(line)
-        if "id" not in data and data.get("method", "").startswith("event."):
+        if "id" not in data and data.get("method", "").startswith("event/"):
             events.append(data)
-            if data["method"] == "event.finished":
+            if data["method"] == "event/finished":
                 break
     return events
 
@@ -143,8 +143,8 @@ def test_pipeline_start_real_deb(sidecar, tmp_path):
     assert resp["result"]["started"] is True
     events = _read_events(sidecar, timeout=60)
     methods = [e["method"] for e in events]
-    assert "event.finished" in methods
-    fin = [e for e in events if e["method"] == "event.finished"][0]
+    assert "event/finished" in methods
+    fin = [e for e in events if e["method"] == "event/finished"][0]
     assert fin["params"]["success"] is False
 
 

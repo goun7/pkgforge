@@ -101,7 +101,7 @@ export function Updates() {
     setChecking(true);
     setCross(null);
     const un = await onEvent<{ ok: boolean; result?: CrossCheckReport; error?: string }>(
-      "event.cross_check_done",
+      "event/cross_check_done",
       (p) => {
         setChecking(false);
         if (p.ok && p.result) setCross(p.result);

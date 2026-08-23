@@ -60,7 +60,7 @@ export function Security() {
     if (!requirePath()) return;
     setLoading(true);
     const un = await onEvent<{ ok: boolean; result?: SbomDocument; error?: string }>(
-      "event.security_done",
+      "event/security_done",
       (p) => {
         setLoading(false);
         if (p.ok && p.result) setSbom(p.result);
@@ -80,7 +80,7 @@ export function Security() {
     if (!requirePath()) return;
     setLoading(true);
     const un = await onEvent<{ ok: boolean; result?: QualityReport; error?: string }>(
-      "event.security_done",
+      "event/security_done",
       (p) => {
         setLoading(false);
         if (p.ok && p.result) setQuality(p.result);
@@ -126,7 +126,7 @@ export function Security() {
     if (!requirePath()) return;
     setLoading(true);
     const un = await onEvent<{ ok: boolean; result?: CveScanResult; error?: string }>(
-      "event.security_done",
+      "event/security_done",
       (p) => {
         setLoading(false);
         if (p.ok && p.result) setCve(p.result);

@@ -96,18 +96,18 @@ export function Convert() {
   // Subscribe to sidecar events once.
   useEffect(() => {
     const unsubs: Promise<UnlistenFn>[] = [
-      listen<StepChangedEvent>("event.step_changed", (e) => {
+      listen<StepChangedEvent>("event/step_changed", (e) => {
         const name = stepName(e.payload.step);
         setStatuses((prev) => ({ ...prev, [name]: e.payload.status as StepStatus }));
       }),
-      listen<ProgressEvent>("event.progress", (e) => setProgress(e.payload.value)),
-      listen<LogEvent>("event.log", (e) =>
+      listen<ProgressEvent>("event/progress", (e) => setProgress(e.payload.value)),
+      listen<LogEvent>("event/log", (e) =>
         setLogs((prev) => [...prev, { message: e.payload.message, level: e.payload.level }]),
       ),
-      listen<CompatibilityReadyEvent>("event.compatibility_ready", (e) =>
+      listen<CompatibilityReadyEvent>("event/compatibility_ready", (e) =>
         setReport(e.payload.report),
       ),
-      listen<FinishedEvent>("event.finished", (e) => {
+      listen<FinishedEvent>("event/finished", (e) => {
         const { success, message, output_pkg } = e.payload;
         setRunning(false);
         setReport(null);
@@ -124,14 +124,14 @@ export function Convert() {
         // Kick off the next queued item on the next tick.
         setTimeout(() => void startNext(), 0);
       }),
-      listen<{ ok: boolean; result?: DepGraphData; error?: string }>("event.graph_done", (e) => {
+      listen<{ ok: boolean; result?: DepGraphData; error?: string }>("event/graph_done", (e) => {
         setGraphLoading(false);
         const p = e.payload;
         if (p.ok && p.result) setGraph(p.result);
         else toast("error", p.error ?? "Grafik oluşturulamadı");
       }),
-      listen<{ step: string }>("event.source_progress", (e) => setSourceStep(e.payload.step)),
-      listen<{ ok: boolean; result?: SourceResult; error?: string }>("event.source_done", (e) => {
+      listen<{ step: string }>("event/source_progress", (e) => setSourceStep(e.payload.step)),
+      listen<{ ok: boolean; result?: SourceResult; error?: string }>("event/source_done", (e) => {
         setSourceBusy(false);
         setSourceStep("");
         const p = e.payload;
@@ -266,7 +266,7 @@ export function Convert() {
   // batch finished event
   useEffect(() => {
     let un: (() => void) | undefined;
-    void listen("event.queue_done", () => {
+    void listen("event/queue_done", () => {
       setBatchRunning(false);
       void loadBatch();
     }).then((u) => { un = u; });

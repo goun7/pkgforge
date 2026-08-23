@@ -53,7 +53,7 @@ export function Plugins() {
   useEffect(() => {
     let un: (() => void) | undefined;
     void onEvent<{ ok: boolean; result?: { ok?: boolean; message?: string }; error?: string }>(
-      "event.plugin_done",
+      "event/plugin_done",
       (p) => {
         setBusy("");
         if (p.ok) {

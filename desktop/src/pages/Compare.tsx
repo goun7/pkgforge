@@ -24,7 +24,7 @@ export function Compare() {
   useEffect(() => {
     let un: (() => void) | undefined;
     void onEvent<{ ok: boolean; result?: SbomDiff; error?: string }>(
-      "event.compare_done",
+      "event/compare_done",
       (p) => {
         setBusy(false);
         if (p.ok && p.result) setDiff(p.result);

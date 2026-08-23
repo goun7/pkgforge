@@ -85,15 +85,15 @@ def handle_pipeline_start(params):
     _ensure_qapp()
     _pipeline = ConversionPipeline()
     _pipeline.step_changed.connect(
-        lambda step, status: _event("event.step_changed", {"step": step, "status": status}))
+        lambda step, status: _event("event/step_changed", {"step": step, "status": status}))
     _pipeline.progress.connect(
-        lambda v: _event("event.progress", {"value": v}))
+        lambda v: _event("event/progress", {"value": v}))
     _pipeline.log_message.connect(
-        lambda msg, level: _event("event.log", {"message": msg, "level": level}))
+        lambda msg, level: _event("event/log", {"message": msg, "level": level}))
     _pipeline.compatibility_ready.connect(
-        lambda report: _event("event.compatibility_ready", {"report": report.to_dict()}))
+        lambda report: _event("event/compatibility_ready", {"report": report.to_dict()}))
     _pipeline.finished.connect(
-        lambda result: _event("event.finished", {
+        lambda result: _event("event/finished", {
             "success": result.success,
             "message": result.message,
             "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
@@ -235,7 +235,7 @@ def _run_thread(fn, event_name):
     threading.Thread(target=_worker, daemon=True).start()
 
 
-def _run_security_thread(fn, event_name="event.security_done"):
+def _run_security_thread(fn, event_name="event/security_done"):
     """Backwards-compatible alias for security ops."""
     _run_thread(fn, event_name)
 
@@ -358,7 +358,7 @@ def handle_export_oci(params):
         ok, msg, out = build_oci_image(path, tools, tag=tag, output_file=output_file)
         return {"ok": ok, "message": msg, "output_path": str(out) if out else ""}
 
-    _run_thread(_op, "event.export_done")
+    _run_thread(_op, "event/export_done")
     return {"started": True}
 
 
@@ -374,7 +374,7 @@ def handle_export_appimage_to_deb(params):
         ok, msg, deb = appimage_to_deb(appimage, out_dir)
         return {"ok": ok, "message": msg, "deb_path": str(deb) if deb else ""}
 
-    _run_thread(_op, "event.export_done")
+    _run_thread(_op, "event/export_done")
     return {"started": True}
 
 
@@ -399,7 +399,7 @@ def handle_export_flatpak_to_deb(params):
         ok, msg, deb = flatpak_to_deb(app_id, out_dir, branch=branch)
         return {"ok": ok, "message": msg, "deb_path": str(deb) if deb else ""}
 
-    _run_thread(_op, "event.export_done")
+    _run_thread(_op, "event/export_done")
     return {"started": True}
 
 
@@ -423,7 +423,7 @@ def handle_graph_build(params):
             "warnings": graph.warnings,
         }
 
-    _run_thread(_op, "event.graph_done")
+    _run_thread(_op, "event/graph_done")
     return {"started": True}
 
 
@@ -443,14 +443,14 @@ def handle_source_generate(params):
     def _op():
         with tempfile.TemporaryDirectory(prefix="pkgforge_src_") as tmpdir:
             tmp = Path(tmpdir)
-            _event("event.source_progress", {"step": "clone"})
+            _event("event/source_progress", {"step": "clone"})
             res = safe_run(["git", "clone", "--depth=1", repo_url, str(tmp / "repo")], timeout=120)
             if res.returncode != 0:
                 raise RuntimeError(f"git clone failed: {res.stderr[:200]}")
             repo_dir = tmp / "repo"
 
             proj_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
-            _event("event.source_progress", {"step": "detect"})
+            _event("event/source_progress", {"step": "detect"})
             build_system = "unknown"
             if (repo_dir / "CMakeLists.txt").exists():
                 build_system = "cmake"
@@ -465,7 +465,7 @@ def handle_source_generate(params):
             elif (repo_dir / "setup.py").exists():
                 build_system = "python"
 
-            _event("event.source_progress", {"step": "generate"})
+            _event("event/source_progress", {"step": "generate"})
             content = generate_pkgbuild_from_source(proj_name, repo_url, build_system, repo_dir)
             out_dir.mkdir(parents=True, exist_ok=True)
             pkgbuild_path = out_dir / f"PKGBUILD-{proj_name}"
@@ -478,7 +478,7 @@ def handle_source_generate(params):
                 "pkgbuild_content": content,
             }
 
-    _run_thread(_op, "event.source_done")
+    _run_thread(_op, "event/source_done")
     return {"started": True}
 
 
@@ -522,7 +522,7 @@ def handle_system_cross_check(params):
     def _op():
         return asdict(cross_check_package(name, local_version))
 
-    _run_thread(_op, "event.cross_check_done")
+    _run_thread(_op, "event/cross_check_done")
     return {"started": True}
 
 
@@ -550,7 +550,7 @@ def handle_system_verify_rollback(params):
     def _op():
         return asdict(verify_rollback())
 
-    _run_thread(_op, "event.system_done")
+    _run_thread(_op, "event/system_done")
     return {"started": True}
 
 
@@ -567,7 +567,7 @@ def handle_system_benchmark(params):
         d["passed"] = report.passed
         return d
 
-    _run_thread(_op, "event.bench_done")
+    _run_thread(_op, "event/bench_done")
     return {"started": True}
 
 
@@ -599,7 +599,7 @@ def handle_plugin_install(params):
         reload_plugins()
         return {"ok": True, "path": str(path)}
 
-    _run_thread(_op, "event.plugin_done")
+    _run_thread(_op, "event/plugin_done")
     return {"started": True}
 
 
@@ -629,7 +629,7 @@ def handle_plugin_update(params):
             reload_plugins()
         return {"ok": ok, "message": msg}
 
-    _run_thread(_op, "event.plugin_done")
+    _run_thread(_op, "event/plugin_done")
     return {"started": True}
 
 
@@ -658,7 +658,7 @@ def handle_compare_diff(params):
         diff = diff_sboms(old_sbom, new_sbom)
         return diff.to_dict()
 
-    _run_thread(_op, "event.compare_done")
+    _run_thread(_op, "event/compare_done")
     return {"started": True}
 
 
@@ -681,7 +681,7 @@ def handle_aur_search(params):
     def _op():
         return search_aur(query, limit=limit)
 
-    _run_thread(_op, "event.aur_search_done")
+    _run_thread(_op, "event/aur_search_done")
     return {"started": True}
 
 
@@ -696,7 +696,7 @@ def handle_aur_info(params):
     def _op():
         return asdict(check_aur(name))
 
-    _run_thread(_op, "event.aur_info_done")
+    _run_thread(_op, "event/aur_info_done")
     return {"started": True}
 
 
@@ -710,7 +710,7 @@ def handle_aur_build(params):
     _validate_aur_name(name)
 
     def _op():
-        _event("event.aur_build_progress", {"name": name, "step": "clone"})
+        _event("event/aur_build_progress", {"name": name, "step": "clone"})
         workdir = Path(tempfile.mkdtemp(prefix=f"pkgforge-aur-{name}-"))
         clone_url = f"https://aur.archlinux.org/{name}.git"
         r = _sp.run(
@@ -720,7 +720,7 @@ def handle_aur_build(params):
         if r.returncode != 0:
             raise RuntimeError(f"git clone başarısız: {r.stderr.strip()[:300]}")
 
-        _event("event.aur_build_progress", {"name": name, "step": "build"})
+        _event("event/aur_build_progress", {"name": name, "step": "build"})
         cmd = ["makepkg", "-f", "--noconfirm"]
         if install and shutil.which("pacman"):
             cmd = ["makepkg", "-si", "--noconfirm"]
@@ -736,7 +736,7 @@ def handle_aur_build(params):
             raise RuntimeError("makepkg tamamlandı ama paket dosyası bulunamadı")
         return {"name": name, "pkg_path": str(built[-1]), "installed": install}
 
-    _run_thread(_op, "event.aur_build_done")
+    _run_thread(_op, "event/aur_build_done")
     return {"started": True}
 
 
@@ -759,17 +759,17 @@ def _make_pipeline(path, item_id, auto_approve=False):
     _ensure_qapp()
     p = ConversionPipeline()
     p.step_changed.connect(
-        lambda step, status: _event("event.step_changed", {"step": step, "status": status, "item_id": item_id}))
+        lambda step, status: _event("event/step_changed", {"step": step, "status": status, "item_id": item_id}))
     p.progress.connect(
-        lambda v: _event("event.progress", {"value": v, "item_id": item_id}))
+        lambda v: _event("event/progress", {"value": v, "item_id": item_id}))
     p.log_message.connect(
-        lambda msg, level: _event("event.log", {"message": msg, "level": level, "item_id": item_id}))
+        lambda msg, level: _event("event/log", {"message": msg, "level": level, "item_id": item_id}))
     p.compatibility_ready.connect(
-        lambda report: _event("event.compatibility_ready", {"report": report.to_dict(), "item_id": item_id}))
+        lambda report: _event("event/compatibility_ready", {"report": report.to_dict(), "item_id": item_id}))
     if auto_approve:
         p.compatibility_ready.connect(lambda report: p.approve_install())
     p.finished.connect(
-        lambda result: _event("event.finished", {
+        lambda result: _event("event/finished", {
             "success": result.success,
             "message": result.message,
             "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
@@ -873,7 +873,7 @@ def _queue_dispatch(parallel):
                 t.join()
     finally:
         _queue_running = False
-        _event("event.queue_done", {"ok": True})
+        _event("event/queue_done", {"ok": True})
 
 
 def handle_queue_start(params):
@@ -953,9 +953,9 @@ def _scheduler_tick():
                     s = load_settings()
                     s["schedule_last_run"] = now
                     save_settings(s)
-                    _event("event.schedule_ran", {"task": st["task"], "at": now})
+                    _event("event/schedule_ran", {"task": st["task"], "at": now})
         except Exception as exc:  # noqa: BLE001
-            _event("event.schedule_ran", {"task": "", "error": str(exc)})
+            _event("event/schedule_ran", {"task": "", "error": str(exc)})
         time.sleep(60)
 
 
