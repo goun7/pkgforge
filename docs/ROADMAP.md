@@ -11,6 +11,7 @@
 - **Faz 1 — Alan A** (mevcut özellikleri GUI'ye taşı): A1–A6 — ✅ tamamlandı (sidecar method'ları + Security/Updates/Reports/Export sayfaları + DepGraph + Convert genişletmeleri; 656 Python + 45 vitest testi)
 - **Faz 2 — Alan B** (yeni yetenekler): B1–B8 — ✅ tamamlandı (AUR tarayıcı, tray+bildirim, zamanlayıcı, CVE taraması, paket karşılaştırma, toplu kuyruk, HTTP/LAN API, plugin pazarı; kritik event-adı düzeltmesi; 686 Python + 57 vitest testi)
 - **Faz 3 — Alan C** (mimari genişleme): C1–C3 — ✅ tamamlandı (çoklu profil, yedek/WebDAV senkron, D-Bus servisi; kritik event-adı düzeltmesi sonrası; 727 Python + 64 vitest testi)
+- **Faz 4 — Sertleştirme** (eleştiri kaynaklı 11 madde): F4.1 event sözleşme testi, F4.2 HTTP token zorunluluğu + hız/gövde limitleri + D-Bus salt-okunur politika, F4.3 toplu kuyruk dürüstlüğü (salt-dönüşüm varsayılan, kayıt defteri + cancel), F4.4 anahtarlık (Secret Service), F4.5 yedek bütünlüğü (WAL checkpoint + sha256 manifest), F4.6 systemd timer + headless CLI, F4.7 polkit policy tek-kaynak, F4.8 OpenAPI/Swagger, F4.9 web panosu, F4.10 sürüm tek-kaynağı (2.0.0) + CI (ruff/frontend/cargo), F4.11 i18n köprüsü — ✅ tamamlandı; 765 Python (+3 skip) ve 67 vitest testi; E2E 4/4
 
 Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 

@@ -1072,6 +1072,22 @@ def handle_sync_import(params):
     return import_backup(str(params.get("backup_path", "")))
 
 
+def handle_schedule_timer_install(params):
+    """Install systemd user timer units (dry_run preview by default)."""
+    from core.scheduler import install_timer
+
+    return install_timer(
+        interval_hours=params.get("interval_hours"),
+        dry_run=bool(params.get("dry_run", True)))
+
+
+def handle_schedule_run(params):
+    """Run the scheduled task immediately (force unless told otherwise)."""
+    from core.scheduler import run_due
+
+    return run_due(force=bool(params.get("force", False)))
+
+
 def handle_sync_config(params):
     s = load_settings()
     if "sync_url" in params:
@@ -1219,6 +1235,8 @@ METHODS = {
     "sync.export": handle_sync_export,
     "sync.import": handle_sync_import,
     "sync.config": handle_sync_config,
+    "schedule.timer_install": handle_schedule_timer_install,
+    "schedule.run": handle_schedule_run,
     "sync.push": handle_sync_push,
     "sync.pull": handle_sync_pull,
     "dbus.status": handle_dbus_status,

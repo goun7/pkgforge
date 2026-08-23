@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, Save, Trash2 } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
+import { tFor } from "../lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -114,6 +115,9 @@ export function Settings() {
     void loadProfiles();
     void loadDbusStatus();
   }, [load, loadProfiles, loadDbusStatus]);
+
+  // F4.11: live tr/en bridge for the Faz-3/4 cards.
+  const t = useMemo(() => tFor(settings.language), [settings.language]);
 
   const set = <K extends keyof SettingsShape>(key: K, value: SettingsShape[K]) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -329,7 +333,7 @@ export function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Profiller</CardTitle>
+            <CardTitle>{t("profilesTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {profiles.length === 0 && (
@@ -360,7 +364,7 @@ export function Settings() {
                     disabled={profileBusy}
                     onClick={() => void handleDeleteProfile(p.name)}
                   >
-                    <Trash2 size={14} /> Sil
+                    <Trash2 size={14} /> {t("profilesDelete")}
                   </Button>
                 )}
               </div>
@@ -372,7 +376,7 @@ export function Settings() {
                 onChange={(e) => setNewProfile(e.target.value)}
               />
               <Button onClick={() => void handleCreateProfile()} disabled={profileBusy}>
-                <Plus size={15} /> Oluştur
+                <Plus size={15} /> {t("profilesCreate")}
               </Button>
             </div>
           </CardContent>
@@ -380,7 +384,7 @@ export function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Yedekleme &amp; Senkronizasyon</CardTitle>
+            <CardTitle>{t("backupTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {/* Local zip backup */}
@@ -452,14 +456,14 @@ export function Settings() {
                     )
                   }
                 >
-                  <Save size={14} /> Sunucuyu Kaydet
+                  <Save size={14} /> {t("backupSaveServer")}
                 </Button>
                 <Button
                   size="sm"
                   disabled={syncBusy || !syncUrl.trim()}
                   onClick={() => void runSyncCall("sync.push", {}, "")}
                 >
-                  <CloudUpload size={14} /> Buluta Gönder
+                  <CloudUpload size={14} /> {t("backupPush")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -467,7 +471,7 @@ export function Settings() {
                   disabled={syncBusy || !syncUrl.trim()}
                   onClick={() => void runSyncCall("sync.pull", {}, "")}
                 >
-                  <CloudDownload size={14} /> Buluttan Çek
+                  <CloudDownload size={14} /> {t("backupPull")}
                 </Button>
               </div>
             </div>
@@ -476,7 +480,7 @@ export function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>D-Bus Servisi</CardTitle>
+            <CardTitle>{t("dbusTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {dbusStatus === null ? (
@@ -501,7 +505,7 @@ export function Settings() {
                         : "bg-[var(--bg-elevated)] text-[var(--text-muted)]")
                     }
                   >
-                    {dbusStatus.running ? "Çalışıyor" : "Kapalı"}
+                    {dbusStatus.running ? t("dbusRunning") : t("dbusStopped")}
                   </span>
                 </div>
                 {!dbusStatus.available && (
@@ -515,7 +519,7 @@ export function Settings() {
                     disabled={dbusBusy || !dbusStatus.available || dbusStatus.running}
                     onClick={() => void handleDbusStart()}
                   >
-                    Başlat
+                    {t("dbusStart")}
                   </Button>
                 </div>
               </>

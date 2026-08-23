@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { call } from "../lib/rpc";
+import { tFor } from "../lib/i18n";
 import type {
   StepChangedEvent,
   ProgressEvent,
@@ -62,6 +63,7 @@ export function Convert() {
   const [parallel, setParallel] = useState("1");
   // F4.3: batch defaults to CONVERSION-ONLY; installing is an explicit opt-in.
   const [batchInstall, setBatchInstall] = useState(false);
+  const tBatch = tFor("tr"); // Convert page Turkish-first; bridge ready for en
   const [batchFilter, setBatchFilter] = useState("");
 
   // Refs so event callbacks always see fresh state without re-subscribing.
@@ -533,7 +535,7 @@ export function Convert() {
                   onChange={(e) => setBatchInstall(e.target.checked)}
                   className="h-3.5 w-3.5 accent-[var(--brand-blue)]"
                 />
-                Kur (seri)
+                {tBatch("batchInstallSerial")}
               </label>
               {batchRunning && <Badge tone="info">çalışıyor…</Badge>}
             </div>

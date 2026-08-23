@@ -30,7 +30,7 @@ class TestCLIHelp(unittest.TestCase):
         """--version should show version."""
         result = self._run_cli("--version")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("1.1.0", result.stdout)
+        self.assertIn("2.0.0", result.stdout)
 
     def test_convert_help(self):
         """convert --help should show options."""
