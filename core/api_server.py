@@ -19,6 +19,10 @@ _write_lock = threading.Lock()
 # Pipeline state (single conversion at a time, matching the GUI model)
 _pipeline = None
 
+# When True (HTTP/LAN mode) push events have no stdio channel to ride on,
+# so _event() suppresses them instead of polluting the server's stdout.
+_http_mode = False
+
 
 def _send(obj: dict) -> None:
     with _write_lock:
@@ -35,6 +39,8 @@ def _error(req_id, code, message):
 
 
 def _event(method, params):
+    if _http_mode:
+        return  # no stdio channel in HTTP mode; drop push events
     _send({"jsonrpc": "2.0", "method": method, "params": params})
 
 
@@ -1036,18 +1042,24 @@ METHODS = {
 }
 
 
-def _dispatch(msg: dict) -> None:
+def _dispatch(msg: dict) -> dict:
+    """Dispatch one JSON-RPC request and return the response object.
+
+    Returns the response dict (never raises) so both the stdio loop and the
+    HTTP server can serialize it. Push events are emitted via _event().
+    """
     req_id = msg.get("id")
     method = msg.get("method", "")
     params = msg.get("params") or {}
     handler = METHODS.get(method)
     if handler is None:
-        _error(req_id, -32601, f"Method not found: {method}")
-        return
+        return {"jsonrpc": "2.0", "id": req_id,
+                "error": {"code": -32601, "message": f"Method not found: {method}"}}
     try:
-        _result(req_id, handler(params))
+        return {"jsonrpc": "2.0", "id": req_id, "result": handler(params)}
     except Exception as exc:  # noqa: BLE001 — report, never crash the loop
-        _error(req_id, -32000, str(exc))
+        return {"jsonrpc": "2.0", "id": req_id,
+                "error": {"code": -32000, "message": str(exc)}}
 
 
 def serve() -> None:
@@ -1080,4 +1092,60 @@ def serve() -> None:
         except json.JSONDecodeError:
             _error(None, -32700, "Parse error")
             continue
-        _dispatch(msg)
+        _send(_dispatch(msg))
+
+
+def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1") -> None:
+    """Run the JSON-RPC API over HTTP for LAN remote management (B7).
+
+    POST / accepts a single JSON-RPC 2.0 request and returns the response.
+    If *token* is non-empty, requests must carry "Authorization: Bearer <token>".
+    Push events are suppressed in this mode (no stdio channel).
+    """
+    global _http_mode
+    import hmac
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    _http_mode = True
+    _ensure_qapp()
+    _ensure_scheduler()
+
+    class Handler(BaseHTTPRequestHandler):
+        def _reply(self, code: int, obj: dict) -> None:
+            body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_POST(self) -> None:
+            if token:
+                auth = self.headers.get("Authorization", "")
+                expected = f"Bearer {token}"
+                if not hmac.compare_digest(auth, expected):
+                    self._reply(401, {"jsonrpc": "2.0", "id": None,
+                                      "error": {"code": -32000, "message": "Unauthorized"}})
+                    return
+            length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(length) if length else b""
+            try:
+                msg = json.loads(raw.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self._reply(400, {"jsonrpc": "2.0", "id": None,
+                                  "error": {"code": -32700, "message": "Parse error"}})
+                return
+            self._reply(200, _dispatch(msg))
+
+        def log_message(self, fmt, *args) -> None:
+            pass  # silence per-request logging
+
+    server = ThreadingHTTPServer((host, port), Handler)
+    sys.stderr.write(f"[http] JSON-RPC dinleniyor: http://{host}:{port}/\n")
+    sys.stderr.flush()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()

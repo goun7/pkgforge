@@ -110,7 +110,7 @@ def check_dependencies(install: bool = False) -> bool:
         if pacman_pkgs:
             cmd = ["sudo", "pacman", "-S", "--needed", "--noconfirm"] + pacman_pkgs
             print(f"📦 Pacman ile kuruluyor: {' '.join(pacman_pkgs)}")
-            result = subprocess.run(cmd)
+            result = subprocess.run(cmd, check=False)
             if result.returncode != 0:
                 print("❌ Pacman kurulumu başarısız!")
                 return False
@@ -120,7 +120,7 @@ def check_dependencies(install: bool = False) -> bool:
             if aur_helper:
                 cmd = [aur_helper, "-S", "--needed", "--noconfirm"] + aur_pkgs
                 print(f"📦 AUR ile kuruluyor: {' '.join(aur_pkgs)}")
-                result = subprocess.run(cmd)
+                result = subprocess.run(cmd, check=False)
                 if result.returncode != 0:
                     print("⚠️  AUR kurulumu başarısız (manuel kurulum gerekebilir)")
             else:
@@ -131,7 +131,7 @@ def check_dependencies(install: bool = False) -> bool:
             debtap_db = Path("/var/cache/debtap/debian-main-packages-files")
             if shutil.which("debtap") and not debtap_db.exists():
                 print("🔄 Debtap veritabanı senkronize ediliyor...")
-                subprocess.run(["sudo", "debtap", "-u"])
+                subprocess.run(["sudo", "debtap", "-u"], check=False)
 
         # Re-check
         print("\n🔍 Yeniden kontrol ediliyor...")
@@ -340,7 +340,15 @@ def main() -> int:
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
     # serve subcommand (JSON-RPC sidecar for the desktop UI)
-    subparsers.add_parser("serve", help=tr("cli.serve_help"))
+    serve_parser = subparsers.add_parser("serve", help=tr("cli.serve_help"))
+    serve_parser.add_argument("--http", action="store_true",
+                              help="Serve JSON-RPC over HTTP (LAN remote management)")
+    serve_parser.add_argument("--port", type=int, default=8765,
+                              help="HTTP port (with --http, default 8765)")
+    serve_parser.add_argument("--token", default="",
+                              help="Bearer token required for HTTP requests")
+    serve_parser.add_argument("--host", default="127.0.0.1",
+                              help="HTTP bind address (with --http)")
 
     # completion subcommand
     completion_parser = subparsers.add_parser("completion", help=tr("cli.completion_help"))
@@ -415,9 +423,14 @@ def main() -> int:
         print(f"\n✅ {len(file_list)} dosya başarıyla dönüştürüldü")
         return 0
     if args.command == "serve":
-        from core.api_server import serve
+        if getattr(args, "http", False):
+            from core.api_server import serve_http
 
-        serve()
+            serve_http(port=args.port, token=args.token, host=args.host)
+        else:
+            from core.api_server import serve
+
+            serve()
         return 0
     if args.command and args.command != "gui":
         from cli import run_cli
