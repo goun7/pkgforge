@@ -557,6 +557,97 @@ def handle_system_benchmark(params):
     return {"started": True}
 
 
+# ── Faz 2 / B8: plugin marketplace ──────────────────────────────
+
+def handle_plugin_list(params):
+    from core.plugins.marketplace import list_installed_plugins
+
+    return list_installed_plugins()
+
+
+def handle_plugin_available(params):
+    from core.plugins.marketplace import fetch_available_plugins
+
+    offline = bool(params.get("offline", False))
+    return fetch_available_plugins(offline=offline)
+
+
+def handle_plugin_install(params):
+    from core.plugins import reload_plugins
+    from core.plugins.marketplace import install_plugin
+
+    name = params.get("name", "")
+    version = params.get("version", "latest")
+    force = bool(params.get("force", False))
+
+    def _op():
+        path = install_plugin(name, version=version, force=force)
+        reload_plugins()
+        return {"ok": True, "path": str(path)}
+
+    _run_thread(_op, "event.plugin_done")
+    return {"started": True}
+
+
+def handle_plugin_uninstall(params):
+    from core.plugins import reload_plugins
+    from core.plugins.marketplace import is_valid_plugin_name, uninstall_plugin
+
+    name = params.get("name", "")
+    if not is_valid_plugin_name(name):
+        raise ValueError(f"Invalid plugin name: {name}")
+    removed = uninstall_plugin(name)
+    if not removed:
+        raise FileNotFoundError(f"Plugin not found: {name}")
+    reload_plugins()
+    return {"ok": True}
+
+
+def handle_plugin_update(params):
+    from core.plugins import reload_plugins
+    from core.plugins.marketplace import update_plugin
+
+    name = params.get("name", "")
+
+    def _op():
+        ok, msg, _path = update_plugin(name)
+        if ok:
+            reload_plugins()
+        return {"ok": ok, "message": msg}
+
+    _run_thread(_op, "event.plugin_done")
+    return {"started": True}
+
+
+def handle_plugin_audit(params):
+    from core.plugins.marketplace import audit_plugins
+
+    return audit_plugins()
+
+
+# ── Faz 2 / B5: package comparison ──────────────────────────────
+
+def handle_compare_diff(params):
+    from core.sbom import diff_sboms, generate_sbom
+
+    old_path = Path(params.get("old_path", ""))
+    new_path = Path(params.get("new_path", ""))
+    if not old_path.is_file():
+        raise FileNotFoundError(f"Old package not found: {old_path}")
+    if not new_path.is_file():
+        raise FileNotFoundError(f"New package not found: {new_path}")
+    tools = discover_tools()
+
+    def _op():
+        old_sbom = generate_sbom(old_path, tools, include_hashes=True)
+        new_sbom = generate_sbom(new_path, tools, include_hashes=True)
+        diff = diff_sboms(old_sbom, new_sbom)
+        return diff.to_dict()
+
+    _run_thread(_op, "event.compare_done")
+    return {"started": True}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -600,6 +691,15 @@ METHODS = {
     "system.snapshot_remove": handle_system_snapshot_remove,
     "system.verify_rollback": handle_system_verify_rollback,
     "system.benchmark": handle_system_benchmark,
+    # Faz 2 / B8: plugin marketplace
+    "plugin.list": handle_plugin_list,
+    "plugin.available": handle_plugin_available,
+    "plugin.install": handle_plugin_install,
+    "plugin.uninstall": handle_plugin_uninstall,
+    "plugin.update": handle_plugin_update,
+    "plugin.audit": handle_plugin_audit,
+    # Faz 2 / B5: package comparison
+    "compare.diff": handle_compare_diff,
 }
 
 

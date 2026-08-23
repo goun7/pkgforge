@@ -246,6 +246,48 @@ export interface DepGraphData {
   warnings: string[];
 }
 
+/* --- Faz 2 / B8: plugin marketplace --- */
+
+export interface InstalledPlugin {
+  name: string;
+  path: string;
+  size: string;
+}
+
+export interface AvailablePlugin {
+  name: string;
+  version: string;
+  description: string;
+  download_url: string;
+  sha256_url: string;
+}
+
+export interface PluginAudit {
+  name: string;
+  status: string;
+  message: string;
+}
+
+/* --- Faz 2 / B5: package comparison --- */
+
+export interface SbomDiff {
+  old_name: string;
+  new_name: string;
+  old_version: string;
+  new_version: string;
+  added_files: string[];
+  removed_files: string[];
+  changed_files: { path: string; old_sha256: string; new_sha256: string }[];
+  changed_deps: string[];
+  added_deps: string[];
+  removed_deps: string[];
+  version_changes: { dep: string; old: string; new: string }[];
+  old_total_files: number;
+  new_total_files: number;
+  old_total_size: number;
+  new_total_size: number;
+}
+
 /* --- Faz 1 / A5: from-source --- */
 
 export interface SourceResult {

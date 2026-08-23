@@ -8,6 +8,7 @@ import {
   FileText,
   Puzzle,
   PackageOpen,
+  GitCompare,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -20,7 +21,8 @@ export type PageId =
   | "security"
   | "reports"
   | "plugins"
-  | "export";
+  | "export"
+  | "compare";
 
 export interface SidebarProps {
   active: PageId;
@@ -35,7 +37,8 @@ const NAV_ITEMS: { id: PageId; label: string; icon: typeof ArrowLeftRight; soon?
   { id: "security", label: "Güvenlik", icon: ShieldCheck },
   { id: "reports", label: "Raporlar", icon: FileText },
   { id: "export", label: "Dışa Aktar", icon: PackageOpen },
-  { id: "plugins", label: "Eklentiler", icon: Puzzle, soon: true },
+  { id: "compare", label: "Karşılaştır", icon: GitCompare },
+  { id: "plugins", label: "Eklentiler", icon: Puzzle },
   { id: "settings", label: "Ayarlar", icon: Settings },
 ];
 
