@@ -310,6 +310,19 @@ def handle_security_provenance_create(params):
     return {"started": True}
 
 
+def handle_security_cve_scan(params):
+    from core.cve_scanner import scan_package
+
+    pkg_path = _require_pkg_file(params)
+    tools = discover_tools()
+
+    def _op():
+        return scan_package(pkg_path, tools)
+
+    _run_security_thread(_op)
+    return {"started": True}
+
+
 # ── Faz 1 / A4: delta updater ───────────────────────────────────
 
 def handle_delta_status(params):
@@ -748,6 +761,7 @@ METHODS = {
     "security.provenance": handle_security_provenance,
     "security.provenance_create": handle_security_provenance_create,
     "security.sigstore_status": handle_security_sigstore_status,
+    "security.cve_scan": handle_security_cve_scan,
     # Faz 1 / A4: delta updater
     "delta.status": handle_delta_status,
     "delta.enable": handle_delta_enable,

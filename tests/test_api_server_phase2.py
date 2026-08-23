@@ -101,3 +101,11 @@ def test_aur_build_invalid_name(sidecar):
     resp = _rpc(sidecar, "aur.build", {"name": "../escape"})
     assert "error" in resp
     assert resp["error"]["code"] == -32000
+
+
+# --- B4: security.cve_scan --------------------------------------------------
+
+def test_cve_scan_bad_path(sidecar):
+    resp = _rpc(sidecar, "security.cve_scan", {"pkg_path": "/nonexistent/x.pkg.tar.zst"})
+    assert "error" in resp
+    assert resp["error"]["code"] == -32000

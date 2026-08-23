@@ -246,6 +246,23 @@ export interface DepGraphData {
   warnings: string[];
 }
 
+/* --- Faz 2 / B4: CVE scan --- */
+
+export interface CveVuln {
+  id: string;
+  summary: string;
+  severity: string;
+  affected_dep: string;
+}
+
+export interface CveScanResult {
+  package: string;
+  deps_scanned: number;
+  vulns: CveVuln[];
+  count: number;
+  offline: boolean;
+}
+
 /* --- Faz 2 / B1: AUR browser --- */
 
 export interface AurSearchResult {

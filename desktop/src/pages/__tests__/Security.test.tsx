@@ -28,13 +28,28 @@ describe("Security page", () => {
     invokeMock.mockReset();
   });
 
-  it("renders all five tabs", () => {
+  it("renders all six tabs", () => {
     renderSecurity();
     expect(screen.getByText("İmza")).toBeInTheDocument();
     expect(screen.getByText("SBOM")).toBeInTheDocument();
     expect(screen.getByText("Kalite")).toBeInTheDocument();
     expect(screen.getByText("Provenance")).toBeInTheDocument();
     expect(screen.getByText("Sigstore")).toBeInTheDocument();
+    expect(screen.getByText("CVE Tara")).toBeInTheDocument();
+  });
+
+  it("calls security.cve_scan when CVE tab used with a path", async () => {
+    invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: { started: true } });
+    renderSecurity();
+    fireEvent.change(screen.getByPlaceholderText(/paket yolu/i), { target: { value: "/tmp/x.pkg.tar.zst" } });
+    fireEvent.click(screen.getByText("CVE Tara")); // open the tab
+    fireEvent.click(screen.getByText("Taramayı Başlat")); // trigger the scan
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "security.cve_scan" }),
+      ),
+    );
   });
 
   it("has a package path input", () => {
