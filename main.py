@@ -354,6 +354,19 @@ def main() -> int:
     serve_parser.add_argument("--dbus", action="store_true",
                               help="Also expose the JSON-RPC registry on the D-Bus session bus")
 
+    # schedule subcommands (F4.6: headless systemd-friendly entry points)
+    sched_run = subparsers.add_parser(
+        "schedule-run", help="Zamanlanmis gorevi simdi calistir")
+    sched_run.add_argument("--force", action="store_true",
+                           help="Zaman bakilmaksizin calistir")
+    sched_install = subparsers.add_parser(
+        "schedule-install",
+        help="systemd user timer birimlerini kur/onizle")
+    sched_install.add_argument("--interval-hours", type=float, default=None,
+                               help="Aralik (saat); varsayilan ayarlardan")
+    sched_install.add_argument("--dry-run", action="store_true",
+                               help="Dosyalari yazma, icerigi goster")
+
     # completion subcommand
     completion_parser = subparsers.add_parser("completion", help=tr("cli.completion_help"))
     completion_parser.add_argument("shell", choices=["bash", "zsh", "fish"], help=tr("cli.completion_shell"))
@@ -450,6 +463,30 @@ def main() -> int:
             from core.api_server import serve
 
             serve()
+        return 0
+    if args.command == "schedule-run":
+        from core.scheduler import run_due
+
+        out = run_due(force=bool(getattr(args, "force", False)))
+        print("calisti:" , out.get("ran"), "| gorev:", out.get("task", "-"),
+              "| sonuc:", out.get("ok", "-"), "|", out.get("detail", out.get("reason", "")))
+        return 0 if out.get("ok", True) else 1
+    if args.command == "schedule-install":
+        from core.scheduler import install_timer
+
+        try:
+            res = install_timer(interval_hours=args.interval_hours,
+                                dry_run=bool(args.dry_run))
+        except ValueError as exc:
+            print("hata:", exc)
+            return 2
+        for path, text in res["units"].items():
+            print("--- " + path + " ---")
+            print(text)
+        if res["installed"]:
+            print("kurulum tamam. etkinlestirme:", res["enable"])
+        else:
+            print("(dry-run: hicbir dosya yazilmadi)")
         return 0
     if args.command and args.command != "gui":
         from cli import run_cli

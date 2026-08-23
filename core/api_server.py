@@ -947,13 +947,9 @@ _scheduler_started = False
 
 
 def _schedule_state():
-    s = load_settings()
-    return {
-        "enabled": bool(s.get("schedule_enabled", False)),
-        "interval_hours": float(s.get("schedule_interval_hours", 24)),
-        "task": str(s.get("schedule_task", "check_updates")),
-        "last_run": str(s.get("schedule_last_run", "")),
-    }
+    from core.scheduler import state as sched_state
+
+    return sched_state()
 
 
 def handle_schedule_get(params):
