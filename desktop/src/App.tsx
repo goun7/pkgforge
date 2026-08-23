@@ -11,6 +11,7 @@ import { Reports } from "./pages/Reports";
 import { Export } from "./pages/Export";
 import { Plugins } from "./pages/Plugins";
 import { Compare } from "./pages/Compare";
+import { Browse } from "./pages/Browse";
 import { EmptyState } from "./components/EmptyState";
 import { Construction } from "lucide-react";
 
@@ -27,7 +28,7 @@ const PAGE_TITLES: Record<PageId, string> = {
   compare: "Karşılaştır",
 };
 
-const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates", "reports", "export", "plugins", "compare"];
+const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates", "reports", "export", "plugins", "compare", "browse"];
 
 export default function App() {
   const [page, setPage] = useState<PageId>("convert");
@@ -48,6 +49,7 @@ export default function App() {
             {page === "export" && <Export />}
             {page === "plugins" && <Plugins />}
             {page === "compare" && <Compare />}
+            {page === "browse" && <Browse />}
             {!READY_PAGES.includes(page) && (
               <EmptyState
                 icon={Construction}

@@ -648,6 +648,84 @@ def handle_compare_diff(params):
     return {"started": True}
 
 
+# ── Faz 2 / B1: AUR browser ─────────────────────────────────────
+
+_AUR_NAME_RE = __import__("re").compile(r"^[A-Za-z0-9@._+-]+$")
+
+
+def _validate_aur_name(name: str) -> None:
+    if not name or not _AUR_NAME_RE.match(name) or len(name) > 255:
+        raise ValueError(f"Invalid AUR package name: {name!r}")
+
+
+def handle_aur_search(params):
+    from core.aur_checker import search_aur
+
+    query = str(params.get("query", ""))
+    limit = int(params.get("limit", 25))
+
+    def _op():
+        return search_aur(query, limit=limit)
+
+    _run_thread(_op, "event.aur_search_done")
+    return {"started": True}
+
+
+def handle_aur_info(params):
+    from dataclasses import asdict
+
+    from core.aur_checker import check_aur
+
+    name = str(params.get("name", ""))
+    _validate_aur_name(name)
+
+    def _op():
+        return asdict(check_aur(name))
+
+    _run_thread(_op, "event.aur_info_done")
+    return {"started": True}
+
+
+def handle_aur_build(params):
+    import shutil
+    import subprocess as _sp
+    import tempfile
+
+    name = str(params.get("name", ""))
+    install = bool(params.get("install", False))
+    _validate_aur_name(name)
+
+    def _op():
+        _event("event.aur_build_progress", {"name": name, "step": "clone"})
+        workdir = Path(tempfile.mkdtemp(prefix=f"pkgforge-aur-{name}-"))
+        clone_url = f"https://aur.archlinux.org/{name}.git"
+        r = _sp.run(
+            ["git", "clone", "--depth=1", clone_url, str(workdir / name)],
+            capture_output=True, text=True, timeout=180, check=False,
+        )
+        if r.returncode != 0:
+            raise RuntimeError(f"git clone başarısız: {r.stderr.strip()[:300]}")
+
+        _event("event.aur_build_progress", {"name": name, "step": "build"})
+        cmd = ["makepkg", "-f", "--noconfirm"]
+        if install and shutil.which("pacman"):
+            cmd = ["makepkg", "-si", "--noconfirm"]
+        b = _sp.run(
+            cmd, capture_output=True, text=True, timeout=3600,
+            cwd=str(workdir / name), check=False,
+        )
+        if b.returncode != 0:
+            raise RuntimeError(f"makepkg başarısız: {b.stderr.strip()[-300:]}")
+
+        built = sorted((workdir / name).glob("*.pkg.tar.zst"))
+        if not built:
+            raise RuntimeError("makepkg tamamlandı ama paket dosyası bulunamadı")
+        return {"name": name, "pkg_path": str(built[-1]), "installed": install}
+
+    _run_thread(_op, "event.aur_build_done")
+    return {"started": True}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -700,6 +778,10 @@ METHODS = {
     "plugin.audit": handle_plugin_audit,
     # Faz 2 / B5: package comparison
     "compare.diff": handle_compare_diff,
+    # Faz 2 / B1: AUR browser
+    "aur.search": handle_aur_search,
+    "aur.info": handle_aur_info,
+    "aur.build": handle_aur_build,
 }
 
 

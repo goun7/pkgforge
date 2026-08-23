@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import json
 import logging
+import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Literal
 
-from config import APP_VERSION, AUR_RPC_URL
+from config import APP_VERSION, AUR_RPC_URL, AUR_SEARCH_URL
 
 log = logging.getLogger(__name__)
 
@@ -89,6 +90,53 @@ def check_aur(package_name: str, local_version: str = "", offline: bool = False)
         return AurResult(status="error", detail=str(exc))
 
 
+def search_aur(query: str, limit: int = 25, offline: bool = False) -> list[dict]:
+    """Search the AUR RPC API for packages matching a query.
+
+    Args:
+        query: Search term (matched against name/description by AUR).
+        limit: Maximum number of results to return.
+        offline: If True, skip network request and return an empty list.
+
+    Returns:
+        List of dicts: name, version, description, num_votes, out_of_date, url_path.
+    """
+    if not query or not query.strip():
+        return []
+    if offline:
+        log.info("Çevrimdışı mod — AUR araması atlandı: %s", query)
+        return []
+
+    try:
+        url = f"{AUR_SEARCH_URL}?arg={urllib.parse.quote(query.strip())}"
+        req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
+
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            data = json.loads(resp.read().decode("utf-8"))
+
+        results: list[dict] = []
+        for pkg in data.get("results", [])[: max(1, limit)]:
+            results.append({
+                "name": pkg.get("Name", ""),
+                "version": pkg.get("Version", ""),
+                "description": pkg.get("Description", "") or "",
+                "num_votes": int(pkg.get("NumVotes", 0)),
+                "out_of_date": pkg.get("OutOfDate") is not None,
+                "url_path": pkg.get("URLPath", ""),
+            })
+        # Most-voted first for relevance.
+        results.sort(key=lambda r: r["num_votes"], reverse=True)
+        log.info("AUR arama: %r → %d sonuç", query, len(results))
+        return results
+
+    except urllib.error.URLError as exc:
+        log.warning("AUR araması başarısız: %s", exc)
+        return []
+    except (json.JSONDecodeError, KeyError, ValueError) as exc:
+        log.warning("AUR arama yanıtı ayrıştırılamadı: %s", exc)
+        return []
+
+
 def _version_compare(ver_a: str, ver_b: str) -> int:
     """Compare Arch version strings. Returns >0 if ver_a > ver_b, <0 if ver_a < ver_b, 0 if equal.
 
@@ -106,7 +154,7 @@ def _version_compare(ver_a: str, ver_b: str) -> int:
                 out = res.stdout.strip()
                 if out:
                     return int(out)
-        except (ValueError, Exception) as exc:
+        except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
             log.warning("vercmp çalıştırma hatası: %s", exc)
 
     # Fallback Python version comparison

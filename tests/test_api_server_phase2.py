@@ -81,3 +81,23 @@ def test_compare_diff_missing_files(sidecar):
                 {"old_path": "/nonexistent/a.pkg.tar.zst", "new_path": "/nonexistent/b.pkg.tar.zst"})
     assert "error" in resp
     assert resp["error"]["code"] == -32000
+
+
+# --- B1: aur.* --------------------------------------------------------------
+
+def test_aur_search_starts(sidecar):
+    resp = _rpc(sidecar, "aur.search", {"query": "firefox"})
+    assert "result" in resp
+    assert resp["result"].get("started") is True
+
+
+def test_aur_info_invalid_name(sidecar):
+    resp = _rpc(sidecar, "aur.info", {"name": "bad;rm -rf /"})
+    assert "error" in resp
+    assert resp["error"]["code"] == -32000
+
+
+def test_aur_build_invalid_name(sidecar):
+    resp = _rpc(sidecar, "aur.build", {"name": "../escape"})
+    assert "error" in resp
+    assert resp["error"]["code"] == -32000

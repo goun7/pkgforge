@@ -75,8 +75,9 @@ RPM_DEP_MAP: dict[str, str] = {
     "libfreetype": "freetype2",
 }
 
-# AUR RPC endpoint
+# AUR RPC endpoints
 AUR_RPC_URL = "https://aur.archlinux.org/rpc/v5/info"
+AUR_SEARCH_URL = "https://aur.archlinux.org/rpc/v5/search"
 
 
 @dataclass(frozen=True)

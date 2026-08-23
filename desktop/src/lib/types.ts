@@ -246,6 +246,25 @@ export interface DepGraphData {
   warnings: string[];
 }
 
+/* --- Faz 2 / B1: AUR browser --- */
+
+export interface AurSearchResult {
+  name: string;
+  version: string;
+  description: string;
+  num_votes: number;
+  out_of_date: boolean;
+  url_path: string;
+}
+
+export interface AurInfo {
+  status: string;
+  aur_version: string;
+  out_of_date: boolean;
+  last_modified: string;
+  detail: string;
+}
+
 /* --- Faz 2 / B8: plugin marketplace --- */
 
 export interface InstalledPlugin {

@@ -32,7 +32,7 @@ export interface SidebarProps {
 const NAV_ITEMS: { id: PageId; label: string; icon: typeof ArrowLeftRight; soon?: boolean }[] = [
   { id: "convert", label: "Dönüştür", icon: ArrowLeftRight },
   { id: "installed", label: "Kurulanlar", icon: PackageCheck },
-  { id: "browse", label: "AUR Gözat", icon: Globe, soon: true },
+  { id: "browse", label: "AUR Gözat", icon: Globe },
   { id: "updates", label: "Güncellemeler", icon: RefreshCw },
   { id: "security", label: "Güvenlik", icon: ShieldCheck },
   { id: "reports", label: "Raporlar", icon: FileText },
