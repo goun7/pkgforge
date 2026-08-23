@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Save, Trash2 } from "lucide-react";
-import { call } from "../lib/rpc";
+import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, Save, Trash2 } from "lucide-react";
+import { call, onEvent } from "../lib/rpc";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -58,12 +58,23 @@ export function Settings() {
   const [profiles, setProfiles] = useState<{ name: string; active: boolean }[]>([]);
   const [newProfile, setNewProfile] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
+  // C3: backup & cloud sync
+  const [backupPath, setBackupPath] = useState("");
+  const [importPath, setImportPath] = useState("");
+  const [syncUrl, setSyncUrl] = useState("");
+  const [syncUser, setSyncUser] = useState("");
+  const [syncPass, setSyncPass] = useState("");
+  const [syncBusy, setSyncBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const raw = await call<Partial<SettingsShape>>("settings.get");
+      const raw = await call<
+        Partial<SettingsShape> & { sync_url?: string; sync_username?: string }
+      >("settings.get");
       setSettings({ ...DEFAULTS, ...raw });
+      setSyncUrl(typeof raw.sync_url === "string" ? raw.sync_url : "");
+      setSyncUser(typeof raw.sync_username === "string" ? raw.sync_username : "");
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -145,6 +156,35 @@ export function Settings() {
       toast("error", (e as Error).message);
     } finally {
       setProfileBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void onEvent<{ ok: boolean; error?: string; result?: { path?: string } }>(
+      "event/sync_done",
+      (payload) => {
+        if (payload.ok) {
+          toast("success", `Bulut işlemi tamamlandı${payload.result?.path ? ": " + payload.result.path : ""}`);
+        } else {
+          toast("error", payload.error ?? "Bulut işlemi başarısız");
+        }
+      },
+    ).then((fn) => {
+      unlisten = fn as () => void;
+    });
+    return () => unlisten?.();
+  }, [toast]);
+
+  const runSyncCall = async (method: string, params: Record<string, unknown>, done: string) => {
+    setSyncBusy(true);
+    try {
+      await call(method, params);
+      if (done) toast("success", done);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setSyncBusy(false);
     }
   };
 
@@ -286,6 +326,102 @@ export function Settings() {
               <Button onClick={() => void handleCreateProfile()} disabled={profileBusy}>
                 <Plus size={15} /> Oluştur
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Yedekleme &amp; Senkronizasyon</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {/* Local zip backup */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-[var(--text-primary)]">Yerel yedek (zip)</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Yedek yolu (boş = varsayılan)…"
+                  value={backupPath}
+                  onChange={(e) => setBackupPath(e.target.value)}
+                />
+                <Button
+                  disabled={syncBusy}
+                  onClick={() => void runSyncCall("sync.export", { output_path: backupPath || undefined }, "Yedek oluşturuldu")}
+                >
+                  <HardDriveDownload size={15} /> Dışa Aktar
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Geri yüklenecek yedek dosyası…"
+                  value={importPath}
+                  onChange={(e) => setImportPath(e.target.value)}
+                />
+                <Button
+                  disabled={syncBusy}
+                  onClick={() => void runSyncCall("sync.import", { backup_path: importPath }, "Yedek geri yüklendi")}
+                >
+                  <HardDriveUpload size={15} /> İçe Aktar
+                </Button>
+              </div>
+            </div>
+
+            {/* WebDAV */}
+            <div className="flex flex-col gap-2 border-t border-[var(--border-subtle)] pt-3">
+              <span className="text-sm font-medium text-[var(--text-primary)]">WebDAV bulut senkronizasyonu</span>
+              <Input
+                placeholder="https://sunucu/dav/"
+                value={syncUrl}
+                onChange={(e) => setSyncUrl(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Kullanıcı adı"
+                  value={syncUser}
+                  onChange={(e) => setSyncUser(e.target.value)}
+                />
+                <Input
+                  type="password"
+                  placeholder="Şifre"
+                  value={syncPass}
+                  onChange={(e) => setSyncPass(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={syncBusy}
+                  onClick={() =>
+                    void runSyncCall(
+                      "sync.config",
+                      {
+                        sync_url: syncUrl,
+                        sync_username: syncUser,
+                        ...(syncPass ? { sync_password: syncPass } : {}),
+                      },
+                      "Senkron ayarları kaydedildi",
+                    )
+                  }
+                >
+                  <Save size={14} /> Sunucuyu Kaydet
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={syncBusy || !syncUrl.trim()}
+                  onClick={() => void runSyncCall("sync.push", {}, "")}
+                >
+                  <CloudUpload size={14} /> Buluta Gönder
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={syncBusy || !syncUrl.trim()}
+                  onClick={() => void runSyncCall("sync.pull", {}, "")}
+                >
+                  <CloudDownload size={14} /> Buluttan Çek
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

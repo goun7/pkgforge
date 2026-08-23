@@ -1017,6 +1017,47 @@ def handle_profile_delete(params):
     return delete_profile(_profile_name(params))
 
 
+
+# -- C3: backup & cloud sync ------------------------------------
+def handle_sync_export(params):
+    from core.cloud_sync import export_backup
+
+    output = str(params.get("output_path", "")).strip()
+    return export_backup(output or None)
+
+
+def handle_sync_import(params):
+    from core.cloud_sync import import_backup
+
+    return import_backup(str(params.get("backup_path", "")))
+
+
+def handle_sync_config(params):
+    s = load_settings()
+    if "sync_url" in params:
+        s["sync_url"] = str(params["sync_url"]).strip()
+    if "sync_username" in params:
+        s["sync_username"] = str(params["sync_username"]).strip()
+    if params.get("sync_password"):
+        s["sync_password"] = str(params["sync_password"])
+    save_settings(s)
+    return {"ok": True}
+
+
+def handle_sync_push(params):
+    from core.cloud_sync import webdav_push
+
+    _run_thread(webdav_push, "event/sync_done")
+    return {"started": True}
+
+
+def handle_sync_pull(params):
+    from core.cloud_sync import webdav_pull
+
+    _run_thread(webdav_pull, "event/sync_done")
+    return {"started": True}
+
+
 METHODS = {
     "app.version": handle_app_version,
     "tools.status": handle_tools_status,
@@ -1089,6 +1130,11 @@ METHODS = {
     "profile.create": handle_profile_create,
     "profile.switch": handle_profile_switch,
     "profile.delete": handle_profile_delete,
+    "sync.export": handle_sync_export,
+    "sync.import": handle_sync_import,
+    "sync.config": handle_sync_config,
+    "sync.push": handle_sync_push,
+    "sync.pull": handle_sync_pull,
 }
 
 

@@ -134,4 +134,48 @@ describe("Settings page", () => {
       ),
     );
   });
+
+  it("exports a local backup via sync.export (C3)", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "profile.list"
+            ? [{ name: "default", active: true }]
+            : payload.method === "sync.export"
+              ? { ok: true, path: "/tmp/b.zip", size: 10 }
+              : {},
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Dışa Aktar")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Dışa Aktar"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "sync.export" }),
+      ),
+    );
+  });
+
+  it("saves WebDAV server via sync.config", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "profile.list" ? [{ name: "default", active: true }] : { ok: true },
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Sunucuyu Kaydet")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Sunucuyu Kaydet"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "sync.config" }),
+      ),
+    );
+  });
 });

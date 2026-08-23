@@ -97,3 +97,28 @@ def test_profile_invalid_name_fails(sidecar):
     for bad in ["../escape", "", "a/b"]:
         resp = _rpc(sidecar, "profile.create", {"name": bad})
         assert resp["error"]["code"] == -32000
+
+# --- C3: sync.* -------------------------------------------------------------
+
+def test_sync_export_creates_bundle(sidecar):
+    # ensure there is something to back up
+    cur = _rpc(sidecar, "settings.get")["result"]
+    cur["theme"] = "dark"
+    _rpc(sidecar, "settings.set", cur, req_id=2)
+
+    resp = _rpc(sidecar, "sync.export", req_id=3)
+    assert resp["result"]["ok"] is True
+    assert Path(resp["result"]["path"]).is_file()
+
+
+def test_sync_import_missing_file_fails(sidecar):
+    resp = _rpc(sidecar, "sync.import", {"backup_path": "/nonexistent.zip"}, req_id=2)
+    assert resp["error"]["code"] == -32000
+
+
+def test_sync_config_stores_url(sidecar):
+    _rpc(sidecar, "sync.config",
+         {"sync_url": "https://cloud.example/dav/", "sync_username": "u"}, req_id=1)
+    got = _rpc(sidecar, "settings.get", req_id=2)["result"]
+    assert got["sync_url"] == "https://cloud.example/dav/"
+    assert got["sync_username"] == "u"
