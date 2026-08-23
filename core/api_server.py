@@ -1312,6 +1312,10 @@ _http_rate: dict[str, deque] = {}
 
 def _rate_limited(ip: str, now: float) -> bool:
     """Sliding-window limiter: True when this client exceeded the cap."""
+    # F5.2a: bounded memory — sweep empty per-IP buckets when map balloons.
+    if len(_http_rate) > 4096:
+        for stale in [k for k, v in _http_rate.items() if not v]:
+            del _http_rate[stale]
     hits = _http_rate.setdefault(ip, deque())
     while hits and now - hits[0] > 60:
         hits.popleft()

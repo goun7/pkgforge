@@ -42,7 +42,7 @@ jobs:
           retention-days: 14
 
       - name: Update Coverage Badge
-        if: matrix.python-version == '3.12' && github.event_name == 'push' && github.repository_owner == 'pkgforge'
+        if: matrix.python-version == '3.12' && github.event_name == 'push' && github.repository_owner == 'goun7'
         continue-on-error: true
         run: |
           COVERAGE=$(python -c "import json; print(round(json.load(open('coverage.json'))['totals']['percent_covered']))")
@@ -50,7 +50,7 @@ jobs:
           sed -i "s|coverage-[0-9]*%25-[a-z]*|coverage-${COVERAGE}%25-${COLOR}|g" README.md
 
       - name: Commit Badge Update
-        if: matrix.python-version == '3.12' && github.event_name == 'push' && github.repository_owner == 'pkgforge'
+        if: matrix.python-version == '3.12' && github.event_name == 'push' && github.repository_owner == 'goun7'
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"

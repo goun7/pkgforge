@@ -113,6 +113,14 @@ def service_unit_text() -> str:
         "",
         "[Service]",
         "Type=oneshot",
+        # F5.3: sandbox hardening. NoNewPrivileges intentionally blocks
+        # pkexec — headless tasks are conversion/scan-only by design.
+        "TimeoutStartSec=300",
+        "NoNewPrivileges=true",
+        "ProtectSystem=full",
+        "PrivateTmp=true",
+        "ReadWritePaths=%h/.config/pkgforge",
+        "MemoryMax=1536M",
         "WorkingDirectory=" + str(workdir),
         "ExecStart=" + str(exe) + " -m main schedule-run",
         "",

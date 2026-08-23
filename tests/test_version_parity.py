@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from config import APP_VERSION
@@ -22,3 +23,12 @@ def test_core_version_matches_tauri_conf():
 def test_core_version_matches_package_json():
     pkg = _desktop_json("package.json")
     assert APP_VERSION == pkg["version"]
+
+
+def test_core_version_matches_cargo_toml():
+    # F5.10: third version source must not drift either.
+    text = (PROJECT_ROOT / "desktop" / "src-tauri" / "Cargo.toml").read_text(
+        encoding="utf-8")
+    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.M)
+    assert match, "Cargo.toml version satiri bulunamadi"
+    assert APP_VERSION == match.group(1)

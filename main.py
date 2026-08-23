@@ -353,6 +353,8 @@ def main() -> int:
                               help="Additional read-only token (with --http)")
     serve_parser.add_argument("--dbus", action="store_true",
                               help="Also expose the JSON-RPC registry on the D-Bus session bus")
+    serve_parser.add_argument("--token-file", default="",
+                              help="Token'ı dosyadan oku (--token yerine; ps'te görünmez)")
 
     # schedule subcommands (F4.6: headless systemd-friendly entry points)
     sched_run = subparsers.add_parser(
@@ -441,9 +443,22 @@ def main() -> int:
         return 0
     if args.command == "serve":
         if getattr(args, "http", False):
+            import os as _os
+            from pathlib import Path as _P
+
             from core.api_server import serve_http
 
-            serve_http(port=args.port, token=args.token, host=args.host,
+            token = args.token
+            # F5.2a: keep the secret out of the process list.
+            if not token and getattr(args, "token_file", ""):
+                try:
+                    token = _P(args.token_file).read_text(encoding="utf-8").strip()
+                except OSError as exc:
+                    print(f"hata: token dosyası okunamadı: {exc}")
+                    return 2
+            if not token:
+                token = _os.environ.get("PKGFORGE_TOKEN", "")
+            serve_http(port=args.port, token=token, host=args.host,
                        read_token=getattr(args, "read_token", ""))
         else:
             if getattr(args, "dbus", False):

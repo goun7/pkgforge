@@ -37,6 +37,16 @@ def test_unit_texts_shape():
     svc = scheduler.service_unit_text()
     assert "[Service]" in svc and "Type=oneshot" in svc
     assert "ExecStart=" in svc and "-m main schedule-run" in svc
+    # F5.3 sandbox hardening directives
+    for directive in (
+        "TimeoutStartSec=300",
+        "NoNewPrivileges=true",
+        "ProtectSystem=full",
+        "PrivateTmp=true",
+        "ReadWritePaths=%h/.config/pkgforge",
+        "MemoryMax=1536M",
+    ):
+        assert directive in svc, directive
     tim = scheduler.timer_unit_text(2.0)
     assert "OnUnitActiveSec=7200s" in tim
     # timer points at the service unit (index-stable line)
