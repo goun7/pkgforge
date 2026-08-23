@@ -1,0 +1,38 @@
+{
+  "http": {
+    "reader": [
+      "app.version",
+      "tools.status",
+      "settings.get",
+      "history.list",
+      "schedule.get",
+      "profile.list",
+      "profile.current",
+      "queue.list",
+      "plugin.list",
+      "plugin.available",
+      "plugin.audit",
+      "dbus.status"
+    ]
+  },
+  "polkit": {
+    "helper_system_path": "/usr/share/pkgforge/scripts/install_helper.sh",
+    "actions": [
+      [
+        "org.pkgforge.install",
+        "PkgForge paket kurulumu",
+        "Donusturulen paketi pacman ile kurmak icin yetkilendirme"
+      ],
+      [
+        "org.pkgforge.delta-update",
+        "PkgForge delta otomatik guncelleme",
+        "Delta updater servis dosyalarini yazmak icin yetkilendirme"
+      ],
+      [
+        "org.pkgforge.snapshot-cleanup",
+        "PkgForge snapshot temizligi",
+        "Zamanlanmis snapshot temizlik servisini yonetmek icin yetkilendirme"
+      ]
+    ]
+  }
+}

@@ -11,6 +11,7 @@ clear "unavailable" status instead of crashing.
 from __future__ import annotations
 
 import json
+import os
 import threading
 from typing import Any
 
@@ -53,8 +54,14 @@ def _mutations_allowed() -> bool:
     return bool(i18n.load_settings().get("dbus_allow_mutations", False))
 
 
-def _handle_call(method_name: str, params_json: str) -> str:
-    """Map one D-Bus Call onto the sidecar JSON-RPC dispatcher."""
+def _handle_call(method_name: str, params_json: str,
+                 caller_uid: int | None = None) -> str:
+    """Map one D-Bus Call onto the sidecar JSON-RPC dispatcher.
+
+    F5.1: caller_uid comes from the bus driver (GetConnectionUnixUser).
+    Fail-closed: unknown caller (None) can never reach mutations even when
+    the policy flag is on - only same-UID local callers pass.
+    """
     from core.api_server import _READ_METHODS, METHODS, _dispatch
 
     try:
@@ -66,17 +73,50 @@ def _handle_call(method_name: str, params_json: str) -> str:
         if not isinstance(params, dict):
             params = {}
         known = method_name in METHODS
-        if known and method_name not in _READ_METHODS and not _mutations_allowed():
-            response = {"jsonrpc": "2.0", "id": None,
-                        "error": {"code": -32000,
-                                  "message": (
-                                      "D-Bus policy: salt-okunur. "
-                                      "Ayarlar > D-Bus Servisi uzerinden "
-                                      "yazma izni verin (dbus.set_policy).")}}
+        if known and method_name not in _READ_METHODS:
+            if not _mutations_allowed():
+                response = {"jsonrpc": "2.0", "id": None,
+                            "error": {"code": -32000,
+                                      "message": (
+                                          "D-Bus policy: salt-okunur. "
+                                          "Ayarlar > D-Bus Servisi uzerinden "
+                                          "yazma izni verin (dbus.set_policy).")}}
+            elif caller_uid != _own_uid():
+                # F5.1: session-bus peers are NOT trusted by default.
+                response = {"jsonrpc": "2.0", "id": None,
+                            "error": {"code": -32002,
+                                      "message": (
+                                          f"D-Bus arayani farkli kullanici "
+                                          f"(uid={caller_uid}); yazma reddedildi.")}}
+            else:
+                response = _dispatch({"jsonrpc": "2.0", "id": 1,
+                                      "method": method_name, "params": params})
         else:
             response = _dispatch({"jsonrpc": "2.0", "id": 1,
                                   "method": method_name, "params": params})
     return json.dumps(response, ensure_ascii=False)
+
+
+def _own_uid() -> int:
+    """Own Unix UID; module-level so tests can pin it."""
+    return os.getuid()
+
+
+def _caller_uid(conn, sender):
+    """Resolve the Unix UID behind a bus name; None when undeterminable."""
+    if not sender:
+        return None
+    try:
+        from jeepney import DBusAddress, new_method_call
+
+        driver = DBusAddress("/org/freedesktop/DBus",
+                             bus_name="org.freedesktop.DBus",
+                             interface="org.freedesktop.DBus")
+        reply = conn.send_and_get_reply(
+            new_method_call(driver, "GetConnectionUnixUser", "s", (sender,)))
+        return int(reply.body[0])
+    except Exception:  # noqa: BLE001 - any failure means unverified caller
+        return None
 
 
 class PkgForgeService:
@@ -147,8 +187,14 @@ class PkgForgeService:
                     member = msg.header.fields.get(HeaderFields.member)
                     if (msg.header.message_type == MessageType.method_call
                             and member == "Call"):
+                        sender = msg.header.fields.get(HeaderFields.sender)
                         try:
-                            payload = _handle_call(msg.body[0], msg.body[1])
+                            uid = _caller_uid(self._conn, sender)
+                        except Exception:  # noqa: BLE001 - fail closed
+                            uid = None
+                        try:
+                            payload = _handle_call(msg.body[0], msg.body[1],
+                                                   caller_uid=uid)
                         except Exception as exc:  # noqa: BLE001
                             payload = json.dumps(
                                 {"jsonrpc": "2.0", "id": None,

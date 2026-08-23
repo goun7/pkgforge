@@ -1302,11 +1302,10 @@ def serve() -> None:
 _HTTP_MAX_BODY = 1_048_576  # 1 MiB request body ceiling
 _HTTP_RATE_LIMIT = 60  # requests per minute per client IP
 # Methods a read-only token may call; everything else needs the operator token.
-_READ_METHODS = frozenset({
-    "app.version", "tools.status", "settings.get", "history.list",
-    "schedule.get", "profile.list", "profile.current", "queue.list",
-    "plugin.list", "plugin.available", "plugin.audit", "dbus.status",
-})
+# F5.1: single source of truth lives in core/capabilities.py.
+from core.capabilities import http_reader_methods as _http_reader_methods
+
+_READ_METHODS = _http_reader_methods()
 _http_rate: dict[str, deque] = {}
 
 
