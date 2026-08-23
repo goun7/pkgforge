@@ -159,7 +159,21 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
         url += "/"
     headers = {"Content-Type": "application/zip"}
     user = str(s.get("sync_username", ""))
-    pw = str(s.get("sync_password", ""))
+    # F4.4: prefer the OS keyring; plaintext settings value is a legacy
+    # fallback that sync.config removes once the keyring accepts a secret.
+    pw = ""
+    try:
+        from core.secrets_store import available, webdav_store
+
+        if user and available():
+            stored = webdav_store(user).get_secret()
+            if stored is not None:
+                pw = stored
+    except Exception as exc:  # noqa: BLE001 - never break push over keyring
+        __import__("logging").getLogger(__name__).debug(
+            "keyring lookup failed: %s", exc)
+    if not pw:
+        pw = str(s.get("sync_password", ""))
     if user or pw:
         token = base64.b64encode(f"{user}:{pw}".encode()).decode("ascii")
         headers["Authorization"] = f"Basic {token}"

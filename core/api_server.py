@@ -1082,10 +1082,32 @@ def handle_sync_config(params):
         s["sync_url"] = str(params["sync_url"]).strip()
     if "sync_username" in params:
         s["sync_username"] = str(params["sync_username"]).strip()
+
+    stored_in = "settings"
+    warning = ""
     if params.get("sync_password"):
-        s["sync_password"] = str(params["sync_password"])
+        secret = str(params["sync_password"])
+        user = s.get("sync_username", "")
+        from core.secrets_store import available, webdav_store
+
+        if user and available():
+            try:
+                webdav_store(str(user)).set_secret(secret)
+                stored_in = "keyring"
+                s.pop("sync_password", None)  # migrate off plaintext
+            except Exception as exc:  # noqa: BLE001 - fallback to settings
+                warning = f"Anahtarlık kullanılamadı: {exc}"
+                s["sync_password"] = secret
+        else:
+            s["sync_password"] = secret
+            if not user:
+                warning = "Anahtarlik icin kullanici adi gerekli"
+
     save_settings(s)
-    return {"ok": True}
+    out = {"ok": True, "password_stored": stored_in}
+    if warning:
+        out["warning"] = warning
+    return out
 
 
 def handle_sync_push(params):

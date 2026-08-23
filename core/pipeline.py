@@ -181,6 +181,9 @@ class ConversionPipeline(QObject):
         self._decision_made = False
         self._decision_approved = False
         self._decision_message: str | None = None
+        # F4.3 batch mode: when set, a dismissed decision gate means the
+        # conversion SUCCEEDED and installation was skipped (not an error).
+        self._skip_install_message: str = ""
 
         # Converters and installer (will be created during pipeline).
         # _deb_converter may hold either the native converter or the debtap
@@ -552,7 +555,7 @@ class ConversionPipeline(QObject):
             # dir (deleting the converted package) before the user could
             # choose to proceed — leaving Install Anyway with no listener.
             if not self._wait_for_decision():
-                if not self._cancelled and getattr(self, "_skip_install_message", ""):
+                if not self._cancelled and self._skip_install_message:
                     # F4.3 batch mode: conversion succeeded, install opted out.
                     msg = self._skip_install_message
                     self._set_step(PipelineStep.INSTALL, "done")
@@ -579,7 +582,7 @@ class ConversionPipeline(QObject):
             # dismiss_install). The temp dir — and therefore the converted
             # package — stays alive while the user reviews the report.
             if not self._wait_for_decision():
-                if not self._cancelled and getattr(self, "_skip_install_message", ""):
+                if not self._cancelled and self._skip_install_message:
                     msg = self._skip_install_message
                     self._set_step(PipelineStep.INSTALL, "done")
                     self.progress.emit(100)
