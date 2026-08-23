@@ -107,6 +107,26 @@ def test_import_rejects_traversal_members(cfg_root: Path):
         import_backup(str(evil))
 
 
+def test_manifest_present_and_tamper_detected(cfg_root: Path):
+    import zipfile as _zip
+
+    _seed_default_state()
+    bundle = cfg_root / "tamper.zip"
+    export_backup(str(bundle))
+
+    # Rewrite the archive with a corrupted payload but original manifest.
+    with _zip.ZipFile(bundle) as zf:
+        names = zf.namelist()
+        blobs = {n: zf.read(n) for n in names}
+    blobs["default/settings.json"] = b'{"theme": "evil"}'
+    with _zip.ZipFile(bundle, "w") as zf:
+        for n, b in blobs.items():
+            zf.writestr(n, b)
+
+    with pytest.raises(SyncError, match="Bütünlük"):
+        import_backup(str(bundle))
+
+
 def test_missing_backup_file_raises(cfg_root: Path):
     with pytest.raises(SyncError):
         import_backup(str(cfg_root / "yok.zip"))

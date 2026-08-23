@@ -10,7 +10,10 @@ to a clear error instead of crashing.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
+import os
+import sqlite3
 import tempfile
 import time
 import urllib.error
@@ -26,6 +29,7 @@ _BUNDLE_FILES = ("settings.json", "history.db", "history.db-wal", "history.db-sh
 
 # Marker entry identifying a genuine PkgForge bundle.
 _MARKER = "pkgforge-backup.json"
+_MANIFEST = "manifest.json"
 
 _REMOTE_NAME = "pkgforge-backup.zip"
 
@@ -58,23 +62,38 @@ def export_backup(output_path: str | None = None) -> dict:
         out = config.backup_dir() / f"pkgforge-backup-{stamp}.zip"
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    included = 0
+    # Checkpoint SQLite WAL so the bundled .db is complete without sidecars.
+    for name in _profile_names():
+        db = config.history_db_path(name)
+        if db.is_file():
+            try:
+                with sqlite3.connect(db) as conn:
+                    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except sqlite3.Error:
+                pass  # busy/corrupt db: bundle whatever is readable
+
+    hashes: dict[str, str] = {}
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         for name in _profile_names():
             src_dir = config.profile_config_dir(name)
             for fname in _BUNDLE_FILES:
                 f = src_dir / fname
                 if f.is_file():
-                    zf.write(f, arcname=f"{name}/{fname}")
-                    included += 1
+                    arc = f"{name}/{fname}"
+                    zf.write(f, arcname=arc)
+                    hashes[arc] = hashlib.sha256(f.read_bytes()).hexdigest()
+        zf.writestr(_MANIFEST, json.dumps({
+            "files": hashes,
+            "created": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }))
         zf.writestr(_MARKER, json.dumps({
             "app": "PkgForge",
             "version": APP_VERSION,
             "created": time.strftime("%Y-%m-%d %H:%M:%S"),
             "profiles": _profile_names(),
-            "files": included,
+            "files": len(hashes),
         }))
-    if included == 0:
+    if not hashes:
         out.unlink(missing_ok=True)
         raise SyncError("Yedeklenecek ayar/geçmiş bulunamadı")
     return {"ok": True, "path": str(out), "size": out.stat().st_size}
@@ -89,14 +108,15 @@ def import_backup(backup_path: str) -> dict:
     restored: list[str] = []
     with zipfile.ZipFile(p) as zf:
         names = zf.namelist()
-        if _MARKER not in names:
-            raise SyncError("Geçersiz PkgForge yedeği (imza eksik)")
+        if _MARKER not in names or _MANIFEST not in names:
+            raise SyncError("Geçersiz PkgForge yedeği (imza/manifest eksik)")
+        expected: dict[str, str] = json.loads(zf.read(_MANIFEST)).get("files", {})
 
-        # Replace DBs atomically enough: drop stale WAL sidecars of any
-        # database being restored before writing the new main file.
+        # Replace DBs atomically: verify every hash first, drop stale WAL
+        # sidecars of any database being restored, then os.replace each file.
         planned: dict[tuple[str, str], bytes] = {}
         for member in names:
-            if member == _MARKER:
+            if member in (_MARKER, _MANIFEST):
                 continue
             parts = PurePosixPath(member).parts
             if len(parts) != 2:
@@ -104,7 +124,11 @@ def import_backup(backup_path: str) -> dict:
             profile, fname = parts
             if not PROFILE_NAME_RE.match(profile) or fname not in _BUNDLE_FILES:
                 raise SyncError(f"Güvenilmeyen arşiv üyesi: {member}")
-            planned[(profile, fname)] = zf.read(member)
+            blob = zf.read(member)
+            want = expected.get(member)
+            if want and hashlib.sha256(blob).hexdigest() != want:
+                raise SyncError(f"Bütünlük hatası: {member}")
+            planned[(profile, fname)] = blob
 
         for (profile, fname), blob in planned.items():
             target = config.profile_config_dir(profile) / fname
@@ -113,7 +137,9 @@ def import_backup(backup_path: str) -> dict:
                 for side in ("history.db-wal", "history.db-shm"):
                     if (profile, side) not in planned:
                         (target.parent / side).unlink(missing_ok=True)
-            target.write_bytes(blob)
+            tmp_target = target.with_suffix(target.suffix + ".tmp")
+            tmp_target.write_bytes(blob)
+            os.replace(tmp_target, target)
             restored.append(f"{profile}/{fname}")
 
     return {"ok": True, "restored": restored}
