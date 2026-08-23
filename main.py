@@ -349,6 +349,8 @@ def main() -> int:
                               help="Bearer token required for HTTP requests")
     serve_parser.add_argument("--host", default="127.0.0.1",
                               help="HTTP bind address (with --http)")
+    serve_parser.add_argument("--read-token", default="",
+                              help="Additional read-only token (with --http)")
     serve_parser.add_argument("--dbus", action="store_true",
                               help="Also expose the JSON-RPC registry on the D-Bus session bus")
 
@@ -428,7 +430,8 @@ def main() -> int:
         if getattr(args, "http", False):
             from core.api_server import serve_http
 
-            serve_http(port=args.port, token=args.token, host=args.host)
+            serve_http(port=args.port, token=args.token, host=args.host,
+                       read_token=getattr(args, "read_token", ""))
         else:
             if getattr(args, "dbus", False):
                 import threading as _threading

@@ -98,3 +98,128 @@ def test_http_bad_json(http_server):
     with pytest.raises(urllib.error.HTTPError) as exc:
         urllib.request.urlopen(req, timeout=10)  # nosec B310
     assert exc.value.code == 400
+
+
+# --- F4.2: hardening ---------------------------------------------------------
+
+def _get(path: str, token: str | None = TOKEN) -> tuple[int, dict]:
+    req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", method="GET")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            return resp.status, json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        return e.code, {}
+
+
+def test_health_endpoint_needs_no_auth(http_server):
+    status, body = _get("/health", token=None)
+    assert status == 200
+    assert body["ok"] is True
+    assert body["service"] == "pkgforge-http"
+
+
+def test_non_loopback_bind_requires_token():
+    from core.api_server import serve_http
+
+    with pytest.raises(ValueError, match="token"):
+        serve_http(host="0.0.0.0", port=1, token="")
+
+
+def test_body_over_1mib_rejected(http_server):
+    big = b"x" * (1_048_576 + 1)
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{PORT}/",
+        data=big,
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {TOKEN}"},
+        method="POST",
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req, timeout=30)  # nosec B310
+    assert exc.value.code == 413
+
+
+def test_read_only_token_scope(tmp_path):
+    import subprocess
+    import threading
+
+    read_port = 18766
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
+    env.pop("XDG_CONFIG_HOME", None)
+    env["QT_QPA_PLATFORM"] = "offscreen"
+    proc = subprocess.Popen(
+        [sys.executable, str(PROJECT_ROOT / "main.py"), "serve",
+         "--http", "--port", str(read_port),
+         "--token", "op-secret", "--read-token", "ro-secret"],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE, text=True, env=env,
+        cwd=str(PROJECT_ROOT),
+    )
+
+    def post(method: str, tok: str):
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{read_port}/",
+            data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": method}).encode(),
+            headers={"Content-Type": "application/json",
+                     "Authorization": f"Bearer {tok}"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+                return resp.status, json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            return e.code, {}
+
+    try:
+        deadline = time.time() + 20
+        code = None
+        while time.time() < deadline:
+            try:
+                code, _ = post("app.version", "op-secret")
+            except urllib.error.URLError:
+                code = None
+            if code == 200:
+                break
+            if proc.poll() is not None:
+                err = proc.stderr.read() if proc.stderr else ""
+                raise AssertionError(f"server exited early rc={proc.returncode}: {err}")
+            time.sleep(0.3)
+        assert code == 200, "server never came up"
+
+        # reader may read
+        code, body = post("app.version", "ro-secret")
+        assert (code, body.get("result", {}).get("name")) == (200, "PkgForge")
+        # reader must not mutate
+        code, _ = post("settings.set", "ro-secret")
+        assert code == 403
+        # wrong operator token still rejected
+        code, _ = post("app.version", "nope")
+        assert code == 401
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def test_rate_limit_returns_429(http_server):
+    codes = []
+    for i in range(70):
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{PORT}/",
+            data=json.dumps({"jsonrpc": "2.0", "id": i,
+                             "method": "app.version"}).encode(),
+            headers={"Content-Type": "application/json",
+                     "Authorization": f"Bearer {TOKEN}"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+                codes.append(resp.status)
+        except urllib.error.HTTPError as e:
+            codes.append(e.code)
+    assert 429 in codes

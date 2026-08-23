@@ -38,6 +38,34 @@ def test_handle_call_unknown_method():
     assert payload["error"]["code"] == -32601
 
 
+# --- F4.2: read-only policy --------------------------------------------------
+
+def test_policy_blocks_mutations_by_default(monkeypatch: pytest.MonkeyPatch):
+    import i18n
+
+    monkeypatch.setattr(i18n, "load_settings", lambda: {})
+    payload = json.loads(dbus_service._handle_call("settings.set", '{"dry_run": true}'))
+    assert payload["error"]["code"] == -32000
+    assert "salt-okunur" in payload["error"]["message"]
+
+
+def test_policy_allows_reads_always(monkeypatch: pytest.MonkeyPatch):
+    import i18n
+
+    monkeypatch.setattr(i18n, "load_settings", lambda: {})
+    payload = json.loads(dbus_service._handle_call("app.version", "{}"))
+    assert payload["result"]["name"] == "PkgForge"
+
+
+def test_policy_opt_in_allows_reads_via_dispatch(monkeypatch: pytest.MonkeyPatch):
+    import i18n
+
+    monkeypatch.setattr(i18n, "load_settings",
+                        lambda: {"dbus_allow_mutations": True})
+    payload = json.loads(dbus_service._handle_call("history.list", "{}"))
+    assert "result" in payload
+
+
 def test_start_requires_jeepney(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(dbus_service, "is_available", lambda: False)
     with pytest.raises(ServiceError, match="jeepney"):

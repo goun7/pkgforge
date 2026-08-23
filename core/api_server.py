@@ -10,6 +10,7 @@ import logging
 import sys
 import threading
 import time
+from collections import deque
 from pathlib import Path
 
 from config import APP_NAME, APP_VERSION, discover_tools
@@ -1066,6 +1067,13 @@ def handle_dbus_status(params):
     return service_status()
 
 
+def handle_dbus_set_policy(params):
+    s = load_settings()
+    s["dbus_allow_mutations"] = bool(params.get("allow_mutations", False))
+    save_settings(s)
+    return {"ok": True, "allow_mutations": s["dbus_allow_mutations"]}
+
+
 def handle_dbus_start(params):
     from core.dbus_service import start_default
 
@@ -1153,6 +1161,7 @@ METHODS = {
     "sync.pull": handle_sync_pull,
     "dbus.status": handle_dbus_status,
     "dbus.start": handle_dbus_start,
+    "dbus.set_policy": handle_dbus_set_policy,
 }
 
 
@@ -1209,16 +1218,48 @@ def serve() -> None:
         _send(_dispatch(msg))
 
 
-def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1") -> None:
-    """Run the JSON-RPC API over HTTP for LAN remote management (B7).
+# HTTP hardening limits (F4.2).
+_HTTP_MAX_BODY = 1_048_576  # 1 MiB request body ceiling
+_HTTP_RATE_LIMIT = 60  # requests per minute per client IP
+# Methods a read-only token may call; everything else needs the operator token.
+_READ_METHODS = frozenset({
+    "app.version", "tools.status", "settings.get", "history.list",
+    "schedule.get", "profile.list", "profile.current", "queue.list",
+    "plugin.list", "plugin.available", "plugin.audit", "dbus.status",
+})
+_http_rate: dict[str, deque] = {}
+
+
+def _rate_limited(ip: str, now: float) -> bool:
+    """Sliding-window limiter: True when this client exceeded the cap."""
+    hits = _http_rate.setdefault(ip, deque())
+    while hits and now - hits[0] > 60:
+        hits.popleft()
+    if len(hits) >= _HTTP_RATE_LIMIT:
+        return True
+    hits.append(now)
+    return False
+
+
+def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
+               read_token: str = "") -> None:
+    """Run the JSON-RPC API over HTTP for LAN remote management (B7/F4.2).
 
     POST / accepts a single JSON-RPC 2.0 request and returns the response.
-    If *token* is non-empty, requests must carry "Authorization: Bearer <token>".
+    Requests must carry "Authorization: Bearer <token>" (operator scope) or
+    the optional *read_token* (read-only method subset). Binding to a
+    non-loopback address without an operator token is refused at startup.
     Push events are suppressed in this mode (no stdio channel).
     """
     global _http_mode
     import hmac
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    loopback = host in ("127.0.0.1", "localhost", "::1")
+    if not loopback and not token:
+        raise ValueError(
+            "Non-loopback bind requires --token "
+            "(LAN erisimi kimlik dogrulamasiz acilamaz)")
 
     _http_mode = True
     _ensure_qapp()
@@ -1233,21 +1274,51 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1") -> No
             self.end_headers()
             self.wfile.write(body)
 
+        def _scope(self) -> str | None:
+            """Return operator/reader for this request, else None."""
+            auth = self.headers.get("Authorization", "")
+            if token and hmac.compare_digest(auth, f"Bearer {token}"):
+                return "operator"
+            if read_token and hmac.compare_digest(auth, f"Bearer {read_token}"):
+                return "reader"
+            return None
+
+        def do_GET(self) -> None:
+            if self.path == "/health":
+                self._reply(200, {"ok": True, "service": "pkgforge-http",
+                                  "version": APP_VERSION})
+            else:
+                self._reply(404, {"error": "not found"})
+
         def do_POST(self) -> None:
-            if token:
-                auth = self.headers.get("Authorization", "")
-                expected = f"Bearer {token}"
-                if not hmac.compare_digest(auth, expected):
-                    self._reply(401, {"jsonrpc": "2.0", "id": None,
-                                      "error": {"code": -32000, "message": "Unauthorized"}})
-                    return
+            client_ip = self.client_address[0]
+            if _rate_limited(client_ip, time.time()):
+                self._reply(429, {"jsonrpc": "2.0", "id": None,
+                                  "error": {"code": -32000,
+                                            "message": "Rate limit exceeded"}})
+                return
+            scope = self._scope()
+            if scope is None:
+                self._reply(401, {"jsonrpc": "2.0", "id": None,
+                                  "error": {"code": -32000, "message": "Unauthorized"}})
+                return
             length = int(self.headers.get("Content-Length", 0))
+            if length > _HTTP_MAX_BODY:
+                self._reply(413, {"jsonrpc": "2.0", "id": None,
+                                  "error": {"code": -32000,
+                                            "message": "Request body too large"}})
+                return
             raw = self.rfile.read(length) if length else b""
             try:
                 msg = json.loads(raw.decode("utf-8"))
             except (json.JSONDecodeError, UnicodeDecodeError):
                 self._reply(400, {"jsonrpc": "2.0", "id": None,
                                   "error": {"code": -32700, "message": "Parse error"}})
+                return
+            if scope == "reader" and msg.get("method") not in _READ_METHODS:
+                self._reply(403, {"jsonrpc": "2.0", "id": msg.get("id"),
+                                  "error": {"code": -32000,
+                                            "message": "Read-only token"}})
                 return
             self._reply(200, _dispatch(msg))
 

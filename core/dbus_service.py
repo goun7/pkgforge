@@ -46,9 +46,16 @@ class ServiceError(RuntimeError):
     """Raised for D-Bus service failures with a user-facing message."""
 
 
+def _mutations_allowed() -> bool:
+    """F4.2 policy: session-bus callers are read-only unless opted in."""
+    import i18n
+
+    return bool(i18n.load_settings().get("dbus_allow_mutations", False))
+
+
 def _handle_call(method_name: str, params_json: str) -> str:
     """Map one D-Bus Call onto the sidecar JSON-RPC dispatcher."""
-    from core.api_server import _dispatch
+    from core.api_server import _READ_METHODS, METHODS, _dispatch
 
     try:
         params = json.loads(params_json) if params_json else {}
@@ -58,8 +65,17 @@ def _handle_call(method_name: str, params_json: str) -> str:
     else:
         if not isinstance(params, dict):
             params = {}
-        response = _dispatch({"jsonrpc": "2.0", "id": 1,
-                              "method": method_name, "params": params})
+        known = method_name in METHODS
+        if known and method_name not in _READ_METHODS and not _mutations_allowed():
+            response = {"jsonrpc": "2.0", "id": None,
+                        "error": {"code": -32000,
+                                  "message": (
+                                      "D-Bus policy: salt-okunur. "
+                                      "Ayarlar > D-Bus Servisi uzerinden "
+                                      "yazma izni verin (dbus.set_policy).")}}
+        else:
+            response = _dispatch({"jsonrpc": "2.0", "id": 1,
+                                  "method": method_name, "params": params})
     return json.dumps(response, ensure_ascii=False)
 
 
