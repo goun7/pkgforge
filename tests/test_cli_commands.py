@@ -456,3 +456,88 @@ def test_cmd_publish_success_without_push(monkeypatch, capsys, tmp_path):
     out = capsys.readouterr().out
     assert rc == 0 and pushed["n"] == 0
     assert hint in out
+
+
+def test_cmd_rollback_invalid_name(monkeypatch, capsys):
+    called = {"n": 0}
+    monkeypatch.setattr(cli, "safe_run",
+                        lambda cmd, timeout=None: called.update(n=1))
+    rc = cli._cmd_rollback(argparse.Namespace(package="kötü ad"))
+    assert rc == 1 and called["n"] == 0
+
+
+def test_cmd_rollback_no_backup(monkeypatch, tmp_path, capsys):
+    class FakeDB:
+        def get_records_for_package(self, name):
+            return [_rec(1, output_pkg="",
+                         backup_pkg=str(tmp_path / "yok.pkg.tar.zst"))]
+    monkeypatch.setattr(cli, "HistoryDB", FakeDB)
+    rc = cli._cmd_rollback(argparse.Namespace(package="demo"))
+    assert rc == 1
+
+
+def test_cmd_rollback_success_and_failure(monkeypatch, tmp_path, capsys):
+    backup = tmp_path / "yedek.pkg.tar.zst"
+    backup.write_bytes(b"x")
+    class FakeDB:
+        def get_records_for_package(self, name):
+            return [_rec(1, backup_pkg=str(backup))]
+    monkeypatch.setattr(cli, "HistoryDB", FakeDB)
+    seen = {}
+
+    def fake_run(cmd, timeout=None):
+        seen["cmd"] = list(cmd)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+    monkeypatch.setattr(cli, "safe_run", fake_run)
+    assert cli._cmd_rollback(argparse.Namespace(package="demo")) == 0
+    assert "-U" in seen["cmd"] and str(backup) in seen["cmd"]
+
+    def bad_run(cmd, timeout=None):
+        return SimpleNamespace(returncode=1, stdout="", stderr="hata")
+    monkeypatch.setattr(cli, "safe_run", bad_run)
+    assert cli._cmd_rollback(argparse.Namespace(package="demo")) == 1
+
+
+def test_cmd_check_updates_empty_and_updates(monkeypatch, capsys):
+    monkeypatch.setattr("cli.check_all_installed_updates", list)
+    ns = argparse.Namespace(watch=False, interval=300)
+    assert cli._cmd_check_updates(ns) == 0
+    recs = [SimpleNamespace(package_name="a", has_update=True,
+                            detail="ETag degisti"),
+            SimpleNamespace(package_name="b", has_update=False, detail="")]
+    monkeypatch.setattr("cli.check_all_installed_updates",
+                        lambda: recs)
+    assert cli._cmd_check_updates(ns) == 0
+    out = capsys.readouterr().out
+    assert "güncelleme mevcut" in out and "a" in out
+
+
+def test_cmd_verify_missing_file(capsys, tmp_path):
+    rc = cli._cmd_verify(argparse.Namespace(
+        package=str(tmp_path / "yok.pkg.tar.zst"), sigstore=False))
+    assert rc == 1 and "bulunamad" in capsys.readouterr().out
+
+
+def test_cmd_verify_gpg_paths(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "x.pkg.tar.zst"
+    f.write_bytes(b"x")
+    info = SimpleNamespace(valid=True, signer="Ali", key_id="K1",
+                           key_fingerprint="FP", detail="tam")
+    monkeypatch.setattr("core.package_signing.verify_signature",
+                        lambda p: info)
+    ns = argparse.Namespace(package=str(f), sigstore=False)
+    assert cli._cmd_verify(ns) == 0
+    out = capsys.readouterr().out
+    assert "Geçerli" in out and "Ali" in out
+    info.valid = False
+    assert cli._cmd_verify(ns) == 1
+
+
+def test_cmd_verify_sigstore_mode(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "x.pkg.tar.zst"
+    f.write_bytes(b"x")
+    res = SimpleNamespace(summary=lambda: "sig", success=False)
+    monkeypatch.setattr("core.sigstore.verify_with_sigstore",
+                        lambda p: res)
+    ns = argparse.Namespace(package=str(f), sigstore=True)
+    assert cli._cmd_verify(ns) == 1 and "sig" in capsys.readouterr().out
