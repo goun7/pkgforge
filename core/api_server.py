@@ -525,6 +525,14 @@ def handle_system_health(params):
     }
 
 
+def handle_stats_wrapped(params):
+    """F5.24: annual conversion report (read-only)."""
+    from core.stats_wrapped import build_wrapped
+
+    year = params.get("year")
+    return build_wrapped(year=int(year) if year else None)
+
+
 def handle_system_cross_check(params):
     from dataclasses import asdict
 
@@ -1285,6 +1293,7 @@ METHODS = {
     "source.generate": handle_source_generate,
     # Faz 1 / A6: system tools
     "system.health": handle_system_health,
+    "stats.wrapped": handle_stats_wrapped,
     "system.cross_check": handle_system_cross_check,
     "system.snapshot_status": handle_system_snapshot_status,
     "system.snapshot_install": handle_system_snapshot_install,

@@ -19,6 +19,7 @@ CAPABILITIES = {
         "reader": [
             "app.version",
             "app.doctor",
+            "stats.wrapped",
             "tools.status",
             "settings.get",
             "history.list",

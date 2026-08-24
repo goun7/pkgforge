@@ -62,6 +62,7 @@ export const API_METHODS = [
   "settings.get",
   "settings.set",
   "source.generate",
+  "stats.wrapped",
   "sync.config",
   "sync.export",
   "sync.import",
@@ -92,6 +93,7 @@ export const READ_METHODS = [
   "queue.list",
   "schedule.get",
   "settings.get",
+  "stats.wrapped",
   "tools.status",
 ] as const;
 

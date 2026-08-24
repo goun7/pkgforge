@@ -76,6 +76,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_health(args)
     elif command == "doctor":
         return _cmd_doctor(args)
+    elif command == "wrapped":
+        return _cmd_wrapped(args)
     elif command == "snapshot-cleanup":
         return _cmd_snapshot_cleanup(args)
     elif command == "quality":
@@ -1270,6 +1272,34 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         return 0
     print("🔴 Genel: zorunlu araçlar eksik")
     return 1
+
+
+def _cmd_wrapped(args: argparse.Namespace) -> int:
+    """Handle `pkgforge wrapped` (F5.24)."""
+    from core.stats_wrapped import build_wrapped
+
+    r = build_wrapped(year=getattr(args, "year", None))
+    year = r["year"]
+    print(f"🎁 PkgForge {year} Wrapped")
+    print()
+    if r["total"] == 0:
+        print(f"   {year} yılında hiç dönüşüm kaydı yok.")
+        return 0
+    print(f"   Toplam dönüşüm: {r['total']}")
+    print(f"   Başarılı: {r['success']}  |  Başarısız: {r['failed']}"
+          f"  |  Başarı oranı: %{r['success_rate']}")
+    print(f"   Farklı paket: {r['distinct_packages']}")
+    if r["busiest_month"]:
+        print(f"   En yoğun ay: {r['busiest_month']}")
+    if r["by_type"]:
+        types = ", ".join(f"{k}: {v}"
+                          for k, v in sorted(r["by_type"].items()))
+        print(f"   Türler: {types}")
+    if r["top_packages"]:
+        print("   En çok dönüştürülenler:")
+        for i, p in enumerate(r["top_packages"], 1):
+            print(f"     {i}. {p['name']} ({p['count']})")
+    return 0
 
 
 def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:

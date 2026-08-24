@@ -263,6 +263,11 @@ def main() -> int:
     # doctor subcommand (F5.22)
     subparsers.add_parser("doctor", help=tr("cli.doctor_help"))
 
+    # wrapped subcommand (F5.24)
+    wrapped_parser = subparsers.add_parser("wrapped", help=tr("cli.wrapped_help"))
+    wrapped_parser.add_argument("--year", type=int, default=None,
+                            help=tr("cli.arg_wrapped_year"))
+
     # snapshot-cleanup subcommand
     snap_clean_parser = subparsers.add_parser("snapshot-cleanup", help=tr("cli.snapshot_cleanup_help"))
     snap_clean_parser.add_argument("--install", action="store_true", help=tr("cli.arg_cleanup_install"))
