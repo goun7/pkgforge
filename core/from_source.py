@@ -166,6 +166,55 @@ def _detect_license(repo_dir: Path) -> str:
     return "GPL-3.0-or-later"  # safe default
 
 
+def _detect_description(repo_dir: Path, name: str) -> str:
+    """Auto-fill a package description from upstream metadata (F5.25).
+
+    Oncelik sirasi: yapilandirilmis manifestler (pyproject/Cargo/package.json)
+    sonra README duzyazisi; en son genel bir satira dusulur. Best-effort,
+    asla raise etmez.
+    """
+    # pyproject.toml / Cargo.toml: description = "..."
+    for manifest in ("pyproject.toml", "Cargo.toml"):
+        path = repo_dir / manifest
+        if path.is_file():
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+                m = re.search(r'^description\s*=\s*["\']([^"\']+)["\']',
+                              text, re.MULTILINE)
+                if m and m.group(1).strip():
+                    return m.group(1).strip()
+            except OSError:
+                pass
+    # package.json: "description": "..."
+    pj = repo_dir / "package.json"
+    if pj.is_file():
+        try:
+            text = pj.read_text(encoding="utf-8", errors="ignore")
+            m = re.search(r'"description"\s*:\s*"([^"]+)"', text)
+            if m and m.group(1).strip():
+                return m.group(1).strip()
+        except OSError:
+            pass
+    # README duzyazisi (mevcut mantik).
+    for readme_name in ("README.md", "README.rst", "README", "readme.md"):
+        readme = repo_dir / readme_name
+        if readme.exists():
+            try:
+                for line in readme.read_text(
+                        encoding="utf-8", errors="ignore").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith(("#", "!", "[", "<", "---", "===")):
+                        continue
+                    if 15 < len(line) < 120:
+                        return line
+            except OSError:
+                pass
+            break
+    return f"{name} — kaynaktan derlenen paket"
+
+
 def _detect_python_package(repo_dir: Path) -> bool:
     """Check if this is a Python package."""
     return (
@@ -254,27 +303,8 @@ def generate_pkgbuild_from_source(
     # License detection
     license_id = _detect_license(repo_dir)
 
-    # Description from README
-    description = f"{name} — kaynaktan derlenen paket"
-    for readme_name in ["README.md", "README.rst", "README", "readme.md"]:
-        readme = repo_dir / readme_name
-        if readme.exists():
-            try:
-                for line in readme.read_text(encoding="utf-8", errors="ignore").splitlines():
-                    line = line.strip()
-                    # Skip markdown headers, image links, badges
-                    if not line:
-                        continue
-                    if line.startswith(("#", "!", "[", "<", "---", "===")):
-                        continue
-                    if line.startswith(("![", "[![")):
-                        continue
-                    if len(line) > 15 and len(line) < 120:
-                        description = line
-                        break
-            except OSError:
-                pass
-            break
+    # F5.25: upstream enrichment — description otomatik doldurulur.
+    description = _detect_description(repo_dir, name)
 
     # Escape for PKGBUILD single quotes
     description = description.replace("'", "'\\''")
