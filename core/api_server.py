@@ -758,6 +758,80 @@ _queue_running = False
 # Live batch pipelines keyed by item_id (F4.3 honesty fix).
 _active_pipelines: dict = {}
 
+# F5.12: durable backing for the queue. Best-effort — a DB failure must never
+# break the in-memory hot path.
+_queue_store = None
+_queue_store_lock = threading.Lock()
+
+
+def _get_queue_store():
+    global _queue_store
+    with _queue_store_lock:
+        if _queue_store is None:
+            try:
+                from core.queue_store import QueueStore
+                _queue_store = QueueStore()
+            except Exception:  # noqa: BLE001 - persistence is best-effort
+                _queue_store = False  # sentinel: tried and failed
+        return _queue_store or None
+
+
+def _persist_item(item) -> None:
+    store = _get_queue_store()
+    if store is None:
+        return
+    try:
+        store.upsert(item)
+    except Exception:  # noqa: BLE001, S110 - best-effort persistence
+        pass
+
+
+def _persist_remove(item_id) -> None:
+    store = _get_queue_store()
+    if store is None:
+        return
+    try:
+        store.remove(item_id)
+    except Exception:  # noqa: BLE001, S110 - best-effort persistence
+        pass
+
+
+def _persist_clear(status="") -> None:
+    store = _get_queue_store()
+    if store is None:
+        return
+    try:
+        store.clear(status)
+    except Exception:  # noqa: BLE001, S110 - best-effort persistence
+        pass
+
+
+def restore_queue() -> int:
+    """Reload pending queue items from the durable store (F5.12).
+
+    Called on startup. Items are coerced to 'pending' and the id sequence is
+    advanced past them so new additions do not collide. Returns the count.
+    """
+    global _queue_seq
+    store = _get_queue_store()
+    if store is None:
+        return 0
+    try:
+        items = store.load_restorable()
+    except Exception:  # noqa: BLE001
+        return 0
+    restored = 0
+    with _queue_lock:
+        for item in items:
+            if item["id"] in _queue_items:
+                continue
+            _queue_items[item["id"]] = item
+            restored += 1
+            iid = item["id"]
+            if iid.startswith("q") and iid[1:].isdigit():
+                _queue_seq = max(_queue_seq, int(iid[1:]))
+    return restored
+
 
 def _make_pipeline(path, item_id, do_install=False):
     """Build a ConversionPipeline whose events are tagged with item_id.
@@ -815,6 +889,7 @@ def _set_item(item_id, **fields):
     with _queue_lock:
         if item_id in _queue_items:
             _queue_items[item_id].update(fields)
+            _persist_item(_queue_items[item_id])
 
 
 def handle_queue_add(params):
@@ -840,6 +915,7 @@ def handle_queue_add(params):
                 "priority": int(params.get("priority", 0)),
                 "message": "",
             }
+            _persist_item(_queue_items[item_id])
             added += 1
     return {"added": added}
 
@@ -857,6 +933,7 @@ def handle_queue_priority(params):
         if item_id not in _queue_items:
             raise KeyError(f"Queue item not found: {item_id}")
         _queue_items[item_id]["priority"] = int(params.get("priority", 0))
+        _persist_item(_queue_items[item_id])
     return {"ok": True}
 
 
@@ -864,6 +941,7 @@ def handle_queue_remove(params):
     item_id = params.get("id", "")
     with _queue_lock:
         _queue_items.pop(item_id, None)
+    _persist_remove(item_id)
     return {"ok": True}
 
 
@@ -875,6 +953,7 @@ def handle_queue_clear(params):
         else:
             for k in [k for k, v in _queue_items.items() if v["status"] == status]:
                 del _queue_items[k]
+    _persist_clear(status)
     return {"ok": True}
 
 
@@ -1277,6 +1356,7 @@ def serve() -> None:
 
     app = _ensure_qapp()
     _ensure_scheduler()
+    restore_queue()
     while True:
         app.processEvents()
         try:
@@ -1417,6 +1497,7 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
     _http_mode = True
     _ensure_qapp()
     _ensure_scheduler()
+    restore_queue()
 
     class Handler(BaseHTTPRequestHandler):
         def _reply(self, code: int, obj: dict) -> None:

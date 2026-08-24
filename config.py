@@ -67,6 +67,11 @@ def backup_dir(profile: str | None = None) -> Path:
     """Active-profile-aware path to the package backups directory."""
     return profile_config_dir(profile) / "backups"
 
+
+def queue_db_path(profile: str | None = None) -> Path:
+    """Active-profile-aware path to the batch-queue persistence db (F5.12)."""
+    return profile_config_dir(profile) / "queue.db"
+
 # Offline mode — when True, network-dependent checks (AUR, upstream) are skipped
 OFFLINE_MODE: bool = False
 
