@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
+from types import SimpleNamespace
 
 import cli
 
@@ -256,3 +258,96 @@ def test_cmd_verify_rollback_paths(monkeypatch, capsys):
     monkeypatch.setattr("core.rollback_verify.verify_rollback",
                         lambda: NS(detail="kırık", verified=False))
     assert cli._cmd_verify_rollback(argparse.Namespace()) == 1
+
+
+def test_cmd_graph_missing_file(capsys):
+    rc = cli._cmd_graph(argparse.Namespace(
+        package="yok-paket-abc", files=False, format="ascii"))
+    out = capsys.readouterr().out
+    assert rc == 1 and "bulunamadı" in out
+
+
+def _stage_pkg(tmp_path):
+    import subprocess
+    d = tmp_path / "st"
+    d.mkdir(exist_ok=True)
+    (d / ".PKGINFO").write_text(
+        chr(10).join(["pkgname = demo", "pkgver = 1.0",
+                      "depend = glibc"]))
+    tar = tmp_path / "a.tar"
+    with open(tar, "wb") as fh:
+        subprocess.run(["tar", "cf", "-", "-C", str(d), ".PKGINFO"],
+                       stdout=fh, check=True)
+    zst = tmp_path / "demo-1.0-1-x86_64.pkg.tar.zst"
+    subprocess.run(["zstd", "-qf", str(tar), "-o", str(zst)], check=True)
+    return zst
+
+
+def test_cmd_graph_ascii_and_mermaid(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("core.dep_graph.shutil.which",
+                        lambda n: "/usr/bin/pacman")
+    real_run = __import__("core.dep_graph", fromlist=["safe_run"]).safe_run
+
+    def fake_run(cmd, timeout=None):
+        if len(cmd) > 1 and cmd[1] == "-Qi":
+            return SimpleNamespace(returncode=1, stdout="", stderr="")
+        if len(cmd) > 1 and cmd[1] == "xf":
+            info = chr(10).join(["pkgname = demo", "pkgver = 1.0",
+                                 "depend = glibc"])
+            return SimpleNamespace(returncode=0, stdout=info, stderr="")
+        return real_run(cmd, timeout=timeout)
+    monkeypatch.setattr("core.dep_graph.safe_run", fake_run)
+    pkg = _stage_pkg(tmp_path)
+    ns = argparse.Namespace(package=str(pkg), files=False, format="ascii")
+    assert cli._cmd_graph(ns) == 0
+    out = capsys.readouterr().out
+    assert "Bağımlılık Grafiği: demo" in out
+    ns.format = "mermaid"
+    assert cli._cmd_graph(ns) == 0
+    assert "demo" in capsys.readouterr().out
+
+
+def test_cmd_plugin_install_success(monkeypatch, capsys):
+    calls = {}
+
+    def fake_install(name, version="latest", force=False):
+        calls.update(name=name, version=version, force=force)
+        return Path("/plugins/x")
+    monkeypatch.setattr("core.plugins.marketplace.install_plugin", fake_install)
+    monkeypatch.setattr("core.plugins.reload_plugins", lambda: ["a", "b"])
+    ns = argparse.Namespace(plugin_action="install", name="x==1.2",
+                            force=False, version="latest")
+    rc = cli._cmd_plugin(ns)
+    out = capsys.readouterr().out
+    assert rc == 0 and calls["version"] == "1.2"
+    assert "2 plugin aktif" in out
+
+
+def test_cmd_plugin_install_failures(monkeypatch, capsys):
+    def nf(name, version="latest", force=False):
+        raise FileNotFoundError("bulunamadi")
+    monkeypatch.setattr("core.plugins.marketplace.install_plugin", nf)
+    ns = argparse.Namespace(plugin_action="install", name="x",
+                            force=False, version="latest")
+    assert cli._cmd_plugin(ns) == 1
+
+    def re_(name, version="latest", force=False):
+        raise RuntimeError("indirme hatasi")
+    monkeypatch.setattr("core.plugins.marketplace.install_plugin", re_)
+    capsys.readouterr()
+    assert cli._cmd_plugin(ns) == 1
+    assert "Kurulum başarısız" in capsys.readouterr().out
+
+
+def test_cmd_plugin_remove_paths(monkeypatch, capsys):
+    monkeypatch.setattr("core.plugins.marketplace.uninstall_plugin",
+                        lambda n: True)
+    removed = {"n": 0}
+    monkeypatch.setattr("core.plugins.reload_plugins",
+                        lambda: removed.update(n=removed["n"] + 1) or [])
+    ns = argparse.Namespace(plugin_action="remove", name="x")
+    assert cli._cmd_plugin(ns) == 0 and removed["n"] == 1
+
+    monkeypatch.setattr("core.plugins.marketplace.uninstall_plugin",
+                        lambda n: False)
+    assert cli._cmd_plugin(ns) == 1
