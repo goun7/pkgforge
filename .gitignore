@@ -22,3 +22,7 @@ coverage.json
 htmlcov/
 .e2e_out/
 .test_home/
+.tmp_home_*/
+mutants/
+.mutmut-cache/
+.ruff_cache/

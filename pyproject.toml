@@ -60,3 +60,12 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 timeout = 120
 timeout_method = "signal"
 addopts = "-q --tb=short"
+
+# F5.8: mutmut mutation-testing pilot config (calistirma: python -m mutmut run).
+# NOT: mutmut 3.x kaynaklari izole bir mutants/ dizinine kopyalar; bu
+# projenin ust-seviye modulleri (config, i18n) o dizinde import edilemedigi
+# icin conftest ImportError verir. Asilmasi gereken bilinen kisit icin
+# ROADMAP F5.8 notuna bakin.
+[tool.mutmut]
+source_paths = ["core/installer.py"]
+pytest_add_cli_args_test_selection = ["tests/test_converter_guards.py"]
