@@ -607,13 +607,43 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     print(report.summary())
     print()
 
+    rc = 0
     if report.passed:
         print("✅ Tüm testler başarılı")
     else:
         print("❌ Bazı testler başarısız")
-        return 1
+        rc = 1
 
-    return 0
+    # F5.26: perf butcesi — baseline kaydet / karsilastir.
+    save_path = getattr(args, "save_baseline", None)
+    if save_path:
+        from core.perf_budget import save_baseline
+
+        out = save_baseline(report, save_path)
+        print(f"💾 Baseline kaydedildi: {out}")
+    baseline_path = getattr(args, "baseline", None)
+    if baseline_path:
+        from core.perf_budget import compare, load_baseline
+
+        baseline = load_baseline(baseline_path)
+        if not baseline:
+            print(f"⚠️  Baseline bulunamadı ya da boş: {baseline_path}")
+        else:
+            res = compare(report, baseline)
+            print(f"\n📊 Perf bütçesi: {res['compared']} metrik karşılaştırıldı"
+                  f" (eşik: %{int(res['threshold'] * 100)})")
+            for reg in res["regressions"]:
+                print(f"  ❌ {reg['name']}: {reg['baseline_ms']}ms →"
+                      f" {reg['current_ms']}ms (%{reg['delta_pct']:+.1f})")
+            for imp in res["improvements"]:
+                print(f"  🚀 {imp['name']}: {imp['baseline_ms']}ms →"
+                      f" {imp['current_ms']}ms (%{imp['delta_pct']:+.1f})")
+            if not res["ok"]:
+                print(f"❌ {len(res['regressions'])} regresyon bütçeyi aştı")
+                rc = 1
+            else:
+                print("✅ Perf bütçesi içinde")
+    return rc
 
 
 def _cmd_sign(args: argparse.Namespace) -> int:

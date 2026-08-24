@@ -306,6 +306,8 @@ def main() -> int:
     bench_parser = subparsers.add_parser("benchmark", help=tr("cli.benchmark_help"))
     bench_parser.add_argument("--bench-file", help=tr("cli.arg_bench_file"))
     bench_parser.add_argument("--quick", action="store_true", help=tr("cli.arg_bench_quick"))
+    bench_parser.add_argument("--baseline", help=tr("cli.arg_bench_baseline"))
+    bench_parser.add_argument("--save-baseline", help=tr("cli.arg_bench_save_baseline"))
 
     # sign subcommand
     sign_parser = subparsers.add_parser("sign", help=tr("cli.sign_help"))

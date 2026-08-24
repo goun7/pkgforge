@@ -331,6 +331,8 @@ STRINGS: dict[str, str] = {
     "cli.doctor_help": "Tek seferlik sistem teşhisi çalıştır (araçlar, anahtarlık, depolama, D-Bus)",
     "cli.wrapped_help": "Yıllık dönüşüm raporunu göster (Stats Wrapped)",
     "cli.arg_wrapped_year": "Rapor yılı (varsayılan: içinde bulunulan yıl)",
+    "cli.arg_bench_baseline": "Sonuçları bu baseline dosyasıyla karşılaştır (%%20+ regresyonda başarısız)",
+    "cli.arg_bench_save_baseline": "Mevcut sonuçları bir baseline dosyası olarak kaydet",
     "cli.snapshot_cleanup_help": "Otomatik snapshot temizleme servisini yönet",
     "cli.quality_help": "Paket kalite puanı hesapla",
     "cli.arg_quality_pkg": "Puanlanacak .pkg.tar.zst dosyası",

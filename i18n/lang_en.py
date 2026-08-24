@@ -331,6 +331,8 @@ STRINGS: dict[str, str] = {
     "cli.doctor_help": "Run a one-shot system diagnosis (tools, keyring, storage, D-Bus)",
     "cli.wrapped_help": "Show the annual conversion report (Stats Wrapped)",
     "cli.arg_wrapped_year": "Report year (defaults to the current year)",
+    "cli.arg_bench_baseline": "Compare results against this baseline file (fail on >20%% regression)",
+    "cli.arg_bench_save_baseline": "Save the current results as a baseline file",
     "cli.snapshot_cleanup_help": "Manage automatic snapshot cleanup service",
     "cli.quality_help": "Calculate package quality score",
     "cli.arg_quality_pkg": ".pkg.tar.zst file to score",
