@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- F5.21: AppStream metaverisi (yazilim merkezleri icin). -->
+<component type="desktop-application">
+  <id>org.pkgforge.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>PkgForge</name>
+  <summary>Convert and install .deb and .rpm packages on Arch Linux</summary>
+  <description>
+    <p>
+      PkgForge converts Debian (.deb) and Red Hat (.rpm) packages into native
+      Arch Linux (.pkg.tar.zst) packages and installs them safely. It bundles a
+      Tauri desktop shell with a Python sidecar that drives the conversion
+      pipeline, compatibility checks, security scanning and package lifecycle
+      management.
+    </p>
+    <ul>
+      <li>Convert .deb and .rpm packages to native Arch packages</li>
+      <li>Compatibility and ABI checks before installation</li>
+      <li>ClamAV malware scanning and decompression-bomb protection</li>
+      <li>Automatic snapshots and one-click rollback</li>
+      <li>Batch conversion queue with persistence</li>
+      <li>AUR browsing, CVE scanning and update tracking</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">org.pkgforge.app.desktop</launchable>
+  <url type="homepage">https://github.com/goun7/pkgforge</url>
+  <url type="bugtracker">https://github.com/goun7/pkgforge/issues</url>
+  <provides>
+    <binary>pkgforge</binary>
+    <binary>pkgforge-gui</binary>
+  </provides>
+  <categories>
+    <category>System</category>
+    <category>Settings</category>
+    <category>PackageManagement</category>
+  </categories>
+  <releases>
+    <release version="2.0.0" date="2026-08-23"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+  <developer id="org.pkgforge">
+    <name>PkgForge contributors</name>
+  </developer>
+</component>
