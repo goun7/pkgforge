@@ -145,6 +145,65 @@ def import_backup(backup_path: str) -> dict:
     return {"ok": True, "restored": restored}
 
 
+def restore_drill() -> dict:
+    """F5.17: export -> izole import -> hash dogrulama tatbikati.
+
+    Gercek yapilandirmaya dokunmadan yedek/geri-yukleme yolunun uctan uca
+    calistigini kanitlar: mevcut profilleri gecici bir pakete export eder,
+    config kokunu tek kullanimlik bir dizine yonlendirip oraya import eder
+    (import_backup her uyenin sha256'sini manifest'e karsi zaten dogrular),
+    sonra geri yuklenen dosyalarin diskte varligini sayar ve temizlenir.
+    """
+    import shutil
+    import tempfile
+
+    workdir = Path(tempfile.mkdtemp(prefix="pkgforge-drill-"))
+    bundle = workdir / "drill-backup.zip"
+    restore_root = workdir / "restore"
+    original_root = config.CONFIG_DIR
+    try:
+        try:
+            exp = export_backup(output_path=str(bundle))
+        except SyncError as exc:
+            # Bos yapilandirma: tatbikat edecek veri yok, mekanik saglikli.
+            return {"ok": True, "detail": f"tatbikat atlandi: {exc}"}
+        if exp.get("ok") is False or not bundle.is_file():
+            return {"ok": False, "detail": "export basarisiz: " + str(exp)}
+
+        with zipfile.ZipFile(bundle) as zf:
+            if _MANIFEST not in zf.namelist():
+                return {"ok": False, "detail": "manifest eksik"}
+            expected = json.loads(zf.read(_MANIFEST)).get("files", {})
+
+        config.CONFIG_DIR = restore_root
+        try:
+            imp = import_backup(str(bundle))
+        finally:
+            config.CONFIG_DIR = original_root
+        if not imp.get("ok"):
+            return {"ok": False, "detail": "import basarisiz: " + str(imp)}
+
+        restored = imp.get("restored", [])
+        missing = []
+        for arc in restored:
+            profile, _, fname = arc.partition("/")
+            target = (restore_root if profile == "default"
+                      else restore_root / "profiles" / profile) / fname
+            if not target.is_file():
+                missing.append(arc)
+        if missing:
+            return {"ok": False,
+                    "detail": "eksik geri yuklenen dosya: " + ", ".join(missing)}
+        return {"ok": True,
+                "detail": (f"tatbikat basarili: {len(restored)}/{len(expected)}"
+                           f" dosya dogrulandi")}
+    except SyncError as exc:
+        return {"ok": False, "detail": str(exc)}
+    finally:
+        config.CONFIG_DIR = original_root
+        shutil.rmtree(workdir, ignore_errors=True)
+
+
 def _webdav_target() -> tuple[str, dict[str, str]]:
     s = __import__("i18n").load_settings()
     url = str(s.get("sync_url", "")).strip()

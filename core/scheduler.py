@@ -71,10 +71,17 @@ def _task_backup_export() -> dict:
     return export_backup()
 
 
+def _task_restore_drill() -> dict:
+    from core.cloud_sync import restore_drill
+
+    return restore_drill()
+
+
 TASKS = {
     "check_updates": _task_check_updates,
     "sync_push": _task_sync_push,
     "backup_export": _task_backup_export,
+    "restore_drill": _task_restore_drill,
 }
 
 KNOWN_TASKS = ", ".join(sorted(TASKS))
