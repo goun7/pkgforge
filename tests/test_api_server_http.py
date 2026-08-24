@@ -136,9 +136,18 @@ def test_body_over_1mib_rejected(http_server):
                  "Authorization": f"Bearer {TOKEN}"},
         method="POST",
     )
-    with pytest.raises(urllib.error.HTTPError) as exc:
+    # Yarissiz degil: sunucu govdeyi OKUMADAN 413 donup baglantiyi kapar;
+    # yuk altinda istemci ya HTTPError 413 alir ya da yazma tarafinda
+    # ConnectionReset/BrokenPipe gorur. Ikisi de gecerli bir "reddedildi"
+    # kanitidir; onemli olan istismarin kabul edilmemesidir.
+    try:
         urllib.request.urlopen(req, timeout=30)  # nosec B310
-    assert exc.value.code == 413
+        pytest.fail("1MiB+ govde reddedilmedi")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 413
+    except (urllib.error.URLError, ConnectionError, BrokenPipeError, OSError) as exc:
+        reason = str(getattr(exc, "reason", exc)).lower()
+        assert any(k in reason for k in ("reset", "broken pipe", "connection")), reason
 
 
 def test_read_only_token_scope(tmp_path):
