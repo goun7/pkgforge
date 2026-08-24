@@ -95,7 +95,7 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
                 if " = " in line:
                     key, val = line.split(" = ", 1)
                     info[key.strip()] = val.strip()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check failed: %s", exc)
     return info
 
@@ -162,7 +162,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=False, score=max(0, 10 - abi.error_count * 2), max_score=10,
                 detail=f"{abi.error_count} uyumsuzluk tespit edildi",
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="ABI Uyumluluğu", category="security",
@@ -188,7 +188,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=5, max_score=10,
                 detail="ClamAV kurulu değil",
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Malware Taraması", category="security",
@@ -219,7 +219,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=3, max_score=5,
                 detail="Dosya listesi alınamadı",
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Path Traversal", category="security",
@@ -251,7 +251,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=10, max_score=15,
                 detail="Bağımlılık yok veya okunamadı",
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Bağımlılık Çözümleme", category="compatibility",
@@ -271,7 +271,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=arch_ok, score=10 if arch_ok else 0, max_score=10,
             detail=f"Paket: {arch}, Sistem: {system_arch}" if arch else "Mimari bilinmiyor",
         ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Mimari Uyumluluğu", category="compatibility",
@@ -298,7 +298,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=ver_ok, score=5 if ver_ok else 0, max_score=5,
             detail=version or "Eksik",
         ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Sürüm", category="metadata",
@@ -315,7 +315,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=desc_ok, score=5 if desc_ok else 0, max_score=5,
             detail=desc[:60] if desc else "Eksik veya çok kısa",
         ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Açıklama", category="metadata",
@@ -332,7 +332,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=lic_ok, score=5 if lic_ok else 0, max_score=5,
             detail=license_id or "Bilinmiyor",
         ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Lisans", category="metadata",
@@ -349,7 +349,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             passed=url_ok, score=5 if url_ok else 0, max_score=5,
             detail=url[:60] if url else "Belirtilmemiş",
         ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Web Sitesi", category="metadata",
@@ -404,7 +404,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=5, max_score=10,
                 detail="Sayılamadı",
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Dosya Sayısı", category="size",
@@ -433,7 +433,7 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
                 passed=True, score=3, max_score=5,
                 detail="Hesaplanamadı",
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
             name="Sıkıştırma Oranı", category="size",

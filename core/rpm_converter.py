@@ -133,7 +133,7 @@ class RpmConverter(QObject):
         # Phase 2: Generate PKGBUILD and run makepkg
         try:
             self._build_package()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self.finished.emit(False, f"PKGBUILD oluşturma hatası: {exc}", None)
 
     # ── Phase 2: Build ───────────────────────────────────────────

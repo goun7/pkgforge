@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import base64
+from typing import ClassVar
 
 import pytest
 
 import core.api_server as A
-from core.cloud_sync import SyncError, _webdav_target, export_backup
+from core.cloud_sync import SyncError, _webdav_target
 
 
 @pytest.fixture()
@@ -20,7 +21,7 @@ def cfg_root(tmp_path, monkeypatch: pytest.MonkeyPatch):
 
 
 class _FakeStore:
-    instances: list[_FakeStore] = []
+    instances: ClassVar[list[_FakeStore]] = []
 
     def __init__(self, username: str):
         self.username = username
@@ -58,7 +59,7 @@ def test_webdav_uses_keyring_password_over_settings(
     save_settings({**load_settings(), "sync_url": "https://dav.example",
                    "sync_username": "ali", "sync_password": "legacy"})
     _keyring_on(monkeypatch, saved="kring")
-    url, headers = _webdav_target()
+    _url, headers = _webdav_target()
     token = base64.b64encode(b"ali:kring").decode()
     assert headers["Authorization"] == f"Basic {token}"
 
@@ -108,7 +109,7 @@ def test_config_keeps_settings_fallback_without_keyring(
 def test_push_pull_still_work_end_to_end_with_keyring(
         cfg_root, tmp_path_factory, monkeypatch: pytest.MonkeyPatch):
     """Keyring path must not break the WebDAV roundtrip plumbing."""
-    from core.cloud_sync import webdav_pull, webdav_push
+    from core.cloud_sync import webdav_push
     from i18n import load_settings, save_settings
 
     _seed()
@@ -118,7 +119,6 @@ def test_push_pull_still_work_end_to_end_with_keyring(
 
 
 def _seed():
-    from pathlib import Path
 
     from config import profile_config_dir
     d = profile_config_dir("default")

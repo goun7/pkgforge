@@ -282,7 +282,7 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
         )
         return True, msg
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return False, f"Rollback planı oluşturulamadı: {exc}"
 
 
@@ -303,7 +303,7 @@ def _list_btrfs_snapshots() -> list[dict[str, str]]:
                             "date": " ".join(parts[4:8]),
                             "backend": "btrfs",
                         })
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Btrfs snapshot listesi alınamadı: %s", exc)
     return snapshots
 

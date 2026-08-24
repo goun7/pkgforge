@@ -98,7 +98,7 @@ def _query_flatpak_version(package_name: str) -> str:
                     version = parts[3].strip() if len(parts) > 3 else ""
                     if package_name.lower() in name_id and version:
                         return version
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.warning("Flatpak sorgusu başarısız: %s", exc)
 
     return ""

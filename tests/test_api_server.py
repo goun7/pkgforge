@@ -144,7 +144,7 @@ def test_pipeline_start_real_deb(sidecar, tmp_path):
     events = _read_events(sidecar, timeout=60)
     methods = [e["method"] for e in events]
     assert "event/finished" in methods
-    fin = [e for e in events if e["method"] == "event/finished"][0]
+    fin = next(e for e in events if e["method"] == "event/finished")
     assert fin["params"]["success"] is False
 
 

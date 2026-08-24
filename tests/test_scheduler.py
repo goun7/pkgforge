@@ -91,7 +91,7 @@ def test_cli_schedule_install_dry_run(tmp_path):
         [sys.executable, str(PROJECT_ROOT / "main.py"),
          "schedule-install", "--dry-run"],
         capture_output=True, text=True, env=env, cwd=str(PROJECT_ROOT),
-        timeout=60)
+        timeout=60, check=False)
     assert proc.returncode == 0, proc.stderr[-400:]
     assert "pkgforge.timer" in proc.stdout
     assert "dry-run" in proc.stdout

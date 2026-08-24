@@ -102,7 +102,7 @@ class Installer(QObject):
                         self.output_line.emit(f"  ⚠ {snap.detail}")
                 else:
                     self._snapshot_name = ""
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 log.debug("Snapshot temizleme başarısız: %s", exc)
                 self._snapshot_name = ""
         else:

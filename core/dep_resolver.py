@@ -138,7 +138,7 @@ def _check_aur(name: str) -> tuple[bool, str]:
             aur_name = pkg.get("Name", "")
             aur_ver = pkg.get("Version", "")
             return True, aur_ver if aur_name else ""
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("AUR kontrolü başarısız: %s", exc)
 
     # Method 2: Try AUR helper
@@ -308,7 +308,7 @@ def collect_sonames(root_dir: Path, tools: ToolPaths, *, max_files: int = 200) -
             else:
                 res = safe_run([tools.objdump, "-p", str(path)], timeout=10)
                 sonames.update(parse_objdump_sonames(res.stdout))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.debug("soname okunamadı (%s): %s", path.name, exc)
     return sonames
 
@@ -326,7 +326,7 @@ def sonames_to_packages(sonames: set[str], tools: ToolPaths) -> list[str]:
             continue
         try:
             res = safe_run([pacman, "-Fq", soname], timeout=8)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.debug("pacman -Fq başarısız %s: %s", soname, exc)
             continue
         if res.returncode != 0 or not res.stdout.strip():
@@ -348,6 +348,6 @@ def resolve_runtime_dependencies(root_dir: Path, tools: ToolPaths) -> list[str]:
         packages = sonames_to_packages(sonames, tools)
         log.info("Bağımlılık çözümü: %d soname → %d Arch paketi", len(sonames), len(packages))
         return packages
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.warning("Bağımlılık çözümü başarısız: %s", exc)
         return []

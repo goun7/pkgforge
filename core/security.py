@@ -97,6 +97,7 @@ def validate_mime_type(file_path: Path, tools: ToolPaths) -> str:
         capture_output=True,
         text=True,
         timeout=10,
+        check=False,
     )
     mime = result.stdout.strip()
     log.info("MIME type for %s: %s", file_path.name, mime)
@@ -223,7 +224,7 @@ def check_compression_bomb(
                     except (ValueError, IndexError):
                         pass
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Decompression bomb kontrolü başarısız: %s", exc)
 
     return None
@@ -274,7 +275,7 @@ def verify_deb_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
         # List archive members
         result = subprocess.run(
             [tools.ar, "t", str(file_path)],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=10, check=False,
         )
         members = result.stdout.strip().splitlines()
 
@@ -570,10 +571,10 @@ def run_sandboxed(
     )
     if program == tools.bwrap:
         log.info("Sandbox cmd: %s %s ...", program, " ".join(args[:8]))
-        return subprocess.run([program] + args, capture_output=True, text=True, timeout=timeout)
+        return subprocess.run([program] + args, capture_output=True, text=True, timeout=timeout, check=False)
     else:
         log.warning("bubblewrap bulunamadı, sandbox'sız çalıştırılıyor")
-        return subprocess.run(cmd, capture_output=True, text=True, cwd=str(work_dir), timeout=timeout)
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=str(work_dir), timeout=timeout, check=False)
 
 
 
@@ -608,4 +609,5 @@ def safe_run(
         timeout=timeout,
         env=env,
         input=input,
+        check=False,
     )

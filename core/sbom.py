@@ -98,7 +98,7 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
                 if " = " in line:
                     key, val = line.split(" = ", 1)
                     info[key.strip()] = val.strip()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("PKGINFO okunamadı: %s", exc)
     return info
 
@@ -205,7 +205,7 @@ def generate_sbom(
                     )
                     if inner.returncode == 0 and inner.stdout:
                         sha = hashlib.sha256(inner.stdout.encode("utf-8", errors="replace")).hexdigest()
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001
                     log.debug("SHA hesaplama başarısız: %s", exc)
 
             sbom.files.append(SBOMEntry(
@@ -223,7 +223,7 @@ def generate_sbom(
         sbom.symlink_count = sum(1 for f in sbom.files if f.file_type == "symlink")
         sbom.dir_count = sum(1 for f in sbom.files if f.file_type == "directory")
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.warning("SBOM oluşturma başarısız: %s", exc)
 
     # Shared-library dependencies (skip in offline mode)
@@ -232,7 +232,7 @@ def generate_sbom(
             from core.dep_resolver import resolve_runtime_dependencies
             deps = resolve_runtime_dependencies(Path("/"), tools)
             sbom.dependencies = deps
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.debug("Bağımlılık çözümleme başarısız: %s", exc)
     else:
         log.debug("Çevrimdışı mod — bağımlılık çözümleme atlandı")

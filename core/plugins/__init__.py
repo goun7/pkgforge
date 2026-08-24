@@ -108,7 +108,7 @@ def load_plugins() -> dict[str, ConverterPlugin]:
             module = importlib.import_module(f"core.plugins.{module_name}")
             _loaded_modules.add(module_name)
             _register_module(module, loaded)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.warning("Failed to load plugin %s: %s", module_name, exc)
 
     # 2. Load marketplace plugins from ~/.config/pkgforge/plugins/
@@ -128,7 +128,7 @@ def load_plugins() -> dict[str, ConverterPlugin]:
                         spec.loader.exec_module(module)
                         _loaded_modules.add(mod_name)
                         _register_module(module, loaded)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001
                     log.warning("Failed to load marketplace plugin %s: %s", py_file.name, exc)
     except ImportError:
         pass
@@ -245,7 +245,7 @@ def _setup_sighup_handler() -> None:
         try:
             reloaded = reload_plugins()
             log.info("Plugins reloaded: %d plugins active", len(reloaded))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.error("Plugin reload failed: %s", exc)
 
     try:

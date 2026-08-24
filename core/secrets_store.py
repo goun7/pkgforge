@@ -104,7 +104,17 @@ class SecretStore:
             reply = conn.send_and_get_reply(call)
         except Exception as exc:
             raise SecretStoreError(f"OpenSession failed: {exc}") from exc
-        return str(reply.body[0])
+        # OpenSession returns (output: Variant, result: ObjectPath). The
+        # session handle is the SECOND body element; grabbing body[0] (the
+        # negotiation output) is a classic marshalling bug.
+        if len(reply.body) < 2:
+            raise SecretStoreError(
+                f"OpenSession: beklenmeyen yanit {reply.body!r}")
+        session = str(reply.body[1])
+        if not session.startswith("/"):
+            raise SecretStoreError(
+                f"OpenSession: gecersiz oturum yolu {session!r}")
+        return session
 
     def _search_items(self, conn) -> tuple[list[str], list[str]]:
         from jeepney import DBusAddress, new_method_call

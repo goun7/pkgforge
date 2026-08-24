@@ -215,7 +215,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
         )
         return True, msg
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return False, f"Kurulum başarısız: {exc}"
 
 
@@ -252,7 +252,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
 
         return True, "✅ Snapshot cleanup servisi kaldırıldı."
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return False, f"Kaldırma başarısız: {exc}"
 
 

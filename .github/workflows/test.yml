@@ -149,13 +149,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install ruff
-        run: pip install ruff==0.6.9
-      # F4.10 gate scoped to the Faz 3/4 hardened surface; widen as legacy
-      # files (quality_score, security, ...) get their 83 pre-existing
-      # findings cleaned up.
-      - name: Ruff (hardened surface)
+        run: pip install ruff==0.16.4
+      # F5.9: legacy 83 findings temizlendi; gate artık tüm repoyu kapsıyor.
+      - name: Ruff (full repo)
         run: |
-          ruff check core/api_server.py core/scheduler.py             core/secrets_store.py core/privileged.py core/cloud_sync.py             core/dbus_service.py core/pipeline.py tests/
+          ruff check .
 
   frontend:
     runs-on: ubuntu-latest

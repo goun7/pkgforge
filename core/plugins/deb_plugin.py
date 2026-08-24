@@ -82,6 +82,6 @@ class DebConverterPlugin(ConverterPlugin):
 
         except ImportError:
             return False, "Subprocess converter mevcut değil", None
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.warning("DEB plugin dönüşüm hatası: %s", exc)
             return False, f"Dönüşüm hatası: {exc}", None

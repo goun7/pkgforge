@@ -143,7 +143,6 @@ def test_body_over_1mib_rejected(http_server):
 
 def test_read_only_token_scope(tmp_path):
     import subprocess
-    import threading
 
     read_port = 18766
     env = os.environ.copy()

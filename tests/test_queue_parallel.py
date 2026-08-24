@@ -16,7 +16,6 @@ FIXTURE_DEB = PROJECT_ROOT / "utest" / "hello_1.0.0-1_amd64.deb"
 # --- in-process units --------------------------------------------------------
 
 def test_parallel_clamped_to_4(monkeypatch: pytest.MonkeyPatch):
-    import threading
 
     import core.api_server as A
 

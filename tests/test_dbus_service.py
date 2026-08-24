@@ -43,7 +43,7 @@ def test_handle_call_unknown_method():
 def test_policy_blocks_mutations_by_default(monkeypatch: pytest.MonkeyPatch):
     import i18n
 
-    monkeypatch.setattr(i18n, "load_settings", lambda: {})
+    monkeypatch.setattr(i18n, "load_settings", dict)
     payload = json.loads(dbus_service._handle_call("settings.set", '{"dry_run": true}'))
     assert payload["error"]["code"] == -32000
     assert "salt-okunur" in payload["error"]["message"]
@@ -52,7 +52,7 @@ def test_policy_blocks_mutations_by_default(monkeypatch: pytest.MonkeyPatch):
 def test_policy_allows_reads_always(monkeypatch: pytest.MonkeyPatch):
     import i18n
 
-    monkeypatch.setattr(i18n, "load_settings", lambda: {})
+    monkeypatch.setattr(i18n, "load_settings", dict)
     payload = json.loads(dbus_service._handle_call("app.version", "{}"))
     assert payload["result"]["name"] == "PkgForge"
 

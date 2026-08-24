@@ -133,7 +133,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                     response_info=http_info,
                 )
                 print(tr("cli.download_complete").format(name=file_path.name))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             print(tr("cli.download_error").format(error=str(exc)))
             return 1
     else:
@@ -223,7 +223,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             print(tr("cli.files_preview").format(count=len(preview_files)))
             for f in preview_files[:10]:
                 print(f"    {f}")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("Uyumluluk önizleme atlandı: %s", exc)
 
     # Smart dependency resolution (--resolve-deps)
@@ -239,7 +239,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 aur_pkgs = [d.aur_package or d.name for d in resolve_report.deps if not d.resolved and d.source != "not_found"]
                 if aur_pkgs:
                     print(f"\n📦 Eksik AUR paketleri kurulabilir: {', '.join(aur_pkgs)}")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.debug("Bağımlılık çözümleme atlandı: %s", exc)
 
     # Generate SLSA provenance record

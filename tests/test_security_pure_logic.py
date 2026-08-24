@@ -202,7 +202,7 @@ class TestCheckDangerousFiles(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             os.mkfifo(root / "pipe")
-            errors, warnings = check_dangerous_files(root)
+            errors, _warnings = check_dangerous_files(root)
             self.assertTrue(any("fifo" in e or "device" in e for e in errors))
 
 
@@ -276,7 +276,7 @@ class TestBuildSandboxCmd(unittest.TestCase):
         from core.security import build_sandbox_cmd
         with tempfile.TemporaryDirectory() as td:
             tools = ToolPaths(bwrap="/usr/bin/bwrap")
-            prog, args = build_sandbox_cmd(
+            _prog, args = build_sandbox_cmd(
                 ["echo", "hi"], Path(td), tools, allow_network=True
             )
             self.assertNotIn("--unshare-net", args)

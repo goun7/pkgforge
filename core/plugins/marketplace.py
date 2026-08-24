@@ -298,7 +298,7 @@ def audit_plugins() -> list[dict[str, str]]:
                         sha_path = Path(plugin_path.parent) / f"{name}.py.sha256"
                         _download_file(p["sha256_url"], sha_path)
                         expected_hash = sha_path.read_text().strip().split()[0]
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001
                         log.debug("SHA256 dosyası indirilemedi: %s", exc)
                     break
 
@@ -310,7 +310,7 @@ def audit_plugins() -> list[dict[str, str]]:
             else:
                 results.append({"name": name, "status": "unknown", "message": "Checksum doğrulanamadı (marketplace erişilemez)"})
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             results.append({"name": name, "status": "error", "message": f"Audit hatası: {exc}"})
 
     return results

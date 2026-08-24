@@ -69,6 +69,7 @@ def _create_minimal_deb(deb_path: Path) -> bool:
         result = subprocess.run(
             ["ar", "rcs", str(deb_path), str(deb_bin), str(ctrl_tar), str(data_tar)],
             capture_output=True,
+            check=False,
         )
         return result.returncode == 0
 

@@ -45,7 +45,7 @@ class Signal:
         for cb in self._callbacks:
             try:
                 cb(*args)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 log.debug("Callback çalıştırılamadı: %s", exc)
 
 
@@ -116,7 +116,7 @@ class NativeDebConverterSubprocess:
             # Run makepkg
             self._run_makepkg(build_dir, output_dir)
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.error("Native DEB dönüşüm hatası: %s", exc)
             self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
 
@@ -356,7 +356,7 @@ class RpmConverterSubprocess:
             else:
                 self.finished.emit(False, "makepkg başarılı ama çıktı paketi bulunamadı", None)
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
 
     def _generate_pkgbuild(self, meta, src_dir):

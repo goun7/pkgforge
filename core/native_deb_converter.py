@@ -57,7 +57,7 @@ class NativeDebConverter(QObject):
         self.output_line.emit("▶ Paket analizi yapılıyor...")
         try:
             self._meta = analyze_package(deb_path, self._tools)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self.finished.emit(False, f"DEB analizi başarısız: {exc}", None)
             return
 
@@ -100,7 +100,7 @@ class NativeDebConverter(QObject):
 
             self._run_makepkg(build_dir)
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.error("Native DEB dönüşüm hatası: %s", exc)
             self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
 

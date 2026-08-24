@@ -139,14 +139,14 @@ def create_provenance(
         from core.security import sha256_hash
         try:
             prov.source_sha256 = sha256_hash(Path(prov.source_file))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.debug("Kaynak SHA256 hesaplanamadı: %s", exc)
 
     if not prov.output_sha256 and Path(prov.output_file).is_file():
         from core.security import sha256_hash
         try:
             prov.output_sha256 = sha256_hash(Path(prov.output_file))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.debug("Çıktı SHA256 hesaplanamadı: %s", exc)
 
     prov.finalize()

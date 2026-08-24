@@ -386,7 +386,7 @@ class HistoryDialog(QDialog):
         try:
             content = csv_path.read_text(encoding="utf-8")
             reader = csv.DictReader(io.StringIO(content))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, tr("common.error"), tr("history.csv_read_error").format(error=exc))
             return
 

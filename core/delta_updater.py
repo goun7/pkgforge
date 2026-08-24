@@ -164,7 +164,7 @@ def download_with_delta(
             if apply_delta(old_file, delta_file, dest_file):
                 log.info("Delta indirme başarılı: %s", dest_file.name)
                 return dest_file, True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.info("Delta indirilemedi, tam dosya indiriliyor: %s (%s)", url, exc)
 
     # Fallback to full download
@@ -286,7 +286,7 @@ WantedBy=timers.target
         )
         return True, msg
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return False, f"Kurulum başarısız: {exc}"
 
 
@@ -319,7 +319,7 @@ def remove_auto_update() -> tuple[bool, str]:
         _safe_run([systemctl, "daemon-reload"], timeout=10)
         return True, "✅ Auto-update servisi kaldırıldı."
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return False, f"Kaldırma başarısız: {exc}"
 
 

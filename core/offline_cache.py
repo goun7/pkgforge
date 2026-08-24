@@ -146,7 +146,7 @@ class OfflineCache:
             if value is not None:
                 self.put(namespace, key, value)
             return value
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             log.warning("Fetch failed for %s/%s: %s", namespace, key, exc)
             # Return stale cache if available
             return self.get(namespace, key)
@@ -233,7 +233,7 @@ class OfflineCache:
             # no file:/ or custom-scheme risk.
             urllib.request.urlopen(req, timeout=3)  # nosec B310
             return False
-        except Exception:
+        except Exception:  # noqa: BLE001
             return True  # Network unreachable → offline
 
 

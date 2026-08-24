@@ -418,7 +418,7 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
                 else:
                     res = safe_run([tools.objdump, "-p", str(elf_path)], timeout=10)
                     sonames = parse_objdump_sonames(res.stdout)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 log.debug("NEEDED okunamadı (%s): %s", elf_path.name, exc)
                 continue
 
@@ -437,7 +437,7 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
                     if issue not in glibc_issues:
                         glibc_issues.append(issue)
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.warning("Shared library analizi hatası: %s", exc)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
@@ -476,7 +476,7 @@ def _system_lib_sonames() -> set[str]:
         return set()
     try:
         result = safe_run([ldconfig_bin, "-p"], timeout=10)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("ldconfig sorgulanamadı: %s", exc)
         return set()
 
@@ -499,7 +499,7 @@ def _elf_max_glibc(elf_path: Path, tools: ToolPaths) -> str:
         return ""
     try:
         res = safe_run([tools.readelf, "--version-info", str(elf_path)], timeout=10)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("readelf version bilgisi alınamadı: %s", exc)
         return ""
     versions = re.findall(r"GLIBC_(\d+\.\d+(\.\d+)?)", res.stdout)
@@ -522,7 +522,7 @@ def _get_system_glibc(tools: ToolPaths) -> str:
             match = re.search(r"(\d+\.\d+(\.\d+)?)", line)
             if match:
                 return match.group(1)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.debug("ABI version regex başarısız: %s", exc)
     return ""
 

@@ -146,7 +146,7 @@ def download_package(
     )
     try:
         retry_with_backoff(_do_download, config=retry_config, operation_name=f"download({filename})")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         log.error("İndirme başarısız (3 deneme): %s", exc)
         raise RuntimeError(f"İndirme başarısız: {exc}")
 

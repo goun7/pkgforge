@@ -72,7 +72,7 @@ class TestBenchmarkHelpers(unittest.TestCase):
             # Must be a real ar archive with the three deb members
             import subprocess
             res = subprocess.run(["ar", "t", str(deb)],
-                                 capture_output=True, text=True)
+                                 capture_output=True, text=True, check=False)
             self.assertEqual(res.returncode, 0)
             members = res.stdout.split()
             self.assertIn("debian-binary", members)

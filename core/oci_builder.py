@@ -141,7 +141,7 @@ def _build_with_buildah(
             log.info("OCI görüntü oluşturuldu: %s (%s)", output_file.name, tag)
             return True, f"OCI görüntü hazır: {output_file.name} ({tag})", output_file
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             _cleanup_container(buildah, container_name)
             return False, f"OCI oluşturma hatası: {exc}", None
 
@@ -193,7 +193,7 @@ def _build_with_podman(
             log.info("OCI görüntü oluşturuldu: %s (%s)", output_file.name, tag)
             return True, f"OCI görüntü hazır: {output_file.name} ({tag})", output_file
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             return False, f"OCI oluşturma hatası: {exc}", None
 
 

@@ -242,7 +242,7 @@ class TestRealRPMConversion(unittest.TestCase):
                 from core.abi_scanner import check_abi_compatibility
                 abi_report = check_abi_compatibility(REAL_RPM)
                 print(f"  ✓ ABI scan: {abi_report.binary_count} binaries, {abi_report.error_count} issues")
-            except Exception:
+            except Exception:  # noqa: BLE001
                 print("  ⚠ ABI scan skipped (readelf not available)")
 
             # Verify all steps completed

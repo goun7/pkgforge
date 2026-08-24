@@ -175,7 +175,7 @@ def run_benchmarks(
             meta = analyze_package(test_file, tools)
             r.passed = bool(meta.name)
             r.details = f"{meta.name} {meta.version}"
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             r.passed = False
             r.details = str(exc)[:50]
         r.duration_ms = int((time.monotonic() - t0) * 1000)

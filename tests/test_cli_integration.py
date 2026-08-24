@@ -14,7 +14,7 @@ class TestCLIHelp(unittest.TestCase):
         """Run CLI command and return result."""
         return subprocess.run(
             [sys.executable, "main.py", *args],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, check=False,
             cwd=str(Path(__file__).parent.parent),
         )
 
@@ -79,7 +79,7 @@ class TestCLIConvert(unittest.TestCase):
     def _run_cli(self, *args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
             [sys.executable, "main.py", *args],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, check=False,
             cwd=str(Path(__file__).parent.parent),
         )
 
