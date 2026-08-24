@@ -351,3 +351,108 @@ def test_cmd_plugin_remove_paths(monkeypatch, capsys):
     monkeypatch.setattr("core.plugins.marketplace.uninstall_plugin",
                         lambda n: False)
     assert cli._cmd_plugin(ns) == 1
+
+
+def _rec(idx, status="converted", ptype="deb", name="demo",
+         ts="2026-08-25 10:00:00", output_pkg="", backup_pkg="",
+         source_url=""):
+    return SimpleNamespace(
+        id=idx, timestamp=ts, package_name=name, package_type=ptype,
+        status=status, original_file="/kaynak/" + name + ".deb",
+        output_pkg=output_pkg, backup_pkg=backup_pkg,
+        source_url=source_url, http_etag="", http_last_modified="")
+
+
+def _fake_db(monkeypatch, records):
+    class FakeDB:
+        def get_history(self, limit=100):
+            return records
+    monkeypatch.setattr(cli, "HistoryDB", FakeDB)
+
+
+def test_cmd_audit_empty(monkeypatch, capsys):
+    _fake_db(monkeypatch, [])
+    rc = cli._cmd_audit(argparse.Namespace(date_from=None, date_to=None))
+    out = capsys.readouterr().out
+    assert rc == 0 and "Kayıt bulunamadı" in out
+
+
+def test_cmd_audit_date_filter(monkeypatch, capsys):
+    recs = [_rec(1, ts="2026-01-01 00:00:00"),
+            _rec(2, ts="2026-06-15 12:00:00")]
+    _fake_db(monkeypatch, recs)
+    ns = argparse.Namespace(date_from="2026-06-01", date_to=None)
+    rc = cli._cmd_audit(ns)
+    out = capsys.readouterr().out
+    assert rc == 0 and "Toplam kayıt: 1" in out
+
+
+def test_cmd_audit_full_report_with_issues(monkeypatch, tmp_path, capsys):
+    missing_out = str(tmp_path / "silinmis.pkg.tar.zst")
+    recs = [
+        _rec(1, status="installed", name="a", output_pkg=missing_out),
+        _rec(2, status="install_failed", name="b"),
+        _rec(3, status="oci_built", ptype="rpm", name="c"),
+    ]
+    recs.extend(_rec(i, status="installed", name="hizli-" + str(i))
+                for i in range(4, 9))
+    _fake_db(monkeypatch, recs)
+    rc = cli._cmd_audit(argparse.Namespace(date_from=None, date_to=None))
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "bütünlük sorunu" in out
+    assert "otomatik süreç" in out
+    assert "sorun kalıcı" in out
+    assert "Provenance Doğrulama" in out
+
+
+def test_cmd_audit_clean_and_provenance(monkeypatch, tmp_path, capsys):
+    pkg = tmp_path / "mevcut.pkg.tar.zst"
+    pkg.write_bytes(b"x")
+    (tmp_path / "mevcut.pkg.tar.zst.provenance.json").write_text("{}")
+    recs = [_rec(1, status="installed", name="tek",
+                 output_pkg=str(pkg), source_url="https://x/y")]
+    _fake_db(monkeypatch, recs)
+    rc = cli._cmd_audit(argparse.Namespace(date_from=None, date_to=None))
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Tüm dosyalar mevcut" in out
+    assert "Anomali tespit edilmedi" in out
+    assert "1/1 kayıt için provenance" in out
+
+
+def test_cmd_publish_missing_file(capsys, tmp_path):
+    rc = cli._cmd_publish(argparse.Namespace(
+        package=str(tmp_path / "yok.pkg.tar.zst"), output_dir=None,
+        aur_url=None))
+    assert rc == 1 and "bulunamad" in capsys.readouterr().out
+
+
+def test_cmd_publish_prepare_fail(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "x.pkg.tar.zst"
+    f.write_bytes(b"x")
+    monkeypatch.setattr("core.aur_publish.prepare_aur_package",
+                        lambda p, o: (False, "PKGBUILD yok", None))
+    rc = cli._cmd_publish(argparse.Namespace(package=str(f),
+                                             output_dir=None, aur_url=None))
+    out = capsys.readouterr().out
+    assert rc == 1 and "PKGBUILD yok" in out
+
+
+def test_cmd_publish_success_without_push(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "x.pkg.tar.zst"
+    f.write_bytes(b"x")
+    aur_pkg = SimpleNamespace(
+        pkgbuild=tmp_path / "PKGBUILD",
+        srcinfo=tmp_path / ".SRCINFO", name="hello")
+    monkeypatch.setattr("core.aur_publish.prepare_aur_package",
+                        lambda p, o: (True, "hazir", aur_pkg))
+    pushed = {"n": 0}
+    monkeypatch.setattr("core.aur_publish.push_to_aur",
+                        lambda d, u: pushed.update(n=1) or (True, "yuklendi"))
+    rc = cli._cmd_publish(argparse.Namespace(package=str(f),
+                                             output_dir=None, aur_url=None))
+    hint = "AUR" + chr(39) + "a yüklemek için"
+    out = capsys.readouterr().out
+    assert rc == 0 and pushed["n"] == 0
+    assert hint in out
