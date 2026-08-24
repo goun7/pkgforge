@@ -541,3 +541,107 @@ def test_cmd_verify_sigstore_mode(monkeypatch, capsys, tmp_path):
                         lambda p: res)
     ns = argparse.Namespace(package=str(f), sigstore=True)
     assert cli._cmd_verify(ns) == 1 and "sig" in capsys.readouterr().out
+
+
+def test_cmd_scan_image_missing_file(capsys, tmp_path):
+    rc = cli._cmd_scan_image(argparse.Namespace(
+        image=str(tmp_path / "yok.tar")))
+    assert rc == 1 and "bulunamad" in capsys.readouterr().out
+
+
+def test_cmd_scan_image_no_tools(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "imaj.tar"
+    f.write_bytes(b"x")
+    monkeypatch.setattr(cli.shutil, "which", lambda n: None)
+    rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
+    out = capsys.readouterr().out
+    assert rc == 1 and "Tarama aracı bulunamadı" in out
+
+
+def test_cmd_scan_image_trivy_clean(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "imaj.tar"
+    f.write_bytes(b"x")
+    monkeypatch.setattr(cli.shutil, "which",
+                        lambda n: "/usr/bin/trivy" if n == "trivy" else None)
+    monkeypatch.setattr(cli, "safe_run",
+                        lambda cmd, timeout=None: SimpleNamespace(
+                            returncode=0, stdout="", stderr=""))
+    rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
+    out = capsys.readouterr().out
+    assert rc == 0 and "Tüm taramalar temiz" in out
+
+
+def test_cmd_scan_image_grype_findings(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "imaj.tar"
+    f.write_bytes(b"x")
+    monkeypatch.setattr(cli.shutil, "which",
+                        lambda n: "/usr/bin/grype" if n == "grype" else None)
+    vulns = chr(10).join(["NAME High 1.2.3", "OTHER Critical 9.9"])
+    monkeypatch.setattr(cli, "safe_run",
+                        lambda cmd, timeout=None: SimpleNamespace(
+                            returncode=1, stdout=vulns, stderr=""))
+    rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
+    out = capsys.readouterr().out
+    assert rc == 1 and "Grype bulguları" in out
+
+
+def test_cmd_scan_image_clamav_infected(monkeypatch, capsys, tmp_path):
+    f = tmp_path / "imaj.tar"
+    f.write_bytes(b"x")
+    monkeypatch.setattr(cli.shutil, "which",
+                        lambda n: "/usr/bin/clamscan" if n == "clamscan" else None)
+    monkeypatch.setattr(cli, "safe_run",
+                        lambda cmd, timeout=None: SimpleNamespace(
+                            returncode=1, stdout="EICAR", stderr=""))
+    rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
+    out = capsys.readouterr().out
+    assert rc == 1 and "enfekte" in out
+
+
+def test_cmd_flatpak_not_available(monkeypatch, capsys):
+    monkeypatch.setattr("core.flatpak_converter.is_flatpak_available",
+                        lambda: False)
+    rc = cli._cmd_flatpak_export(argparse.Namespace(
+        list=False, app_id=None, branch="stable", output_dir=None))
+    out = capsys.readouterr().out
+    assert rc == 1 and "flatpak bulunamadı" in out
+
+
+def test_cmd_flatpak_list_modes(monkeypatch, capsys):
+    monkeypatch.setattr("core.flatpak_converter.is_flatpak_available",
+                        lambda: True)
+    monkeypatch.setattr("core.flatpak_converter.list_installed_apps",
+                        list)
+    ns = argparse.Namespace(list=True, app_id=None, branch="stable",
+                            output_dir=None)
+    assert cli._cmd_flatpak_export(ns) == 0
+    assert "bulunamadı" in capsys.readouterr().out
+
+    apps = [SimpleNamespace(app_id="org.x.Y", name="Y", version="1",
+                            branch="stable")]
+    monkeypatch.setattr("core.flatpak_converter.list_installed_apps",
+                        lambda: apps)
+    assert cli._cmd_flatpak_export(ns) == 0
+    assert "org.x.Y" in capsys.readouterr().out
+
+
+def test_cmd_flatpak_export_paths(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("core.flatpak_converter.is_flatpak_available",
+                        lambda: True)
+    ns_no_id = argparse.Namespace(list=False, app_id=None, branch="stable",
+                                  output_dir=None)
+    assert cli._cmd_flatpak_export(ns_no_id) == 1
+    assert "uygulama ID" in capsys.readouterr().out
+
+    deb = tmp_path / "cikti.deb"
+    deb.write_bytes(b"x")
+    monkeypatch.setattr("core.flatpak_converter.flatpak_to_deb",
+                        lambda aid, odir, br: (True, "hazir", deb))
+    ns_ok = argparse.Namespace(list=False, app_id="org.x.Y",
+                               branch="stable", output_dir=str(tmp_path))
+    assert cli._cmd_flatpak_export(ns_ok) == 0
+    assert "dpkg -i" in capsys.readouterr().out
+
+    monkeypatch.setattr("core.flatpak_converter.flatpak_to_deb",
+                        lambda aid, odir, br: (False, "basarisiz", None))
+    assert cli._cmd_flatpak_export(ns_ok) == 1
