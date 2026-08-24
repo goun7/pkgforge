@@ -29,6 +29,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-timeout hypothesis
 
+      # F5.13: fail when the generated TS method mirror is stale.
+      - name: API types codegen freshness
+        run: python tools/gen_api_ts.py --check
+
       - name: Run Test Suite
         run: |
           python -m pytest tests/ -v --tb=short --cov=core --cov-report=term-missing --cov-report=html:htmlcov --cov-report=json:coverage.json --cov-fail-under=48
