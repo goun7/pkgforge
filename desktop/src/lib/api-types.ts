@@ -3,6 +3,7 @@
 // Yeniden uret: python tools/gen_api_ts.py
 
 export const API_METHODS = [
+  "app.doctor",
   "app.version",
   "aur.build",
   "aur.info",
@@ -79,6 +80,7 @@ export const API_METHODS = [
 export type ApiMethod = (typeof API_METHODS)[number];
 
 export const READ_METHODS = [
+  "app.doctor",
   "app.version",
   "dbus.status",
   "history.list",

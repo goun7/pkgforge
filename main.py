@@ -260,6 +260,9 @@ def main() -> int:
     # health subcommand
     subparsers.add_parser("health", help=tr("cli.health_help"))
 
+    # doctor subcommand (F5.22)
+    subparsers.add_parser("doctor", help=tr("cli.doctor_help"))
+
     # snapshot-cleanup subcommand
     snap_clean_parser = subparsers.add_parser("snapshot-cleanup", help=tr("cli.snapshot_cleanup_help"))
     snap_clean_parser.add_argument("--install", action="store_true", help=tr("cli.arg_cleanup_install"))

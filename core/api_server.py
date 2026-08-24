@@ -51,6 +51,13 @@ def handle_app_version(params):
     return {"name": APP_NAME, "version": APP_VERSION}
 
 
+def handle_app_doctor(params):
+    """F5.22: one-shot system diagnosis (read-only)."""
+    from core.doctor import run_doctor
+
+    return run_doctor()
+
+
 def handle_tools_status(params):
     tools = discover_tools()
     return {
@@ -1241,6 +1248,7 @@ def handle_dbus_start(params):
 
 METHODS = {
     "app.version": handle_app_version,
+    "app.doctor": handle_app_doctor,
     "tools.status": handle_tools_status,
     "settings.get": handle_settings_get,
     "settings.set": handle_settings_set,

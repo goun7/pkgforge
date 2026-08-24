@@ -328,6 +328,7 @@ STRINGS: dict[str, str] = {
     "cli.abi_check_help": "Paketin ABI uyumluluğunu kontrol et (GLIBC/GLIBCXX)",
     "cli.arg_abi_check_pkg": "Kontrol edilecek .pkg.tar.zst dosyası",
     "cli.health_help": "PkgForge sağlık durumunu ve istatistiklerini göster",
+    "cli.doctor_help": "Tek seferlik sistem teşhisi çalıştır (araçlar, anahtarlık, depolama, D-Bus)",
     "cli.snapshot_cleanup_help": "Otomatik snapshot temizleme servisini yönet",
     "cli.quality_help": "Paket kalite puanı hesapla",
     "cli.arg_quality_pkg": "Puanlanacak .pkg.tar.zst dosyası",

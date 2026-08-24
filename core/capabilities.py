@@ -18,6 +18,7 @@ CAPABILITIES = {
     "http": {
         "reader": [
             "app.version",
+            "app.doctor",
             "tools.status",
             "settings.get",
             "history.list",

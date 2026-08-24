@@ -10,11 +10,12 @@ import core.dbus_service as D
 import core.privileged as P
 
 
-def test_reader_set_is_the_expected_twelve():
+def test_reader_set_is_the_expected_readonly_methods():
     assert CAPS.http_reader_methods() == frozenset({
-        "app.version", "tools.status", "settings.get", "history.list",
-        "schedule.get", "profile.list", "profile.current", "queue.list",
-        "plugin.list", "plugin.available", "plugin.audit", "dbus.status",
+        "app.version", "app.doctor", "tools.status", "settings.get",
+        "history.list", "schedule.get", "profile.list", "profile.current",
+        "queue.list", "plugin.list", "plugin.available", "plugin.audit",
+        "dbus.status",
     })
 
 

@@ -328,6 +328,7 @@ STRINGS: dict[str, str] = {
     "cli.abi_check_help": "Check ABI compatibility (GLIBC/GLIBCXX symbol versions)",
     "cli.arg_abi_check_pkg": ".pkg.tar.zst file to check",
     "cli.health_help": "Show PkgForge health status and statistics",
+    "cli.doctor_help": "Run a one-shot system diagnosis (tools, keyring, storage, D-Bus)",
     "cli.snapshot_cleanup_help": "Manage automatic snapshot cleanup service",
     "cli.quality_help": "Calculate package quality score",
     "cli.arg_quality_pkg": ".pkg.tar.zst file to score",

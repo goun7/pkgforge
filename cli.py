@@ -74,6 +74,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_abi_check(args)
     elif command == "health":
         return _cmd_health(args)
+    elif command == "doctor":
+        return _cmd_doctor(args)
     elif command == "snapshot-cleanup":
         return _cmd_snapshot_cleanup(args)
     elif command == "quality":
@@ -1225,6 +1227,49 @@ def _cmd_health(args: argparse.Namespace) -> int:
     print(f"🏥 Genel Sağlık: {health} ({success_rate:.0f}%)")
 
     return 0
+
+
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    """Handle `pkgforge doctor` (F5.22)."""
+    from core.doctor import run_doctor
+
+    def mark(ok: bool) -> str:
+        return "✅" if ok else "❌"
+
+    r = run_doctor()
+    print(f"🩺 PkgForge Doctor — v{r['version']}")
+    print()
+
+    t = r["tools"]
+    print(f"{mark(t['ok'])} Araçlar")
+    if t["missing_required"]:
+        print(f"   Eksik zorunlu: {', '.join(t['missing_required'])}")
+    if t["missing_optional"]:
+        print(f"   Eksik opsiyonel: {', '.join(t['missing_optional'])}")
+    print(f"   debtap: {mark(t['debtap'])}  pkexec: {mark(t['pkexec'])}"
+          f"  distrobox: {mark(t['distrobox'])}")
+
+    k = r["keyring"]
+    print(f"{mark(k['ok'])} Anahtarlık — {k.get('detail', '')}")
+
+    s = r["storage"]
+    print(f"{mark(s['ok'])} Depolama — profil: {s['profile']},"
+          f" config: {s['config_dir']}")
+    print(f"   history.db: {mark(s['history_db_exists'])}"
+          f"  queue.db: {mark(s['queue_db_exists'])}")
+
+    d = r["dbus"]
+    print(f"{mark(d['ok'])} D-Bus")
+
+    sc = r["scheduler"]
+    print(f"{mark(sc['ok'])} Zamanlayıcı — görev: {sc.get('tasks', 0)}")
+
+    print()
+    if r["ok"]:
+        print("🟢 Genel: sağlıklı")
+        return 0
+    print("🔴 Genel: zorunlu araçlar eksik")
+    return 1
 
 
 def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
