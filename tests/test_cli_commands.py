@@ -97,3 +97,66 @@ def test_cmd_benchmark_baseline_regression(monkeypatch, tmp_path, capsys):
     out = capsys.readouterr().out
     assert rc == 1
     assert "regresyon" in out or chr(10060) in out
+
+
+def test_cmd_list_empty_is_quiet_ok(capsys):
+    rc = cli._cmd_list(argparse.Namespace())
+    out = capsys.readouterr().out
+    assert rc == 0 and out.strip() != ""
+
+
+def test_cmd_health_empty_history(capsys):
+    rc = cli._cmd_health(argparse.Namespace())
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Henüz kayıtlı dönüşüm" in out
+
+
+def test_cmd_delta_status(monkeypatch, capsys):
+    st = {"systemctl_available": True, "installed": False,
+          "active": False, "next_run": "",
+          "xdelta3_available": True, "experimental": True}
+    monkeypatch.setattr("core.delta_updater.get_auto_update_status",
+                        lambda: st)
+    rc = cli._cmd_delta(argparse.Namespace(delta_action="status"))
+    out = capsys.readouterr().out
+    assert rc == 0 and "Delta Auto-Update" in out
+
+
+def test_cmd_delta_enable_disable(monkeypatch, capsys):
+    monkeypatch.setattr("core.delta_updater.enable_auto_update",
+                        lambda: (True, "etkin"))
+    assert cli._cmd_delta(
+        argparse.Namespace(delta_action="enable")) == 0
+    monkeypatch.setattr("core.delta_updater.disable_auto_update",
+                        lambda: (False, "reddi"))
+    assert cli._cmd_delta(
+        argparse.Namespace(delta_action="disable")) == 1
+
+
+def test_cmd_delta_invalid_action(capsys):
+    rc = cli._cmd_delta(argparse.Namespace(delta_action="boyle-bisey"))
+    out = capsys.readouterr().out
+    assert rc == 1 and "Geçersiz delta" in out
+
+
+def test_cmd_completion_bash(capsys):
+    rc = cli._cmd_completion(argparse.Namespace(shell="bash"))
+    out = capsys.readouterr().out
+    assert rc == 0 and "pkgforge" in out
+
+
+def test_cmd_sign_missing_file(tmp_path, capsys):
+    rc = cli._cmd_sign(argparse.Namespace(
+        package=str(tmp_path / "yok.pkg.tar.zst"), key=None))
+    out = capsys.readouterr().out
+    assert rc == 1 and "bulunamad" in out
+
+
+def test_cmd_remove_invalid_name(monkeypatch, capsys):
+    called = {"n": 0}
+    monkeypatch.setattr(cli, "safe_run",
+                        lambda cmd, timeout=None: called.update(n=1))
+    rc = cli._cmd_remove(argparse.Namespace(package="kötü isim"))
+    capsys.readouterr()
+    assert rc == 1 and called["n"] == 0
