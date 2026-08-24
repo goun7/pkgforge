@@ -249,23 +249,25 @@ WantedBy=timers.target
     timer_path = Path(f"/etc/systemd/system/{_TIMER_NAME}.timer")
 
     try:
+        from core.privileged import privileged_chmod_argv, privileged_write_argv
         from core.security import safe_run as _safe_run
 
         # Script
-        res = _safe_run(["pkexec", "tee", str(script_path)],
+        res = _safe_run(privileged_write_argv("pkexec", str(script_path)),
                         input=script_content, timeout=10)
         if res.returncode != 0:
             return False, "Script dosyası yazılamadı"
-        _safe_run(["pkexec", "chmod", "755", str(script_path)], timeout=5)
+        _safe_run(privileged_chmod_argv("pkexec", "755", str(script_path)),
+                    timeout=5)
 
         # Service
-        res = _safe_run(["pkexec", "tee", str(service_path)],
+        res = _safe_run(privileged_write_argv("pkexec", str(service_path)),
                         input=service_content, timeout=10)
         if res.returncode != 0:
             return False, "Service dosyası yazılamadı"
 
         # Timer
-        res = _safe_run(["pkexec", "tee", str(timer_path)],
+        res = _safe_run(privileged_write_argv("pkexec", str(timer_path)),
                         input=timer_content, timeout=10)
         if res.returncode != 0:
             return False, "Timer dosyası yazılamadı"
@@ -303,6 +305,7 @@ def remove_auto_update() -> tuple[bool, str]:
         return False, "systemctl bulunamadı"
 
     try:
+        from core.privileged import privileged_remove_argv
         from core.security import safe_run as _safe_run
 
         _safe_run([systemctl, "stop", f"{_TIMER_NAME}.timer"], timeout=10)
@@ -314,7 +317,7 @@ def remove_auto_update() -> tuple[bool, str]:
             "/usr/local/bin/pkgforge-auto-update.sh",
         ]:
             if Path(p).exists():
-                _safe_run(["pkexec", "rm", "-f", p], timeout=10)
+                _safe_run(privileged_remove_argv("pkexec", p), timeout=10)
 
         _safe_run([systemctl, "daemon-reload"], timeout=10)
         return True, "✅ Auto-update servisi kaldırıldı."

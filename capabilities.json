@@ -17,6 +17,7 @@
   },
   "polkit": {
     "helper_system_path": "/usr/share/pkgforge/scripts/install_helper.sh",
+    "privileged_helper_system_path": "/usr/share/pkgforge/scripts/pkgforge-privileged.sh",
     "actions": [
       [
         "org.pkgforge.install",
@@ -33,6 +34,11 @@
         "PkgForge snapshot temizligi",
         "Zamanlanmis snapshot temizlik servisini yonetmek icin yetkilendirme"
       ]
-    ]
+    ],
+    "action_exec_path": {
+      "org.pkgforge.install": "/usr/share/pkgforge/scripts/install_helper.sh",
+      "org.pkgforge.delta-update": "/usr/share/pkgforge/scripts/pkgforge-privileged.sh",
+      "org.pkgforge.snapshot-cleanup": "/usr/share/pkgforge/scripts/pkgforge-privileged.sh"
+    }
   }
 }

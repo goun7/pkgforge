@@ -33,6 +33,8 @@ CAPABILITIES = {
     },
     "polkit": {
         "helper_system_path": "/usr/share/pkgforge/scripts/install_helper.sh",
+        "privileged_helper_system_path":
+            "/usr/share/pkgforge/scripts/pkgforge-privileged.sh",
         "actions": [
             [
                 "org.pkgforge.install",
@@ -50,6 +52,17 @@ CAPABILITIES = {
                 "Zamanlanmis snapshot temizlik servisini yonetmek icin yetkilendirme",
             ],
         ],
+        # F5.4: her polkit aksiyonunun yetkilendirdigi calistirilabilir dosya.
+        # install hâlâ install_helper.sh kullanir; delta/snapshot ise konsolide
+        # pkgforge-privileged.sh alt-komutlarina gecirildi.
+        "action_exec_path": {
+            "org.pkgforge.install":
+                "/usr/share/pkgforge/scripts/install_helper.sh",
+            "org.pkgforge.delta-update":
+                "/usr/share/pkgforge/scripts/pkgforge-privileged.sh",
+            "org.pkgforge.snapshot-cleanup":
+                "/usr/share/pkgforge/scripts/pkgforge-privileged.sh",
+        },
     },
 }
 
@@ -74,6 +87,21 @@ def helper_system_path() -> str:
     polkit = CAPABILITIES["polkit"]
     assert isinstance(polkit, dict)
     return str(polkit["helper_system_path"])
+
+
+def privileged_helper_system_path() -> str:
+    polkit = CAPABILITIES["polkit"]
+    assert isinstance(polkit, dict)
+    return str(polkit["privileged_helper_system_path"])
+
+
+def action_exec_path(action_id: str) -> str:
+    """Executable a polkit action authorizes (F5.4 per-action exec.path)."""
+    polkit = CAPABILITIES["polkit"]
+    assert isinstance(polkit, dict)
+    mapping = polkit.get("action_exec_path", {})
+    assert isinstance(mapping, dict)
+    return str(mapping.get(action_id, polkit["helper_system_path"]))
 
 
 def artifact_matches() -> bool:

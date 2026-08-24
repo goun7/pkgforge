@@ -14,7 +14,9 @@ def test_generated_policy_is_valid_xml_with_all_actions():
                    "org.pkgforge.snapshot-cleanup"}
 
 
-def test_every_action_pins_helper_exec_path_and_admin_keep():
+def test_every_action_pins_its_exec_path_and_admin_keep():
+    from core.capabilities import action_exec_path
+
     root = ET.fromstring(P.build_policy_text())
     for action in root.findall("action"):
         defaults = action.find("defaults")
@@ -24,7 +26,19 @@ def test_every_action_pins_helper_exec_path_and_admin_keep():
         ann = action.find(
             "annotate[@key='org.freedesktop.policy.exec.path']")
         assert ann is not None
-        assert ann.text == "/usr/share/pkgforge/scripts/install_helper.sh"
+        # F5.4: her aksiyon kendi calistirilabilir dosyasini pin'ler.
+        assert ann.text == action_exec_path(action.get("id"))
+
+
+def test_install_uses_install_helper_others_use_privileged_helper():
+    from core.capabilities import action_exec_path
+
+    assert action_exec_path("org.pkgforge.install").endswith(
+        "install_helper.sh")
+    assert action_exec_path("org.pkgforge.delta-update").endswith(
+        "pkgforge-privileged.sh")
+    assert action_exec_path("org.pkgforge.snapshot-cleanup").endswith(
+        "pkgforge-privileged.sh")
 
 
 def test_shipped_policy_file_matches_generator():

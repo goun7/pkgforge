@@ -22,6 +22,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.privileged import privileged_systemctl_argv, privileged_write_argv
 from core.security import safe_run
 
 log = logging.getLogger(__name__)
@@ -249,7 +250,7 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
     try:
         # Use pkexec for the systemd file creation
         res = safe_run(
-            ["pkexec", "tee", str(service_path)],
+            privileged_write_argv("pkexec", str(service_path)),
             input=service_content,
             timeout=10,
         )
@@ -272,7 +273,8 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
             return True, msg
 
         # Enable the service
-        safe_run(["pkexec", "systemctl", "enable", "pkgforge-rollback.service"], timeout=10)
+        safe_run(privileged_systemctl_argv(
+            "pkexec", "enable", "pkgforge-rollback.service"), timeout=10)
 
         msg = (
             f"✅ Btrfs rollback planı hazırlandı!\n\n"

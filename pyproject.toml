@@ -50,6 +50,7 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 "share/polkit-1/actions" = ["data/org.pkgforge.app.policy"]
 "share/pkgforge/scripts" = [
     "scripts/install_helper.sh",
+    "scripts/pkgforge-privileged.sh",
     "scripts/install.sh",
     "scripts/uninstall.sh",
 ]

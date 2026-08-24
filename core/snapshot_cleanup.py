@@ -16,6 +16,11 @@ import logging
 import os
 from pathlib import Path
 
+from core.privileged import (
+    privileged_chmod_argv,
+    privileged_remove_argv,
+    privileged_write_argv,
+)
 from core.security import safe_run
 from core.snapshot_manager import detect_backend
 
@@ -174,17 +179,18 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
     try:
         # Script
         res = safe_run(
-            ["pkexec", "tee", str(script_path)],
+            privileged_write_argv("pkexec", str(script_path)),
             input=script_content, timeout=10,
         )
         if res.returncode != 0:
             return False, "Script dosyası yazılamadı (pkexec reddedildi?)"
 
-        safe_run(["pkexec", "chmod", "755", str(script_path)], timeout=5)
+        safe_run(privileged_chmod_argv("pkexec", "755", str(script_path)),
+                    timeout=5)
 
         # Service
         res = safe_run(
-            ["pkexec", "tee", str(service_path)],
+            privileged_write_argv("pkexec", str(service_path)),
             input=service_content, timeout=10,
         )
         if res.returncode != 0:
@@ -192,7 +198,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
 
         # Timer
         res = safe_run(
-            ["pkexec", "tee", str(timer_path)],
+            privileged_write_argv("pkexec", str(timer_path)),
             input=timer_content, timeout=10,
         )
         if res.returncode != 0:
@@ -246,7 +252,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
         ]:
             p = Path(path)
             if p.exists():
-                safe_run(["pkexec", "rm", "-f", str(p)], timeout=10)
+                safe_run(privileged_remove_argv("pkexec", str(p)), timeout=10)
 
         safe_run([systemctl, "daemon-reload"], timeout=10)
 
