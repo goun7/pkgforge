@@ -645,3 +645,81 @@ def test_cmd_flatpak_export_paths(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr("core.flatpak_converter.flatpak_to_deb",
                         lambda aid, odir, br: (False, "basarisiz", None))
     assert cli._cmd_flatpak_export(ns_ok) == 1
+
+
+def test_cmd_appimage_not_available(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("core.appimage_converter.is_appimage_available",
+                        lambda: False)
+    rc = cli._cmd_appimage_export(argparse.Namespace(
+        appimage=str(tmp_path / "x.AppImage"), output_dir=None))
+    out = capsys.readouterr().out
+    assert rc == 1 and "unsquashfs" in out
+
+
+def test_cmd_appimage_paths(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("core.appimage_converter.is_appimage_available",
+                        lambda: True)
+    ns_missing = argparse.Namespace(
+        appimage=str(tmp_path / "yok.AppImage"), output_dir=None)
+    assert cli._cmd_appimage_export(ns_missing) == 1
+
+    f = tmp_path / "uygulama.AppImage"
+    f.write_bytes(b"x")
+    deb = tmp_path / "cikti.deb"
+    deb.write_bytes(b"x")
+    monkeypatch.setattr("core.appimage_converter.appimage_to_deb",
+                        lambda p, o: (True, "hazir", deb))
+    ns_ok = argparse.Namespace(appimage=str(f), output_dir=str(tmp_path))
+    assert cli._cmd_appimage_export(ns_ok) == 0
+    assert "dpkg -i" in capsys.readouterr().out
+
+    monkeypatch.setattr("core.appimage_converter.appimage_to_deb",
+                        lambda p, o: (False, "bozuk", None))
+    assert cli._cmd_appimage_export(ns_ok) == 1
+
+
+def test_cmd_snapshot_cleanup_install_remove(monkeypatch, capsys):
+    monkeypatch.setattr("core.snapshot_cleanup.install_cleanup_service",
+                        lambda max_age_days=7: (True, "kuruldu"))
+    ns_in = argparse.Namespace(install=True, remove=False, max_age=14)
+    assert cli._cmd_snapshot_cleanup(ns_in) == 0
+    assert "kuruldu" in capsys.readouterr().out
+
+    monkeypatch.setattr("core.snapshot_cleanup.install_cleanup_service",
+                        lambda max_age_days=7: (False, "reddi"))
+    assert cli._cmd_snapshot_cleanup(ns_in) == 1
+
+    monkeypatch.setattr("core.snapshot_cleanup.remove_cleanup_service",
+                        lambda: (False, "kaldirilamadi"))
+    ns_rm = argparse.Namespace(install=False, remove=False, max_age=7)
+    ns_rm.remove = True
+    assert cli._cmd_snapshot_cleanup(ns_rm) == 1
+
+
+def test_cmd_snapshot_cleanup_status_not_installed(monkeypatch, capsys):
+    monkeypatch.setattr("core.snapshot_cleanup.get_cleanup_status",
+                        lambda: {"installed": False, "active": False,
+                                 "next_run": ""})
+    monkeypatch.setattr("core.snapshot_manager.detect_backend",
+                        lambda: "snapper")
+    monkeypatch.setattr("core.snapshot_manager.list_snapshots",
+                        list)
+    ns = argparse.Namespace(install=False, remove=False, max_age=7)
+    assert cli._cmd_snapshot_cleanup(ns) == 0
+    out = capsys.readouterr().out
+    assert "Servis kurulu değil" in out and "snapper" in out
+
+
+def test_cmd_snapshot_cleanup_status_installed(monkeypatch, capsys):
+    monkeypatch.setattr("core.snapshot_cleanup.get_cleanup_status",
+                        lambda: {"installed": True, "active": True,
+                                 "next_run": "yarin"})
+    monkeypatch.setattr("core.snapshot_manager.detect_backend",
+                        lambda: "timeshift")
+    snaps = [{"name": "gunluk-1", "date": "2026-08-25"}]
+    monkeypatch.setattr("core.snapshot_manager.list_snapshots",
+                        lambda: snaps)
+    ns = argparse.Namespace(install=False, remove=False, max_age=7)
+    assert cli._cmd_snapshot_cleanup(ns) == 0
+    out = capsys.readouterr().out
+    assert "Aktif" in out and "yarin" in out and "gunluk-1" in out
