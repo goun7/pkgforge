@@ -160,3 +160,99 @@ def test_cmd_remove_invalid_name(monkeypatch, capsys):
     rc = cli._cmd_remove(argparse.Namespace(package="kötü isim"))
     capsys.readouterr()
     assert rc == 1 and called["n"] == 0
+
+
+def _mini_zst(tmp_path):
+    import subprocess
+    d = tmp_path / "stage"
+    d.mkdir(exist_ok=True)
+    (d / ".PKGINFO").write_text("pkgname = demo")
+    tar = tmp_path / "a.tar"
+    with open(tar, "wb") as fh:
+        subprocess.run(["tar", "cf", "-", "-C", str(d), ".PKGINFO"],
+                       stdout=fh, check=True)
+    zst = tmp_path / "demo-1.0-1-x86_64.pkg.tar.zst"
+    subprocess.run(["zstd", "-qf", str(tar), "-o", str(zst)], check=True)
+    return zst
+
+
+def test_cmd_sbom_missing_package(capsys, tmp_path):
+    rc = cli._cmd_sbom(argparse.Namespace(
+        package=str(tmp_path / "yok.pkg.tar.zst"), output_dir=None,
+        no_hashes=False, diff=None))
+    assert rc == 1 and "bulunamad" in capsys.readouterr().out
+
+
+def test_cmd_sbom_requires_package_arg(capsys):
+    rc = cli._cmd_sbom(argparse.Namespace(
+        package=None, output_dir=None, no_hashes=False, diff=None))
+    out = capsys.readouterr().out
+    assert rc == 1 and "Paket yolu gerekli" in out
+
+
+def test_cmd_sbom_generates_json(tmp_path, capsys):
+    pkg = _mini_zst(tmp_path)
+    outdir = tmp_path / "cikti"
+    rc = cli._cmd_sbom(argparse.Namespace(
+        package=str(pkg), output_dir=str(outdir), no_hashes=True,
+        diff=None))
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert (outdir / "demo-1.0-1-x86_64.pkg.tar.zst.spdx.json").is_file()
+    assert "SBOM dosyası" in out
+
+
+def test_cmd_sbom_diff_missing_old(capsys, tmp_path):
+    rc = cli._cmd_sbom(argparse.Namespace(
+        package=None, output_dir=None, no_hashes=False,
+        diff=[str(tmp_path / "eski.pkg.tar.zst"),
+              str(tmp_path / "yeni.pkg.tar.zst")]))
+    assert rc == 1
+
+
+def test_cmd_abi_check_missing_file(capsys, tmp_path):
+    rc = cli._cmd_abi_check(argparse.Namespace(
+        package=str(tmp_path / "yok.pkg.tar.zst")))
+    assert rc == 1 and "bulunamad" in capsys.readouterr().out
+
+
+def test_cmd_abi_check_report_paths(monkeypatch, capsys, tmp_path):
+    from types import SimpleNamespace as NS
+    good = NS(summary=lambda: "rapor", passed=True, error_count=0)
+    monkeypatch.setattr("core.abi_scanner.check_abi_compatibility",
+                        lambda p: good)
+    f = tmp_path / "x.pkg.tar.zst"
+    f.write_bytes(b"x")
+    assert cli._cmd_abi_check(argparse.Namespace(package=str(f))) == 0
+    bad = NS(summary=lambda: "kotu", passed=False, error_count=3)
+    monkeypatch.setattr("core.abi_scanner.check_abi_compatibility",
+                        lambda p: bad)
+    assert cli._cmd_abi_check(argparse.Namespace(package=str(f))) == 1
+
+
+def test_cmd_quality_missing_file(capsys, tmp_path):
+    rc = cli._cmd_quality(argparse.Namespace(
+        package=str(tmp_path / "yok.pkg.tar.zst")))
+    assert rc == 1 and "bulunamad" in capsys.readouterr().out
+
+
+def test_cmd_quality_pass_and_fail(monkeypatch, capsys, tmp_path):
+    from types import SimpleNamespace as NS
+    f = tmp_path / "x.pkg.tar.zst"
+    f.write_bytes(b"x")
+    monkeypatch.setattr("core.quality_score.score_package",
+                        lambda p, t: NS(summary=lambda: "skor", passed=True))
+    assert cli._cmd_quality(argparse.Namespace(package=str(f))) == 0
+    monkeypatch.setattr("core.quality_score.score_package",
+                        lambda p, t: NS(summary=lambda: "dusuk", passed=False))
+    assert cli._cmd_quality(argparse.Namespace(package=str(f))) == 1
+
+
+def test_cmd_verify_rollback_paths(monkeypatch, capsys):
+    from types import SimpleNamespace as NS
+    monkeypatch.setattr("core.rollback_verify.verify_rollback",
+                        lambda: NS(detail="drill ok", verified=True))
+    assert cli._cmd_verify_rollback(argparse.Namespace()) == 0
+    monkeypatch.setattr("core.rollback_verify.verify_rollback",
+                        lambda: NS(detail="kırık", verified=False))
+    assert cli._cmd_verify_rollback(argparse.Namespace()) == 1
