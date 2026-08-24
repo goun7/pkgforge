@@ -20,6 +20,8 @@ CAPABILITIES = {
             "app.version",
             "app.doctor",
             "stats.wrapped",
+            "policy.evaluate",
+            "policy.get",
             "tools.status",
             "settings.get",
             "history.list",

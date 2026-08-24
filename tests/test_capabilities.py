@@ -12,10 +12,10 @@ import core.privileged as P
 
 def test_reader_set_is_the_expected_readonly_methods():
     assert CAPS.http_reader_methods() == frozenset({
-        "app.version", "app.doctor", "stats.wrapped", "tools.status",
-        "settings.get", "history.list", "schedule.get", "profile.list",
-        "profile.current", "queue.list", "plugin.list", "plugin.available",
-        "plugin.audit", "dbus.status",
+        "app.version", "app.doctor", "stats.wrapped", "policy.evaluate",
+        "policy.get", "tools.status", "settings.get", "history.list",
+        "schedule.get", "profile.list", "profile.current", "queue.list",
+        "plugin.list", "plugin.available", "plugin.audit", "dbus.status",
     })
 
 

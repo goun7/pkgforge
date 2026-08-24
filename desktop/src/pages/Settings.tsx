@@ -23,6 +23,7 @@ interface SettingsShape {
   output_dir: string;
   verbose: boolean;
   auto_sign: boolean;
+  compat_policy: string;
 }
 
 const DEFAULTS: SettingsShape = {
@@ -38,6 +39,7 @@ const DEFAULTS: SettingsShape = {
   output_dir: "",
   verbose: false,
   auto_sign: false,
+  compat_policy: "standard",
 };
 
 const BOOL_FIELDS: { key: keyof SettingsShape; label: string; hint?: string }[] = [
@@ -275,6 +277,19 @@ export function Settings() {
               >
                 <option value="tr">Türkçe</option>
                 <option value="en">English</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-[var(--text-secondary)]">
+                Uyumluluk politikası
+              </span>
+              <select
+                value={settings.compat_policy}
+                onChange={(e) => set("compat_policy", e.target.value)}
+                className="h-10 rounded-[var(--radius-input)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)]"
+              >
+                <option value="standard">Standart (yalnızca hata bloklar)</option>
+                <option value="strict">Sıkı (uyarılar da bloklar)</option>
               </select>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">

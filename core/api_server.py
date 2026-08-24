@@ -533,6 +533,36 @@ def handle_stats_wrapped(params):
     return build_wrapped(year=int(year) if year else None)
 
 
+def handle_policy_evaluate(params):
+    """F5.19: evaluate a compatibility report against the active policy."""
+    from core.policy_engine import evaluate
+
+    return evaluate(params.get("report"))
+
+
+def handle_policy_get(params):
+    """F5.19: read the active compat policy level (read-only)."""
+    from core.policy_engine import policy_from_settings
+
+    return {"level": policy_from_settings().value}
+
+
+def handle_policy_set(params):
+    """F5.19: set the compat policy level (standard | strict)."""
+    from core.policy_engine import SETTINGS_KEY, PolicyLevel
+
+    raw = str(params.get("level", "")).lower().strip()
+    try:
+        lvl = PolicyLevel(raw)
+    except ValueError:
+        raise ValueError(
+            f"Gecersiz politika seviyesi: {raw} (standard | strict)")
+    settings = load_settings()
+    settings[SETTINGS_KEY] = lvl.value
+    save_settings(settings)
+    return {"ok": True, "level": lvl.value}
+
+
 def handle_system_cross_check(params):
     from dataclasses import asdict
 
@@ -1294,6 +1324,9 @@ METHODS = {
     # Faz 1 / A6: system tools
     "system.health": handle_system_health,
     "stats.wrapped": handle_stats_wrapped,
+    "policy.evaluate": handle_policy_evaluate,
+    "policy.get": handle_policy_get,
+    "policy.set": handle_policy_set,
     "system.cross_check": handle_system_cross_check,
     "system.snapshot_status": handle_system_snapshot_status,
     "system.snapshot_install": handle_system_snapshot_install,
