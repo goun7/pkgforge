@@ -14,6 +14,7 @@ from collections import deque
 from pathlib import Path
 
 from config import APP_NAME, APP_VERSION, discover_tools
+from core import http_assets
 from i18n import load_settings, save_settings
 
 _write_lock = threading.Lock()
@@ -1384,64 +1385,6 @@ def build_openapi_schema() -> dict:
     }
 
 
-_DASHBOARD_HTML = (
-    "<!doctype html><html lang='tr'><head><meta charset='utf-8'>"
-    "<title>PkgForge Panosu</title><style>"
-    "body{font:14px/1.5 system-ui;background:#111;color:#eee;margin:0;"
-    "display:flex;min-height:100vh}"
-    ".side{width:260px;padding:16px;background:#1a1a1a;overflow:auto}"
-    ".main{flex:1;padding:24px}"
-    "input,select,textarea,button{background:#222;color:#eee;border:1px solid #444;"
-    "border-radius:6px;padding:6px 8px;font:inherit;width:100%;box-sizing:border-box}"
-    "button{cursor:pointer;background:#2563eb;border-color:#2563eb;margin-top:8px}"
-    "pre{white-space:pre-wrap;word-break:break-word}"
-    "</style></head><body>"
-    "<div class='side'>PkgForge Panosu"
-    "<input id='tok' placeholder='Token (Bearer)' type='password' "
-    "style='margin-top:10px'>"
-    "<select id='mth' size='20' style='margin-top:10px;height:auto'></select>"
-    "</div><div class='main'>"
-    "<textarea id='prm' rows='6' placeholder='{ \"params\": {} }'>{}</textarea>"
-    "<button onclick=\"go()\">Gönder</button>"
-    "<pre id='out'>yanıt burada görünücek</pre></div>"
-    "<script>"
-    "const S=k=>sessionStorage.getItem(k);"
-    "const setK=(k,v)=>sessionStorage.setItem(k,v);"
-    "const tok=document.getElementById('tok');"
-    "tok.value=S('pf_tok')||'';"
-    "tok.oninput=()=>setK('pf_tok',tok.value);"
-    "fetch('/openapi.json').then(r=>r.json()).then(o=>{"
-    "const m=document.getElementById('mth');"
-    "Object.keys(o.paths).forEach(p=>{"
-    "const op=document.createElement('option');op.textContent=p.slice(5);"
-    "m.appendChild(op);});"
-    "m.onchange=()=>{const p=o.paths['/rpc/'+m.value].post;"
-    "document.getElementById('prm').value=JSON.stringify("
-    "{},null,2);};});"
-    "function go(){const m=document.getElementById('mth').value;"
-    "let body={};try{body=JSON.parse(document.getElementById('prm').value)}"
-    "catch(e){}"
-    "fetch('/',{method:'POST',headers:{'Content-Type':'application/json',"
-    "'Authorization':'Bearer '+tok.value}," 
-    "body:JSON.stringify({jsonrpc:'2.0',id:1,method:m,params:body.params||body)})"
-    ".then(r=>r.text()).then(t=>document.getElementById('out').textContent=t)"
-    ".catch(e=>document.getElementById('out').textContent='hata: '+e);}"
-    "</script></body></html>"
-)
-
-
-_DOCS_HTML = (
-    "<!doctype html><html><head><meta charset='utf-8'>"
-    "<title>PkgForge API - Swagger</title>"
-    "<link rel='stylesheet' href='https://unpkg.com/swagger-ui-dist@5/swagger-ui.css'>"
-    "</head><body><div id='swagger-ui'></div>"
-    "<script src='https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js'>" 
-    "</script><script>window.addEventListener('load',function(){ "
-    "SwaggerUIBundle({url:'/openapi.json',dom_id:'#swagger-ui'});});</script>"
-    "</body></html>"
-)
-
-
 def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
                read_token: str = "", insecure_http_lan: bool = False,
                trusted_proxy: bool = False) -> None:
@@ -1519,10 +1462,16 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
                 self._raw(200, json.dumps(build_openapi_schema()).encode(),
                           "application/json")
             elif self.path == "/docs":
-                self._raw(200, _DOCS_HTML.encode(), "text/html; charset=utf-8")
-            elif self.path in ("/", "/index.html"):
-                self._raw(200, _DASHBOARD_HTML.encode(),
+                self._raw(200, http_assets.docs_html(),
                           "text/html; charset=utf-8")
+            elif self.path in ("/", "/index.html"):
+                self._raw(200, http_assets.dashboard_html(),
+                          "text/html; charset=utf-8")
+            elif self.path == "/assets/swagger/swagger-ui.css":
+                self._raw(200, http_assets.swagger_css(), "text/css")
+            elif self.path == "/assets/swagger/swagger-ui-bundle.js":
+                self._raw(200, http_assets.swagger_bundle_js(),
+                          "application/javascript")
             else:
                 self._reply(404, {"error": "not found"})
 

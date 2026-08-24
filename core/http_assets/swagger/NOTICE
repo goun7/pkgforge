@@ -1,0 +1,8 @@
+swagger-ui-dist (vendored, F5.5)
+================================
+Copyright the swagger-ui authors. Licensed under the Apache License 2.0.
+Upstream: https://github.com/swagger-api/swagger-ui (swagger-ui-dist@5)
+
+Vendored for offline /docs serving so the API browser does not depend on a
+CDN at runtime. Only swagger-ui.css and swagger-ui-bundle.js are shipped.
+See LICENSES/Apache-2.0.txt in the repository for the full license text.
