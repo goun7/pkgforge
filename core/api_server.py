@@ -31,6 +31,15 @@ from core.http_api.meta import (
     handle_system_health,
     handle_tools_status,
 )
+from core.http_api.read import (
+    handle_dbus_status,
+    handle_history_list,
+    handle_plugin_audit,
+    handle_plugin_available,
+    handle_plugin_list,
+    handle_profile_current,
+    handle_profile_list,
+)
 from i18n import load_settings, save_settings
 
 _write_lock = threading.Lock()
@@ -154,25 +163,6 @@ def handle_pipeline_dismiss(params):
     if _pipeline:
         _pipeline.dismiss_install(params.get("message", ""))
     return {"ok": True}
-
-
-def handle_history_list(params):
-    from core.history_db import HistoryDB
-
-    db = HistoryDB()
-    records = db.get_history(limit=int(params.get("limit", 100)))
-    return [
-        {
-            "id": r.id,
-            "timestamp": r.timestamp,
-            "package_name": r.package_name,
-            "package_type": r.package_type,
-            "status": r.status,
-            "original_file": r.original_file,
-            "source_url": r.source_url or "",
-        }
-        for r in records
-    ]
 
 
 def handle_history_uninstall(params):
@@ -582,19 +572,6 @@ def handle_system_benchmark(params):
 
 # ── Faz 2 / B8: plugin marketplace ──────────────────────────────
 
-def handle_plugin_list(params):
-    from core.plugins.marketplace import list_installed_plugins
-
-    return list_installed_plugins()
-
-
-def handle_plugin_available(params):
-    from core.plugins.marketplace import fetch_available_plugins
-
-    offline = bool(params.get("offline", False))
-    return fetch_available_plugins(offline=offline)
-
-
 def handle_plugin_install(params):
     from core.plugins import reload_plugins
     from core.plugins.marketplace import install_plugin
@@ -640,12 +617,6 @@ def handle_plugin_update(params):
 
     _run_thread(_op, "event/plugin_done")
     return {"started": True}
-
-
-def handle_plugin_audit(params):
-    from core.plugins.marketplace import audit_plugins
-
-    return audit_plugins()
 
 
 # ── Faz 2 / B5: package comparison ──────────────────────────────
@@ -1094,18 +1065,6 @@ def _ensure_scheduler():
 
 
 # -- C2: multi-profile management -------------------------------
-def handle_profile_list(params):
-    from core.profiles import list_profiles
-
-    return list_profiles()
-
-
-def handle_profile_current(params):
-    from core.profiles import current_profile
-
-    return {"name": current_profile()}
-
-
 def _profile_name(params) -> str:
     return str(params.get("name", "")).strip()
 
@@ -1215,12 +1174,6 @@ def handle_sync_pull(params):
 
 
 # -- C1: D-Bus service bridge ------------------------------------
-def handle_dbus_status(params):
-    from core.dbus_service import service_status
-
-    return service_status()
-
-
 def handle_dbus_set_policy(params):
     s = load_settings()
     s["dbus_allow_mutations"] = bool(params.get("allow_mutations", False))
