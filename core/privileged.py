@@ -10,23 +10,17 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-HELPER_SYSTEM_PATH = "/usr/share/pkgforge/scripts/install_helper.sh"
+# F5.1: polkit action listesi ve helper yolu tek kaynaktan (capabilities)
+# turetilir; boylece policy uretimi ile HTTP/D-Bus kapsamlari kayamaz.
+from core.capabilities import helper_system_path, polkit_actions
+
+HELPER_SYSTEM_PATH = helper_system_path()
 POLICY_SYSTEM_PATH = "/usr/share/polkit-1/actions/org.pkgforge.helper.policy"
 
 Q = chr(34)
 NL = chr(10)
 
-ACTIONS = [
-    ("org.pkgforge.install",
-     "PkgForge paket kurulumu",
-     "Donusturulen paketi pacman ile kurmak icin yetkilendirme"),
-    ("org.pkgforge.delta-update",
-     "PkgForge delta otomatik guncelleme",
-     "Delta updater servis dosyalarini yazmak icin yetkilendirme"),
-    ("org.pkgforge.snapshot-cleanup",
-     "PkgForge snapshot temizligi",
-     "Zamanlanmis snapshot temizlik servisini yonetmek icin yetkilendirme"),
-]
+ACTIONS = polkit_actions()
 
 
 def _action_block(aid: str, title: str, desc: str) -> str:
