@@ -62,6 +62,8 @@ class SBOMDocument:
     text_count: int = 0
     symlink_count: int = 0
     dir_count: int = 0
+    # Build toolchain receipt (F5.15): tool versions + debtap-db date.
+    build_receipt: dict = field(default_factory=dict)
 
     def summary(self) -> str:
         lines = [
@@ -152,6 +154,14 @@ def generate_sbom(
     sbom.package_version = pkginfo.get("pkgver", "")
     sbom.package_arch = pkginfo.get("arch", "")
     sbom.package_description = pkginfo.get("desc", "")
+
+    # F5.15: embed the toolchain receipt (best-effort, never blocks the SBOM).
+    try:
+        from core.build_receipt import collect_build_receipt
+
+        sbom.build_receipt = collect_build_receipt(tools)
+    except Exception:  # noqa: BLE001 - receipt is optional
+        sbom.build_receipt = {}
 
     # List tarball members with sizes
     bsdtar = tools.bsdtar or "bsdtar"

@@ -52,6 +52,10 @@ class BuildProvenance:
     build_timestamp: str = ""
     build_duration_ms: int = 0
 
+    # Build toolchain receipt (F5.15)
+    tool_versions: dict = field(default_factory=dict)
+    debtap_db_date: str = ""
+
     # Package metadata
     package_name: str = ""
     package_version: str = ""
@@ -119,6 +123,16 @@ def create_provenance(
     prov.build_os = f"{platform.system()} {platform.release()}"
     prov.build_arch = platform.machine()
     prov.build_timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    # F5.15: embed the toolchain receipt (tool versions + debtap-db date).
+    try:
+        from core.build_receipt import collect_build_receipt
+
+        receipt = collect_build_receipt(tools)
+        prov.tool_versions = receipt.get("tool_versions", {})
+        prov.debtap_db_date = receipt.get("debtap_db_date", "")
+    except Exception as exc:  # noqa: BLE001 - receipt is best-effort
+        log.debug("Build receipt toplanamadi: %s", exc)
 
     # Package metadata (from kwargs)
     prov.package_name = kwargs.get("package_name", "")
@@ -285,6 +299,8 @@ def create_attestation(
             "arch": prov.build_arch,
             "os": prov.build_os,
             "host": prov.build_host,
+            "tool_versions": prov.tool_versions,
+            "debtap_db_date": prov.debtap_db_date,
         },
         "security": {
             "clamav": prov.clamav_result,
