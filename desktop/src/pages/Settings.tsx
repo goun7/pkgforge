@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, Save, Trash2 } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
 import { tFor } from "../lib/i18n";
+import { setLang } from "../lib/lang";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -118,6 +119,14 @@ export function Settings() {
 
   // F4.11: live tr/en bridge for the Faz-3/4 cards.
   const t = useMemo(() => tFor(settings.language), [settings.language]);
+
+  // F5.20: broadcast the chosen language to the shared store so every other
+  // mounted page (e.g. Convert) re-renders in the new language live.
+  useEffect(() => {
+    if (settings.language === "tr" || settings.language === "en") {
+      setLang(settings.language);
+    }
+  }, [settings.language]);
 
   const set = <K extends keyof SettingsShape>(key: K, value: SettingsShape[K]) =>
     setSettings((prev) => ({ ...prev, [key]: value }));

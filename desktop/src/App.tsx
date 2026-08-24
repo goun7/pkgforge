@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar, type PageId } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { ToastProvider } from "./components/ui/Toast";
@@ -14,6 +14,7 @@ import { Compare } from "./pages/Compare";
 import { Browse } from "./pages/Browse";
 import { EmptyState } from "./components/EmptyState";
 import { Construction } from "lucide-react";
+import { loadLang } from "./lib/lang";
 
 const PAGE_TITLES: Record<PageId, string> = {
   convert: "Dönüştür",
@@ -32,6 +33,11 @@ const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "
 
 export default function App() {
   const [page, setPage] = useState<PageId>("convert");
+
+  // F5.20: hydrate the shared live-language store once at startup.
+  useEffect(() => {
+    void loadLang();
+  }, []);
 
   return (
     <ToastProvider>

@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { call } from "../lib/rpc";
 import { tFor } from "../lib/i18n";
+import { useLang } from "../lib/lang";
 import type {
   StepChangedEvent,
   ProgressEvent,
@@ -63,7 +64,9 @@ export function Convert() {
   const [parallel, setParallel] = useState("1");
   // F4.3: batch defaults to CONVERSION-ONLY; installing is an explicit opt-in.
   const [batchInstall, setBatchInstall] = useState(false);
-  const tBatch = tFor("tr"); // Convert page Turkish-first; bridge ready for en
+  // F5.20: live language — follows the shared store set in Settings.
+  const lang = useLang();
+  const tBatch = tFor(lang);
   const [batchFilter, setBatchFilter] = useState("");
 
   // Refs so event callbacks always see fresh state without re-subscribing.
@@ -495,19 +498,19 @@ export function Convert() {
       {tab === "batch" && (
         <Card>
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Toplu Dönüştürme</CardTitle>
+            <CardTitle>{tBatch("batchTitle")}</CardTitle>
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Filtrele…"
+                placeholder={tBatch("batchFilter")}
                 value={batchFilter}
                 onChange={(e) => setBatchFilter(e.target.value)}
                 className="h-8 w-40"
               />
               <Button variant="secondary" size="sm" onClick={() => void loadBatch()}>
-                Yenile
+                {tBatch("batchRefresh")}
               </Button>
               <Button variant="danger" size="sm" onClick={() => void handleBatchClear()} disabled={batchRunning}>
-                <Trash2 size={13} /> Temizle
+                <Trash2 size={13} /> {tBatch("batchClear")}
               </Button>
             </div>
           </CardHeader>
@@ -517,9 +520,9 @@ export function Convert() {
             <div className="flex items-center gap-2">
               <Button onClick={() => void handleBatchStart()} disabled={batchRunning || !batch.some((b) => b.status === "pending")}>
                 {batchRunning ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
-                Toplu Başlat
+                {tBatch("batchStart")}
               </Button>
-              <span className="text-xs text-[var(--text-muted)]">Paralel:</span>
+              <span className="text-xs text-[var(--text-muted)]">{tBatch("batchParallel")}</span>
               <Input
                 type="number"
                 min={1}
@@ -537,11 +540,11 @@ export function Convert() {
                 />
                 {tBatch("batchInstallSerial")}
               </label>
-              {batchRunning && <Badge tone="info">çalışıyor…</Badge>}
+              {batchRunning && <Badge tone="info">{tBatch("batchRunning")}</Badge>}
             </div>
 
             {filteredBatch.length === 0 ? (
-              <p className="text-sm text-[var(--text-muted)]">Kuyruk boş. Paket dosyalarını yukarı sürükleyin.</p>
+              <p className="text-sm text-[var(--text-muted)]">{tBatch("batchEmpty")}</p>
             ) : (
               <div className="space-y-1">
                 {filteredBatch.map((b) => (
@@ -552,7 +555,7 @@ export function Convert() {
                         <Badge tone={b.status === "done" ? "success" : b.status === "error" ? "danger" : b.status === "running" ? "info" : "neutral"}>
                           {b.status}
                         </Badge>
-                        <span className="text-xs text-[var(--text-muted)]">öncelik {b.priority}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{tBatch("batchPriority")} {b.priority}</span>
                       </div>
                       {b.message && <p className="truncate text-xs text-[var(--text-muted)]">{b.message}</p>}
                     </div>
