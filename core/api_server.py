@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import queue
 import sys
 import threading
 import time
@@ -41,6 +42,39 @@ _pipeline = None
 # so _event() suppresses them instead of polluting the server's stdout.
 _http_mode = False
 
+# F5.23: SSE (Server-Sent Events) event bus for the HTTP dashboard. A ring
+# buffer keeps recent events for late subscribers; each connected /events
+# client gets its own queue. Publishing is best-effort and never blocks the
+# conversion pipeline.
+_sse_lock = threading.Lock()
+_sse_history: deque = deque(maxlen=100)
+_sse_subscribers: list = []
+
+
+def _sse_publish(method, params):
+    """Broadcast a push event to SSE subscribers + the ring buffer."""
+    payload = {"method": method, "params": params}
+    with _sse_lock:
+        _sse_history.append(payload)
+        for q in _sse_subscribers:
+            try:
+                q.put_nowait(payload)
+            except Exception:  # noqa: BLE001, S110 - full/dead subscriber
+                pass
+
+
+def _sse_subscribe():
+    q = queue.Queue(maxsize=256)
+    with _sse_lock:
+        _sse_subscribers.append(q)
+    return q
+
+
+def _sse_unsubscribe(q):
+    with _sse_lock:
+        if q in _sse_subscribers:
+            _sse_subscribers.remove(q)
+
 
 def _send(obj: dict) -> None:
     with _write_lock:
@@ -58,7 +92,9 @@ def _error(req_id, code, message):
 
 def _event(method, params):
     if _http_mode:
-        return  # no stdio channel in HTTP mode; drop push events
+        # F5.23: no stdio channel in HTTP mode; broadcast over SSE instead.
+        _sse_publish(method, params)
+        return
     _send({"jsonrpc": "2.0", "method": method, "params": params})
 
 
@@ -1501,6 +1537,40 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
             self.end_headers()
             self.wfile.write(body)
 
+        def _sse_write(self, ev: dict) -> None:
+            data = json.dumps(ev, ensure_ascii=False)
+            self.wfile.write(f"event: message\ndata: {data}\n\n".encode())
+            self.wfile.flush()
+
+        def _sse_stream(self) -> None:
+            """F5.23: stream push events as Server-Sent Events."""
+            q = _sse_subscribe()
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "keep-alive")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.end_headers()
+                # Replay recent history so late clients catch up.
+                with _sse_lock:
+                    history = list(_sse_history)
+                for ev in history:
+                    self._sse_write(ev)
+                # Stream new events until the client disconnects.
+                while True:
+                    try:
+                        ev = q.get(timeout=15)
+                    except queue.Empty:
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                        continue
+                    self._sse_write(ev)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+            finally:
+                _sse_unsubscribe(q)
+
         def do_GET(self) -> None:
             if self.path == "/health":
                 self._reply(200, {"ok": True, "service": "pkgforge-http",
@@ -1519,6 +1589,12 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
             elif self.path == "/assets/swagger/swagger-ui-bundle.js":
                 self._raw(200, http_assets.swagger_bundle_js(),
                           "application/javascript")
+            elif self.path == "/events":
+                # F5.23: SSE canli olay akisi (reader ya da operator token).
+                if self._scope() is None:
+                    self._reply(401, {"error": "Unauthorized"})
+                    return
+                self._sse_stream()
             else:
                 self._reply(404, {"error": "not found"})
 
