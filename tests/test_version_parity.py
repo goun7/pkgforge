@@ -32,3 +32,14 @@ def test_core_version_matches_cargo_toml():
     match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
     assert match, "Cargo.toml version satiri bulunamadi"
     assert APP_VERSION == match.group(1)
+
+
+def test_core_version_matches_pyproject():
+    # Faz 5: the Python packaging version must not drift from the app either.
+    try:
+        import tomllib
+    except ImportError:  # pragma: no cover - py<3.11
+        import tomli as tomllib  # type: ignore
+    with (PROJECT_ROOT / "pyproject.toml").open("rb") as fh:
+        data = tomllib.load(fh)
+    assert APP_VERSION == data["project"]["version"]

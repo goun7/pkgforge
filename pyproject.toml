@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pkgforge"
-version = "1.1.0"
+version = "2.0.0"
 description = "Convert and install .deb/.rpm packages on Arch Linux with safety sandbox and CLI/GUI"
 readme = "README.md"
 requires-python = ">=3.10"
