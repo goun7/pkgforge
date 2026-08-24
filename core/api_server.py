@@ -1324,6 +1324,19 @@ def _rate_limited(ip: str, now: float) -> bool:
     return False
 
 
+def _resolve_client_ip(socket_ip: str, xff_header: str,
+                       trusted_proxy: bool) -> str:
+    """Pick the client IP used for rate limiting (F5.2b).
+
+    X-Forwarded-For is honoured ONLY when the operator explicitly trusts an
+    upstream (TLS-terminating) proxy; otherwise the header is attacker-
+    controlled and would let anyone dodge the per-IP rate limit.
+    """
+    if trusted_proxy and xff_header:
+        return xff_header.split(",")[0].strip() or socket_ip
+    return socket_ip
+
+
 def build_openapi_schema() -> dict:
     """Minimal OpenAPI 3 description of the JSON-RPC surface (F4.8).
 
@@ -1430,7 +1443,8 @@ _DOCS_HTML = (
 
 
 def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
-               read_token: str = "") -> None:
+               read_token: str = "", insecure_http_lan: bool = False,
+               trusted_proxy: bool = False) -> None:
     """Run the JSON-RPC API over HTTP for LAN remote management (B7/F4.2).
 
     POST / accepts a single JSON-RPC 2.0 request and returns the response.
@@ -1448,6 +1462,14 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
         raise ValueError(
             "Non-loopback bind requires --token "
             "(LAN erisimi kimlik dogrulamasiz acilamaz)")
+    # F5.2b: no TLS support — plain HTTP on a routable address is only
+    # allowed behind an explicit opt-in, or in front of a TLS-terminating
+    # reverse proxy (use --trusted-proxy so X-Forwarded-For is honoured).
+    if not loopback and not insecure_http_lan:
+        raise ValueError(
+            "Non-loopback HTTP requires --insecure-http-lan "
+            "(TLS yok; acik HTTP LAN erisimi icin riski bilincli onaylayin "
+            " ya da onde TLS sonlandiran bir reverse proxy kullanin)")
 
     _http_mode = True
     _ensure_qapp()
@@ -1470,6 +1492,17 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
             if read_token and hmac.compare_digest(auth, f"Bearer {read_token}"):
                 return "reader"
             return None
+
+        def _client_ip(self) -> str:
+            """Client address for rate limiting.
+
+            F5.2b: only honour X-Forwarded-For when the operator explicitly
+            trusts an upstream proxy; otherwise the header is attacker-controlled.
+            """
+            return _resolve_client_ip(
+                self.client_address[0],
+                self.headers.get("X-Forwarded-For", ""),
+                trusted_proxy)
 
         def _raw(self, code: int, body: bytes, ctype: str) -> None:
             self.send_response(code)
@@ -1494,7 +1527,7 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
                 self._reply(404, {"error": "not found"})
 
         def do_POST(self) -> None:
-            client_ip = self.client_address[0]
+            client_ip = self._client_ip()
             if _rate_limited(client_ip, time.time()):
                 self._reply(429, {"jsonrpc": "2.0", "id": None,
                                   "error": {"code": -32000,

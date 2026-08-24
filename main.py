@@ -355,6 +355,10 @@ def main() -> int:
                               help="Also expose the JSON-RPC registry on the D-Bus session bus")
     serve_parser.add_argument("--token-file", default="",
                               help="Token'ı dosyadan oku (--token yerine; ps'te görünmez)")
+    serve_parser.add_argument("--insecure-http-lan", action="store_true",
+                              help="TLS olmadan LAN HTTP'ye izin ver (risk bilincli onay; F5.2b)")
+    serve_parser.add_argument("--trusted-proxy", action="store_true",
+                              help="X-Forwarded-For basligina guven (onde TLS proxy varsa; F5.2b)")
 
     # schedule subcommands (F4.6: headless systemd-friendly entry points)
     sched_run = subparsers.add_parser(
@@ -459,7 +463,9 @@ def main() -> int:
             if not token:
                 token = _os.environ.get("PKGFORGE_TOKEN", "")
             serve_http(port=args.port, token=token, host=args.host,
-                       read_token=getattr(args, "read_token", ""))
+                       read_token=getattr(args, "read_token", ""),
+                       insecure_http_lan=getattr(args, "insecure_http_lan", False),
+                       trusted_proxy=getattr(args, "trusted_proxy", False))
         else:
             if getattr(args, "dbus", False):
                 import threading as _threading
