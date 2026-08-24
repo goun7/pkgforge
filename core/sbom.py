@@ -17,6 +17,7 @@ import datetime
 import hashlib
 import json
 import logging
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -85,6 +86,27 @@ class SBOMDocument:
         d = asdict(self)
         d["files"] = [asdict(f) for f in self.files]
         return d
+
+
+# tar -tv listing shapes. bsdtar: perms nlinks owner group size Mon DD
+# HH:MM name — GNU tar: perms owner/group size YYYY-MM-DD HH:MM name.
+# Locale month names ("Ağu") are matched as opaque word tokens.
+_TV_BSDTAR_RE = re.compile(
+    r"^([\-ldbcps][rwxstST-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+"
+    r"\S+\s+\d{1,2}\s+\d{2}:\d{2}\s+(.+)$"
+)
+_TV_GNU_RE = re.compile(
+    r"^([\-ldbcps][rwxstST-]{9})\s+\S+\s+(\d+)\s+"
+    r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+(.+)$"
+)
+
+
+def _parse_tv_line(line: str):
+    """Return (perms, size, path) from a `tar -tv` line, or None."""
+    m = _TV_BSDTAR_RE.match(line) or _TV_GNU_RE.match(line)
+    if m is None:
+        return None
+    return m.group(1), int(m.group(2)), m.group(3).strip()
 
 
 def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
@@ -176,19 +198,11 @@ def generate_sbom(
 
         total_size = 0
         for line in res.stdout.splitlines():
-            # Example line: "-rw-r--r--  1000/1000   12345 2026-08-20 12:00  usr/bin/app"
-            parts = line.split(None, 4)
-            if len(parts) < 5:
+            parsed = _parse_tv_line(line)
+            if parsed is None:
                 continue
 
-            perms = parts[0]
-            entry_path = parts[-1].strip()
-
-            # Parse size (field index 3 for standard bsdtar -tvf output)
-            try:
-                size = int(parts[3]) if parts[3].isdigit() else 0
-            except (ValueError, IndexError):
-                size = 0
+            perms, size, entry_path = parsed
 
             is_symlink = perms.startswith("l")
             is_dir = perms.startswith("d")
