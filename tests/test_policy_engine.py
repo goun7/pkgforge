@@ -84,15 +84,17 @@ def test_rpc_policy_evaluate():
 
 def test_rpc_policy_get_set_roundtrip(monkeypatch, tmp_path):
     import core.api_server as A
+    import core.http_api.meta as META
 
     store = {}
-    monkeypatch.setattr(A, "load_settings", lambda: dict(store))
+    # F5.11: handler'lar meta router'a tasindi; ayar okuma/yazma oradan olur.
+    monkeypatch.setattr(META, "load_settings", lambda: dict(store))
 
     def _save(s):
         store.clear()
         store.update(s)
 
-    monkeypatch.setattr(A, "save_settings", _save)
+    monkeypatch.setattr(META, "save_settings", _save)
 
     assert A.handle_policy_get({})["level"] == "standard"
     assert A.handle_policy_set({"level": "strict"})["level"] == "strict"
