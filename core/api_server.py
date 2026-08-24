@@ -1189,6 +1189,16 @@ def handle_dbus_start(params):
     return {"started": True}
 
 
+def handle_install_rehearse(params):
+    """F5.14: konteyner ici kurulum provasi (dosya-liste diffi)."""
+    from core.install_rehearsal import rehearse_install
+
+    path = params.get("package_path", "")
+    if not path:
+        raise ValueError("package_path gerekli")
+    return rehearse_install(Path(path))
+
+
 METHODS = {
     "app.version": handle_app_version,
     "app.doctor": handle_app_doctor,
@@ -1277,6 +1287,7 @@ METHODS = {
     "dbus.status": handle_dbus_status,
     "dbus.start": handle_dbus_start,
     "dbus.set_policy": handle_dbus_set_policy,
+    "install.rehearse": handle_install_rehearse,
 }
 
 

@@ -24,6 +24,7 @@ export const API_METHODS = [
   "history.list",
   "history.rollback",
   "history.uninstall",
+  "install.rehearse",
   "pipeline.approve",
   "pipeline.cancel",
   "pipeline.dismiss",
