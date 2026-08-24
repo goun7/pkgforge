@@ -327,7 +327,11 @@ def remove_auto_update() -> tuple[bool, str]:
 
 
 def get_auto_update_status() -> dict:
-    """Get current auto-update service status."""
+    """Get current auto-update service status.
+
+    F5.16: delta guncellemeler DENEYSEL'dir ve varsayilan olarak kapalidir;
+    durum ayrica xdelta3'un kurulu olup olmadigini da bildirir.
+    """
     import os
 
     systemctl = None
@@ -336,7 +340,14 @@ def get_auto_update_status() -> dict:
             systemctl = path
             break
 
-    status = {"installed": False, "active": False, "next_run": ""}
+    status = {
+        "installed": False,
+        "active": False,
+        "next_run": "",
+        "xdelta3_available": is_xdelta3_available(),
+        "experimental": True,
+        "experimental_note": "Delta guncellemeler DENEYSEL ve varsayilan kapali",
+    }
 
     if not systemctl:
         return status
