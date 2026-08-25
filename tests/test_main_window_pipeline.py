@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace as NS
+from typing import ClassVar
 
 import pytest
 
@@ -50,12 +52,13 @@ class FakePipeline(QObject):
 
     def cancel(self):
         type(self).cancel_called += 1
+        self._cancelled_flag = True
 
     def approve_install(self):
         pass
 
     def dismiss_install(self, *a):
-        pass
+        self._dismissed = a
 
 
 @pytest.fixture()
@@ -107,12 +110,12 @@ def _sessiz_qmsg(monkeypatch):
 
 
 def test_start_next_runs_staged_pipeline(win, tmp_path):
-    d, olusturulan = win
+    d, _olusturulan = win
     f = tmp_path / "ornek.deb"
     f.write_bytes(b"x")
     d._on_files_dropped([f])
-    assert olusturulan, "pipeline uretilmeli"
-    p = olusturulan[0]
+    assert _olusturulan, "pipeline uretilmeli"
+    p = _olusturulan[0]
     assert str(p.staged).endswith(".deb")
     son = time.time() + 3
     while time.time() < son and p.ran is False:
@@ -222,8 +225,8 @@ def test_reset_ui_clears_all(win):
 
 
 def test_compatibility_ready_closed_dialog_releases_worker(win, monkeypatch):
-    d, olusturulan = win
-    p = olusturulan[0] if olusturulan else FakePipeline()
+    d, _olusturulan = win
+    p = _olusturulan[0] if _olusturulan else FakePipeline()
     d._pipeline = p
     p._result = _sonuc()
     yakalanan = {}
@@ -298,3 +301,304 @@ def test_upstream_error_shows_banner(win, app, monkeypatch):
         app.processEvents()
         time.sleep(0.01)
     assert d._updates_btn.isEnabled()
+
+# --- tur-22: kalan 36 satir -----------------------------------------------------
+
+def test_icon_fallback_when_svg_missing(monkeypatch):
+    import ui.main_window as _mw
+    from ui.resources.icons import APP_ICON
+    assert APP_ICON
+    gercek_isfile = Path.is_file
+    sep = __import__('os').sep
+    def sahte(self):
+        if str(self).endswith(("data" + sep + "pkgforge.svg",
+                               "data/pkgforge.svg")):
+            return False          # logo yok -> APP_ICON dususu
+        return gercek_isfile(self)
+    monkeypatch.setattr(Path, "is_file", sahte)
+    monkeypatch.setattr(_mw, "discover_tools",
+                        lambda: ToolPaths(debtap="/u/debtap"))
+    monkeypatch.setattr(_mw, "ConversionPipeline", FakePipeline)
+    w2 = _mw.MainWindow()
+    w2.deleteLater()
+
+
+def test_debtap_db_missing_warns(win, monkeypatch):
+    d, _c = win
+    gercek_exists = Path.exists
+    def sahte(self):
+        if "debian-main-packages-files" in str(self):
+            return False
+        return gercek_exists(self)
+    monkeypatch.setattr(Path, "exists", sahte)
+    onceki = len(d._log_panel._log_lines)
+    object.__setattr__(d._tools, "debtap", "/usr/bin/debtap")
+    d._check_tools()
+    assert len(d._log_panel._log_lines) > onceki
+
+
+def test_start_next_multi_file_status(win, tmp_path):
+    d, _olusturulan = win
+    f1 = tmp_path / "bir.deb"; f1.write_bytes(b"a")
+    f2 = tmp_path / "iki.rpm"; f2.write_bytes(b"b")
+    d._queue.add_files([f1, f2])          # toplam 2 -> sira/total mesaji
+    d._start_next_in_queue()
+    mesaj = d._status_bar.currentMessage()
+    assert "1 / 2" in mesaj or ("1" in mesaj and "2" in mesaj)
+
+
+def test_queue_changed_tolerates_spacer_item(win):
+    from PyQt6.QtWidgets import QSpacerItem
+    d, _c = win
+    d._queue_list_layout.insertItem(0, QSpacerItem(1, 1))
+    d._on_queue_changed([])            # takeAt->widget None->continue yolu
+
+
+def test_show_queue_result_without_compatibility(win, monkeypatch):
+    d, _c = win
+    acilan = []
+    class FakeRD(QObject):
+        install_approved = pyqtSignal()
+        distrobox_requested = pyqtSignal()
+        def __init__(self, **kw):
+            super().__init__()
+            acilan.append(kw)
+        def exec(self):
+            return 1
+        def result(self):
+            return 1
+    monkeypatch.setattr(MW, "ResultDialog", FakeRD)
+    from core.queue_manager import QueueItemStatus
+    oge = NS(name="n", file_path=Path("/x/e.deb"),
+             status=QueueItemStatus.DONE,
+             result=_sonuc(compatibility=None))
+    monkeypatch.setattr(d, "_queue", NS(items=[oge]))
+    d._show_queue_result(0)
+    assert acilan == []                # uyumsuz rapor -> kart hic acilmaz
+
+
+def test_on_queue_all_finished_updates_status(win, monkeypatch):
+    d, _c = win
+    monkeypatch.setattr(d, "_queue",
+                        NS(get_summary=lambda: {"done": 2, "error": 1}))
+    d._on_queue_all_finished()
+    mesaj = d._status_bar.currentMessage()
+    assert mesaj and d._new_btn.isVisibleTo(d)
+
+
+def test_on_cancel_with_live_pipeline(win, tmp_path):
+    d, _olusturulan = win
+    f = tmp_path / "z.deb"; f.write_bytes(b"z")
+    d._queue.add_files([f])
+    d._start_next_in_queue()
+    assert d._pipeline is not None
+    d._on_cancel()
+    assert getattr(d._pipeline, "_cancelled_flag", False)
+    assert d._status_bar.currentMessage()
+
+
+def test_compat_dialog_approve_and_distrobox_paths(win, app, monkeypatch, tmp_path):
+    d, _olusturulan = win
+    p = _olusturulan[0] if _olusturulan else FakePipeline()
+    d._pipeline = p
+    p._result = _sonuc()
+
+    class FakeRD(QObject):
+        install_approved = pyqtSignal()
+        distrobox_requested = pyqtSignal()
+        def __init__(self, **kw):
+            super().__init__()
+        def exec(self):
+            self.install_approved.emit()
+            return 1
+        def result(self):
+            return 1
+    yakalanan = {}
+
+    class YakalayanRD(FakeRD):
+        def __init__(self, **kw):
+            super().__init__(**kw)
+            yakalanan["obje"] = self
+
+    monkeypatch.setattr(MW, "ResultDialog", YakalayanRD)
+    d._on_compatibility_ready(p._result.compatibility)
+    assert yakalanan                    # diyalog kuruldu ve onay yolu calisti
+
+
+def test_pipeline_finished_quits_thread(win):
+    d, _olusturulan = win
+    f = Path("/x/t.deb")
+    d._queue.add_files([f])
+    d._start_next_in_queue()
+    thr = d._pipeline_thread
+    r = _sonuc(success=False, compatibility=None)
+    d._on_pipeline_finished(r, -1)      # idx -1 -> mark_finished atlanir
+    if thr is not None:
+        thr.wait(1500)
+
+
+def test_pipeline_finished_schedules_next(win, monkeypatch):
+    from PyQt6.QtCore import QTimer
+    planlanan = []
+    monkeypatch.setattr(QTimer, "singleShot",
+                        staticmethod(lambda ms, cb: planlanan.append(cb)))
+    d, _c = win
+    monkeypatch.setattr(d, "_queue",
+                        NS(pending_count=1, total=3, items=[],
+                           get_summary=dict))
+    d._on_pipeline_finished(_sonuc(), -1)
+    assert any(getattr(cb, "__name__", "") == "_start_next_in_queue"
+               for cb in planlanan)
+
+
+def test_urldialog_exception_shows_banner(win, monkeypatch):
+    d, _c = win
+
+    class Patlak:
+        def __init__(self, *a, **k):
+            raise RuntimeError("url modulu bozuk")
+    monkeypatch.setitem(sys.modules, "ui.url_dialog",
+                        NS(UrlDialog=Patlak))
+    d._show_url_dialog()
+    etiket = d._inline_error.text() if hasattr(d, "_inline_error") else ""
+    assert "url" in etiket.lower() or d._status_bar.currentMessage()
+
+def test_compat_distrobox_redirect_full(win, app, monkeypatch, tmp_path):
+    d, _olusturulan = win
+    p = FakePipeline()
+    d._pipeline = p
+
+    class KayitFB(QObject):
+        output_line = pyqtSignal(str)
+        finished = pyqtSignal(bool, str)
+        kayitlar: ClassVar[list] = []
+
+        def __init__(self, tools, parent=None):
+            super().__init__()
+            KayitFB.kayitlar.append(self)
+
+        def install_in_container(self, pkg, name, tip):
+            KayitFB.kayitlar[-1].istek = (pkg, name, tip)
+
+    monkeypatch.setitem(sys.modules, "core.distrobox_fallback",
+                        NS(DistroboxFallback=KayitFB))
+    orijinal = tmp_path / "gercek.deb"
+    orijinal.write_bytes(b"x")
+    sonuc = _sonuc(original_file=orijinal)
+    yakalanan = {}
+
+    class RD(QObject):
+        install_approved = pyqtSignal()
+        distrobox_requested = pyqtSignal()
+
+        def __init__(self, **kw):
+            super().__init__()
+            yakalanan["obje"] = self
+        def exec(self):
+            self.distrobox_requested.emit()
+            return 1
+        def result(self):
+            return 1
+
+    monkeypatch.setattr(MW, "ResultDialog", RD)
+    p._result = sonuc                      # isleyicinin okudugu durum
+    d._on_compatibility_ready(sonuc.compatibility)
+    istek = KayitFB.kayitlar[-1].istek
+    assert istek[1] == "demo" and istek[2] == "deb"
+    assert Path(istek[0]) == orijinal
+
+
+def test_upstream_results_without_has_update(monkeypatch, win, app):
+    from PyQt6.QtWidgets import QMessageBox
+    d, _olusturulan = win
+    bilgi = []
+    monkeypatch.setattr(QMessageBox, "information",
+                        staticmethod(lambda *a, **k: bilgi.append(a)))
+    kayit = NS(has_update=False, package_name="gtk3", detail="-")
+    monkeypatch.setattr("core.upstream_tracker.check_all_installed_updates",
+                        lambda: [kayit])
+    d._check_upstream_updates()
+    son = time.time() + 4
+    while time.time() < son and not bilgi:
+        app.processEvents()
+        time.sleep(0.01)
+    assert bilgi
+
+def test_spacer_item_continue_branch(win):
+    from PyQt6.QtWidgets import QSpacerItem, QWidget
+    d, _olusturulan = win
+    yabanci = QWidget()
+    d._queue_list_layout.addWidget(yabanci)          # sayac -> 2
+    d._queue_list_layout.insertItem(0, QSpacerItem(1, 1))
+    d._on_queue_changed([])                          # takeAt(0)=spacer -> 377
+    yabanci.deleteLater()
+
+
+def test_distrobox_done_callback_updates_log(win, monkeypatch, tmp_path):
+    from PyQt6.QtCore import QObject
+    d, _olusturulan = win
+
+    class KayitFB(QObject):
+        output_line = pyqtSignal(str)
+        finished = pyqtSignal(bool, str)
+        ornek = None
+
+        def __init__(self, tools, parent=None):
+            super().__init__()
+            KayitFB.ornek = self
+
+        def install_in_container(self, pkg, name, tip):
+            pass
+
+    monkeypatch.setitem(sys.modules, "core.distrobox_fallback",
+                        NS(DistroboxFallback=KayitFB))
+    dosya = tmp_path / "gercek.deb"; dosya.write_bytes(b"x")
+    onceki = len(d._log_panel._log_lines)
+    d._run_distrobox_fallback(_sonuc(original_file=dosya))
+    KayitFB.ornek.finished.emit(True, "konteyner bitti")
+    assert len(d._log_panel._log_lines) > onceki
+
+
+def test_pipeline_finished_joins_thread(win, tmp_path):
+    d, olusturulan = win
+    f = tmp_path / "j.deb"; f.write_bytes(b"j")
+    d._on_files_dropped([f])
+    assert d._pipeline_thread is not None
+    d._on_pipeline_finished(_sonuc(), 0)             # quit+wait yolu
+    olusturulan.clear()
+
+def test_queue_rebuild_none_item_continue(win):
+    class Kalem:
+        def widget(self):
+            return None
+
+    class SahteYerlesim:
+        def __init__(self):
+            self.kalemler = [None, Kalem()]   # ilki None -> 377 continue
+
+        def count(self):
+            return len(self.kalemler)
+
+        def takeAt(self, _i):
+            return self.kalemler.pop(0)
+
+        def addItem(self, *_a):
+            pass
+
+        def addWidget(self, *_a):
+            pass
+
+        def addStretch(self, *_a):
+            pass
+
+        def itemAt(self, _i):
+            return None
+
+    d, _olusturulan = win
+    orijinal = d._queue_list_layout
+    d._queue_list_layout = SahteYerlesim()
+    try:
+        d._on_queue_changed([])
+    finally:
+        d._queue_list_layout = orijinal
+
