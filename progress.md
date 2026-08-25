@@ -102,3 +102,20 @@
 - Qt dersleri: gizli ustte isVisible() hep False -> show() sart; PyQt6 enum uyeleri
   int ile karsilastirilamaz; QFileDialog konumsal arguman; geC-iCe import yamasi
   kaynak module yapilir (ui.background_worker.*).
+
+## Oturum-2, Tur 10-19 (otonom)
+- main_window %50->%92 (f433f62): sahte ConversionPipeline ile kuyruk-baslatma
+  (gercek QThread + yoklama), salt-okunur sonuc karti, iptal, distrobox dususu,
+  upstream geri-cagrilari. _queue.items kopya donduruyor -> ornek-seviyesi sahte kuyruk.
+- delta_updater %79->%95 (e8ecd76): create/apply dallari, find_local_previous,
+  download_with_delta (delta basarili/dusus), systemd kur/kaldir/status/enable/
+  disable, get_delta_logs, notify_update_available.
+- ORTAM KURALI: pytest --basetemp=.tmp_bt (calisma alani). /tmp/pytest-of-gokun
+  kokunde "lock path got renamed" OSErroru; rm -rf de cozmedi.
+- YAMA MATRISI (kritik): modul-baglamali import (from X import f) -> patch hedefi
+  kullanan modul (DU.safe_run); fonksyon-ici tembel import (from core.security
+  import safe_run as _safe_run) -> kaynak modul (core.security.safe_run).
+- Tuzak: autouse fixture'ta os.path.isfile korlemesine ezilmis -> Path.is_file()
+  icinde os.path.isfile kullanildigindan tum dosya varlik kontrolleri bozuldu;
+  orijinale delege eden lambda ile çözüldü.
+- Genel olcum (core+ui+i18n, 10557 stmt): %85.
