@@ -4,8 +4,8 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-614%20passed-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-41%25-yellow)](#)
+[![Tests](https://img.shields.io/badge/tests-1383%20passed-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-76%25-yellow)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
 
@@ -164,15 +164,16 @@ converter can never make a genuinely malicious package safe, so the goal is to
 
 ## 🧪 Running Tests
 
-To run the automated test suite (614 tests, requires dev dependencies):
+To run the automated test suite (1383 tests, requires dev dependencies):
 
 ```bash
 pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **614 passed, 2 skipped** · **52% line coverage** on `core/` ·
-CI gate enforces ≥35%.
+Current status: **1383 passed, 6 skipped** · **76% line coverage** on `core/` ·
+CI gate enforces ≥72%. The 6 skips are environment-optional integrations
+(`xdelta3`, `age`, Secret Service) and are not failures.
 
 ---
 

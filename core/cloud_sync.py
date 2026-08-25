@@ -209,10 +209,19 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
     url = str(s.get("sync_url", "")).strip()
     if not url:
         raise SyncError("Senkron sunucusu yapılandırılmadı (Ayarlar › Bulut Senkronizasyonu)")
-    if url.lower().startswith("http://") and not s.get("allow_insecure_http"):
+    low = url.lower()
+    if low.startswith("http://") and not s.get("allow_insecure_http"):
         raise SyncError(
             "http:// adresine izin verilmiyor — https:// kullanın veya "
             "Ayarlar'dan 'Güvensiz HTTP'ye izin ver'i açın"
+        )
+    if not low.startswith(("http://", "https://")):
+        # SEC: file:///ftp:/data: gibi semalar urlopen ile yerel dosya okuma
+        # veya beklenmedik protokol erişimine yol açabilir; beyaz liste dışı
+        # her şema reddedilir.
+        raise SyncError(
+            "Desteklenmeyen adres şeması — yalnızca https:// "
+            "(veya açık onayla http://) kullanılabilir"
         )
     if not url.endswith("/"):
         url += "/"
@@ -247,7 +256,7 @@ def webdav_push() -> dict:
     req = urllib.request.Request(url + _REMOTE_NAME, data=blob,
                                  method="PUT", headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 - sem beyaz listesi _webdav_target'ta uygulanır
             resp.read()
     except urllib.error.HTTPError as exc:
         raise SyncError(f"Sunucu hatası: HTTP {exc.code}") from exc
@@ -261,7 +270,7 @@ def webdav_pull() -> dict:
     url, headers = _webdav_target()
     req = urllib.request.Request(url + _REMOTE_NAME, method="GET", headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 - sem beyaz listesi _webdav_target'ta uygulanır
             blob = resp.read()
     except urllib.error.HTTPError as exc:
         raise SyncError(f"Sunucu hatası: HTTP {exc.code}") from exc

@@ -1,5 +1,19 @@
 # Progress Log
 
+## Kritiksizlik taraması Tur 1 (goal-4bc2fb3f-d552-4e47-ba14-a91ae050191a)
+- Önceki oturumdan kalma untracked tests/test_api_server_core.py: 2 kırmızı test düzeltildi
+  - GERÇEK GÜVENLİK DÜZELTMESİ: _validate_aur_name ".."/"-bas"/".nokta" kabul ediyordu
+    (mkdtemp prefix + AUR clone URL'e kadar giden traversal tohumu) → ilk-karakter alfanumerik
+  - rate_limiter testi now+999'da hâlâ limitli sanıyordu; pencere semantiğiyle now+60'a alındı
+- ruff 31 → 0 (11 test dosyası: F841/RUF059/C408/RUF012/B023); mypy main.py token_file → 0/75 dosya
+- git'te izlenen çöp dosya 'https:/github.com/deneme/proje/CMakeLists.txt' kaldırıldı (commit 2d6aa9b)
+- desktop/package.json'a "test"/"test:watch" eklendi → vitest 74 test YEŞİL, tsc -b build temiz
+- ÖLÇÜM (doğrulanmış): pytest **1383 passed, 6 skipped, 0 failed** (137s) · core kapsam **%76**
+  (8556 stmt / 2019 miss) · CI gate 48 → **72** yükseltildi
+- DERS: addopts zaten "-q" içeriyor; CLI'a ikinci "-q" özet satırını bastırıyor (-qq)
+- README badge/gövde, CHANGELOG Unreleased, RELEASE_READINESS (§1/§3/F35-F38/§5/§6) gerçek sayılarla senkronlandı
+
+
 ## Session start
 - Context restored; planning files created.
 

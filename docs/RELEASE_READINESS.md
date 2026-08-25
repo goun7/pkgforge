@@ -1,6 +1,6 @@
 # PkgForge v1.1.0 — Release Readiness Report
 
-**Date:** 2026-08-21
+**Date:** 2026-08-21 · **Last updated:** kritiksizlik taraması (goal-4bc2fb3f)
 **Auditor:** automated deep-audit (goal-driven overnight pass)
 **Scope:** full source tree (~21,730 LOC Python), packaging, CI, docs, tests
 
@@ -12,8 +12,8 @@
 > Public release is gated on the final component-by-component real-user test
 > pass, after which: tag v1.1.0 → make repo public → submit to AUR.
 
-The code is in good shape: the full test suite is green (241 passed,
-12 skipped), mypy/bandit are clean, the wheel installs and runs from a clean
+The code is in good shape: the full test suite is green (**1383 passed,
+6 skipped** — skips are optional-tool integrations), mypy/bandit/ruff are clean, the wheel installs and runs from a clean
 venv, the E2E conversion path works (verified `hello_1.0.0-1_amd64.deb` →
 `hello-1.0.0-1-x86_64.pkg.tar.zst`, grade B), and the GUI launches.
 The distribution layer now exists: `github.com/goun7/pkgforge` (private,
@@ -55,6 +55,10 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 | F32 | Delta over-match | 607 → **610 tests**: `delta_updater.find_local_previous` derived the base name via `split("-")[0]` (truncating `my-cool-app` → `my`) and matched with a substring check, so searching `my` over-matched unrelated packages. Now compares the full clean name exactly via `extract_package_name`. +3 regression tests. |
 | F33 | Arch glue | `history_db.get_usage_stats` bucketed arch as `x86_64.pkg.tar` because `.stem` leaves the `.pkg.tar` chain glued to the arch segment; now strips the suffix chain first. +2 regression tests. |
 | F34 | OCI tag | `oci_builder.build_oci_image` derived the image tag from the raw stem (`pkgforge/hello-1.0.0-1-x86_64.pkg.tar:latest`); now uses `extract_package_name` (`pkgforge/hello:latest`). +2 regression tests. Suite now **614 passed, 2 skipped**. |
+| F35 | Security | Coverage push sessions 49–56 lifted the suite 614 → **1383 tests**, core coverage 52 % → **76 %**; CI gate raised 48 → 72. |
+| F36 | Security | `api_server._validate_aur_name`: first character must be alphanumeric — `..`, `.nokta`, `-bas` no longer reach `mkdtemp(prefix="pkgforge-aur-{name}-")` or the AUR clone URL (+regression tests). |
+| F37 | Hygiene | ruff **31 → 0** (11 test files), mypy `token_file` getattr fix (0 errors / 75 files), stray tracked junk file removed, rate-limiter test window semantics corrected. |
+| F38 | Desktop | `desktop/package.json` gained `test`/`test:watch` scripts — 74 vitest tests were present but unreachable via pnpm scripts; verified green + `tsc -b` build clean. |
 
 ---
 
@@ -62,11 +66,11 @@ full history pushed) and `github.com/goun7/pkgforge-plugins` (private).
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| Test suite | **614 passed, 2 skipped, 0 failed** | PyQt6 present; green |
-| Line coverage (`core/`) | **52%** (6,266 stmts, 3,015 miss) | CI gate: 48% (raised from 35%) |
+| Test suite | **1383 passed, 6 skipped, 0 failed** | PyQt6 present; skips = xdelta3/age/Secret Service yok |
+| Line coverage (`core/`) | **76%** (8,556 stmts, 2,019 miss) | CI gate: 72% (raised from 48%) |
 | mypy | **0 errors** (69 files checked) | Fixed in this audit |
 | bandit | **0 High, 0 Medium** | All 7 Medium resolved/justified in this audit |
-| ruff | **79 remaining** | 68 BLE001 (defensive blind-except) + 11 PLW1510 (manual returncode checks) — all intentional |
+| ruff | **0 errors** | tüm bilinçli savunma desenleri ya düzeltildi ya gerekçelendirildi |
 | Wheel install | **WORKS** | clean venv, entry point + data-files verified |
 | E2E conversion | **WORKS** | deb → pkg.tar.zst, grade B |
 | GUI launch | **WORKS** | offscreen smoke test |
@@ -187,8 +191,8 @@ layers, SBOM/provenance, and delta updates.
 | Packaging/distribution | **3** | 8 | 9 | Private repo exists (REPO-001 resolved); still no public/AUR |
 | Community/adoption | **1** | 7 | 7 | 0 votes vs 331/303 |
 | Maintenance freshness | 8 | 5 | **8** | debtap last touched 2025-08 |
-| Test/CI quality | **8** | 2 | 6 | 586 tests, 52% cov, CI gate 48; debtap has minimal CI |
-| **Weighted total** | **5.7** | **6.0** | **5.5** | weights: maturity 20%, distribution 20%, features 15%, security 15%, adoption 15%, tests 10%, UX 5% (aurutils maturity n/a → 0) |
+| Test/CI quality | **9** | 2 | 6 | 1383 tests, 76% cov (gate 72), ruff/mypy/bandit 0; debtap has minimal CI |
+| **Weighted total** | **5.8** | **6.0** | **5.5** | weights: maturity 20%, distribution 20%, features 15%, security 15%, adoption 15%, tests 10%, UX 5% (aurutils maturity n/a → 0) |
 
 **Interpretation:** On *technology* PkgForge leads debtap clearly (features,
 security, tests/CI all score higher); on *distribution and trust* it is still
@@ -201,7 +205,7 @@ invisible to users.
 
 ## 6. Release Checklist
 
-- [x] Full test suite green (586 passed, 13 skipped)
+- [x] Full test suite green (1383 passed, 6 skipped — optional-tool skips)
 - [x] Wheel builds and installs cleanly; entry point works
 - [x] E2E conversion verified on a real .deb and .rpm (subprocess converters)
 - [x] GUI launches; all dialogs smoke-tested; 2 crash bugs fixed (F26/F27)
@@ -214,7 +218,7 @@ invisible to users.
 - [ ] **Submit `pkgforge` / `pkgforge-git` to AUR** (needs human + public repo)
 - [x] Fix or gate mypy errors (now 0 across 69 files)
 - [x] Resolve bandit Medium issues (now 0 High, 0 Medium)
-- [x] Raise coverage on the 0% converter modules (now 52% overall)
+- [x] Raise coverage on the 0% converter modules (now **76%** overall; gate 72)
 
 ---
 

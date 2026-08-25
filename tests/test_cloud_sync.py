@@ -166,6 +166,20 @@ def test_push_blocks_plain_http_by_default(cfg_root: Path):
         webdav_push()
 
 
+@pytest.mark.parametrize("url", [
+    "file:///etc/passwd",
+    "ftp://cloud.example/dav/",
+    "data:text/plain,selam",
+])
+def test_push_rejects_non_http_schemes(cfg_root: Path, url: str):
+    # SEC: beyaz liste disi semalar urlopen'e hic ulasmadan reddedilir
+    # (file:/// ile yerel dosya okuma yolu kapali).
+    _seed_default_state()
+    _configure(url)
+    with pytest.raises(SyncError, match="şeması"):
+        webdav_push()
+
+
 def test_push_uploads_bundle(cfg_root: Path, monkeypatch: pytest.MonkeyPatch):
     captured: dict = {}
 

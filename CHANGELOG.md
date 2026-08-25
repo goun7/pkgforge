@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- **desktop**: `pnpm test` / `pnpm test:watch` scripts — the 74 vitest tests
+  existed but had no package.json entry point.
+
+### Fixed (Kritiksizlik Taraması)
+- **`api_server._validate_aur_name`**: regex accepted names starting with
+  `-` or `.`, including `..` — a path-traversal seed reaching
+  `tempfile.mkdtemp(prefix=f"pkgforge-aur-{name}-")` and the AUR clone URL.
+  First character must now be alphanumeric; regression tests added.
+- **rate-limiter test**: asserted "still limited" at t=+999s where every hit
+  had already left the 60 s sliding window (would pass only by accident).
+  Now asserts at exactly one window length (`now + _HTTP_RATE_LIMIT`).
+- **main.py**: `getattr(args, "token_file", "")` typing — mypy is back to
+  **0 errors across 75 files**.
+- **lint**: ruff **31 → 0** across 11 test files (F841/RUF059/C408/RUF012/B023).
+- removed stray tracked junk file `https:/github.com/deneme/proje/CMakeLists.txt`.
+
+### Docs
+- README / RELEASE_READINESS synced to measured reality: **1383 passed,
+  6 skipped**, **76 %** core coverage, CI gate raised **48 → 72**.
+
 ### Fixed (Production-Readiness Audit)
 - **`quality_score.score_package`**: package name was derived via
   `pkg_path.stem.split(".")[0]`, which mis-parsed dotted versions

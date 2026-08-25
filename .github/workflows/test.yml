@@ -35,7 +35,7 @@ jobs:
 
       - name: Run Test Suite
         run: |
-          python -m pytest tests/ -v --tb=short --cov=core --cov-report=term-missing --cov-report=html:htmlcov --cov-report=json:coverage.json --cov-fail-under=48
+          python -m pytest tests/ -v --tb=short --cov=core --cov-report=term-missing --cov-report=html:htmlcov --cov-report=json:coverage.json --cov-fail-under=72
 
       - name: Upload Coverage Report
         if: always()
