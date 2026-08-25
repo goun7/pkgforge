@@ -170,3 +170,10 @@
 - Uclu bant (1870de3): from_source/sbom/provenance hedef satirlari kapandi;
   provenance'taki olu return kaldirildi.
 - Olcum: %87 (1332 miss / 10544 stmt), suite rc=0.
+
+## Oturum-2, Tur 28 (otonom)
+- history_db %100 (d452717): PRAGMA/ALTER/init istisnolari, bes sqlite.Error
+  korumasi, yedekleme uc yolu.
+- native_deb_converter %98 (241042a): guvenlik reddleri, ar/data.tar zinciri,
+  Qt isleyiciler.
+- Olcum: %88 esik asi (1256 miss / 10544 stmt), suite rc=0.
