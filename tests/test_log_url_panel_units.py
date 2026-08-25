@@ -161,3 +161,37 @@ def test_start_download_error_reenables(ud, monkeypatch):
     ud._start_download()
     yakalanan["err"]("ag koptu")
     assert ud._download_btn.isEnabled() is True and kritikler
+
+def test_download_worker_invokes_downloader(ud, monkeypatch, tmp_path):
+    """_do_download kapanisi download_package'i dogru bayrakla cagirir."""
+    from ui import url_dialog as UDM
+    indirilen = tmp_path / "w.deb"
+    indirilen.write_bytes(b"x")
+    cagrilar = {}
+    monkeypatch.setattr(UDM, "download_package",
+                        lambda url, require_https=True:
+                        cagrilar.update(url=url, https=require_https)
+                        or indirilen)
+    monkeypatch.setattr(UDM, "load_setting", lambda k, d=False: False)
+    yakalanan = {}
+    monkeypatch.setattr("ui.background_worker.run_in_background",
+                        lambda fn, on_done=None, on_error=None:
+                        yakalanan.update(fn=fn))
+    ud._url_input.setText("https://ornek.test/w.deb")
+    ud._start_download()
+    sonuc = yakalanan["fn"]()  # arka plan isini senkron calistir
+    assert sonuc == indirilen and cagrilar["https"] is True
+
+
+def test_download_worker_http_insecure_allowed(ud, monkeypatch, tmp_path):
+    from ui import url_dialog as UDM
+    monkeypatch.setattr(UDM, "download_package",
+                        lambda url, require_https=True: None)
+    monkeypatch.setattr(UDM, "load_setting", lambda k, d=False: True)
+    yakalanan = {}
+    monkeypatch.setattr("ui.background_worker.run_in_background",
+                        lambda fn, on_done=None, on_error=None:
+                        yakalanan.update(fn=fn))
+    ud._url_input.setText("http://eski.test/x.deb")
+    ud._start_download()
+    yakalanan["fn"]()  # require_https=False ile cagirmali (hata yoksa ok)

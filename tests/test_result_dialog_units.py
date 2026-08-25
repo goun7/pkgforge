@@ -185,3 +185,34 @@ def test_export_without_metadata_uses_default_name(app, tmp_path, monkeypatch):
     d._on_export_report()
     assert "package" in yakalanan["t"]
     d.deleteLater()
+
+# --- %100 itmesi: onay, detay ac-kapa ------------------------------------------
+
+def test_approve_button_emits_and_accepts(app):
+    d = ResultDialog(_report(CheckSeverity.PASS), metadata=_meta())
+    d.show()
+    from i18n import tr
+    kur = next(b for b in d.findChildren(QPushButton)
+               if b.text() == tr("btn.install"))
+    onaylar = []
+    d.install_approved.connect(lambda: onaylar.append(True))
+    kabul = []
+    d.accepted.connect(lambda: kabul.append(True))
+    kur.click()
+    assert onaylar and kabul
+    d.deleteLater()
+
+
+def test_details_toggle_roundtrip(app):
+    d = ResultDialog(_report(), metadata=_meta())
+    d.show()
+    from i18n import tr
+    beklenen = tr("result.details_btn", count=2)
+    btn = next(b for b in d.findChildren(QPushButton)
+               if beklenen.split("▶")[-1].strip()[:4] in b.text()
+               or "detay" in b.text().lower())
+    btn.click()   # acilir -> ▼
+    assert btn.text().startswith("▼")
+    btn.click()   # kapanir -> ▶
+    assert btn.text().startswith("▶")
+    d.deleteLater()
