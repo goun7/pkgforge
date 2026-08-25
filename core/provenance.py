@@ -367,4 +367,3 @@ def verify_attestation(attestation: InTotoStatement) -> tuple[bool, str]:
             return False, f"Predicate'de '{key}' alanı eksik"
 
     return True, "Attestation doğrulandı ✓"
-    return None
