@@ -186,3 +186,9 @@
 - dbus_service politika/kimlik/otobus + sync_backends age/backend korumalari
   (5fa80b7). Toplam eksik 1232 -> 1196.
 - Olcum: %89 esigi asildi (1196 miss / 10544 stmt), suite rc=0.
+
+## Oturum-2, Tur 31 (otonom)
+- api_server HTTP yuzeyi (162b956): gercek sunucu+istemci entegrasyonu,
+  tum koruma kodlari (401/403/400/413/429), dispatch, hiz-limiti, XFF,
+  OpenAPI sema. Eksik 1196 -> 1121.
+- Olcum: %89 (1121 miss / 10544 stmt), suite rc=0.
