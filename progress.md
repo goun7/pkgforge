@@ -205,3 +205,12 @@
   plugin uclusu, compare-diff, aur arama/bilgi/insa (~250 satir).
 - Izolasyon duzeltmesi (348db80): tur-33 ham atamalari monkeypatch'e baglandi.
 - Olcum: %91 (983 miss / 10544 stmt), suite rc=0; api_server %73.
+
+## Oturum-2, Tur 34 (otonom)
+- api_server son buyuk blok (8d8331d): kuyruk kalicilik/geri-yukleme, iptal/
+  baslatma, zamanlama tick/ensure/timer/run, profil uclusu, senkron sifre
+  anahtarlik yollari, dbus politika/start, prova, _make_pipeline baglantilari,
+  dispatch dongusu, serve stdio.
+- Kirletici avı tamamlandi: quality_score (5bb2381) ve flatpak (69197bc)
+  kalan ham atamalari monkeypatch'e baglandi — tam suit kanitli rc=0.
+- Olcum: %94 (675 miss / 10544 stmt); api_server %90.
