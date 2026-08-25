@@ -84,3 +84,10 @@
 - NOT: bu çalışma alanında ikiz bir oturum daha commit atıyor (494cc5d, cbd47b5);
   çakışma yok — commitlerim dosya-kapsamlı tutuldu
 
+
+## Oturum-2, Tur 3-4 (otonom)
+- Belge/gate senkronu (fde3d3b): 1479 test, cekirdek %80 (8559 stmt/1708 miss), gate 72->78; README rozetleri + RELEASE_READINESS + CHANGELOG guncel.
+- quality_score %70->%95 (514615d); aur_checker %56->%99; marketplace/i18n/retry/malware onceki turlarda tamamlandi.
+- Desktop CI-parite kanitlandi: vitest 74/74 + pnpm build OK (kod degisikligi gerekmedi).
+- Wheel kurulum dumani: pip wheel -> temiz venv -> pkgforge --version / health / completion OK. NOT: gercek $HOME sandbox'ta yazilamaz oldugundan HistoryDB hatalari gorundu; izole HOME ile temiz. Urun davranisi saglam (hatalarda cokmez).
+- Ortam notlari: bash'in /tmp'si dosya-araci /tmp'sinden farkli ad-uzayi; gecici betikler artik calisma alaninda. 'python -m build' .venv'de yok -> 'pip wheel' kullan.
