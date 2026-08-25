@@ -98,3 +98,24 @@
 - ~21,730 LOC Python; 50 core modules, 12 UI modules, 18 test files
 - Git tree clean at 52892df "Deep audit: remove dead code, fix imports, add accessibility, tests"
 
+## SEC-SEGFAULT (titrek, 2026-08-25): coverage+Qt kombinasyonunda native çökme
+- 7 dosyalık pipeline test seti `--cov=core.pipeline` ile birleşik koştuğunda
+  BİR KEZ interpreter segfault'u (PyQt6 modülleri yüklü, C++ yığın dökümü)
+- Aynı set kapsamasız ve ikili alt-kümelerle defalarca yeşil; sweep dosyası
+  tek başına --cov ile de yeşil -> tetikleyici: coverage izleme + Qt kapanışı
+  etkileşimi, önceden var olan titrek sınıf (BUG-002 akrabı ama farklı)
+- Etki: CI (--cov=core, PyQt6 kurulu) düşük olasılıkla rastgele kırmızı alabilir;
+  tekrarlanabilir repro yok. İzleme: tekrar görürse -p no:cov? / faulthandler ekranı
+
+## ORTAM-NOT (2026-08-25): konakta 0.0.0.0:8765 dinleyicisi var
+- ss çıktısında pkgforge varsayılan serve portu 8765 TÜM arayüzlerde dinleniyor;
+  süreç bu sandbox'ın PID-ad uzayının dışında (görünmez/öldürülemez)
+- serve_http koruması gereği ya --token'lı ya da loopback'tir; kullanıcı makinesi
+  — hangi oturumun başlattığı belirsiz. Yeniden başlatılırsa host-tabanlı incele
+
+## IKIZ-OTURUM (2026-08-25): aynı ağaçta paralel ajan aktif
+- Kanıt: 494cc5d benim çalışma-ağacı değişikliklerimi kendi doküman işleriyle
+  tek commite aldı; cbd47b5 utest temizliği
+- Protokol: küçük birimler, commit öncesi git status/log tazeleme, dosya-kapsamlı
+  git add; core/* üzerindeki bekleyen ikiz değişikliklerine dokunma
+

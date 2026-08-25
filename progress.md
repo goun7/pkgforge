@@ -70,3 +70,17 @@
 - Docs refreshed: README/RELEASE_READINESS/CHANGELOG to 586 tests / 52% cov;
   competitor scoring + release checklist updated
 
+## Oturum-2 (goal-f06e958f, 2026-08-25, 50 turluk otonom)
+- serve_transport titrekliği kökten çözüldü (70913c9): kernel-atama özgün port,
+  terminate+wait+kill zinciri, yabancı-/health tespiti
+- WebDAV şema beyaz listesi: file:///ftp:/data: artık urlopen'e ulaşamaz
+  (494cc5d içinde); bandit -ll 0 Medium; privileged chmod gerekçeli nosec
+- F5.8 mutmut pilotu ÇALIŞIR hale geldi (2c3db24): conftest mutants-kök tespiti +
+  core/__init__ köprüsü (Python düz-paket > namespace gölgelemesi kırıldı);
+  ilk tam koşu: 226 mutant / 78 killed / 109 survived / 39 kapsamsız
+- pipeline %66→%95 (0da14f9), security %65→%90 (8fc2e7d)
+- GÖZLEM: coverage+Qt ağır kombinasyonda tek seferlik native segfault görüldü
+  (7 dosyalı pipeline seti --cov ile); kapsamasız yeşil -> findings SEC-SEGFAULT
+- NOT: bu çalışma alanında ikiz bir oturum daha commit atıyor (494cc5d, cbd47b5);
+  çakışma yok — commitlerim dosya-kapsamlı tutuldu
+
