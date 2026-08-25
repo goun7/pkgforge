@@ -4,8 +4,8 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-1479%20passed-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-1772%20passed-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
 

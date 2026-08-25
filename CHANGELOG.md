@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **tests**: Oturum-2/3 kapsam maratonu — dep_resolver %73→%100,
+  dep_graph %41→%100, subprocess_converters %86→%100,
+  main_window %50→%92, settings_dialog %84→%100 (+~120 yeni test);
+  toplam kapsama **%80 → %86** (core+ui+i18n), toplam **1772 test**.
+
 - **tests**: Oturum-2 kapsam taramaları — pipeline %66→%95,
   security %65→%90, i18n %66→%100, retry %67→%98, malware_scanner %67→%96,
   plugins/marketplace %64→%100 (+~100 yeni test); çekirdek kapsaması
