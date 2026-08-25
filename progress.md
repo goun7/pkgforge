@@ -150,3 +150,8 @@
 - malware_scanner tazelik fonksiyonu tam kapsamda; scan_file govdesi
   diger suitlerde kapsaniyor.
 - Olcum: %86 (1455 miss / 10565 stmt). Suite rc=0.
+
+## Oturum-2, Tur 24 (otonom)
+- Uc modul daha %100 (10173ad): policy_engine, cross_check, scheduler.
+- rollback_verify %99, downloader %96 — hedef dort satir kapandi (f70d6d6).
+- Olcum: %86 (1429 miss / 10565 stmt), suite rc=0.
