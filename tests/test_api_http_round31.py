@@ -200,7 +200,18 @@ def test_post_rate_limited_http(sunucu, monkeypatch):
 
 
 def test_post_body_too_large(sunucu):
-    baslik = {"Authorization": "Bearer op-token"}
-    devasa = "{" + '"dolgu":"' + "x" * (_HTTP_MAX := 1_048_577) + '"}'
-    kod, hata = _istek(sunucu, govde=devasa, basliklar=baslik)
-    assert kod == 413 and hata["error"]["code"] == -32000       # 1582-1585
+    # Sunucu govdeyi OKUMADAN 413 doner; buyuk veriyi gercekten transfer
+    # etmemek icin yalnizca Content-Length basligini abartiriz.
+    host, port = sunucu.split(":")
+    c = http.client.HTTPConnection(host, int(port), timeout=5)
+    c.putrequest("POST", "/")
+    c.putheader("Authorization", "Bearer op-token")
+    c.putheader("Content-Type", "application/json")
+    c.putheader("Content-Length", str(1_048_577))
+    c.endheaders()
+    c.send(b"{}")
+    yanit = c.getresponse()
+    govde = json.loads(yanit.read())
+    c.close()
+    assert yanit.status == 413                                   # 1582-1585
+    assert govde["error"]["code"] == -32000

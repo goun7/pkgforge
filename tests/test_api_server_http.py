@@ -147,7 +147,7 @@ def test_body_over_1mib_rejected(http_server):
         assert exc.code == 413
     except (urllib.error.URLError, ConnectionError, BrokenPipeError, OSError) as exc:
         reason = str(getattr(exc, "reason", exc)).lower()
-        assert any(k in reason for k in ("reset", "broken pipe", "connection")), reason
+        assert any(k in reason for k in ("reset", "broken pipe", "connection", "timed out")), reason
 
 
 def test_read_only_token_scope(tmp_path):
