@@ -25,7 +25,7 @@ def test_build_without_runtime(monkeypatch, tmp_path):
     f = tmp_path / "demo-1-1-x86_64.pkg.tar.zst"
     f.write_bytes(b"x")
     monkeypatch.setattr(OB.shutil, "which", lambda n: None)
-    ok, msg, out = OB.build_oci_image(f, None)
+    ok, msg, _out = OB.build_oci_image(f, None)
     assert ok is False and "buildah" in msg and "podman" in msg
 
 
@@ -49,7 +49,7 @@ def test_buildah_happy_path(monkeypatch, tmp_path):
     monkeypatch.setattr(OB.shutil, "which",
                         lambda n: "/usr/bin/buildah" if n == "buildah" else None)
     seen = _patch(monkeypatch, "buildah")
-    ok, msg, out = OB.build_oci_image(f, None, tag="pkgforge/demo:v1",
+    ok, _msg, out = OB.build_oci_image(f, None, tag="pkgforge/demo:v1",
                                       output_file=out_file)
     assert ok is True and out == out_file
     assert ("buildah", "commit") in seen and ("buildah", "push") in seen
@@ -63,7 +63,7 @@ def test_buildah_stage_failures_cleanup(monkeypatch, tmp_path):
                         lambda n: "/usr/bin/buildah" if n == "buildah" else None)
     for bad_op in ("from", "copy", "commit", "push"):
         seen = _patch(monkeypatch, "buildah", fail_op=bad_op)
-        ok, msg, out = OB.build_oci_image(f, None)
+        ok, msg, _out = OB.build_oci_image(f, None)
         assert ok is False and bad_op in msg, bad_op
         if bad_op != "from":
             assert ("buildah", "rm") in seen, bad_op
@@ -76,11 +76,11 @@ def test_podman_success_and_failures(monkeypatch, tmp_path):
     monkeypatch.setattr(OB.shutil, "which",
                         lambda n: "/usr/bin/podman" if n == "podman" else None)
     seen = _patch(monkeypatch, "podman")
-    ok, msg, out = OB.build_oci_image(f, None, output_file=out_file)
+    ok, _msg, out = OB.build_oci_image(f, None, output_file=out_file)
     assert ok is True and out == out_file
     assert ("podman", "save") in seen
 
     for bad_op in ("build", "save"):
         _patch(monkeypatch, "podman", fail_op=bad_op)
-        ok2, msg2, out2 = OB.build_oci_image(f, None)
+        ok2, msg2, _out2 = OB.build_oci_image(f, None)
         assert ok2 is False and bad_op in msg2, bad_op

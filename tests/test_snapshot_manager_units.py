@@ -76,7 +76,7 @@ def test_btrfs_take_list(monkeypatch):
     snaps = SM._list_btrfs_snapshots()
     assert snaps and snaps[0]["name"].lstrip("/").startswith("pkgforge-")
 
-    ok, msg = SM._restore_btrfs_snapshot("/@snap-test")
+    ok, _msg = SM._restore_btrfs_snapshot("/@snap-test")
     assert isinstance(ok, bool)
 
 

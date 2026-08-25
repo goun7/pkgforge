@@ -464,9 +464,10 @@ def main() -> int:
 
             token = args.token
             # F5.2a: keep the secret out of the process list.
-            if not token and getattr(args, "token_file", ""):
+            tf = getattr(args, "token_file", "")
+            if not token and isinstance(tf, str) and tf:
                 try:
-                    token = _P(args.token_file).read_text(encoding="utf-8").strip()
+                    token = _P(tf).read_text(encoding="utf-8").strip()
                 except OSError as exc:
                     print(f"hata: token dosyası okunamadı: {exc}")
                     return 2

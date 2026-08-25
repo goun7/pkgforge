@@ -644,10 +644,13 @@ def handle_compare_diff(params):
 
 # ── Faz 2 / B1: AUR browser ─────────────────────────────────────
 
-_AUR_NAME_RE = __import__("re").compile(r"^[A-Za-z0-9@._+-]+$")
+_AUR_NAME_RE = __import__("re").compile(r"^[A-Za-z0-9][A-Za-z0-9@._+-]*$")
 
 
 def _validate_aur_name(name: str) -> None:
+    # First character must be alphanumeric: rejects "", "-bas", ".nokta" and,
+    # critically, "." / ".." path segments before the name reaches
+    # tempfile.mkdtemp(prefix=f"pkgforge-aur-{name}-") and the clone URL.
     if not name or not _AUR_NAME_RE.match(name) or len(name) > 255:
         raise ValueError(f"Invalid AUR package name: {name!r}")
 

@@ -65,7 +65,7 @@ def test_prepare_aur_package_flow(monkeypatch, tmp_path):
     repo.mkdir()
     (repo / "meson.build").write_text("x")
     monkeypatch.setattr(AP, "safe_run", lambda c, timeout=None, **kw: _ns(0, out="pkgname = demo"))
-    ok, msg, aur_pkg = prepare_aur_package(pkg, tmp_path / "out", git_url="https://git/d", repo_dir=repo)
+    ok, _msg, aur_pkg = prepare_aur_package(pkg, tmp_path / "out", git_url="https://git/d", repo_dir=repo)
     assert ok is True and aur_pkg.name == "demo"
     pb = aur_pkg.pkgbuild.read_text()
     assert "meson setup build" in pb
@@ -81,7 +81,7 @@ def test_prepare_validation_fallback(monkeypatch, tmp_path):
             return _ns(1)
         return _ns(0, out="pkgname = demo")
     monkeypatch.setattr(AP, "safe_run", flaky)
-    ok, msg, aur_pkg = prepare_aur_package(pkg, tmp_path / "out")
+    ok, _msg, _aur_pkg = prepare_aur_package(pkg, tmp_path / "out")
     assert ok is True and calls["n"] >= 2
 
 class Recorder:

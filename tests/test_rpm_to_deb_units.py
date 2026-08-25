@@ -81,7 +81,7 @@ def test_success_fallback_metadata(monkeypatch, tmp_path):
     rpm, out = _paths(tmp_path)
     out.mkdir()
     _happy_patch(monkeypatch, rpm_lines=None)
-    ok, msg, deb = RD.rpm_to_deb(rpm, out)
+    ok, _msg, deb = RD.rpm_to_deb(rpm, out)
     assert ok is True
     assert deb.name == "hello_1.0-1_amd64.deb"
 
@@ -92,10 +92,10 @@ def test_success_with_rpm_query_and_dpkg_fail(monkeypatch, tmp_path):
     lines = ["my-app", "3.4", "2.fc40", "aarch64", "Arac",
              "https://ornek.test"]
     _happy_patch(monkeypatch, rpm_lines=lines)
-    ok, msg, deb = RD.rpm_to_deb(rpm, out)
+    ok, _msg, deb = RD.rpm_to_deb(rpm, out)
     assert ok is True
     assert deb.name == "my-app_3.4-2.fc40_arm64.deb"
 
-    seen = _happy_patch(monkeypatch, rpm_lines=lines, dpkg_rc=1)
-    ok2, msg2, d2 = RD.rpm_to_deb(rpm, out)
+    _seen = _happy_patch(monkeypatch, rpm_lines=lines, dpkg_rc=1)
+    ok2, msg2, _d2 = RD.rpm_to_deb(rpm, out)
     assert ok2 is False and "dpkg-deb başarısız" in msg2

@@ -108,7 +108,7 @@ def test_error_approved_installs(gate, err_report):
 
 
 def test_warning_dismissed_message(gate, warn_report):
-    pipe, deb, installed = gate
+    pipe, deb, _installed = gate
     pipe._decision_made = True
     pipe._decision_approved = False
     pipe._decision_message = "kullanici vazgecti"

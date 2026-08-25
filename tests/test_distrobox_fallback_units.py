@@ -111,11 +111,11 @@ def test_install_and_export_chain(qapp, monkeypatch, tmp_path):
 
     fb._on_create_finished(0, None)   # -> install (rpm yolu)
     proc = DistroboxFallbackUnit.last_process
-    prog, args = proc.started[-1]
+    _prog, args = proc.started[-1]
     assert "rpm -i" in args[1] and "dnf install -y" in args[1]
 
     fb._on_install_finished(0, None)  # -> export
     assert fb._phase == "export"
     proc = DistroboxFallbackUnit.last_process
-    prog2, args2 = proc.started[-1]
+    _prog2, args2 = proc.started[-1]
     assert args2[0] == "enter" and "distrobox-export" in args2

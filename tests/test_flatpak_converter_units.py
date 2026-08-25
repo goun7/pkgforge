@@ -128,7 +128,7 @@ def test_flatpak_to_deb_happy(monkeypatch, tmp_path):
         Path(cmd[-1]).write_bytes(b"DEB")
         return NS(returncode=0, stdout="", stderr="")
     monkeypatch.setattr(FC, "safe_run", fake_dpkg)
-    ok, msg, deb = FC.flatpak_to_deb("org.demo.Demo", out_dir)
+    ok, _msg, deb = FC.flatpak_to_deb("org.demo.Demo", out_dir)
     assert ok is True and deb.is_file()
     assert deb.name == "org-demo-demo_3.2_amd64.deb"
 
@@ -140,11 +140,11 @@ def test_runtime_manifest(monkeypatch, tmp_path):
 
     monkeypatch.setattr(FC.shutil, "which", lambda n: "/usr/bin/flatpak")
     monkeypatch.setattr(FC, "list_installed_apps", lambda: [_app()])
-    ok, msg, path = FC.export_flatpak_runtime(
+    ok, msg, _path = FC.export_flatpak_runtime(
         "org.yok.Yok", tmp_path)
     assert ok is False and "bulunamadı" in msg
 
-    ok2, msg2, mf = FC.export_flatpak_runtime(
+    ok2, _msg2, mf = FC.export_flatpak_runtime(
         "org.demo.Demo", tmp_path, branch="beta")
     assert ok2 is True and mf.is_file()
     data = json.loads(mf.read_text())

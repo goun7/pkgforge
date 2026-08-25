@@ -69,7 +69,7 @@ def test_check_version_with_fake_libs(monkeypatch, tmp_path):
     real.write_bytes(b"ELF")
 
     known = {"/usr/lib", "/usr/lib64", "/lib", "/lib64", "/usr/lib/x86_64-linux-gnu"}
-    orig_is_dir, orig_is_file, orig_symlink = Path.is_dir, Path.is_file, Path.is_symlink
+    orig_is_dir, orig_is_file = Path.is_dir, Path.is_file
     monkeypatch.setattr(Path, "is_dir", lambda self: True if str(self) in known else orig_is_dir(self))
     monkeypatch.setattr(Path, "is_file", lambda self: True if self == real else orig_is_file(self))
     monkeypatch.setattr(Path, "is_symlink", lambda self: False)

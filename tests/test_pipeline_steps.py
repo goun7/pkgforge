@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace as NS
+from typing import ClassVar
 
 import pytest
 from PyQt6.QtCore import QCoreApplication, QTimer
@@ -32,7 +33,7 @@ class Sig:
 
 
 def _tools(**kw):
-    base = dict(missing_required=[], missing_optional=[], debtap="")
+    base = {"missing_required": [], "missing_optional": [], "debtap": ""}
     base.update(kw)
     return NS(**base)
 
@@ -54,7 +55,7 @@ def test_do_install_dry_run(pipe, monkeypatch, tmp_path):
 
 def _make_fake_converter(sig_finished, convert_body=None):
     class FakeConv:
-        instances = []
+        instances: ClassVar[list] = []
 
         def __init__(self, tools, parent=None):
             self.output_line = Sig()

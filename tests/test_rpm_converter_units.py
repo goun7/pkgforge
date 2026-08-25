@@ -57,7 +57,8 @@ class Factory:
         return p
 
 def _tools(**over):
-    base = dict(rpm2cpio="/usr/bin/rpm2cpio", bsdtar="/usr/bin/bsdtar", makepkg="/usr/bin/makepkg", bwrap="", pkexec="", pacman="")
+    base = {"rpm2cpio": "/usr/bin/rpm2cpio", "bsdtar": "/usr/bin/bsdtar",
+            "makepkg": "/usr/bin/makepkg", "bwrap": "", "pkexec": "", "pacman": ""}
     base.update(over)
     return NS(**base)
 
@@ -82,7 +83,7 @@ def test_missing_tool_guards():
         c = RpmConverter(_tools())
         setattr(c._tools, missing, "")
         got = []
-        c.finished.connect(lambda ok, m, p: got.append(m))
+        c.finished.connect(lambda ok, m, p, got=got: got.append(m))
         c.convert(Path("/tmp/a.rpm"), Path("/tmp/w"), _meta())
         assert got and missing in got[0]
 
@@ -101,13 +102,13 @@ def test_cancel_and_output_lines(monkeypatch, tmp_path):
     assert results and results[0][0] is False and "ptal" in results[0][1]
 
 def test_extract_failure(monkeypatch, tmp_path):
-    conv, fac, lines, results = _converter(monkeypatch)
+    conv, fac, _lines, results = _converter(monkeypatch)
     conv.convert(tmp_path / "a.rpm", tmp_path, _meta())
     fac.procs[0].finished.emit(3, None)
     assert results[0][0] is False and "kod: 3" in results[0][1]
 
 def test_security_rejections(monkeypatch, tmp_path):
-    conv, fac, lines, results = _converter(monkeypatch)
+    conv, fac, _lines, results = _converter(monkeypatch)
     monkeypatch.setattr(RC, "check_symlink_attacks", lambda p: ["../evil"])
     conv.convert(tmp_path / "a.rpm", tmp_path, _meta())
     fac.procs[0].finished.emit(0, None)
@@ -122,7 +123,7 @@ def test_security_rejections(monkeypatch, tmp_path):
     assert any("uyari" in x for x in l2)
 
 def test_happy_build(monkeypatch, tmp_path):
-    conv, fac, lines, results = _converter(monkeypatch)
+    conv, fac, _lines, results = _converter(monkeypatch)
     monkeypatch.setattr("core.security.build_sandbox_cmd", lambda cmd, d, t: (cmd[0], tuple(cmd[1:])))
     conv.convert(tmp_path / "c.rpm", tmp_path, _meta())
     fac.procs[0].finished.emit(0, None)
@@ -138,14 +139,14 @@ def test_happy_build(monkeypatch, tmp_path):
     assert results[-1][0] is True and results[-1][2] == out_pkg
 
 def test_makepkg_fail_and_missing_output(monkeypatch, tmp_path):
-    conv, fac, lines, results = _converter(monkeypatch)
+    conv, fac, _lines, results = _converter(monkeypatch)
     monkeypatch.setattr("core.security.build_sandbox_cmd", lambda cmd, d, t: (cmd[0], tuple(cmd[1:])))
     conv.convert(tmp_path / "d.rpm", tmp_path, _meta())
     fac.procs[0].finished.emit(0, None)
     fac.procs[1].finished.emit(9, None)
     assert results[-1][0] is False and "kod: 9" in results[-1][1]
 
-    conv2, fac2, l2, res2 = _converter(monkeypatch)
+    conv2, fac2, _l2, res2 = _converter(monkeypatch)
     monkeypatch.setattr("core.security.build_sandbox_cmd", lambda cmd, d, t: (cmd[0], tuple(cmd[1:])))
     conv2.convert(tmp_path / "e.rpm", tmp_path / "we", _meta())
     fac2.procs[0].finished.emit(0, None)

@@ -112,7 +112,7 @@ def test_install_checksum_unreachable_fail_closed(monkeypatch, tmp_path):
 
 
 def test_install_success_with_matching_sha(monkeypatch, tmp_path):
-    pdir = _use_tmp_plugin_dir(monkeypatch, tmp_path)
+    _pdir = _use_tmp_plugin_dir(monkeypatch, tmp_path)
     _seed_index(monkeypatch)
     body = b"plugin-kodu"
 
@@ -127,7 +127,7 @@ def test_install_success_with_matching_sha(monkeypatch, tmp_path):
 
 
 def test_install_skip_verification(monkeypatch, tmp_path):
-    pdir = _use_tmp_plugin_dir(monkeypatch, tmp_path)
+    _pdir = _use_tmp_plugin_dir(monkeypatch, tmp_path)
     _seed_index(monkeypatch)
 
     def fake_dl(url, dest, timeout=30):
