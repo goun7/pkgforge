@@ -86,11 +86,10 @@ def test_restore_fail_and_mismatch(monkeypatch):
     assert r.verified is False and "izin yok" in r.detail
 
     calls = {"n": 0}
-    real_hash = RV._hash_file_tree
 
     def fake_hash(root, max_files=100):
         calls["n"] += 1
         return "hash-" + str(calls["n"])
     monkeypatch.setattr(RV, "_hash_file_tree", fake_hash)
     r2 = RV.verify_rollback_restore()
-    assert r2.verified is False and "Farklı" not in r2.detail or True
+    assert r2.verified is False and calls["n"] == 2
