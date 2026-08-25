@@ -224,3 +224,8 @@
 - plugins paketi (6920288): kayit/liste/reload/SIGHUP, deb+rpm eklenti
   akislari. plugins/__init__ %86, rpm_to_deb %97, deb_plugin %98.
 - Olcum: rc=0, toplam %95 (546 miss / 10544 stmt).
+
+## Oturum-2, Tur 37 (otonom)
+- abi_scanner %86 -> %97 (440f015): ozet dallari, GLIBCXX aramasi,
+  readelf yollari, namcap istisnasi, deb cikarma akisi.
+- Olcum: rc=0, toplam %95 (519 miss / 10544 stmt).
