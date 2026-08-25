@@ -36,7 +36,12 @@ def _mod(monkeypatch, ad, **ozellikler):
         mod = NS()
         monkeypatch.setitem(sys.modules, ad, mod)
     for k, v in ozellikler.items():
-        setattr(mod, k, v)
+        if hasattr(mod, k):
+            monkeypatch.setattr(mod, k, v)
+        else:
+            monkeypatch.setattr(mod, k, v, raising=False)
+            # NS modullerde calisir; gercek modulde yeni ozellik eklenmis
+            # olur ve undo ile silinir.
     return mod
 
 
@@ -87,10 +92,7 @@ def test_history_handlers(senkron, monkeypatch, tmp_path):
     with pytest.raises(ValueError, match="Invalid package name"):
         AS.handle_history_rollback({"name": "kötü;rm"})
 
-    _mod(monkeypatch, "core.history_db", HistoryDB=NS(
-        get_records_for_package=lambda n: []).__class__ and
-        type("H", (), {"get_records_for_package":
-                       staticmethod(lambda n: [])}))
+    _mod(monkeypatch, "core.history_db")   # sadece importi garanti et
     # daha okunur: sahte sinif
     class SahteDB:
         def __init__(self):
@@ -120,9 +122,9 @@ def test_security_sign_and_sbom(senkron, monkeypatch, tmp_path):
     pkg = tmp_path / "p.pkg.tar.zst"
     pkg.write_bytes(b"P")
 
-    ps = _mod(monkeypatch, "core.package_signing")
-    ps.sign_package = lambda p, key_path=None, passphrase="": (
-        True, "imzalandi")
+    _mod(monkeypatch, "core.package_signing",
+              sign_package=lambda p, key_path=None, passphrase="": (
+                  True, "imzalandi"))
     yanit = AS.handle_security_sign({"pkg_path": str(pkg)})
     assert yanit == {"started": True}
     assert kayit[-1][1]["sonuc"]["ok"] is True
@@ -130,9 +132,9 @@ def test_security_sign_and_sbom(senkron, monkeypatch, tmp_path):
     with pytest.raises(FileNotFoundError):
         AS.handle_security_sign({"pkg_path": str(tmp_path / "yok")})
 
-    sbom_mod = _mod(monkeypatch, "core.sbom")
-    sbom_mod.generate_sbom = lambda p, t, include_hashes=True: NS(
-        to_dict=lambda: {"dosya": 1})
+    _mod(monkeypatch, "core.sbom",
+                    generate_sbom=lambda p, t, include_hashes=True: NS(
+                        to_dict=lambda: {"dosya": 1}))
     monkeypatch.setattr(AS, "discover_tools", lambda: NS())
     AS.handle_security_sbom({"pkg_path": str(pkg)})
     assert kayit[-1][1]["sonuc"] == {"dosya": 1}
@@ -154,9 +156,10 @@ def test_security_quality_provenance_cve(senkron, monkeypatch, tmp_path):
 
     kaynak = tmp_path / "kaynak.deb"
     kaynak.write_bytes(b"K")
-    prov_mod = _mod(monkeypatch, "core.provenance")
-    prov_mod.create_provenance = lambda **k: NS(to_dict=lambda: {"id": "b1"})
-    prov_mod.save_provenance = lambda pr, yol: Path(yol).write_text("{}")
+    _mod(monkeypatch, "core.provenance",
+                    create_provenance=lambda **k: NS(
+                        to_dict=lambda: {"id": "b1"}),
+                    save_provenance=lambda pr, yol: Path(yol).write_text("{}"))
     AS.handle_security_provenance_create(
         {"source_file": str(kaynak), "output_file": str(pkg)})   # 323-332
     assert kayit[-1][1]["sonuc"] == {"id": "b1"}
@@ -164,19 +167,16 @@ def test_security_quality_provenance_cve(senkron, monkeypatch, tmp_path):
         AS.handle_security_provenance_create(
             {"source_file": str(tmp_path / "yok")})
 
-    cve = _mod(monkeypatch, "core.cve_scanner")
-    cve.scan_package = lambda p, t: {"bulgu": 0}
+    _mod(monkeypatch, "core.cve_scanner",
+               scan_package=lambda p, t: {"bulgu": 0})
     AS.handle_security_cve_scan({"pkg_path": str(pkg)})          # 344-345
     assert kayit[-1][1]["sonuc"] == {"bulgu": 0}
 
 
-def test_delta_handlers():
+def test_delta_handlers(monkeypatch):
     du = NS(get_auto_update_status=lambda: {"kurulu": False})
-    sys.modules["core.delta_updater"] = du
-    try:
-        assert AS.handle_delta_status({}) == {"kurulu": False}   # 354-356
-    finally:
-        del sys.modules["core.delta_updater"]
+    monkeypatch.setitem(sys.modules, "core.delta_updater", du)
+    assert AS.handle_delta_status({}) == {"kurulu": False}   # 354-356
     yanit = AS.handle_delta_enable({})
     assert yanit["requires_privilege"] is True                    # 362-363
     yanit = AS.handle_delta_disable({})
@@ -189,16 +189,17 @@ def test_export_handlers(senkron, monkeypatch, tmp_path):
     pkg.write_bytes(b"P")
     monkeypatch.setattr(AS, "discover_tools", lambda: NS())
 
-    oci = _mod(monkeypatch, "core.oci_builder")
-    oci.build_oci_image = lambda p, t, tag=None, output_file=None: (
-        True, "hazir", tmp_path / "cikti.oci")
+    _mod(monkeypatch, "core.oci_builder",
+               build_oci_image=lambda p, t, tag=None, output_file=None: (
+                   True, "hazir", tmp_path / "cikti.oci"))
     AS.handle_export_oci({"pkg_path": str(pkg), "tag": "v1"})     # 381-385
     assert kayit[-1][1]["sonuc"]["ok"] is True
 
     appimg = tmp_path / "uygulama.AppImage"
     appimg.write_bytes(b"A")
-    ai = _mod(monkeypatch, "core.appimage_converter")
-    ai.appimage_to_deb = lambda a, o: (True, "tamam", tmp_path / "c.deb")
+    _mod(monkeypatch, "core.appimage_converter",
+              appimage_to_deb=lambda a, o: (True, "tamam",
+                                            tmp_path / "c.deb"))
     AS.handle_export_appimage_to_deb(
         {"appimage_path": str(appimg), "output_dir": str(tmp_path)})
     assert kayit[-1][1]["sonuc"]["deb_path"].endswith("c.deb")    # 397-401
@@ -219,8 +220,9 @@ def test_export_handlers(senkron, monkeypatch, tmp_path):
 
     with pytest.raises(ValueError, match="app_id"):
         AS.handle_export_flatpak_to_deb({})
-    fc.flatpak_to_deb = lambda aid, od, branch="stable": (
-        True, "tamam", tmp_path / "f.deb")
+    monkeypatch.setattr(fc, "flatpak_to_deb",
+                        lambda aid, od, branch="stable": (
+                            True, "tamam", tmp_path / "f.deb"))
     AS.handle_export_flatpak_to_deb({"app_id": "org.demo"})       # 422-426
     assert kayit[-1][1]["sonuc"]["deb_path"].endswith("f.deb")
 
@@ -239,9 +241,9 @@ def test_graph_build_handler(senkron, monkeypatch, tmp_path):
                stats=lambda: {"kenar": 0},
                to_mermaid=lambda: "graph TD",
                warnings=[])
-    dg = _mod(monkeypatch, "core.dep_graph")
-    dg.build_dep_graph = lambda p: dugum
-    dg.build_file_dep_graph = lambda p: dugum
+    _mod(monkeypatch, "core.dep_graph",
+              build_dep_graph=lambda p: dugum,
+              build_file_dep_graph=lambda p: dugum)
     AS.handle_graph_build({"pkg_path": str(pkg)})                 # 440-450
     assert kayit[-1][1]["sonuc"]["root"] == "demo"
     AS.handle_graph_build({"pkg_path": str(pkg), "files": True})
