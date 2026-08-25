@@ -192,3 +192,10 @@
   tum koruma kodlari (401/403/400/413/429), dispatch, hiz-limiti, XFF,
   OpenAPI sema. Eksik 1196 -> 1121.
 - Olcum: %89 (1121 miss / 10544 stmt), suite rc=0.
+
+## Oturum-2, Tur 32 (otonom)
+- api_server isleyici 1. parti (6b193e7): pipeline/history/security/delta/
+  export/graph ~200 satir.
+- KRITIK duzeltme (5c5f0c3): _mod ham setattr'leri monkeypatch'e baglandi;
+  delta_updater sys.modules silme kirliligi giderildi (tam suit tekrar rc=0).
+- Olcum: %89 (1126 miss / 10544 stmt).
