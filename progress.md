@@ -229,3 +229,9 @@
 - abi_scanner %86 -> %97 (440f015): ozet dallari, GLIBCXX aramasi,
   readelf yollari, namcap istisnasi, deb cikarma akisi.
 - Olcum: rc=0, toplam %95 (519 miss / 10544 stmt).
+
+## Oturum-2, Tur 38 (otonom)
+- abi %99 (2 satir), compat %99 (3 satir) — kalanlar savunma-dallari.
+- 413 HTTP testleri deterministik hale getirildi (275ffa7); ikiz
+  test_api_server_http.py zaman-asimi toleransi genisletildi.
+- Ikiz oturum kod tabanini kuculttu (10544 -> 8546 stmt); toplam %94.
