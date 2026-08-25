@@ -147,12 +147,11 @@ def test_security_quality_provenance_cve(senkron, monkeypatch, tmp_path):
     monkeypatch.setattr(AS, "discover_tools", lambda: NS())
 
     from core.quality_score import QualityReport
-    qs = _mod(monkeypatch, "core.quality_score")
-    rapor = QualityReport()
-    qs.score_package = lambda p, t: rapor
-    monkeypatch.setattr("dataclasses.asdict", lambda x: {"kopya": True})
+    monkeypatch.setattr(
+        _mod(monkeypatch, "core.quality_score"), "score_package",
+        lambda p, t: QualityReport(package_name="demo", total_score=70))
     AS.handle_security_quality({"pkg_path": str(pkg)})          # 305-309
-    assert kayit[-1][1]["sonuc"]["passed"] == rapor.passed
+    assert kayit[-1][1]["sonuc"]["passed"] is True
 
     kaynak = tmp_path / "kaynak.deb"
     kaynak.write_bytes(b"K")
