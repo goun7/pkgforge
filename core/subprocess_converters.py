@@ -149,7 +149,8 @@ class NativeDebConverterSubprocess:
     def _generate_pkgbuild(self, meta, resolved_deps):
         """Generate PKGBUILD content."""
         import re
-        name = re.sub(r"[^a-z0-9@._+-]", "-", meta.name.lower().strip()) or "unknown-deb"
+        name = (re.sub(r"[^a-z0-9@._+-]", "-",
+                       meta.name.lower().strip()).strip("-")) or "unknown-deb"
         version = re.sub(r"^\d+:", "", meta.version)
         if "-" in version:
             version = version.rsplit("-", 1)[0]
