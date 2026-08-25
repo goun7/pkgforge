@@ -119,3 +119,18 @@
   icinde os.path.isfile kullanildigindan tum dosya varlik kontrolleri bozuldu;
   orijinale delege eden lambda ile çözüldü.
 - Genel olcum (core+ui+i18n, 10557 stmt): %85.
+
+## Oturum-2, Tur 20-21 (otonom)
+- dep_resolver %73->%100 (a010f4f), dep_graph %41->%100 (6321e9a):
+  iki modulde 0 eksik satir.
+- subprocess_converters %86->%100 (53804f9) + urun duzeltmesi:
+  pkgname sondaki tire artik strip ediliyor.
+- GERCEK HATA/duzeltme (37c5828): HistoryDB sqlite baglantilari hic
+  kapanmiyordu ('with conn' islem baglamidir!) -> _conn() contextmanager,
+  7 cagri yeri; -X dev ile 0 uyari dogrulandi.
+- IKIZ dosyada ayna hata: cloud_sync.py:70 ayni desen; recete findings.md'de,
+  merge sonrasi uygulanacak. Tam-suit kalan 'unclosed database' uyariarinin
+  TEK kaynagi o satir.
+- Ders: araca-kismi okuma ile write ASLA (history_db'yi 70 satira indirdim;
+  git checkout ile kurtardim). Tam okuma + edit-araci zorunlu.
+- Olcum: %86 (1512 miss / 10565 stmt). Suite rc=0. mypy/bandit(-ll CI esdegeri) temiz.
