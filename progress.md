@@ -91,3 +91,14 @@
 - Desktop CI-parite kanitlandi: vitest 74/74 + pnpm build OK (kod degisikligi gerekmedi).
 - Wheel kurulum dumani: pip wheel -> temiz venv -> pkgforge --version / health / completion OK. NOT: gercek $HOME sandbox'ta yazilamaz oldugundan HistoryDB hatalari gorundu; izole HOME ile temiz. Urun davranisi saglam (hatalarda cokmez).
 - Ortam notlari: bash'in /tmp'si dosya-araci /tmp'sinden farkli ad-uzayi; gecici betikler artik calisma alaninda. 'python -m build' .venv'de yok -> 'pip wheel' kullan.
+
+## Oturum-2, Tur 5-9 (otonom)
+- Statik kapilar: mypy temiz, bandit bulgu yok.
+- UI kapsam maratonu: drop_zone %51->100, step_progress %60->100, log_panel %67->100,
+  result_dialog %73->98, url_dialog %66->98, confirm+loading 100. Kalan buyuk parca:
+  main_window, history_dialog, background_worker, settings(84).
+- secrets_store: hata dallari eklendi; modul DBUS agir oldugundan tam olcum ancak
+  tum-suit ile anlamlI (GUI/doktor suitleri de dokunuyor).
+- Qt dersleri: gizli ustte isVisible() hep False -> show() sart; PyQt6 enum uyeleri
+  int ile karsilastirilamaz; QFileDialog konumsal arguman; geC-iCe import yamasi
+  kaynak module yapilir (ui.background_worker.*).
