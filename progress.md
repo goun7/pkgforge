@@ -219,3 +219,8 @@
 - compatibility_checker %73 -> %94 (3982725): namcap dallari, bagimlilik
   yollari, paylasilan-kutuphane tam akisi ve yardimcilar.
 - Olcum: rc=0, toplam %94 (622 miss / 10544 stmt).
+
+## Oturum-2, Tur 36 (otonom)
+- plugins paketi (6920288): kayit/liste/reload/SIGHUP, deb+rpm eklenti
+  akislari. plugins/__init__ %86, rpm_to_deb %97, deb_plugin %98.
+- Olcum: rc=0, toplam %95 (546 miss / 10544 stmt).
