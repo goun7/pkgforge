@@ -4,7 +4,7 @@ from __future__ import annotations
 from types import SimpleNamespace as NS
 
 import pytest
-from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtCore import QCoreApplication, QProcess
 
 from core.deb_converter import DebConverter
 
@@ -91,3 +91,104 @@ def test_on_error_message_map(qapp):
     for err, needle in cases.items():
         conv._on_error(err)
         assert needle in got[-1][1], err
+
+
+# --- sahte QProcess ile kalan dallar -------------------------------------------
+
+class _FakeProc:
+    """QProcess yerine gecen minimal kayit araci."""
+
+    class ProcessChannelMode:
+        MergedChannels = 1
+
+    class ProcessState:
+        NotRunning = 0
+        Running = 2
+
+    class _Sig:
+        def connect(self, *_):
+            pass
+
+    def __init__(self, parent=None):
+        self.calls = []
+        self._payload = b""
+        self.state_value = 2
+        self.readyReadStandardOutput = self._Sig()
+        self.finished = self._Sig()
+        self.errorOccurred = self._Sig()
+
+    def setWorkingDirectory(self, d):
+        self.calls.append(("cwd", d))
+
+    def setProcessChannelMode(self, m):
+        self.calls.append(("chan", m))
+
+    def connect(self, *_):
+        pass
+
+    def start(self, prog, args):
+        self.calls.append(("start", prog, list(args)))
+
+    def state(self):
+        return self.state_value
+
+    def kill(self):
+        self.calls.append(("kill",))
+
+    def readAllStandardOutput(self):
+        return NS(data=lambda: self._payload)
+
+
+def test_convert_happy_path_starts_sandboxed_process(qapp, tmp_path, monkeypatch):
+    deb = tmp_path / "demo.deb"
+    deb.write_bytes(b"d")
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    monkeypatch.setattr("core.deb_converter.QProcess", _FakeProc)
+    fake_holder = {}
+    orig_init = _FakeProc.__init__
+
+    def _capture(self, parent=None):
+        orig_init(self, parent)
+        fake_holder["p"] = self
+    _FakeProc.__init__ = _capture
+    conv = _conv(qapp)
+    _got, lines = _spy(conv)
+    conv.convert(deb, out_dir)
+    starts = [c for c in fake_holder["p"].calls if c[0] == "start"]
+    assert starts and starts[0][1] == "/usr/bin/debtap"
+    assert str(out_dir) in starts[0][2]
+    assert any("▶ debtap" in s for s in lines)
+
+
+def test_cancel_running_and_idle(qapp):
+    conv = _conv(qapp)
+    _got, lines = _spy(conv)
+    proc = _FakeProc()
+    conv._process = proc
+    conv.cancel()
+    assert proc.calls[-1][0] == "kill"
+    assert any("iptal" in s for s in lines)
+
+    idle = _FakeProc()
+    # Gercek Qt sozlesmesi: state(), enum uyesi dondurur (int degil).
+    idle.state_value = QProcess.ProcessState.NotRunning
+    conv._process = idle
+    conv.cancel()
+    assert not any(c[0] == "kill" for c in idle.calls)
+
+
+def test_on_output_emits_stripped_lines(qapp):
+    conv = _conv(qapp)
+    _got, lines = _spy(conv)
+    proc = _FakeProc()
+    proc._payload = b"  satir1\n\n satir2 \n"
+    conv._process = proc
+    conv._on_output()
+    assert lines == ["satir1", "satir2"]
+
+
+def test_on_output_without_process_noop(qapp):
+    conv = _conv(qapp)
+    conv._process = None
+    conv._on_output()  # hata vermemeli
