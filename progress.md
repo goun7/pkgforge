@@ -199,3 +199,9 @@
 - KRITIK duzeltme (5c5f0c3): _mod ham setattr'leri monkeypatch'e baglandi;
   delta_updater sys.modules silme kirliligi giderildi (tam suit tekrar rc=0).
 - Olcum: %89 (1126 miss / 10544 stmt).
+
+## Oturum-2, Tur 33 (otonom)
+- api_server isleyici 2. parti (2e310c0): source_generate, system altisi,
+  plugin uclusu, compare-diff, aur arama/bilgi/insa (~250 satir).
+- Izolasyon duzeltmesi (348db80): tur-33 ham atamalari monkeypatch'e baglandi.
+- Olcum: %91 (983 miss / 10544 stmt), suite rc=0; api_server %73.
