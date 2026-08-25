@@ -10,7 +10,6 @@ dist/
 *.db
 cıktı.txt
 .freebuff/
-utest/
 *.deb
 *.rpm
 *.pkg.tar.*
@@ -26,3 +25,11 @@ htmlcov/
 mutants/
 .mutmut-cache/
 .ruff_cache/
+# utest: yalnızca kalıcı E2E fikstürleri izlenir, geri kalanı çalışma artığı.
+# Blok bilinçli olarak EN SONDA: gitignore'da son eşleşen kural kazanır,
+# böylece yukarıdaki global *.deb/*.rpm istisnaları ezmesin.
+utest/*
+!utest/hello_1.0.0-1_amd64.deb
+!utest/fixtures/
+utest/fixtures/*
+!utest/fixtures/*.rpm

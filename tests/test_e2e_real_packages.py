@@ -12,9 +12,10 @@ import pytest
 
 from config import discover_tools
 
-# Project root (tests/ lives one level below it). The committed fixtures under
-# utest/ and .test_home/ are real, buildable packages and are the preferred
-# source so these E2E tests run in CI without needing files on the host.
+# Project root (tests/ lives one level below it). Both committed fixtures live
+# under utest/ (see .gitignore keep-rules): a minimal hello .deb and a tiny
+# hello .rpm — real, buildable packages, preferred over host discovery so
+# these E2E tests run anywhere (including CI).
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -22,7 +23,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # regardless of size (the hello .deb is a minimal 884-byte package). The
 # >1024-byte filter only applies to files discovered on the host, where it
 # skips empty/corrupt placeholders.
-_FIXTURE_RPM = _PROJECT_ROOT / ".test_home" / "rpmbuild" / "RPMS" / "x86_64" / "hello-1.0.0-1.x86_64.rpm"
+_FIXTURE_RPM = _PROJECT_ROOT / "utest" / "fixtures" / "hello-1.0.0-1.x86_64.rpm"
 _FIXTURE_DEB = _PROJECT_ROOT / "utest" / "hello_1.0.0-1_amd64.deb"
 
 
