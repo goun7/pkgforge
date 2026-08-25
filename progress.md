@@ -142,3 +142,11 @@
 - Dokuman senkronu (de46a3a): rozetler 1772 test / %86 kapsama;
   CHANGELOG oturum-3 kaydi.
 - Olcum: %86 (1476 miss / 10565 stmt). Suite rc=0.
+
+## Oturum-2, Tur 23 (otonom)
+- Yedi modul %100'e tasindi (a5ffa81, 2a3d652): report_export,
+  build_receipt, doctor, queue_store, streaming, perf_budget,
+  rpm_to_deb_converter (+ stats_wrapped %100 dogrulandi).
+- malware_scanner tazelik fonksiyonu tam kapsamda; scan_file govdesi
+  diger suitlerde kapsaniyor.
+- Olcum: %86 (1455 miss / 10565 stmt). Suite rc=0.
