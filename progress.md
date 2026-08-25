@@ -165,3 +165,8 @@
 - Hizli bant (2159e3d): security/quality_score/package_analyzer/delta_updater
   hedef dallari kapandi — %100 modul sayisi 50 dosya seviyesine ulasti.
 - Olcum: %87 (1379 miss / 10544 stmt), suite rc=0.
+
+## Oturum-2, Tur 27 (otonom)
+- Uclu bant (1870de3): from_source/sbom/provenance hedef satirlari kapandi;
+  provenance'taki olu return kaldirildi.
+- Olcum: %87 (1332 miss / 10544 stmt), suite rc=0.
