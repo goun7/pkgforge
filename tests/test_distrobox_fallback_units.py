@@ -69,7 +69,7 @@ def test_install_without_distrobox(qapp):
 
 def test_container_name_sanitized(qapp):
     fb = DistroboxFallback(_tools())
-    got = _spy(fb)
+    _spy(fb)
     fb.install_in_container(Path("/tmp/x.deb"), "../../evil;rm -rf")
     name = fb._container_name
     assert name.startswith("pkgforge-")
@@ -105,7 +105,7 @@ def test_install_and_export_chain(qapp, monkeypatch, tmp_path):
     pkg = tmp_path / "ara.rpm"
     pkg.write_bytes(b"x")
     fb = DistroboxFallback(_tools())
-    got = _spy(fb)
+    _spy(fb)
     fb.install_in_container(pkg, "arac", "rpm")
     proc = DistroboxFallbackUnit.last_process
 

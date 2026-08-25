@@ -25,10 +25,10 @@ def _tools():
 
 
 def _args(tmp_path, target, **kw):
-    base = dict(target=str(target), output_dir=str(tmp_path), install=False,
-                dry_run=False, yes=False, to_oci=False, oci_tag=None,
-                verify_build=False, resolve_deps=False, sign=False,
-                sign_key=None, delta=False)
+    base = {"target": str(target), "output_dir": str(tmp_path), "install": False,
+            "dry_run": False, "yes": False, "to_oci": False, "oci_tag": None,
+            "verify_build": False, "resolve_deps": False, "sign": False,
+            "sign_key": None, "delta": False}
     base.update(kw)
     return NS(**base)
 
@@ -62,7 +62,7 @@ def test_convert_url_download_fail(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_url_download_ok(capsys, monkeypatch, tmp_path):
-    db, pkg = _happy(monkeypatch, tmp_path)
+    db, _pkg = _happy(monkeypatch, tmp_path)
     f = tmp_path / "indirilen.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(cli, "download_package",
@@ -74,7 +74,7 @@ def test_convert_url_download_ok(capsys, monkeypatch, tmp_path):
 
 def test_convert_url_delta(capsys, monkeypatch, tmp_path):
     import core.delta_updater as DU
-    db, pkg = _happy(monkeypatch, tmp_path)
+    _happy(monkeypatch, tmp_path)
     f = tmp_path / "delta.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(DU, "find_local_previous", lambda n, **k: None)
@@ -90,7 +90,7 @@ def test_convert_url_delta(capsys, monkeypatch, tmp_path):
 
 def test_convert_verify_build_flag(capsys, monkeypatch, tmp_path):
     import core.reproducible_build as RB
-    db, pkg = _happy(monkeypatch, tmp_path)
+    _happy(monkeypatch, tmp_path)
     f = tmp_path / "v.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(RB, "verify_reproducible",
@@ -102,7 +102,7 @@ def test_convert_verify_build_flag(capsys, monkeypatch, tmp_path):
 
 def test_convert_resolve_deps_and_grade(capsys, monkeypatch, tmp_path):
     import core.package_analyzer as PA
-    db, pkg = _happy(monkeypatch, tmp_path)
+    _happy(monkeypatch, tmp_path)
     f = tmp_path / "r.rpm"
     f.write_bytes(b"R")
     monkeypatch.setattr(PA, "analyze_package",
@@ -123,7 +123,7 @@ def test_convert_resolve_deps_and_grade(capsys, monkeypatch, tmp_path):
 
 def test_convert_sign_flag(capsys, monkeypatch, tmp_path):
     import core.package_signing as PS
-    db, pkg = _happy(monkeypatch, tmp_path)
+    _happy(monkeypatch, tmp_path)
     f = tmp_path / "s.deb"
     f.write_bytes(b"D")
     signed = {}
@@ -138,7 +138,7 @@ def test_convert_sign_flag(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_dry_run_note(capsys, monkeypatch, tmp_path):
-    db, pkg = _happy(monkeypatch, tmp_path)
+    db, _pkg = _happy(monkeypatch, tmp_path)
     f = tmp_path / "d.deb"
     f.write_bytes(b"D")
     rc = cli._cmd_convert(_args(tmp_path, f, install=True, dry_run=True))
@@ -147,7 +147,7 @@ def test_convert_dry_run_note(capsys, monkeypatch, tmp_path):
 
 def test_convert_oci_failure(capsys, monkeypatch, tmp_path):
     import core.oci_builder as OB
-    db, pkg = _happy(monkeypatch, tmp_path)
+    _happy(monkeypatch, tmp_path)
     f = tmp_path / "o.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(OB, "build_oci_image",

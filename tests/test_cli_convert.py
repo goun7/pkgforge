@@ -25,10 +25,10 @@ def _tools():
 
 
 def _args(tmp_path, target, **kw):
-    base = dict(target=str(target), output_dir=str(tmp_path), install=False,
-                dry_run=False, yes=False, to_oci=False, oci_tag=None,
-                verify_build=False, resolve_deps=False, sign=False,
-                sign_key=None, delta=False)
+    base = {"target": str(target), "output_dir": str(tmp_path), "install": False,
+            "dry_run": False, "yes": False, "to_oci": False, "oci_tag": None,
+            "verify_build": False, "resolve_deps": False, "sign": False,
+            "sign_key": None, "delta": False}
     base.update(kw)
     return NS(**base)
 
@@ -66,7 +66,7 @@ def test_convert_local_missing(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_deb_happy(capsys, monkeypatch, tmp_path):
-    db, pkg = _patch_happy(monkeypatch, tmp_path)
+    db, _pkg = _patch_happy(monkeypatch, tmp_path)
     f = tmp_path / "girdi.deb"
     f.write_bytes(b"D")
     rc = cli._cmd_convert(_args(tmp_path, f))
@@ -78,7 +78,7 @@ def test_convert_deb_happy(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_rpm_happy(capsys, monkeypatch, tmp_path):
-    db, pkg = _patch_happy(monkeypatch, tmp_path)
+    db, _pkg = _patch_happy(monkeypatch, tmp_path)
     f = tmp_path / "girdi.rpm"
     f.write_bytes(b"R")
     rc = cli._cmd_convert(_args(tmp_path, f))
@@ -97,7 +97,7 @@ def test_convert_conversion_fail(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_install_yes_success(capsys, monkeypatch, tmp_path):
-    db, pkg = _patch_happy(monkeypatch, tmp_path)
+    db, _pkg = _patch_happy(monkeypatch, tmp_path)
     f = tmp_path / "g.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(cli, "safe_run", lambda cmd, timeout=None, **kw:
@@ -107,7 +107,7 @@ def test_convert_install_yes_success(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_install_fail(capsys, monkeypatch, tmp_path):
-    db, pkg = _patch_happy(monkeypatch, tmp_path)
+    db, _pkg = _patch_happy(monkeypatch, tmp_path)
     f = tmp_path / "g.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(cli, "safe_run", lambda cmd, timeout=None, **kw:
@@ -117,7 +117,7 @@ def test_convert_install_fail(capsys, monkeypatch, tmp_path):
 
 
 def test_convert_install_declined_noninteractive(capsys, monkeypatch, tmp_path):
-    db, pkg = _patch_happy(monkeypatch, tmp_path)
+    db, _pkg = _patch_happy(monkeypatch, tmp_path)
     f = tmp_path / "g.deb"
     f.write_bytes(b"D")
     rc = cli._cmd_convert(_args(tmp_path, f, install=True, yes=False))
@@ -126,7 +126,7 @@ def test_convert_install_declined_noninteractive(capsys, monkeypatch, tmp_path):
 
 def test_convert_to_oci(capsys, monkeypatch, tmp_path):
     import core.oci_builder as OB
-    db, pkg = _patch_happy(monkeypatch, tmp_path)
+    db, _pkg = _patch_happy(monkeypatch, tmp_path)
     f = tmp_path / "g.deb"
     f.write_bytes(b"D")
     oci = tmp_path / "c.oci.tar"

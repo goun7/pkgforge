@@ -130,6 +130,6 @@ def test_convert_happy_path(monkeypatch, tmp_path):
             return _ns(0)
         return _seed_unsquash("")(cmd, timeout=timeout)
     monkeypatch.setattr(AC, "safe_run", dispatch)
-    ok, msg, deb = AC.appimage_to_deb(f, out_dir)
+    ok, _msg, deb = AC.appimage_to_deb(f, out_dir)
     assert ok is True and deb.is_file()
     assert deb.name == "tool-9.9_1.0_amd64.deb"
