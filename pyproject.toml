@@ -70,4 +70,4 @@ addopts = "-q --tb=short"
 # ROADMAP F5.8 notuna bakin.
 [tool.mutmut]
 source_paths = ["core/installer.py"]
-pytest_add_cli_args_test_selection = ["tests/test_converter_guards.py"]
+pytest_add_cli_args_test_selection = ["tests/test_installer_units.py"]
