@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace as NS
 
+import pytest
+
 import core.cross_check as CC
 import core.downloader as DL
 import core.policy_engine as PE
@@ -201,3 +203,56 @@ def test_open_url_builds_guarded_opener(monkeypatch):
     assert yanit == "yanit"
     assert acilan[0][1]._require_https is True
     assert acilan[1] == ("open", istek, 7)
+
+# --- tur-24 ekleri: son dort satir ----------------------------------------------
+
+def test_verify_rollback_restore_mismatch(monkeypatch):
+    snap = NS(snapshot_name="s1", success=True, detail="")
+    monkeypatch.setattr(RV, "detect_backend", lambda: "btrfs")
+    monkeypatch.setattr(RV, "take_snapshot", lambda name: snap)
+    monkeypatch.setitem(sys.modules, "core.snapshot_manager",
+                        NS(restore_snapshot=lambda name: (True, "ok")))
+    degerler = iter(["aaaa1111aaaa1111", "bbbb2222bbbb2222"])
+    monkeypatch.setattr(RV, "_hash_file_tree",
+                        lambda root, max_files=100: next(degerler))
+    sonuc = RV.verify_rollback_restore()
+    assert sonuc.verified is False
+    assert "farklı" in sonuc.detail
+
+
+def _indirme_ortemi(monkeypatch, tmp_path, url, chunklar):
+    yanit = NS(
+        headers=NS(get=lambda k, d="": ""),
+        read=(lambda n=0: chunklar.pop(0) if chunklar else b""),
+        __enter__=lambda s: s,
+        __exit__=lambda s, *a: False,
+    )
+    class Yanit:
+        def __enter__(self_inner):
+            return yanit
+        def __exit__(self_inner, *a):
+            return False
+    monkeypatch.setattr(DL, "_open_url",
+                        lambda req, timeout=0, require_https=True: Yanit())
+    monkeypatch.setattr(DL, "create_temp_dir", lambda: tmp_path)
+    monkeypatch.setitem(sys.modules, "core.retry", NS(
+        RetryConfig=lambda **k: NS(**k),
+        retry_with_backoff=lambda fn, config=None, operation_name=None: fn(),
+    ))
+
+
+def test_download_filename_fallback_and_tempdir(monkeypatch, tmp_path):
+    _indirme_ortemi(monkeypatch, tmp_path, "https://host/pkg-deb-stub",
+                    [b"veri", b""])
+    hedef = DL.download_package("https://host/pkg-deb-stub", None)
+    assert hedef.name == "downloaded_package.deb"
+    assert hedef.parent == tmp_path
+
+
+def test_download_size_limit_exceeded(monkeypatch, tmp_path):
+    monkeypatch.setattr(DL, "MAX_PACKAGE_SIZE_MB", 0)
+    buyuk = b"x" * 70000          # tek parca bile siniri asar
+    _indirme_ortemi(monkeypatch, tmp_path, "https://host/a.deb",
+                    [buyuk, b""])
+    with pytest.raises(RuntimeError, match="maksimum"):
+        DL.download_package("https://host/a.deb", tmp_path)
