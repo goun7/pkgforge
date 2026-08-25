@@ -119,3 +119,18 @@
 - Protokol: küçük birimler, commit öncesi git status/log tazeleme, dosya-kapsamlı
   git add; core/* üzerindeki bekleyen ikiz değişikliklerine dokunma
 
+
+## KAYNAK SIZINTISI (tur-21) — sahiplik ayrimi
+- history_db.py: 'with sqlite3.Connection' ISLEM baglamidir, kapatmaz. 7 alan
+  bos baglanti birikiyordu -> _conn() contextmanager (islem+close) eklendi,
+  tum cagri yerleri gecirildi. -X dev dogrulamasi: ilgili suitlerde 0 uyari.
+- core/cloud_sync.py:70 (IKIZ dosyasi — dokunulmadi): ayni hata
+  'with sqlite3.connect(db) as conn:' + wal_checkpoint. RECETE:
+      conn = sqlite3.connect(db)
+      try:
+          with conn:
+              conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+      finally:
+          conn.close()
+  Ikiz merge sonrasi uygulanmali; o zamana dek tam-suit 'unclosed database'
+  uyarilari bu satirdan gelir (7 adet).

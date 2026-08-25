@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import shutil
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -66,10 +67,20 @@ class HistoryDB:
             pass  # Older SQLite — fall back to default journal
         return conn
 
+    @contextmanager
+    def _conn(self):
+        """Islem-baglami + garantili kapanis (sqlite 'with' kapatmaz)."""
+        c = self._get_connection()
+        try:
+            with c:
+                yield c
+        finally:
+            c.close()
+
     def _init_db(self) -> None:
         """Create tables and apply schema migrations if needed."""
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS conversions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,7 +132,7 @@ class HistoryDB:
             "last_seen": "",
         }
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 rows = conn.execute(
                     "SELECT package_name, package_type, status, source_url,"
                     "       output_pkg, timestamp FROM conversions ORDER BY id"
@@ -186,7 +197,7 @@ class HistoryDB:
     ) -> int:
         """Add a new conversion/installation record."""
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 cursor = conn.execute(
                     """
                     INSERT INTO conversions
@@ -224,7 +235,7 @@ class HistoryDB:
         """Fetch recent conversion history records."""
         records: list[HistoryRecord] = []
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 cursor = conn.execute(
                     """
                     SELECT id, timestamp, package_name, original_file, package_type,
@@ -262,7 +273,7 @@ class HistoryDB:
         """Get all history records for a specific package name."""
         records: list[HistoryRecord] = []
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 cursor = conn.execute(
                     """
                     SELECT id, timestamp, package_name, original_file, package_type,
@@ -299,7 +310,7 @@ class HistoryDB:
     def clear_history(self) -> None:
         """Clear all conversion history records."""
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 conn.execute("DELETE FROM conversions")
                 conn.commit()
                 log.info("Dönüşüm geçmişi temizlendi")
@@ -309,7 +320,7 @@ class HistoryDB:
     def update_http_headers(self, record_id: int, etag: str, last_modified: str) -> None:
         """Update stored HTTP caching headers for a record (upstream tracker)."""
         try:
-            with self._get_connection() as conn:
+            with self._conn() as conn:
                 conn.execute(
                     "UPDATE conversions SET http_etag = ?, http_last_modified = ? WHERE id = ?",
                     (etag, last_modified, record_id),
