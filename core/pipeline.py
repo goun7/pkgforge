@@ -30,7 +30,7 @@ else:
             pyqtSlot,
         )
         _HAS_PYQT6 = True
-    except ImportError:
+    except ImportError:  # pragma: no cover — PyQt6 kurulu ortamda ulaşılmaz
         _HAS_PYQT6 = False
         # Minimal stubs — only used at runtime when PyQt6 is missing.
         class QObject:  # type: ignore[no-redef]
@@ -86,7 +86,7 @@ else:
         # ImportError below switches to the subprocess backend.
         from core.rpm_converter import RpmConverter  # type: ignore[no-redef]
         _HAS_PYQT6 = True
-    except ImportError:
+    except ImportError:  # pragma: no cover — PyQt6 kurulu ortamda ulaşılmaz
         from core.subprocess_converters import (
             RpmConverterSubprocess as RpmConverter,  # type: ignore[no-redef]
         )
