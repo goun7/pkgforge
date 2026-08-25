@@ -58,8 +58,8 @@ def test_source_generate_gates_and_flow(senkron, monkeypatch, tmp_path):
         return NS(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(sec, "safe_run", sahte_safe_run)
-    fs.generate_pkgbuild_from_source = (
-        lambda name, url, bs, rd: f"PKGBUILD {name} {bs}")
+    monkeypatch.setattr(fs, "generate_pkgbuild_from_source",
+                        lambda name, url, bs, rd: f"PKGBUILD {name} {bs}")
 
     yanit = AS.handle_source_generate({"repo_url": "https://x/y/demo.git",
                                        "output_dir": str(tmp_path)})
@@ -89,12 +89,14 @@ def test_system_handlers(senkron, monkeypatch):
     @dataclass
     class Rapor:
         yerel: str = "1.0"
-    cc.cross_check_package = lambda n, v="": Rapor()
+    monkeypatch.setattr(cc, "cross_check_package",
+                        lambda n, v="": Rapor())
     AS.handle_system_cross_check({"package_name": "demo"})       # 521-524
     assert senkron[-1][1]["sonuc"]["yerel"] == "1.0"
 
     sc = _mod(monkeypatch, "core.snapshot_cleanup")
-    sc.get_cleanup_status = lambda: {"kurulu": False}
+    monkeypatch.setattr(sc, "get_cleanup_status",
+                        lambda: {"kurulu": False})
     assert AS.handle_system_snapshot_status({}) == {"kurulu": False}
     assert AS.handle_system_snapshot_install({})["requires_privilege"]
     assert AS.handle_system_snapshot_remove({})["requires_privilege"]
@@ -104,7 +106,7 @@ def test_system_handlers(senkron, monkeypatch):
     @dataclass
     class Sonuc:
         dogrulandi: bool = True
-    rv.verify_rollback = lambda: Sonuc()
+    monkeypatch.setattr(rv, "verify_rollback", lambda: Sonuc())
     AS.handle_system_verify_rollback({})                          # 549-552
     assert senkron[-1][1]["sonuc"]["dogrulandi"] is True
 
@@ -114,7 +116,8 @@ def test_system_handlers(senkron, monkeypatch):
     class Bench:
         skor: int = 9
         passed: bool = True
-    bm.run_benchmarks = lambda quick=False: Bench()
+    monkeypatch.setattr(bm, "run_benchmarks",
+                        lambda quick=False: Bench())
     AS.handle_system_benchmark({"quick": True})                   # 563-567
     assert senkron[-1][1]["sonuc"]["skor"] == 9
 
@@ -123,25 +126,27 @@ def test_system_handlers(senkron, monkeypatch):
 
 def test_plugin_handlers(senkron, monkeypatch):
     pi = _mod(monkeypatch, "core.plugins")
-    pi.reload_plugins = lambda: None
+    monkeypatch.setattr(pi, "reload_plugins", lambda: None)
     mp = _mod(monkeypatch, "core.plugins.marketplace")
-    mp.install_plugin = lambda name, version="latest", force=False: (
-        Path("/eklenti") / name)
+    monkeypatch.setattr(mp, "install_plugin",
+                        lambda name, version="latest", force=False: (
+                            Path("/eklenti") / name))
 
     AS.handle_plugin_install({"name": "demo"})                    # 583-586
     assert senkron[-1][1]["sonuc"]["path"] == "/eklenti/demo"
 
-    mp.is_valid_plugin_name = lambda n: n == "demo"
-    mp.uninstall_plugin = lambda n: True
+    monkeypatch.setattr(mp, "is_valid_plugin_name", lambda n: n == "demo")
+    monkeypatch.setattr(mp, "uninstall_plugin", lambda n: True)
     assert AS.handle_plugin_uninstall({"name": "demo"}) == {"ok": True}
 
     with pytest.raises(ValueError, match="Invalid plugin"):
         AS.handle_plugin_uninstall({"name": "kotu!"})
-    mp.uninstall_plugin = lambda n: False
+    monkeypatch.setattr(mp, "uninstall_plugin", lambda n: False)
     with pytest.raises(FileNotFoundError):
         AS.handle_plugin_uninstall({"name": "demo"})
 
-    mp.update_plugin = lambda n: (True, "guncellendi", Path("/yeni"))
+    monkeypatch.setattr(mp, "update_plugin",
+                        lambda n: (True, "guncellendi", Path("/yeni")))
     AS.handle_plugin_update({"name": "demo"})                     # 612-616
     assert senkron[-1][1]["sonuc"]["ok"] is True
 
@@ -154,8 +159,10 @@ def test_compare_diff(senkron, monkeypatch, tmp_path):
     eski.write_bytes(b"E"); yeni.write_bytes(b"Y")
     sbom_mod = _mod(monkeypatch, "core.sbom")
     belge = NS()
-    sbom_mod.generate_sbom = lambda p, t, include_hashes=True: belge
-    sbom_mod.diff_sboms = lambda a, b: NS(to_dict=lambda: {"fark": 0})
+    monkeypatch.setattr(sbom_mod, "generate_sbom",
+                        lambda p, t, include_hashes=True: belge)
+    monkeypatch.setattr(sbom_mod, "diff_sboms",
+                        lambda a, b: NS(to_dict=lambda: {"fark": 0}))
     monkeypatch.setattr(AS, "discover_tools", lambda: NS())
     AS.handle_compare_diff({"old_path": str(eski), "new_path": str(yeni)})
     assert senkron[-1][1]["sonuc"] == {"fark": 0}                 # 635-639
@@ -179,7 +186,8 @@ def test_validate_aur_name():
 
 def test_aur_handlers(senkron, monkeypatch, tmp_path):
     ac = _mod(monkeypatch, "core.aur_checker")
-    ac.search_aur = lambda q, limit=25: [{"isim": q}]
+    monkeypatch.setattr(ac, "search_aur",
+                        lambda q, limit=25: [{"isim": q}])
     AS.handle_aur_search({"query": "yay", "limit": 5})            # 664-667
     assert senkron[-1][1]["sonuc"][0]["isim"] == "yay"
 
@@ -188,7 +196,7 @@ def test_aur_handlers(senkron, monkeypatch, tmp_path):
     @dataclass
     class AurBilgi:
         ad: str = "yay"
-    ac.check_aur = lambda n: AurBilgi()
+    monkeypatch.setattr(ac, "check_aur", lambda n: AurBilgi())
     AS.handle_aur_info({"name": "yay"})                           # 679-682
     assert senkron[-1][1]["sonuc"]["ad"] == "yay"
 
