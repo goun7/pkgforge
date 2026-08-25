@@ -181,3 +181,8 @@
 ## Oturum-2, Tur 29 (otonom)
 - secrets_store dbus yollari + native son 4 satir (29320fc).
 - Olcum: %87.6 -> %88 bantinda (1232 miss / 10544 stmt), suite rc=0.
+
+## Oturum-2, Tur 30 (otonom)
+- dbus_service politika/kimlik/otobus + sync_backends age/backend korumalari
+  (5fa80b7). Toplam eksik 1232 -> 1196.
+- Olcum: %89 esigi asildi (1196 miss / 10544 stmt), suite rc=0.
