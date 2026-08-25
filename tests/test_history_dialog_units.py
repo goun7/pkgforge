@@ -57,6 +57,8 @@ def dlg(app, monkeypatch, tmp_path):
              original_file="/y/gtk3.rpm", status="converted"),
         _rec(id=3, package_name="webapp", source_url="https://x/y.deb",
              status="failed"),
+        _rec(id=4, package_name="ociapp", package_type="oci",
+             status="oci_built"),
     ])
     monkeypatch.setattr(HD, "HistoryDB", lambda: db)
     monkeypatch.setattr(HD, "discover_tools",
@@ -89,7 +91,7 @@ def _qmsg(monkeypatch, answers=("question",)):
 
 def test_init_populates_rows(dlg):
     d, _db = dlg
-    assert d._table.rowCount() == 3
+    assert d._table.rowCount() == 4
 
 
 def test_search_filter_narrows(dlg):
@@ -150,7 +152,7 @@ def test_export_success_writes_file(dlg, tmp_path, monkeypatch):
     log = _qmsg(monkeypatch)
     d._export_csv()
     satir = hedef.read_text(encoding="utf-8").strip().splitlines()
-    assert len(satir) == 4 and log["information"]
+    assert len(satir) == 5 and log["information"]
 
 
 def test_export_cancelled_silent(dlg, tmp_path, monkeypatch):
@@ -293,3 +295,127 @@ def test_import_csv_happy_counts_skips(dlg, monkeypatch, tmp_path):
     assert len(db.added) - onceki == 2
     assert db.added[-1]["source_url"] == "https://s"
     assert log["information"]
+
+
+def test_oci_status_row_rendered(dlg):
+    d, _db = dlg
+    bulunan = any(d._table.item(r, 2).text() == "ociapp"
+                  for r in range(d._table.rowCount()))
+    assert bulunan
+
+
+def test_export_type_and_status_filter_branches(dlg, tmp_path, monkeypatch):
+    d, _db = dlg
+    log = _qmsg(monkeypatch)
+    hedef = tmp_path / "s.csv"
+
+    d._type_filter.setCurrentIndex(d._type_filter.findData("url"))
+    monkeypatch.setattr(HD.QFileDialog, "getSaveFileName",
+                        staticmethod(lambda *a, **k: (str(hedef), "")))
+    d._export_csv()
+    assert len(hedef.read_text(encoding="utf-8").strip().splitlines()) == 2
+
+    d._type_filter.setCurrentIndex(d._type_filter.findData("deb"))
+    monkeypatch.setattr(HD.QFileDialog, "getSaveFileName",
+                        staticmethod(lambda *a, **k: (str(hedef), "")))
+    d._export_csv()          # url-olmayan tipe ait eslesme-disi continue
+
+    d._type_filter.setCurrentIndex(0)
+    d._status_filter.setCurrentIndex(d._status_filter.findData("installed"))
+    d._apply_filter()
+    d._export_csv()
+    assert len(log["information"]) >= 3
+
+
+def test_uninstall_declined_returns_silently(dlg, monkeypatch):
+    d, _db = dlg
+    kutu = HD.QMessageBox
+    d._table.selectRow(0)
+    komutlar = []
+    monkeypatch.setattr(HD, "safe_run",
+                        lambda cmd, timeout=0: komutlar.append(cmd)
+                        or NS(returncode=0, stderr=""))
+    monkeypatch.setattr(kutu, "question",
+                        staticmethod(lambda *a, **k: kutu.StandardButton.No))
+    d._uninstall_selected()
+    assert komutlar == []
+
+
+def test_rollback_declined_returns_silently(dlg, monkeypatch, tmp_path):
+    d, db = dlg
+    d._table.selectRow(0)
+    yedek = tmp_path / "b.pkg.tar.zst"
+    yedek.write_bytes(b"b")
+    db._for_package = [_rec(backup_pkg=str(yedek))]
+    kutu = HD.QMessageBox
+    komutlar = []
+    monkeypatch.setattr(HD, "safe_run",
+                        lambda cmd, timeout=0: komutlar.append(cmd)
+                        or NS(returncode=0, stderr=""))
+    monkeypatch.setattr(kutu, "question",
+                        staticmethod(lambda *a, **k: kutu.StandardButton.No))
+    d._rollback_selected()
+    assert komutlar == []
+
+
+def test_import_csv_unreadable_path_critical(dlg, monkeypatch, tmp_path):
+    d, _db = dlg
+    klasor = tmp_path / "birklasor"
+    klasor.mkdir()
+    log = _qmsg(monkeypatch)
+    d._import_csv(klasor)
+    assert log["critical"]
+
+
+def test_import_csv_empty_file_critical(dlg, monkeypatch, tmp_path):
+    d, _db = dlg
+    f = tmp_path / "bos.csv"
+    f.write_text("", encoding="utf-8")
+    log = _qmsg(monkeypatch)
+    d._import_csv(f)
+    assert log["critical"]
+
+
+def test_uninstall_no_selection_returns(dlg, monkeypatch):
+    d, _db = dlg
+    _qmsg(monkeypatch)
+    komutlar = []
+    monkeypatch.setattr(HD, "safe_run",
+                        lambda cmd, timeout=0: komutlar.append(cmd)
+                        or NS(returncode=0, stderr=""))
+    d._uninstall_selected()
+    assert komutlar == []
+
+
+def test_uninstall_failure_shows_critical(dlg, monkeypatch):
+    d, _db = dlg
+    d._table.selectRow(0)
+    _qmsg(monkeypatch)
+    monkeypatch.setattr(HD, "safe_run",
+                        lambda cmd, timeout=0: NS(returncode=3,
+                                                  stderr="cikaramadi"))
+    log_kritik = []
+    monkeypatch.setattr(HD.QMessageBox, "critical",
+                        staticmethod(lambda *a, **k:
+                                     log_kritik.append(a)))
+    d._uninstall_selected()
+    assert log_kritik and "cikaramadi" in str(log_kritik[0])
+
+
+def test_rollback_no_selection_returns(dlg, monkeypatch):
+    d, _db = dlg
+    _qmsg(monkeypatch)
+    d._rollback_selected()   # secim yok -> sessiz donus
+
+
+def test_import_csv_permission_error_critical(dlg, monkeypatch, tmp_path):
+    d, _db = dlg
+    f = tmp_path / "kilitli.csv"
+    f.write_text("package_name,package_type,original_file\na,b,c\n")
+    os.chmod(f, 0o000)
+    log = _qmsg(monkeypatch)
+    try:
+        d._import_csv(f)
+    finally:
+        os.chmod(f, 0o644)
+    assert log["critical"]
