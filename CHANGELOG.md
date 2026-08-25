@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **tests**: Oturum-2 kapsam taramaları — pipeline %66→%95,
+  security %65→%90, i18n %66→%100, retry %67→%98, malware_scanner %67→%96,
+  plugins/marketplace %64→%100 (+~100 yeni test); çekirdek kapsaması
+  **%76 → %80**, CI gate **72 → 78**, toplam **1479 test**.
+
 - **desktop**: `pnpm test` / `pnpm test:watch` scripts — the 74 vitest tests
   existed but had no package.json entry point.
 
