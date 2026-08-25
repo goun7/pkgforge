@@ -160,3 +160,8 @@
 - pipeline.py %100 (4a73c93): iptal-kapisi, iki disconnect-TypeError korumasi;
   PyQt6-yok stub bloklari pragma:no cover ile isaretlendi (ulasilamaz).
 - Olcum: %87 (1404 miss / 10544 stmt). Suite rc=0, mypy temiz.
+
+## Oturum-2, Tur 26 (otonom)
+- Hizli bant (2159e3d): security/quality_score/package_analyzer/delta_updater
+  hedef dallari kapandi — %100 modul sayisi 50 dosya seviyesine ulasti.
+- Olcum: %87 (1379 miss / 10544 stmt), suite rc=0.
