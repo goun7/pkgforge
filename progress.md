@@ -235,3 +235,8 @@
 - 413 HTTP testleri deterministik hale getirildi (275ffa7); ikiz
   test_api_server_http.py zaman-asimi toleransi genisletildi.
 - Ikiz oturum kod tabanini kuculttu (10544 -> 8546 stmt); toplam %94.
+
+## Oturum-2, Tur 39 (otonom)
+- marketplace.py %100 (a79420c): tum yardimcilar, kurulum akisi
+  (fail-closed checksum dahil), uninstall/list/update.
+- Olcum: rc=0, toplam %95 (501 miss / 10544 stmt).
