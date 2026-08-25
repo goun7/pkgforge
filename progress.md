@@ -134,3 +134,11 @@
 - Ders: araca-kismi okuma ile write ASLA (history_db'yi 70 satira indirdim;
   git checkout ile kurtardim). Tam okuma + edit-araci zorunlu.
 - Olcum: %86 (1512 miss / 10565 stmt). Suite rc=0. mypy/bandit(-ll CI esdegeri) temiz.
+
+## Oturum-2, Tur 22 (otonom)
+- main_window %92->%100 (545cc04): dort modul artik %100
+  (dep_resolver, dep_graph, subprocess_converters, settings_dialog,
+  main_window).
+- Dokuman senkronu (de46a3a): rozetler 1772 test / %86 kapsama;
+  CHANGELOG oturum-3 kaydi.
+- Olcum: %86 (1476 miss / 10565 stmt). Suite rc=0.
