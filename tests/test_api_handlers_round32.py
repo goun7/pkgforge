@@ -207,13 +207,14 @@ def test_export_handlers(senkron, monkeypatch, tmp_path):
             {"appimage_path": str(tmp_path / "yok.AppImage")})
 
     fc = _mod(monkeypatch, "core.flatpak_converter")
-    fc.list_installed_apps = lambda: [NS(ad="Uyg"), ]
+    monkeypatch.setattr(fc, "list_installed_apps", lambda: [NS(ad="Uyg")])
     import dataclasses
 
     @dataclasses.dataclass
     class Uyg:
         ad: str
-    fc.list_installed_apps = lambda: [Uyg("Uyg")]
+    monkeypatch.setattr(fc, "list_installed_apps",
+                        lambda: [Uyg("Uyg")])
     liste = AS.handle_export_flatpak_list({})                     # 410
     assert liste[0]["ad"] == "Uyg"
 
