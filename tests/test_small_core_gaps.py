@@ -1,6 +1,7 @@
 """Kucuk modullerin son eksik satirlari — tur-23 toplu itmesi."""
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -151,11 +152,19 @@ def test_rpm_to_deb_without_rpm_tool(monkeypatch, tmp_path):
 # --- malware_scanner ------------------------------------------------------------
 
 def test_clamav_freshness_db_error_swallowed(monkeypatch):
+    monkeypatch.setattr("shutil.which",
+                        lambda n: "/usr/bin/clamscan"
+                        if n == "clamscan" else None)
+    ev_clamav = Path.home() / ".clamav"
+    monkeypatch.setattr(Path, "is_dir",
+                        lambda self: str(self) == str(ev_clamav))
     gercek_glob = Path.glob
+
     def sahte_glob(self, pattern):
         if pattern in ("*.cvd", "*.cld"):
             raise OSError("disk koptu")
         return gercek_glob(self, pattern)
+
     monkeypatch.setattr(Path, "glob", sahte_glob)
     assert MS.check_database_freshness() is None
 
@@ -183,3 +192,54 @@ def test_compare_skips_zero_baseline(monkeypatch):
     taban = {"a": {"duration_ms": 0}}
     cikti = PB.compare(rapor, taban)
     assert cikti["compared"] == 0
+
+def _clamav_ortemi(monkeypatch, tmp_path):
+    ev = tmp_path / "home"
+    (ev / ".clamav").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: ev))
+    gercek_isdir = Path.is_dir
+
+    def sahte_isdir(self):
+        if str(self) == "/var/lib/clamav":
+            return False
+        return gercek_isdir(self)
+
+    monkeypatch.setattr(Path, "is_dir", sahte_isdir)
+    monkeypatch.setattr("shutil.which",
+                        lambda n: "/usr/bin/clamscan"
+                        if n == "clamscan" else None)
+    return ev / ".clamav"
+
+
+def test_clamav_freshness_old_db_warns(monkeypatch, tmp_path):
+    from datetime import datetime, timedelta, timezone
+
+    clamav = _clamav_ortemi(monkeypatch, tmp_path)
+    eski = (datetime.now(tz=timezone.utc) - timedelta(days=400)).timestamp()
+    daha_yeni = (datetime.now(tz=timezone.utc) - timedelta(days=100)).timestamp()
+    hedef = clamav / "daily.cvd"; hedef.write_bytes(b"x")
+    os.utime(hedef, (eski, eski))
+    hedef = clamav / "monthly.cld"; hedef.write_bytes(b"x")
+    os.utime(hedef, (daha_yeni, daha_yeni))   # cld kazaniyor -> 66
+
+    uyarı = MS.check_database_freshness()
+    assert uyarı is not None and "eski" in uyarı
+
+
+def test_clamav_freshness_missing_db(monkeypatch, tmp_path):
+    clamav = _clamav_ortemi(monkeypatch, tmp_path)
+    assert list(clamav.glob("*")) == []       # ortem bos
+
+    mesaj = MS.check_database_freshness()
+    assert mesaj is not None and "bulunamad" in mesaj
+
+
+def test_wrapped_corrupt_db_graceful(tmp_path):
+    bozuk = tmp_path / "bozuk.db"
+    bozuk.write_bytes(b"bu bir sqlite degil")
+    rapor = SW.build_wrapped(2026, db_path=bozuk)
+    assert rapor["total"] == 0 and rapor["success_rate"] == 0.0
+
+def test_clamav_freshness_without_clamscan(monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda n: None)
+    assert MS.check_database_freshness() is None
