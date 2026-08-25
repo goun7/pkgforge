@@ -214,3 +214,8 @@
 - Kirletici avı tamamlandi: quality_score (5bb2381) ve flatpak (69197bc)
   kalan ham atamalari monkeypatch'e baglandi — tam suit kanitli rc=0.
 - Olcum: %94 (675 miss / 10544 stmt); api_server %90.
+
+## Oturum-2, Tur 35 (otonom)
+- compatibility_checker %73 -> %94 (3982725): namcap dallari, bagimlilik
+  yollari, paylasilan-kutuphane tam akisi ve yardimcilar.
+- Olcum: rc=0, toplam %94 (622 miss / 10544 stmt).
