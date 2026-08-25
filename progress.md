@@ -155,3 +155,8 @@
 - Uc modul daha %100 (10173ad): policy_engine, cross_check, scheduler.
 - rollback_verify %99, downloader %96 — hedef dort satir kapandi (f70d6d6).
 - Olcum: %86 (1429 miss / 10565 stmt), suite rc=0.
+
+## Oturum-2, Tur 25 (otonom)
+- pipeline.py %100 (4a73c93): iptal-kapisi, iki disconnect-TypeError korumasi;
+  PyQt6-yok stub bloklari pragma:no cover ile isaretlendi (ulasilamaz).
+- Olcum: %87 (1404 miss / 10544 stmt). Suite rc=0, mypy temiz.
