@@ -177,3 +177,7 @@
 - native_deb_converter %98 (241042a): guvenlik reddleri, ar/data.tar zinciri,
   Qt isleyiciler.
 - Olcum: %88 esik asi (1256 miss / 10544 stmt), suite rc=0.
+
+## Oturum-2, Tur 29 (otonom)
+- secrets_store dbus yollari + native son 4 satir (29320fc).
+- Olcum: %87.6 -> %88 bantinda (1232 miss / 10544 stmt), suite rc=0.
