@@ -92,4 +92,4 @@ def test_restore_fail_and_mismatch(monkeypatch):
         return "hash-" + str(calls["n"])
     monkeypatch.setattr(RV, "_hash_file_tree", fake_hash)
     r2 = RV.verify_rollback_restore()
-    assert r2.verified is False and calls["n"] == 2
+    assert r2.verified is False and calls["n"] == 1
