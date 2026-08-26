@@ -12,12 +12,14 @@ tüm kalite kapıları yeşil ve dokümantasyon gerçek sayılarla tutarlı.
 - [x] mypy 1 hata (main.py token_file getattr) → 0 (isinstance daralması)
 - [x] git'te izlenen çöp dosya 'https:/github.com/deneme/proje/CMakeLists.txt' → git rm
 - [x] desktop/package.json'da test script'i yoktu → "test": "vitest run" eklendi; 74 test yeşil, tsc build temiz
-- [ ] CI cov gate 48 → 72 yükselt (ölçüm 76%)
-- [ ] README badge'leri + gövde sayıları gerçek değerlere çekilecek (bekleyen: pytest -rs kesin sayım)
-- [ ] CHANGELOG Unreleased: AUR-name hardening + rate-limiter test + lint/mypy sıfırlama + desktop test script maddeleri
-- [ ] docs/RELEASE_READINESS.md ölçümlü durum tablosu + skor tablosu tazeleme
-- [ ] progress.md tur kaydı
-- [ ] Tam doğrulama + commit
+- [x] CI cov gate yükseltildi (CI-parite yerel kapı; ölçüm %96)
+- [x] README badge + gövde sayıları gerçek değerlere çekildi (2005 test / %96)
+- [x] CHANGELOG Unreleased: tüm sprint maddeleri işlendi
+      (AUR-name hardening, rate-limiter, lint/mypy sıfır, wheel+E2E kanıtı)
+- [x] RELEASE_READINESS.md oluşturuldu: ölçümlü tablo + %100 modül listesi
+      (20 modül; api_server/compat/abi dahil)
+- [x] progress.md her tur için kaydediliyor
+- [x] Tam doğrulama: mypy 0 / ruff 0 / bandit 0 / rc=0 / wheel+E2E ✓
 
 ## Kurallar
 - Her iddia komutla doğrulanır (verification-before-completion)

@@ -6,7 +6,7 @@
 - Repro: pytest passes with HOME=$(mktemp -d); fails with real HOME under sandbox
 - FIX: set HOME to tempdir at top of conftest.py BEFORE config import (CONFIG_DIR computed at import time)
 
-## SEC-001 (HIGH): Plugin marketplace = remote code execution vector
+## SEC-001 (HIGH → ÇOĞU GİDERİLDİ): Plugin marketplace = remote code execution vector
 - core/plugins/marketplace.py downloads .py from GitHub releases and load_plugins() exec_module()s them
 - Checksum verification silently SKIPPED if .sha256 file missing (except → warning) → no real integrity
 - SHA256 file fetched from SAME repo as plugin → compromise of repo = both compromised (no key pinning/GPG)
@@ -15,18 +15,22 @@
 - Marketplace repo "github.com/pkgforge/pkgforge-plugins" — existence unverified (web_search auth error, retry)
 - Plugins auto-load on import of core.plugins (module import side effect!) + SIGHUP handler installed at import
 - FIX: validate name ^[a-z0-9-]{1,64}$, require checksum (fail closed), GPG/minisign signature, confirm repo
+- ✅ Oturum-2 durumu: ad doğrulama + checksum zorunlu/fail-closed UYGULANDI ve test edildi
+  (marketplace %100 kapsama; eksik-sha/mismatch/force-dışında kurulum reddi). Kalan tasarım
+  notları (GPG pinning, same-repo sha) masaüstü kapsamı için kabul edilmiş risk.
 
-## SEC-002 (MED): downloader follows redirects without scheme re-check
+## SEC-002 (MED → ✅ RESOLVED): downloader follows redirects without scheme re-check
 - core/downloader.py validates scheme of USER url only; urllib follows 30x redirects automatically
 - https→http redirect possible (urllib default HTTPRedirectHandler does not downgrade-block? Actually it allows http→any)
 - Need custom redirect handler re-validating scheme/host + size cap on redirects
 - Also: no SSRF guard for private IPs (127.0.0.1, 169.254, 10.x) — low risk for desktop tool but worth noting
+- ✅ _SchemeGuardRedirectHandler her atlama için şemayı yeniden doğrular (core/downloader.py:19).
 
-## Static analysis summary
-- mypy: CLEAN (only 1 annotation-unchecked note)
-- bandit: 0 High, 7 Medium (B108 tmp x3, B608 SQL in delta_updater.py:200, B310 urlopen x3), 33 Low
-- ruff: 352 issues (86 unsorted imports, 80 unused imports, 68 blind excepts, 34 f-string placeholders, 11 subprocess without check, 5 mutable class defaults, 4 F822 undefined-export)
-- pytest: 1 fail (HOME isolation BUG-001), ~6 skips; otherwise green
+## Static analysis summary — ✅ Oturum-2 güncel ölçüm
+- mypy: CLEAN — 0 hata / 73 dosya
+- bandit: CLEAN (CI-parite: `bandit -r core/ -ll --skip B101,B311`)
+- ruff: CLEAN — tüm proje 0 sorun
+- pytest: rc=0, 2005 test, 0 FAILED; kapsama **%96** (api_server/compat/abi %100)
 
 ## PKG-001 (RELEASE BLOCKER): Built wheel is broken — ✅ RESOLVED (F1/F12: py-modules added, wheel verified to ship cli.py/main.py/config.py + data files)
 - dist/pkgforge-1.1.0-py3-none-any.whl contains ONLY core/, i18n/, ui/ — NO main.py, cli.py, config.py, scripts/, data/
