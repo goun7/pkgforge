@@ -1,0 +1,169 @@
+"""Tur-47 — Installer kurulus-govdesi, cancel, cikti ve hata haritasi."""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from types import SimpleNamespace as NS
+
+from config import ToolPaths
+from core.installer import INSTALL_HELPER, Installer, _find_install_helper
+
+ARACLAR = ToolPaths(pkexec="/bin/true", pacman="/bin/true")
+
+
+def _kur(kayit):
+    kurucu = Installer(ARACLAR)
+    kurucu.finished.connect(lambda ok, msg: kayit.append((ok, msg)))
+    return kurucu
+
+
+# --- 37: hicbir aday yoksa ilk aday doner -----------------------------------------
+
+def test_find_install_helper_fallback(monkeypatch):
+    monkeypatch.setattr(Path, "is_file",
+                        lambda self: False, raising=True)
+    sonuc = _find_install_helper()
+    assert sonuc == INSTALL_HELPER or sonuc.is_absolute()      # 34-37
+
+
+# --- 83-131: kurulus govdesi (snapshot dallari + QProcess baslangici) --------------
+
+def _snapshot_modulleri_hazirla(monkeypatch, mod):
+    sm = sys.modules.setdefault("core.snapshot_manager", NS())
+    monkeypatch.setattr(sm, "detect_backend",
+                        lambda: mod.get("backend", "snapper"), raising=False)
+    monkeypatch.setattr(
+        sm, "take_snapshot",
+        lambda ad: NS(success=mod["success"],
+                      snapshot_name=mod.get("ad", "snap_1"),
+                      detail=mod.get("detay", "")), raising=False)
+
+
+def test_install_body_snapshot_success(monkeypatch, tmp_path):
+    pkg = tmp_path / "demo-1-1-x86_64.pkg.tar.zst"
+    pkg.write_bytes(b"P")
+    import i18n
+    monkeypatch.setattr(i18n, "load_setting", lambda k, d: True)
+    _snapshot_modulleri_hazirla(
+        monkeypatch, {"success": True, "ad": "pre_demo"})
+    kayit = []
+    ciktilar = []
+    kurucu = _kur(kayit)
+    kurucu.output_line.connect(ciktilar.append)
+    kurucu.install(pkg, "demo")                                # 83-99
+    assert any("📸" in s for s in ciktilar)
+    assert kurucu._snapshot_name == "pre_demo"
+
+
+def test_install_body_snapshot_fail_and_none(monkeypatch, tmp_path):
+    pkg = tmp_path / "demo-1-1-x86_64.pkg.tar.zst"
+    pkg.write_bytes(b"P")
+    import i18n
+    monkeypatch.setattr(i18n, "load_setting", lambda k, d: True)
+
+    # snapshot alinamadi (101-102)
+    _snapshot_modulleri_hazirla(
+        monkeypatch, {"success": False, "detay": "btrfs yok"})
+    kayit = []
+    ciktilar = []
+    kurucu = _kur(kayit)
+    kurucu.output_line.connect(ciktilar.append)
+    kurucu.install(pkg, "demo")
+    assert any("⚠" in s for s in ciktilar)
+    assert kurucu._snapshot_name == ""
+
+    # backend none (103-104)
+    _snapshot_modulleri_hazirla(monkeypatch, {"backend": "none",
+                                              "success": True})
+    kurucu2 = _kur(kayit)
+    kurucu2.install(pkg, "demo")
+    assert kurucu2._snapshot_name == ""
+
+    # istisna yolu (105-107): take_snapshot patlatir
+    sm = sys.modules.setdefault("core.snapshot_manager", NS())
+    monkeypatch.setattr(sm, "detect_backend", lambda: "snapper",
+                        raising=False)
+    def patlak(ad):
+        raise RuntimeError("disk dolu")
+    monkeypatch.setattr(sm, "take_snapshot", patlak, raising=False)
+    kurucu3 = _kur(kayit)
+    kurucu3.install(pkg, "demo")
+    assert kurucu3._snapshot_name == ""
+
+    # ayar kapali (108-109)
+    monkeypatch.setattr(i18n, "load_setting", lambda k, d: False)
+    kurucu4 = _kur(kayit)
+    kurucu4.install(pkg, "demo")
+    assert kurucu4._snapshot_name == ""
+
+    # yardimci yok -> dogrudan pacman dalı (125-131)
+    import core.installer as INS
+    monkeypatch.setattr(INS, "INSTALL_HELPER",
+                        tmp_path / "yok.sh", raising=False)
+    kurucu5 = _kur(kayit)
+    kurucu5.install(pkg, "demo")
+
+
+# --- 133-138: cancel -------------------------------------------------------------
+
+def test_cancel_with_live_process():
+    kurucu = Installer(ARACLAR)
+    ciktilar = []
+    kurucu.output_line.connect(ciktilar.append)
+
+    class SahteSurec:
+        NotRunning = 0
+        def state(self):
+            return 2  # calisiyor
+        def kill(self):
+            ciktilar.append("__oldu__")
+
+    kurucu._process = SahteSurec()
+    kurucu.cancel()                                            # 133-138
+    assert "__oldu__" in ciktilar
+    assert kurucu._cancelled is True
+
+
+def test_cancel_without_process():
+    kurucu = Installer(ARACLAR)
+    kurucu.cancel()          # _process None -> sadece bayrak        # 135
+
+
+# --- 140-147: cikti akisi ---------------------------------------------------------
+
+def test_on_output_lines():
+    kurucu = Installer(ARACLAR)
+    ciktilar = []
+    kurucu.output_line.connect(ciktilar.append)
+
+    class SahteSurec:
+        def readAllStandardOutput(self_):
+            return NS(data=lambda: b"  satir A\n\n  satir B\n")
+
+    kurucu._process = SahteSurec()
+    kurucu._on_output()                                        # 140-147
+    assert ciktilar[-2:] == ["  satir A", "  satir B"]
+
+
+def test_on_output_none_process():
+    kurucu = Installer(ARACLAR)
+    kurucu._process = None
+    kurucu._on_output()                                        # 141-142
+
+
+# --- 174-181: hata haritasi --------------------------------------------------------
+
+def test_on_error_known_and_unknown():
+    from PyQt6.QtCore import QProcess
+    kurucu = Installer(ARACLAR)
+    kayit = []
+    kurucu.finished.connect(lambda ok, msg: kayit.append((ok, msg)))
+    kurucu._on_error(QProcess.ProcessError.FailedToStart)      # 176
+    kurucu._on_error(QProcess.ProcessError.Crashed)            # 177
+    kurucu._on_error(QProcess.ProcessError.Timedout)           # 178
+    kurucu._on_error(QProcess.ProcessError.UnknownError)       # 180-181
+    mesajlar = [m for _ok, m in kayit]
+    assert "başlatılamadı" in mesajlar[0]
+    assert "çöktü" in mesajlar[1]
+    assert "zaman aşımı" in mesajlar[2]
+    assert "Kurulum hatası" in mesajlar[3]
