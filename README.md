@@ -4,8 +4,8 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-2005%20collected-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-2147%20collected-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
 
@@ -171,9 +171,9 @@ pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **2005 tests collected, full suite green (rc=0)** ·
-**97% line coverage** on `core/`+`ui/`+`i18n/` (10 541 statements,
-307 missed) · mypy: 0 errors in 73 files · bandit CI-parity: clean.
+Current status: **2147 tests collected, full suite green (rc=0)** ·
+**100% line coverage** on `core/`+`ui/`+`i18n/` (10 541 statements,
+0 missed) · mypy: 0 errors in 72 files · bandit CI-parity: clean.
 Wheel build verified (`pkgforge==2.0.0`) and E2E smoke-tested from a
 fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
 

@@ -6,9 +6,9 @@
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Test suit'i | **2005 test toplandı; tam suit yeşil (rc=0, 0 FAILED)** | `pytest tests/ -q` |
-| Kapsama | **%97** — 10 541 ifade, 307 eksik (`core/`+`ui/`+`i18n/`) | `--cov=core --cov=ui --cov=i18n` |
-| mypy | **0 hata** / 73 dosya | `mypy core/ main.py` |
+| Test suit'i | **2147 test toplandı; tam suit yeşil (rc=0, 0 FAILED)** | `pytest tests/ -q` |
+| Kapsama | **%100** — 10 541 ifade, **0 eksik** (`core/`+`ui/`+`i18n/`) | `--cov=core --cov=ui --cov=i18n` |
+| mypy | **0 hata** / 72 dosya | `mypy core/ --ignore-missing-imports` |
 | ruff | **temiz** (tüm proje) | `ruff check .` |
 | bandit | **temiz** (CI-parite: `-r core/ -ll --skip B101,B311`) | taze koşu |
 | Wheel | `pkgforge-2.0.0-py3-none-any.whl` üretildi | `pip wheel .` |
