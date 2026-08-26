@@ -263,3 +263,8 @@
   (1687fc1): depo-sentinel, gecerli last_run, bozuk->gecerli serve,
   KI+server_close, sembolik-bag kacisi.
 - Olcum: rc=0, toplam %96 (406 miss / 10543 stmt).
+
+## Oturum-2, Tur 46 (otonom)
+- plugins/__init__ %100, deb_to_rpm %100, secrets_store %100 (40fc210).
+- findings.md SEC-002 cozuldu/SEC-001 kismen notlari; task_plan kutulari kapandi.
+- Olcum: rc=0, toplam %96 (385 miss / 10541 stmt); %100 modul sayisi: 23.
