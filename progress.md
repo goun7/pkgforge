@@ -240,3 +240,9 @@
 - marketplace.py %100 (a79420c): tum yardimcilar, kurulum akisi
   (fail-closed checksum dahil), uninstall/list/update.
 - Olcum: rc=0, toplam %95 (501 miss / 10544 stmt).
+
+## Oturum-2, Tur 40-41 (otonom)
+- api_server %90 -> %96 (03c4098): SSE yayin/abonelik/gercek-akis,
+  serve dallari, security artiklari.
+- Dayaniklilik (534d7dd): cli koucusu 240s+tekrar, app_version yanit-tekrari.
+- Olcum: rc=0, toplam %96 (451 miss / 10544 stmt); api_server %96 (40).
