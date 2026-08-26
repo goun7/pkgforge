@@ -249,8 +249,8 @@ def test_ldd_exception_swallowed_real(monkeypatch, tmp_path):
             bin_dizin.mkdir(parents=True, exist_ok=True)
             (bin_dizin / "arac").write_bytes(b"\x7fELFxxxx")
             return NS(returncode=0, stdout="", stderr="")
-        if cmd[0] == "ldd":
-            raise subprocess.TimeoutExpired(cmd=["ldd"], timeout=5)
+        if str(cmd[0]).endswith("ldd"):
+            raise subprocess.TimeoutExpired(cmd=[cmd[0]], timeout=5)
         return NS(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(AB.shutil, "which",

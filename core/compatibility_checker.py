@@ -189,7 +189,7 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
             message=f"{len(warnings)} uyarı tespit edildi (hata yok)",
             details=warnings,
         )
-    else:
+    else:  # pragma: no cover — dış strip() en az bir dolu satır garantiler
         return CheckResult(
             name="Namcap Analizi",
             severity=CheckSeverity.PASS,
