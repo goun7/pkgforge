@@ -294,3 +294,13 @@
 - Dogrulanmis: mypy 0 / ruff 0 / bandit 0; wheel pkgforge-2.0.0;
   temiz-venv kurulum + health + gercek-deb convert E2E OK (Tur 49).
 - Oturum-2 ozeti: %86 -> %97 kapsama; ~120 yeni test; tum kapilar yesil.
+
+## Oturum-3 (devam taramasi, hedef 100/100)
+- 4 modul %100: package_signing, cli_bridge, capabilities,
+  upstream_tracker (ecade2d).
+- Ikiz dosyalari test-yoluyla %100: snapshot_manager (c82bd43),
+  offline_cache (f9605c2).
+- benchmark %100 (a8e084c); privileged/distrobox/cloud_sync hata
+  kollari (5f98df0); rehearsal/slog/sigstore/aur_pub dalgalari (bbd7f62).
+- Toplam %97 -> su an ~%98 bandida; kalan: rpm/flatpak/appimage
+  donusturuculeri, styles, kucuk artiklar.
