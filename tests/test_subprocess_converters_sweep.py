@@ -307,7 +307,7 @@ def test_rpm_pkg_dir_vanished_fallback_src(monkeypatch, tmp_path):
                    popen_rc=0, popen_yaz="demo-1.0-x.pkg.tar.zst",
                    meta=_meta(version="1.0"))
     conv._do_convert(tmp_path / "x.rpm", tmp_path)
-    ok, _m, p = kayit.bitisler[-1]
+    ok, _m, _p = kayit.bitisler[-1]
     assert ok is True and (tmp_path / "build" / "src").is_dir()
 
 
