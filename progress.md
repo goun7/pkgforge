@@ -274,3 +274,8 @@
   cikti akisi, hata haritasi. 413 tolerans anahtarlarinin ikiz-yazimi
   sonrasi geri getirilmesi (a43dfb9).
 - Olcum: rc=0, toplam %97 (341 miss / 10541 stmt); %100 modul: 24.
+
+## Oturum-2, Tur 48 (otonom)
+- cve_scanner %100, dbus_service %100 (aa1c227): bozuk-OSV,
+  scan_package istisnasi, serve-loop dort-yol, yasam-dongusu.
+- Olcum: rc=0, toplam %97 (307 miss / 10541 stmt); %100 modul: 26.
