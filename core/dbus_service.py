@@ -11,9 +11,12 @@ clear "unavailable" status instead of crashing.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 DEFAULT_BUS_NAME = "org.pkgforge.App"
 OBJECT_PATH = "/org/pkgforge/App"
@@ -211,8 +214,8 @@ class PkgForgeService:
         if self._conn is not None:
             try:
                 self._conn.close()
-            except OSError:
-                pass
+            except OSError as exc:
+                log.debug("D-Bus baglantisi kapatilirken hata (durdurma): %s", exc)
         if self._thread is not None:
             self._thread.join(timeout=3)
         self._thread = None

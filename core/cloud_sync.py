@@ -231,6 +231,9 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
     # fallback that sync.config removes once the keyring accepts a secret.
     pw = ""
     try:
+        # Bilinçli tembel içe aktarma: secrets_store isteğe bağlıdır
+        # (keyring paketi yoksa modül yüklemesi başarısız olabilir) ve
+        # bu fonksiyon anahtarlıksız da çalışmak zorundadır.
         from core.secrets_store import available, webdav_store
 
         if user and available():

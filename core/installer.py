@@ -7,6 +7,7 @@ and post-installation verification.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
@@ -52,13 +53,24 @@ class Installer(QObject):
     output_line = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
 
-    def __init__(self, tools: ToolPaths, parent: QObject | None = None):
+    def __init__(
+        self,
+        tools: ToolPaths,
+        parent: QObject | None = None,
+        process_factory: Callable[[QObject], QProcess] | None = None,
+    ):
         super().__init__(parent)
         self._tools = tools
+        # Testler somut QProcess yerine sahte surec enjekte edebilir.
+        self._make_process = process_factory or self._default_process
         self._process: QProcess | None = None
         self._pkg_name = ""
         self._cancelled = False
         self._snapshot_name = ""
+
+    @staticmethod
+    def _default_process(parent: QObject) -> QProcess:
+        return QProcess(parent)
 
     def install(self, pkg_path: Path, pkg_name: str) -> None:
         """Install the package using pkexec + install_helper.sh.
@@ -110,7 +122,7 @@ class Installer(QObject):
 
         self.output_line.emit("  Yetki yükseltme isteniyor (Polkit)...")
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self._process.readyReadStandardOutput.connect(self._on_output)
         self._process.finished.connect(self._on_finished)

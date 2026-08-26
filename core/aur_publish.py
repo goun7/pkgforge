@@ -49,8 +49,8 @@ def _extract_pkg_info(pkg_path: Path) -> dict:
                     info["name"] = line.split("=", 1)[1].strip()
                 elif line.startswith("pkgver = "):
                     info["version"] = line.split("=", 1)[1].strip()
-    except (subprocess.TimeoutExpired, OSError):
-        pass
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        log.debug(".PKGINFO okunamadi, dosya adindan turetilecek: %s", exc)
 
     # Fallback: parse filename
     if not info["name"]:

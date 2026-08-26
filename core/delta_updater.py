@@ -17,6 +17,11 @@ from pathlib import Path
 from config import extract_package_name
 from core.security import safe_run
 
+# NOT: Fonksiyonlar safe_run'a çağrı anında 'from core.security import
+# safe_run as _safe_run' ile ulaşır — BİLİNÇLİ geç bağlama. Testler
+# core.security.safe_run'ı değiştirebilmelidir; modül seviyesinde tek
+# kopya almak bu esnekliği kırar.
+
 log = logging.getLogger(__name__)
 
 

@@ -420,8 +420,8 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
                     ]
                     if missing:
                         ldd_results[str(elf.relative_to(tmp))] = missing
-                except (subprocess.TimeoutExpired, OSError):
-                    pass
+                except (subprocess.TimeoutExpired, OSError) as exc:
+                    log.debug("ldd taramasi atlandi (%s): %s", elf, exc)
             for rel_path, libs in ldd_results.items():
                 for lib in libs:
                     report.missing_libs.append((rel_path, lib))

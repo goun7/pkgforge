@@ -7,6 +7,7 @@ into Arch-compatible .pkg.tar.zst archives.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
@@ -27,12 +28,23 @@ class DebConverter(QObject):
     output_line = pyqtSignal(str)
     finished = pyqtSignal(bool, str, object)  # success, msg, Path|None
 
-    def __init__(self, tools: ToolPaths, parent: QObject | None = None):
+    def __init__(
+        self,
+        tools: ToolPaths,
+        parent: QObject | None = None,
+        process_factory: Callable[[QObject], QProcess] | None = None,
+    ):
         super().__init__(parent)
         self._tools = tools
+        # Testler somut QProcess yerine sahte surec enjekte edebilir.
+        self._make_process = process_factory or self._default_process
         self._process: QProcess | None = None
         self._output_dir = Path()
         self._cancelled = False
+
+    @staticmethod
+    def _default_process(parent: QObject) -> QProcess:
+        return QProcess(parent)
 
     def convert(self, deb_path: Path, output_dir: Path) -> None:
         """Start the debtap conversion asynchronously.
@@ -48,7 +60,7 @@ class DebConverter(QObject):
         self._output_dir = output_dir
         self._cancelled = False
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setWorkingDirectory(str(output_dir))
 
         # Merge stdout and stderr for unified log

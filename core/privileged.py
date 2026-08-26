@@ -7,8 +7,11 @@ this module so the shipped file cannot drift from what the code expects.
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 # F5.1: polkit action listesi ve helper yolu tek kaynaktan (capabilities)
 # turetilir; boylece policy uretimi ile HTTP/D-Bus kapsamlari kayamaz.
@@ -46,6 +49,12 @@ def find_privileged_helper() -> Path:
     for candidate in candidates:
         if candidate.is_file():
             return candidate
+    # Bilinen kurulum konumlarinin hicbiri mevcut degil; ilk aday yine de
+    # dondurulur (kurulum sirasinda olusturulabilir) ama uyari loglanir.
+    log.warning(
+        "Ayricalikli yardimci betik bulunamadi, ilk aday kullanilacak: %s",
+        candidates[0],
+    )
     return candidates[0]
 
 

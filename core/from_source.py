@@ -25,8 +25,8 @@ def _extract_version_from_cargo(repo_dir: Path) -> str | None:
         match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
         if match:
             return match.group(1).strip()
-    except OSError:
-        pass
+    except OSError as exc:
+        log.debug("Cargo.toml okunamadi (%s): %s", cargo_toml, exc)
     return None
 
 
@@ -49,8 +49,8 @@ def _extract_version_from_cmake(repo_dir: Path) -> str | None:
         )
         if match:
             return match.group(1).strip()
-    except OSError:
-        pass
+    except OSError as exc:
+        log.debug("CMakeLists.txt okunamadi (%s): %s", cmake, exc)
     return None
 
 
@@ -65,8 +65,8 @@ def _extract_version_from_meson(repo_dir: Path) -> str | None:
         match = re.search(r"version\s*:\s*['\"]([^'\"]+)['\"]", text)
         if match:
             return match.group(1).strip()
-    except OSError:
-        pass
+    except OSError as exc:
+        log.debug("meson.build okunamadi (%s): %s", meson, exc)
     return None
 
 
@@ -82,8 +82,8 @@ def _extract_version_from_pyproject(repo_dir: Path) -> str | None:
         match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
         if match:
             return match.group(1).strip()
-    except OSError:
-        pass
+    except OSError as exc:
+        log.debug("pyproject.toml okunamadi (%s): %s", pyproject, exc)
     return None
 
 

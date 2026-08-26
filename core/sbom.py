@@ -178,6 +178,8 @@ def generate_sbom(
     sbom.package_description = pkginfo.get("desc", "")
 
     # F5.15: embed the toolchain receipt (best-effort, never blocks the SBOM).
+    # Bilinçli tembel içe aktarma: makbuz modülü isteğe bağlıdır ve hatası
+    # SBOM üretimini asla engellememelidir.
     try:
         from core.build_receipt import collect_build_receipt
 
@@ -253,6 +255,8 @@ def generate_sbom(
     # Shared-library dependencies (skip in offline mode)
     if not offline:
         try:
+            # Bilinçli tembel içe aktarma: dep_resolver ağır modüller çeker;
+            # çevrimdışı/araçsız çağrılarda yüklenmemesi tercih edilir.
             from core.dep_resolver import resolve_runtime_dependencies
             deps = resolve_runtime_dependencies(Path("/"), tools)
             sbom.dependencies = deps

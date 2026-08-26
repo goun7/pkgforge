@@ -239,14 +239,24 @@ def flatpak_to_deb(
 
 
 def _estimate_size_mb(directory: Path) -> int:
-    """Estimate directory size in MB."""
+    """Estimate directory size in MB.
+
+    Okunamayan girdiler boyuta 0 olarak katilir ve debug loglanir; hata
+    tum tahmini degil, yalnizca o girdiyi etkiler.
+    """
     total = 0
-    try:
-        for f in directory.rglob("*"):
+    skipped = 0
+    for f in directory.rglob("*"):
+        try:
             if f.is_file():
                 total += f.stat().st_size
-    except OSError:
-        pass
+        except OSError:
+            skipped += 1
+    if skipped:
+        log.debug(
+            "Boyut tahmini: %d okunamayan girdi atlandi (%s)",
+            skipped, directory,
+        )
     return max(1, total // (1024 * 1024))
 
 

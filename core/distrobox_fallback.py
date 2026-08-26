@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import shlex
+from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
@@ -33,14 +34,25 @@ class DistroboxFallback(QObject):
     output_line = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
 
-    def __init__(self, tools: ToolPaths, parent: QObject | None = None):
+    def __init__(
+        self,
+        tools: ToolPaths,
+        parent: QObject | None = None,
+        process_factory: Callable[[QObject], QProcess] | None = None,
+    ):
         super().__init__(parent)
         self._tools = tools
+        # Testler somut QProcess yerine sahte surec enjekte edebilir.
+        self._make_process = process_factory or self._default_process
         self._process: QProcess | None = None
         self._pkg_name = ""
         self._pkg_path = Path()
         self._container_name = ""
         self._phase = ""
+
+    @staticmethod
+    def _default_process(parent: QObject) -> QProcess:
+        return QProcess(parent)
 
     @staticmethod
     def is_available(tools: ToolPaths) -> bool:
@@ -74,7 +86,7 @@ class DistroboxFallback(QObject):
         self._phase = "create"
         self.output_line.emit(f"▶ Container oluşturuluyor: {self._container_name} ({image})")
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self._process.readyReadStandardOutput.connect(self._on_output)
         self._process.finished.connect(self._on_create_finished)
@@ -124,7 +136,7 @@ class DistroboxFallback(QObject):
             f"bash -c {shlex.quote(install_cmd)}"
         )
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self._process.readyReadStandardOutput.connect(self._on_output)
         self._process.finished.connect(self._on_install_finished)
@@ -144,7 +156,7 @@ class DistroboxFallback(QObject):
         """Export the application's desktop entry from container to host."""
         self.output_line.emit("▶ Masaüstü kısayolu dışa aktarılıyor...")
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self._process.readyReadStandardOutput.connect(self._on_output)
         self._process.finished.connect(self._on_export_finished)

@@ -289,8 +289,8 @@ def _build_from_pkginfo(pkg_path: Path, graph: DepGraph) -> DepGraph:
                 dep_name = _parse_dep_name(dep_entry)
                 if dep_name:
                     graph.add_edge(graph.root, dep_name)
-    except (subprocess.TimeoutExpired, OSError):
-        pass
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        log.debug("Pacman veritabani okunamadi, grafik kismi kalir: %s", exc)
 
     return graph
 

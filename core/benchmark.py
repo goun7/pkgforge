@@ -69,8 +69,8 @@ def _get_memory_usage() -> int:
             for line in f:
                 if line.startswith("VmRSS:"):
                     return int(line.split()[1])
-    except (OSError, ValueError):
-        pass
+    except (OSError, ValueError) as exc:
+        log.debug("Bellek kullanimi okunamadi (/proc erisilemez?): %s", exc)
     return 0
 
 
@@ -116,7 +116,11 @@ def run_benchmarks(
     test_file: Path | None = None,
     quick: bool = False,
 ) -> BenchmarkReport:
-    """Run all benchmarks and return results."""
+    """Run all benchmarks and return results.
+
+    Not: zamanlanan bölümler içindeki `from core.X import ...` satırları
+    BİLİNÇLİDİR — ilk çağrının içe aktarma maliyeti ölçümün parçasıdır.
+    """
     report = BenchmarkReport()
     tools = discover_tools()
     start_time = time.monotonic()

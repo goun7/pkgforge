@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import shlex
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
@@ -32,14 +33,25 @@ class RpmConverter(QObject):
     output_line = pyqtSignal(str)
     finished = pyqtSignal(bool, str, object)
 
-    def __init__(self, tools: ToolPaths, parent: QObject | None = None):
+    def __init__(
+        self,
+        tools: ToolPaths,
+        parent: QObject | None = None,
+        process_factory: Callable[[QObject], QProcess] | None = None,
+    ):
         super().__init__(parent)
         self._tools = tools
+        # Testler somut QProcess yerine sahte surec enjekte edebilir.
+        self._make_process = process_factory or self._default_process
         self._process: QProcess | None = None
         self._work_dir = Path()
         self._meta: PackageMetadata | None = None
         self._cancelled = False
         self._phase = "extract"  # extract → build
+
+    @staticmethod
+    def _default_process(parent: QObject) -> QProcess:
+        return QProcess(parent)
 
     def convert(self, rpm_path: Path, work_dir: Path, meta: PackageMetadata) -> None:
         """Start the RPM conversion pipeline.
@@ -81,7 +93,7 @@ class RpmConverter(QObject):
         pkg_dir = self._work_dir / "pkg_root"
         pkg_dir.mkdir(parents=True, exist_ok=True)
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setWorkingDirectory(str(pkg_dir))
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self._process.readyReadStandardOutput.connect(self._on_output)
@@ -165,7 +177,7 @@ class RpmConverter(QObject):
         self.output_line.emit("▶ makepkg çalıştırılıyor...")
         self._phase = "build"
 
-        self._process = QProcess(self)
+        self._process = self._make_process(self)
         self._process.setWorkingDirectory(str(build_dir))
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self._process.readyReadStandardOutput.connect(self._on_output)
