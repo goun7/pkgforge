@@ -284,3 +284,13 @@
 - Statik uclu: mypy 0 / ruff 0 / bandit CI-paritesi 0.
 - Taze wheel pkgforge-2.0.0; temiz venv kurulumu;
   'pkgforge health' + gercek-deb convert --dry-run E2E ✓.
+
+## Oturum-2, Tur 50 (otonom) — KAPANIS
+- Son olcum: rc=0, 0 FAILED; toplam %97 (306 miss / 10541 stmt).
+- %100 modul sayisi: 26 (api_server, compat, abi, installer, dbus,
+  cve, secrets, plugins, marketplace dahil).
+- Dokumanlar senkron: README %97 rozet+metin, CHANGELOG sprint girisi,
+  RELEASE_READINESS tablo+liste.
+- Dogrulanmis: mypy 0 / ruff 0 / bandit 0; wheel pkgforge-2.0.0;
+  temiz-venv kurulum + health + gercek-deb convert E2E OK (Tur 49).
+- Oturum-2 ozeti: %86 -> %97 kapsama; ~120 yeni test; tum kapilar yesil.
