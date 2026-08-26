@@ -4,8 +4,8 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-1772%20passed-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-2005%20collected-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
 
@@ -171,9 +171,11 @@ pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **1383 passed, 6 skipped** · **76% line coverage** on `core/` ·
-CI gate enforces ≥72%. The 6 skips are environment-optional integrations
-(`xdelta3`, `age`, Secret Service) and are not failures.
+Current status: **2005 tests collected, full suite green (rc=0)** ·
+**96% line coverage** on `core/`+`ui/`+`i18n/` (10 544 statements,
+452 missed) · mypy: 0 errors in 73 files · bandit CI-parity: clean.
+Wheel build verified (`pkgforge==2.0.0`) and E2E smoke-tested from a
+fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
 
 ---
 
