@@ -19,18 +19,20 @@
 dep_resolver · dep_graph · subprocess_converters · settings_dialog ·
 main_window · pipeline · history_db · report_export · build_receipt ·
 doctor · queue_store · streaming · perf_budget · rpm_to_deb_converter ·
-policy_engine · cross_check · scheduler · plugins/marketplace
+policy_engine · cross_check · scheduler · plugins/marketplace ·
+**api_server (%100)** · **compatibility_checker (%100)** ·
+**abi_scanner (%100)**
 
-## Yakın Takip (%97-99)
+## Yakın Takip
 
-abi_scanner %99 · compatibility_checker %99 · native_deb_converter %100 ·
-api_server %96 · secrets_store · plugins/__init__ %86
+plugins/__init__ %86 · secrets_store · kalan ui/i18n kalıntıları
+(toplam eksik: ~400 satırın altında).
 
 ## Kalan Bilinen Eksikler
 
-- Savunma-dalları: abi_scanner 2 satır, compat 3 satır.
-- api_server: ~40 satır (SSE keepalive döngüsü, stdio serve kapanışları).
-- marketplace dışı ui/i18n kalıntıları.
+- Üç çekirdek modül artık **%100**: api_server, compatibility_checker,
+  abi_scanner.
+- Kalan eksikler yalnızca ikincil ui/i18n ve nadir savunma kodu.
 
 ## Sürüm Kararı
 

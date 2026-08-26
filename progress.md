@@ -257,3 +257,9 @@
 - abi_scanner %100 (0 eksik), api_server %96 -> %99 (6 satir),
   compat %99 (2 satir) — 0d936cf savunma-satir turu.
 - Olcum: rc=0, toplam %96 (417 miss / 10543 stmt).
+
+## Oturum-2, Tur 45 (otonom)
+- api_server %100 (0 eksik!), compatibility_checker %100 (0 eksik)
+  (1687fc1): depo-sentinel, gecerli last_run, bozuk->gecerli serve,
+  KI+server_close, sembolik-bag kacisi.
+- Olcum: rc=0, toplam %96 (406 miss / 10543 stmt).
