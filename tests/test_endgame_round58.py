@@ -35,6 +35,19 @@ def _rpm_ornek(tmp_path):
     rc._tools = NS(bsdtar="/usr/bin/bsdtar", ar="/usr/bin/ar",
                    makepkg="/usr/bin/makepkg", bwrap="/usr/bin/bwrap",
                    strip="/usr/bin/strip")
+
+    def sahte_fabrika(parent=None):
+        return NS(
+            setWorkingDirectory=lambda y: None,
+            setProcessChannelMode=lambda m: None,
+            setProcessEnvironment=lambda e: None,
+            start=lambda *a: None,
+            readyReadStandardOutput=SahteSignal(),
+            finished=SahteSignal(),
+            errorOccurred=SahteSignal(),
+        )
+
+    rc._make_process = sahte_fabrika
     rc._meta = NS(name="demo", version="1.0", depends=[],
                   arch_mapped="x86_64", description="aciklama",
                   url="https://ornek.net", licenses=["MIT"])
@@ -61,34 +74,7 @@ def test_rpm_build_meta_none(monkeypatch, tmp_path):
 def test_rpm_src_dir_fallback(monkeypatch, tmp_path):
     rc, RC = _rpm_ornek(tmp_path)
 
-    class SahteSurec:
-        NotRunning = 0
-
-        class ProcessChannelMode:
-            MergedChannels = 3
-
-        class ProcessState:
-            NotRunning = 0
-
-        def __init__(self, parent=None):
-            self.output_line = SahteSignal()
-            self.readyReadStandardOutput = SahteSignal()
-            self.finished = SahteSignal()
-            self.errorOccurred = SahteSignal()
-
-        def setWorkingDirectory(self, y):
-            pass
-
-        def setProcessChannelMode(self, m):
-            pass
-
-        def setProcessEnvironment(self, e):
-            pass
-
-        def start(self, *a):
-            pass
-
-    monkeypatch.setattr(RC, "QProcess", SahteSurec)
+    # Fabrika zaten yardımcıda enjekte edildi; yalnızca çözümlemeyi boşalt.
     monkeypatch.setattr(RC, "resolve_runtime_dependencies", lambda s, t: [])
     RC.RpmConverter._build_package(rc)
     assert (tmp_path / "build" / "src").is_dir()                     # 155-156
