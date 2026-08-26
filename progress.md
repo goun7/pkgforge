@@ -246,3 +246,9 @@
   serve dallari, security artiklari.
 - Dayaniklilik (534d7dd): cli koucusu 240s+tekrar, app_version yanit-tekrari.
 - Olcum: rc=0, toplam %96 (451 miss / 10544 stmt); api_server %96 (40).
+
+## Oturum-2, Tur 42 (otonom)
+- Dogrulama turu: mypy 0 hata (73 dosya), ruff tum-proje temiz
+  (9ab2b75), bandit CI-paritesi temiz.
+- Wheel: pkgforge-2.0.0 whl uretildi, temiz venv'e kuruldu;
+  'pkgforge health' ve gercek-deb convert --dry-run E2E dogrulandi.
