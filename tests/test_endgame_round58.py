@@ -601,9 +601,17 @@ def test_sbom_dep_resolution_failure(monkeypatch, tmp_path):
         raise RuntimeError("cozumleme koptu")
 
     monkeypatch.setattr(DR, "resolve_runtime_dependencies", patlak)
-    sbom = SB.generate_sbom(pkg, NS(bsdtar="/usr/bin/bsdtar"),
-                            offline=False)
-    assert sbom.package_name == "demo"                               # 259-260
+
+    # tar listeleme adimini basarili kilarak 254+ satira ulas:
+    class SahteYanit:
+        returncode = 0
+        stdout = ""
+        stderr = b""
+
+    monkeypatch.setattr(SB, "safe_run", lambda cmd, timeout=0: SahteYanit())
+    sbom = SB.generate_sbom(pkg, NS(bsdtar="bsdtar"),
+                            offline=False)                # 259-260
+    assert sbom.package_name == "demo"
 
 
 # ── aur_checker 163-168 (165-166 dahil) ──────────────────────────────────────────
