@@ -268,3 +268,9 @@
 - plugins/__init__ %100, deb_to_rpm %100, secrets_store %100 (40fc210).
 - findings.md SEC-002 cozuldu/SEC-001 kismen notlari; task_plan kutulari kapandi.
 - Olcum: rc=0, toplam %96 (385 miss / 10541 stmt); %100 modul sayisi: 23.
+
+## Oturum-2, Tur 47 (otonom)
+- installer %100 (3aa7d89): kurulus-govdesi, snapshot dallari, cancel,
+  cikti akisi, hata haritasi. 413 tolerans anahtarlarinin ikiz-yazimi
+  sonrasi geri getirilmesi (a43dfb9).
+- Olcum: rc=0, toplam %97 (341 miss / 10541 stmt); %100 modul: 24.
