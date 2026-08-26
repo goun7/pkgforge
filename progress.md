@@ -252,3 +252,8 @@
   (9ab2b75), bandit CI-paritesi temiz.
 - Wheel: pkgforge-2.0.0 whl uretildi, temiz venv'e kuruldu;
   'pkgforge health' ve gercek-deb convert --dry-run E2E dogrulandi.
+
+## Oturum-2, Tur 44 (otonom)
+- abi_scanner %100 (0 eksik), api_server %96 -> %99 (6 satir),
+  compat %99 (2 satir) — 0d936cf savunma-satir turu.
+- Olcum: rc=0, toplam %96 (417 miss / 10543 stmt).
