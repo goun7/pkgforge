@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- **refactor**: QProcess kullanan 5 sinifa (deb/rpm/native_deb donusturucu,
+  installer, distrobox_fallback) process_factory enjeksiyonu — testler
+  somut QProcess yerine sahte surec verebilir.
+- **fix**: sessiz `except: pass` bloklarina debug log eklendi (abi_scanner,
+  aur_publish, benchmark, dbus_service, dep_graph, from_source);
+  `_estimate_size_mb` okunamayan girdiyi tum tahmini bozmak yerine
+  atlayip logluyor; `find_privileged_helper` fallback'te uyari veriyor.
+- **chore**: diger oturumun bekleyen kozmetik duzenlemeleri commit edildi
+  (7c79ac7).
+
+
 ### Added
 - **tests**: Oturum-3 100/100 taramasi — package_signing, cli_bridge,
   capabilities, upstream_tracker, benchmark, snapshot_manager,

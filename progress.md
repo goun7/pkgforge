@@ -304,3 +304,13 @@
   kollari (5f98df0); rehearsal/slog/sigstore/aur_pub dalgalari (bbd7f62).
 - Toplam %97 -> su an ~%98 bandida; kalan: rpm/flatpak/appimage
   donusturuculeri, styles, kucuk artiklar.
+
+## Oturum-3 kalite turu (kullanici istegi)
+- Ikiz oturumun 7 dosyalik kozmetik birikimi commit'lendi (7c79ac7).
+- Elestiriler hayata gecti: QProcess fabrika enjeksiyonu (5 sinif),
+  sessiz except-pass'lara debug log, estimate-size hata davranisi,
+  privileged fallback uyari logu, bilinçli tembel importlara aciklama.
+- delta_updater hoist'i GERI alindi: mevcut testler gec baglamaya
+  dayaniyor; bunun yerine niyet aciklamasi eklendi.
+- Son dogrulama: rc=0, 0 FAILED, TOTAL 10574 stmt / 0 eksik / %100;
+  ruff+mypy(72 dosya)+bandit temiz. Commit: 376ed75.
