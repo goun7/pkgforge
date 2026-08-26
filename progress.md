@@ -279,3 +279,8 @@
 - cve_scanner %100, dbus_service %100 (aa1c227): bozuk-OSV,
   scan_package istisnasi, serve-loop dort-yol, yasam-dongusu.
 - Olcum: rc=0, toplam %97 (307 miss / 10541 stmt); %100 modul: 26.
+
+## Oturum-2, Tur 49 (otonom) — final dogrulama
+- Statik uclu: mypy 0 / ruff 0 / bandit CI-paritesi 0.
+- Taze wheel pkgforge-2.0.0; temiz venv kurulumu;
+  'pkgforge health' + gercek-deb convert --dry-run E2E ✓.
