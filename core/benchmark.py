@@ -237,7 +237,7 @@ def run_benchmarks(
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     from core.provenance import create_provenance
-    # nosec B108 — "/tmp/test.deb" is only a metadata string passed to the
+    # "/tmp/test.deb" is only a metadata string passed to the
     # provenance generator for timing; no file is created at that path.
     prov = create_provenance(source_file="/tmp/test.deb", package_name="test")  # nosec B108
     r.duration_ms = int((time.monotonic() - t0) * 1000)

@@ -229,7 +229,7 @@ class OfflineCache:
                 method="HEAD",
                 headers={"User-Agent": f"PkgForge/{APP_VERSION}"},
             )
-            # nosec B310 — URL is a hardcoded https:// constant; no user input,
+            # URL is a hardcoded https:// constant; no user input,
             # no file:/ or custom-scheme risk.
             urllib.request.urlopen(req, timeout=3)  # nosec B310
             return False

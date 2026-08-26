@@ -256,7 +256,8 @@ def webdav_push() -> dict:
     req = urllib.request.Request(url + _REMOTE_NAME, data=blob,
                                  method="PUT", headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 - sem beyaz listesi _webdav_target'ta uygulanır
+        # Hedef beyaz listesi (_webdav_target) burada uygulanir: sadece izinli sablon.
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             resp.read()
     except urllib.error.HTTPError as exc:
         raise SyncError(f"Sunucu hatası: HTTP {exc.code}") from exc
@@ -270,7 +271,8 @@ def webdav_pull() -> dict:
     url, headers = _webdav_target()
     req = urllib.request.Request(url + _REMOTE_NAME, method="GET", headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 - sem beyaz listesi _webdav_target'ta uygulanır
+        # Hedef beyaz listesi (_webdav_target) burada uygulanir: sadece izinli sablon.
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             blob = resp.read()
     except urllib.error.HTTPError as exc:
         raise SyncError(f"Sunucu hatası: HTTP {exc.code}") from exc

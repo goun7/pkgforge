@@ -17,11 +17,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install pytest pytest-cov pytest-timeout hypothesis mypy bandit
 
-# Run tests
-python -m pytest tests/ -m "not slow"
+# Run tests (1383 test; atlananlar opsiyonel araç entegrasyonlaridir)
+python -m pytest tests/ -q
 
-# Type check
-mypy core/ --ignore-missing-imports
+# Type check (0 hata hedefi)
+mypy core cli.py config.py main.py
+
+# Lint (0 hata hedefi)
+ruff check .
 
 # Run benchmarks
 python main.py benchmark --quick
@@ -46,8 +49,8 @@ python main.py benchmark --quick
 
 1. Create a feature branch from `main`
 2. Make your changes
-3. Run the full test suite: `python -m pytest tests/ -m "not slow"`
-4. Run type check: `mypy core/ --ignore-missing-imports`
+3. Run the full test suite: `python -m pytest tests/ -q`
+4. Run type check: `mypy core cli.py config.py main.py` and `ruff check .`
 5. Update CHANGELOG.md if applicable
 6. Submit PR with clear description
 

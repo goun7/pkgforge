@@ -140,7 +140,8 @@ def install_polkit_assets(dry_run=True):
     tmp2 = HELPER_SYSTEM_PATH + ".tmp"
     with open(tmp2, "wb") as fh:
         fh.write(helper_src.read_bytes())
-    os.chmod(tmp2, 0o755)  # nosec B103 - kök sahibi yardımcı betik tüm kullanıcılarca çalıştırılmalı (0755 bilinçli)
+    # Kök sahibi yardımcı betik tüm kullanıcılarca çalıştırılmalı (0755 bilinçli).
+    os.chmod(tmp2, 0o755)  # nosec B103
     os.replace(tmp2, HELPER_SYSTEM_PATH)
     return {"installed": True, "dry_run": False, "units": list(plan)}
 
