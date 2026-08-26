@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Security
+- **fix**: install_rehearsal container içi `sh -c` komutuna paket adı/klasörü
+  quote'suz gömülüyordu (CWE-78) — shlex.quote ile kapatıldı; tam denetim
+  SECURITY_REVIEW.md'de.
+
 ### Changed
 - **refactor**: QProcess kullanan 5 sinifa (deb/rpm/native_deb donusturucu,
   installer, distrobox_fallback) process_factory enjeksiyonu — testler

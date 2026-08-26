@@ -8,6 +8,7 @@ dene ve kurulacak dosya listesini (diff) dondurur. Konteyner runtime'i
 from __future__ import annotations
 
 import logging
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -37,12 +38,15 @@ def _container_file_list(runtime: str, package_path: Path) -> tuple[bool, str, l
         return False, ("distrobox bulundu ancak otomatik prova icin podman/docker "
                        "onerilir; 'distrobox create' ile elle prova yapilabilir."), []
     image = "archlinux:base"
+    # Guvenlik: paket adi/klasoru kullanici kaynakli oldugu icin container
+    # icindeki sh -c komutuna MUTLAKA quote'lanarak gomulur (CWE-78).
+    quoted_name = shlex.quote(f"/pkgdir/{package_path.name}")
     cmd = [
         runtime, "run", "--rm",
-        "-v", f"{package_path.parent}:/pkgdir:ro",
+        "-v", f"{shlex.quote(str(package_path.parent))}:/pkgdir:ro",
         image,
         "sh", "-c",
-        (f"pacman -U --noconfirm --needed /pkgdir/{package_path.name} "
+        (f"pacman -U --noconfirm --needed {quoted_name} "
          f">/dev/null 2>&1 && pacman -Ql $(pacman -Qq | tail -n1) 2>/dev/null "
          f"| awk '{{print $2}}'"),
     ]
