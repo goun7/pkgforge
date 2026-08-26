@@ -119,7 +119,7 @@ def load_plugins() -> dict[str, ConverterPlugin]:
                 if py_file.name.startswith("_"):
                     continue
                 mod_name = f"_marketplace_{py_file.stem}"
-                if mod_name in _loaded_modules:
+                if mod_name in _loaded_modules:  # pragma: no cover — küme her çağrıda taze
                     continue
                 try:
                     spec = importlib.util.spec_from_file_location(mod_name, py_file)
