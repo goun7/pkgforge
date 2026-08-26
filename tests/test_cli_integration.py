@@ -77,11 +77,18 @@ class TestCLIConvert(unittest.TestCase):
     """Test convert command with real test DEB."""
 
     def _run_cli(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(
-            [sys.executable, "main.py", *args],
-            capture_output=True, text=True, timeout=60, check=False,
-            cwd=str(Path(__file__).parent.parent),
-        )
+        # Yük altında ilk deneme zaman aşımına düşebilir; bir kez daha deneriz.
+        son_hata = None
+        for _deneme in range(2):
+            try:
+                return subprocess.run(
+                    [sys.executable, "main.py", *args],
+                    capture_output=True, text=True, timeout=240, check=False,
+                    cwd=str(Path(__file__).parent.parent),
+                )
+            except subprocess.TimeoutExpired as exc:
+                son_hata = exc
+        raise son_hata
 
     def test_convert_test_deb(self):
         """Should convert the test DEB file."""

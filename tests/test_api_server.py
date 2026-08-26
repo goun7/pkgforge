@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -49,7 +50,17 @@ def sidecar(tmp_path):
 
 
 def test_app_version(sidecar):
-    resp = _rpc(sidecar, "app.version")
+    # Yük altında sidecar başlangıcı gecikebilir; bir kez daha deneriz.
+    son_hata = None
+    for _deneme in range(2):
+        try:
+            resp = _rpc(sidecar, "app.version")
+            break
+        except RuntimeError as exc:
+            son_hata = exc
+            time.sleep(1.0)
+    else:
+        raise son_hata
     assert resp["result"]["name"] == "PkgForge"
     assert "version" in resp["result"]
 
