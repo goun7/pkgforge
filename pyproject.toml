@@ -69,5 +69,7 @@ addopts = "-q --tb=short"
 # icin conftest ImportError verir. Asilmasi gereken bilinen kisit icin
 # ROADMAP F5.8 notuna bakin.
 [tool.mutmut]
-source_paths = ["core/installer.py"]
-pytest_add_cli_args_test_selection = ["tests/test_installer_units.py"]
+# Kritik moduller: installer (Faz 5 kampanyasi %99.1) + security (Tur-65 kampanyasi).
+# Calistirma: rm -rf mutants && .venv/bin/mutmut run  (test degisince mutants/ silinmeli).
+source_paths = ["core/installer.py", "core/security.py"]
+pytest_add_cli_args_test_selection = ["tests/test_installer_units.py", "tests/test_security_pure_logic.py", "tests/test_security.py", "tests/test_security_sweep.py", "tests/test_security_mutmut_round65.py"]
