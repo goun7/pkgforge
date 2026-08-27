@@ -25,18 +25,22 @@ from ui.background_worker import run_in_background
 
 
 class ToolsDialog(QDialog):
-    """Feature Tezgahi: uc sekme (RPM->DEB, ABI, Audit)."""
+    """Feature Tezgahi: RPM->DEB, ABI, Audit + Faz 2 aracları."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("tools.title"))
-        self.resize(680, 500)
+        self.resize(680, 520)
         layout = QVBoxLayout(self)
         self._tabs = QTabWidget()
         layout.addWidget(self._tabs)
         self._tabs.addTab(self._build_rpm_tab(), tr("tools.rpm_tab"))
         self._tabs.addTab(self._build_abi_tab(), tr("tools.abi_tab"))
         self._tabs.addTab(self._build_audit_tab(), tr("tools.audit_tab"))
+        self._tabs.addTab(self._build_scan_tab(), tr("tools.scan_tab"))
+        self._tabs.addTab(self._build_attest_tab(), tr("tools.attest_tab"))
+        self._tabs.addTab(self._build_publish_tab(), tr("tools.publish_tab"))
+        self._tabs.addTab(self._build_snapshot_tab(), tr("tools.snapshot_tab"))
 
     # ── RPM -> DEB ──────────────────────────────────────────────
     def _build_rpm_tab(self) -> QWidget:
@@ -201,5 +205,256 @@ class ToolsDialog(QDialog):
         def _err(msg: str) -> None:
             self._audit_btn.setEnabled(True)
             self._audit_detail.setPlainText(f"❌ {msg}")
+
+        run_in_background(_op, _done, _err)
+
+    # ── Scan Image (Faz 2) ─────────────────────────────────────
+    def _build_scan_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        row = QHBoxLayout()
+        self._scan_path = QLineEdit()
+        self._scan_path.setPlaceholderText(tr("tools.scan_placeholder"))
+        browse = QPushButton(tr("tools.browse"))
+        browse.clicked.connect(self._pick_scan)
+        row.addWidget(self._scan_path)
+        row.addWidget(browse)
+        lay.addLayout(row)
+        self._scan_btn = QPushButton(tr("tools.scan_run"))
+        self._scan_btn.clicked.connect(self._run_scan_image)
+        lay.addWidget(self._scan_btn)
+        self._scan_result = QPlainTextEdit()
+        self._scan_result.setReadOnly(True)
+        lay.addWidget(self._scan_result)
+        return w
+
+    def _pick_scan(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, tr("tools.scan_pick"), "", "")
+        if path:
+            self._scan_path.setText(path)
+
+    def _run_scan_image(self) -> None:
+        from core.malware_scanner import scan_oci_image
+        img = self._scan_path.text().strip()
+        if not img or not Path(img).exists():
+            self._scan_result.setPlainText(tr("tools.file_missing"))
+            return
+        self._scan_btn.setEnabled(False)
+        self._scan_result.setPlainText(tr("tools.running"))
+
+        def _op():
+            return scan_oci_image(Path(img))
+
+        def _done(res) -> None:
+            self._scan_btn.setEnabled(True)
+            head = tr("tools.scan_clean") if res["clean"] else tr("tools.scan_findings")
+            lines = [head, res["detail"], ""]
+            for f in res["findings"][:20]:
+                lines.append(f"[{f['tool']}/{f['severity']}] {f['line']}")
+            self._scan_result.setPlainText("\n".join(lines))
+
+        def _err(msg: str) -> None:
+            self._scan_btn.setEnabled(True)
+            self._scan_result.setPlainText(f"❌ {msg}")
+
+        run_in_background(_op, _done, _err)
+
+    # ── Attest (Faz 2) ─────────────────────────────────────────
+    def _build_attest_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        row = QHBoxLayout()
+        self._attest_path = QLineEdit()
+        self._attest_path.setPlaceholderText(tr("tools.attest_placeholder"))
+        browse = QPushButton(tr("tools.browse"))
+        browse.clicked.connect(self._pick_attest)
+        row.addWidget(self._attest_path)
+        row.addWidget(browse)
+        lay.addLayout(row)
+        self._attest_btn = QPushButton(tr("tools.attest_run"))
+        self._attest_btn.clicked.connect(self._run_attest)
+        lay.addWidget(self._attest_btn)
+        self._attest_result = QLabel("")
+        self._attest_result.setWordWrap(True)
+        lay.addWidget(self._attest_result)
+        lay.addStretch()
+        return w
+
+    def _pick_attest(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, tr("tools.attest_pick"), "", tr("tools.pkg_filter"))
+        if path:
+            self._attest_path.setText(path)
+
+    def _run_attest(self) -> None:
+        from core.provenance import (
+            create_attestation,
+            find_provenance,
+            load_provenance,
+            save_attestation,
+        )
+        pkg = self._attest_path.text().strip()
+        if not pkg or not Path(pkg).is_file():
+            self._attest_result.setText(tr("tools.file_missing"))
+            return
+        self._attest_btn.setEnabled(False)
+        self._attest_result.setText(tr("tools.running"))
+
+        def _op():
+            pkg_path = Path(pkg)
+            prov_path = find_provenance(pkg_path)
+            if not prov_path:
+                return {"ok": False, "error": tr("tools.attest_no_prov")}
+            prov = load_provenance(prov_path)
+            if not prov:
+                return {"ok": False, "error": tr("tools.attest_load_fail")}
+            att = create_attestation(prov)
+            att_path = save_attestation(
+                att, pkg_path.parent / f"{pkg_path.name}.attestation.json")
+            subject = att.subject[0].get("name", "") if att.subject else ""
+            return {"ok": True, "path": str(att_path), "subject": subject}
+
+        def _done(res) -> None:
+            self._attest_btn.setEnabled(True)
+            if res["ok"]:
+                self._attest_result.setText(
+                    f"✅ {res['subject']}\n{res['path']}")
+            else:
+                self._attest_result.setText(f"❌ {res['error']}")
+
+        def _err(msg: str) -> None:
+            self._attest_btn.setEnabled(True)
+            self._attest_result.setText(f"❌ {msg}")
+
+        run_in_background(_op, _done, _err)
+
+    # ── Publish (Faz 2) ────────────────────────────────────────
+    def _build_publish_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        row = QHBoxLayout()
+        self._publish_path = QLineEdit()
+        self._publish_path.setPlaceholderText(tr("tools.publish_placeholder"))
+        browse = QPushButton(tr("tools.browse"))
+        browse.clicked.connect(self._pick_publish)
+        row.addWidget(self._publish_path)
+        row.addWidget(browse)
+        lay.addLayout(row)
+        self._publish_btn = QPushButton(tr("tools.publish_run"))
+        self._publish_btn.clicked.connect(self._run_publish)
+        lay.addWidget(self._publish_btn)
+        self._publish_result = QLabel("")
+        self._publish_result.setWordWrap(True)
+        lay.addWidget(self._publish_result)
+        lay.addStretch()
+        return w
+
+    def _pick_publish(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, tr("tools.publish_pick"), "", tr("tools.pkg_filter"))
+        if path:
+            self._publish_path.setText(path)
+
+    def _run_publish(self) -> None:
+        from core.aur_publish import prepare_aur_package
+        pkg = self._publish_path.text().strip()
+        if not pkg or not Path(pkg).is_file():
+            self._publish_result.setText(tr("tools.file_missing"))
+            return
+        self._publish_btn.setEnabled(False)
+        self._publish_result.setText(tr("tools.running"))
+
+        def _op():
+            ok, msg, aur_pkg = prepare_aur_package(Path(pkg), Path.cwd())
+            if not ok or not aur_pkg:
+                return {"ok": False, "message": msg}
+            return {"ok": True, "message": msg, "name": aur_pkg.name,
+                    "pkgbuild": str(aur_pkg.pkgbuild)}
+
+        def _done(res) -> None:
+            self._publish_btn.setEnabled(True)
+            icon = "✅" if res["ok"] else "❌"
+            text = f"{icon} {res['message']}"
+            if res.get("pkgbuild"):
+                text += f"\nPKGBUILD: {res['pkgbuild']}"
+            self._publish_result.setText(text)
+
+        def _err(msg: str) -> None:
+            self._publish_btn.setEnabled(True)
+            self._publish_result.setText(f"❌ {msg}")
+
+        run_in_background(_op, _done, _err)
+
+    # ── Snapshot Cleanup (Faz 2) ───────────────────────────────
+    def _build_snapshot_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        self._snapshot_status = QLabel("")
+        self._snapshot_status.setWordWrap(True)
+        lay.addWidget(self._snapshot_status)
+        row = QHBoxLayout()
+        self._snap_refresh_btn = QPushButton(tr("tools.snapshot_refresh"))
+        self._snap_refresh_btn.clicked.connect(self._run_snapshot_status)
+        self._snap_install_btn = QPushButton(tr("tools.snapshot_install"))
+        self._snap_install_btn.clicked.connect(self._run_snapshot_install)
+        self._snap_remove_btn = QPushButton(tr("tools.snapshot_remove"))
+        self._snap_remove_btn.clicked.connect(self._run_snapshot_remove)
+        row.addWidget(self._snap_refresh_btn)
+        row.addWidget(self._snap_install_btn)
+        row.addWidget(self._snap_remove_btn)
+        lay.addLayout(row)
+        lay.addStretch()
+        self._run_snapshot_status()
+        return w
+
+    def _run_snapshot_status(self) -> None:
+        from core.snapshot_cleanup import get_cleanup_status
+        status = get_cleanup_status()
+        if status["installed"]:
+            active = (tr("tools.snapshot_active") if status["active"]
+                      else tr("tools.snapshot_stopped"))
+            text = tr("tools.snapshot_installed", active=active)
+            if status.get("next_run"):
+                text += f"\n{tr('tools.snapshot_next')}: {status['next_run']}"
+        else:
+            text = tr("tools.snapshot_not_installed")
+        self._snapshot_status.setText(text)
+
+    def _run_snapshot_install(self) -> None:
+        from core.snapshot_cleanup import install_cleanup_service
+        self._snap_install_btn.setEnabled(False)
+
+        def _op():
+            ok, msg = install_cleanup_service(max_age_days=7)
+            return {"ok": ok, "message": msg}
+
+        def _done(res) -> None:
+            self._snap_install_btn.setEnabled(True)
+            icon = "✅" if res["ok"] else "❌"
+            self._snapshot_status.setText(f"{icon} {res['message']}")
+
+        def _err(msg: str) -> None:
+            self._snap_install_btn.setEnabled(True)
+            self._snapshot_status.setText(f"❌ {msg}")
+
+        run_in_background(_op, _done, _err)
+
+    def _run_snapshot_remove(self) -> None:
+        from core.snapshot_cleanup import remove_cleanup_service
+        self._snap_remove_btn.setEnabled(False)
+
+        def _op():
+            ok, msg = remove_cleanup_service()
+            return {"ok": ok, "message": msg}
+
+        def _done(res) -> None:
+            self._snap_remove_btn.setEnabled(True)
+            icon = "✅" if res["ok"] else "❌"
+            self._snapshot_status.setText(f"{icon} {res['message']}")
+
+        def _err(msg: str) -> None:
+            self._snap_remove_btn.setEnabled(True)
+            self._snapshot_status.setText(f"❌ {msg}")
 
         run_in_background(_op, _done, _err)

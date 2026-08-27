@@ -404,3 +404,47 @@ export interface AuditReport {
   anomalies: number;
   records: AuditRecord[];
 }
+
+/* --- Faz 5 / Feature Tezgahi Faz 2 --- */
+
+export interface ScanFinding {
+  tool: string;
+  severity: string;
+  line: string;
+}
+
+export interface ScanImageResult {
+  clean: boolean;
+  tools: { trivy: boolean; grype: boolean; clamscan: boolean };
+  findings: ScanFinding[];
+  detail: string;
+}
+
+export interface AttestResult {
+  ok: boolean;
+  attestation_path?: string;
+  statement_type?: string;
+  predicate_type?: string;
+  subject?: string;
+  builder?: string;
+  build_id?: string;
+  error?: string;
+}
+
+export interface PublishResult {
+  ok: boolean;
+  message: string;
+  pkgbuild?: string;
+  srcinfo?: string;
+  name?: string;
+  version?: string;
+  pushed: boolean;
+  push_message?: string;
+}
+
+export interface SnapshotStatus {
+  installed: boolean;
+  active: boolean;
+  next_run: string;
+  last_run: string;
+}

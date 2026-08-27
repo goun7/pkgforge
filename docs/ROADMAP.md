@@ -45,6 +45,7 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 | B9 | Evrensel girdi katmanı: .deb/.rpm ötesi her türü (kaynak/binary tar.gz, AppImage, kaynak klasör, Arch paketi) tek UI-üstü kapıdan kabul et; belirsiz tar.gz için kaynak/binary seçimi | ✅ Faz 4 (`core/intake.py` sınıflandırıcı + pipeline rota + PyQt6 & Tauri UI + sidecar `mode` parametresi) |
 | B10 | Feature Tezgâhı: kalan CLI özelliklerini (RPM→DEB, ABI denetimi, denetim izi/audit) her iki GUI'ye taşı | ✅ Faz 5 (`tools.*` RPC + PyQt6 ToolsDialog + Tauri Tools sayfası) |
 | B11 | UX modernizasyonu: 2026 standartları (motion tokenları, prefers-reduced-motion, focus-visible klavye erişilebilirliği) | ✅ Faz 5 (tokens.css/index.css + Sidebar/Button) |
+| B12 | Feature Tezgâhı Faz 2: kalan CLI özellikleri scan-image/attest/publish/snapshot-cleanup'ı her iki GUI'ye taşı | ✅ Faz 5 (`tools.*` RPC + PyQt6 4 sekme + Tauri 4 kart + `scan_oci_image` core) |
 
 ## Alan C — Mimari genişleme
 

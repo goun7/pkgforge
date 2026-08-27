@@ -50,7 +50,7 @@ describe("Tools page (Feature Tezgahi)", () => {
   it("calls tools.abi_check when path set and clicked", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: { started: true } });
     renderTools();
-    fireEvent.change(screen.getByPlaceholderText("/yol/paket.pkg.tar.zst"), {
+    fireEvent.change(screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst")[0], {
       target: { value: "/tmp/p.pkg.tar.zst" },
     });
     fireEvent.click(screen.getByText("Tara"));
@@ -81,8 +81,88 @@ describe("Tools page (Feature Tezgahi)", () => {
   });
 
   it("shows toast error for empty rpm path", () => {
+    invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: {} });
     renderTools();
     fireEvent.click(screen.getByText("Donustur"));
-    expect(invokeMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalledWith(
+      "rpc_call",
+      expect.objectContaining({ method: "tools.rpm_to_deb" }),
+    );
+  });
+});
+
+describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: {} });
+  });
+
+  it("renders the four Faz 2 cards", () => {
+    renderTools();
+    expect(screen.getByText("İmaj Taraması (CVE/Malware)")).toBeInTheDocument();
+    expect(screen.getByText("Attestation (SLSA)")).toBeInTheDocument();
+    expect(screen.getByText("AUR Yayınla")).toBeInTheDocument();
+    expect(screen.getByText("Snapshot Temizliği")).toBeInTheDocument();
+  });
+
+  it("loads snapshot status on mount", async () => {
+    renderTools();
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "tools.snapshot_status" }),
+      ),
+    );
+  });
+
+  it("calls tools.scan_image when path set and clicked", async () => {
+    renderTools();
+    fireEvent.change(screen.getByPlaceholderText("/yol/imaj.tar"), {
+      target: { value: "/tmp/img.tar" },
+    });
+    fireEvent.click(screen.getByText("Imaji Tara"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "tools.scan_image" }),
+      ),
+    );
+  });
+
+  it("calls tools.attest when path set and clicked", async () => {
+    renderTools();
+    const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
+    fireEvent.change(inputs[1], { target: { value: "/tmp/p.pkg.tar.zst" } });
+    fireEvent.click(screen.getByText("Attestasyon Uret"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "tools.attest" }),
+      ),
+    );
+  });
+
+  it("calls tools.publish when path set and clicked", async () => {
+    renderTools();
+    const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
+    fireEvent.change(inputs[2], { target: { value: "/tmp/p.pkg.tar.zst" } });
+    fireEvent.click(screen.getByText("AUR Paketi Hazirla"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "tools.publish" }),
+      ),
+    );
+  });
+
+  it("calls tools.snapshot_install when clicked", async () => {
+    renderTools();
+    fireEvent.click(screen.getByText("Servisi Kur"));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "tools.snapshot_install" }),
+      ),
+    );
   });
 });

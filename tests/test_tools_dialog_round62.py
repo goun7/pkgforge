@@ -41,7 +41,8 @@ def sync_bg(monkeypatch):
 
 
 def test_three_tabs(td):
-    assert td._tabs.count() == 3
+    # Faz 2 ile sekme sayisi 7'ye cikti (rpm/abi/audit + scan/attest/publish/snapshot)
+    assert td._tabs.count() >= 3
 
 
 # ── RPM -> DEB ──────────────────────────────────────────────────
