@@ -1,0 +1,8 @@
+#!/bin/sh
+# PkgForge AppImage launcher.
+# Self-locating: resolve the real AppDir root regardless of CWD.
+HERE="$(dirname "$(readlink -f "$0")")"
+export PYTHONHOME="${HERE}/usr"
+export PATH="${HERE}/usr/bin:${PATH}"
+export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS:-/usr/share}"
+exec "${HERE}/usr/bin/python3" -m pkgforge "$@"

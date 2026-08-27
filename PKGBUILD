@@ -1,6 +1,6 @@
 # Maintainer: goun7 <https://github.com/goun7/pkgforge>
 pkgname=pkgforge
-pkgver=1.1.0
+pkgver=2.0.0
 pkgrel=1
 pkgdesc="Modern .deb/.rpm package converter, safety analyzer, and lifecycle manager for Arch Linux"
 arch=('any')
@@ -35,7 +35,7 @@ optdepends=(
 provides=('pkgforge')
 conflicts=('pkgforge')
 backup=('etc/pkgforge.conf')
-# NOTE: Tag v1.1.0 must exist in the repo before building this PKGBUILD.
+# NOTE: Tag v2.0.0 must exist in the repo before building this PKGBUILD.
 # Update sha256sums once the release tarball is published.
 source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PkgForge
+Comment=Modern .deb/.rpm package converter and lifecycle manager for Arch Linux
+Exec=pkgforge
+Icon=pkgforge
+Categories=System;Utility;
+Terminal=false
+StartupNotify=true

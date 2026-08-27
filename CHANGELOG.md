@@ -6,7 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-27
+
 ### Added
+- **feat**: Feature Tezgâhı Faz 2 — kalan CLI özellikleri `scan-image`,
+  `attest`, `publish`, `snapshot-cleanup` her iki GUI'ye taşındı
+  (`tools.*` RPC + PyQt6 4 sekme + Tauri 4 kart + `core.scan_oci_image`).
+- **feat**: Fleet/kurumsal konsol (Alan D) — F5.18 sync backends (webdav/
+  git/rclone-s3 + age) ve F5.19 politika motoru tek `fleet.status` RPC'sinde
+  birleşti; PyQt6 FleetDialog + Tauri Fleet sayfası (backend/policy/profil/
+  senkron özeti ve push/pull/export eylemleri).
+- **feat**: UX modernizasyonu — 2026 standartları: motion tokenları,
+  `prefers-reduced-motion` desteği, `focus-visible` klavye erişilebilirliği.
+
+### Changed
+- **test**: mutmut kalite kampanyası — `core/installer.py` mutant öldürme
+  oranı **%34 → %99.1** (229 mutant / 227 öldürüldü; kalan 2 kanıtlanabilir
+  eşdeğer mutant). FakeProcess + kesin-assert/argüman-yakalama testleri.
+
+### Added (önceki)
 - **support**: Gelir/bağış katmanı — `.github/FUNDING.yml` (GitHub
   Sponsors + Polar.sh + Kreosus), About dialoguna "Destek Ol" butonu
   (`config.DONATE_URL`), README destek bölümü, issue şablonları
