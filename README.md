@@ -58,7 +58,7 @@ sudo ./scripts/uninstall.sh
 ### Option 2: pip / wheel
 
 ```bash
-pip install dist/pkgforge-1.1.0-py3-none-any.whl   # after: python -m build --wheel
+pip install dist/pkgforge-2.0.0-py3-none-any.whl   # after: pip wheel . --no-deps -w dist/
 # or from a checkout:
 pip install .
 ```
