@@ -34,7 +34,6 @@ optdepends=(
 )
 provides=('pkgforge')
 conflicts=('pkgforge')
-backup=('etc/pkgforge.conf')
 # NOTE: Tag v2.0.0 must exist in the repo before building this PKGBUILD.
 # Update sha256sums once the release tarball is published.
 source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
@@ -57,16 +56,10 @@ package() {
     # Remove __pycache__ directories (bytecode — unnecessary in packages)
     find "$pkgdir" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
-    # Desktop entry & Icon installation (if data files exist)
-    if [ -f data/pkgforge.desktop ]; then
-        install -Dm644 data/pkgforge.desktop "$pkgdir/usr/share/applications/org.pkgforge.app.desktop"
-    fi
-    if [ -f data/pkgforge.svg ]; then
-        install -Dm644 data/pkgforge.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/pkgforge.svg"
-    fi
-
-    # Install config file
-    install -Dm644 /dev/null "$pkgdir/etc/pkgforge.conf"
+    # Desktop entry, icon, metainfo, polkit policy, completions and helper
+    # scripts are shipped by the wheel's data-files and already installed by
+    # `python -m installer` above — do NOT reinstall them here (a manual
+    # install previously produced a duplicate menu entry under a second name).
 
     # Install systemd timer for delta auto-updates
     if [ -f data/pkgforge-delta.service ]; then
