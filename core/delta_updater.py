@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 from config import extract_package_name
-from core.security import safe_run
+from core.security import safe_run, sha256_hash
 
 # NOT: Fonksiyonlar safe_run'a çağrı anında 'from core.security import
 # safe_run as _safe_run' ile ulaşır — BİLİNÇLİ geç bağlama. Testler
@@ -67,16 +67,28 @@ def create_delta(old_file: Path, new_file: Path, delta_file: Path) -> bool:
     return True
 
 
-def apply_delta(old_file: Path, delta_file: Path, output_file: Path) -> bool:
+def apply_delta(
+    old_file: Path,
+    delta_file: Path,
+    output_file: Path,
+    *,
+    expected_sha256: str | None = None,
+) -> bool:
     """Apply a binary delta to reconstruct the new file.
 
     Args:
         old_file: The current/old version of the file.
         delta_file: The delta file to apply.
         output_file: Output path for the reconstructed file.
+        expected_sha256: When provided, the reconstructed file's SHA-256 must
+            match (case-insensitive) or the result is discarded and the apply
+            is treated as failed. Strongly recommended for remote deltas — a
+            delta fetched over the network is untrusted input, and applying it
+            without verifying the output hash is a supply-chain risk.
 
     Returns:
-        True if delta was applied successfully.
+        True if delta was applied successfully (and verified, when a hash is
+        supplied).
     """
     if not is_xdelta3_available():
         return False
@@ -93,6 +105,16 @@ def apply_delta(old_file: Path, delta_file: Path, output_file: Path) -> bool:
         log.warning("xdelta3 delta uygulama başarısız (kod %d): %s",
                     res.returncode, res.stderr[:200])
         return False
+
+    if expected_sha256 is not None:
+        actual = sha256_hash(output_file)
+        if actual.lower() != expected_sha256.strip().lower():
+            log.warning(
+                "Delta sha256 doğrulaması başarısız: beklenen %s, alınan %s — "
+                "çıktı siliniyor",
+                expected_sha256[:16], actual[:16])
+            output_file.unlink(missing_ok=True)
+            return False
 
     log.info("Delta uygulandı: %s + %s → %s",
              old_file.name, delta_file.name, output_file.name)
@@ -138,6 +160,7 @@ def download_with_delta(
     old_file: Path | None = None,
     *,
     require_https: bool = True,
+    expected_sha256: str | None = None,
 ) -> tuple[Path, bool]:
     """Download a file using delta if a local previous version exists.
 
@@ -146,6 +169,10 @@ def download_with_delta(
         dest_file: Where to save the final file.
         old_file: Previous version (if available locally).
         require_https: Require HTTPS.
+        expected_sha256: When supplied, a delta-reconstructed file must match
+            this SHA-256 or the delta path is rejected and the full download
+            fallback is used. Callers that know the target hash should always
+            pass it — remote deltas are untrusted input.
 
     Returns:
         (final_path, used_delta)
@@ -166,7 +193,8 @@ def download_with_delta(
             download_package(delta_url, Path(tmpdir),
                            require_https=require_https)
             # If we got here, delta was downloaded
-            if apply_delta(old_file, delta_file, dest_file):
+            if apply_delta(old_file, delta_file, dest_file,
+                           expected_sha256=expected_sha256):
                 log.info("Delta indirme başarılı: %s", dest_file.name)
                 return dest_file, True
         except Exception as exc:  # noqa: BLE001

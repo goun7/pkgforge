@@ -143,7 +143,7 @@ def test_download_delta_success_path(monkeypatch, tmp_path):
     monkeypatch.setitem(__import__("sys").modules,
                         "core.downloader",
                         NS(download_package=indirici))
-    monkeypatch.setattr(DU, "apply_delta", lambda *a: True)
+    monkeypatch.setattr(DU, "apply_delta", lambda *a, **k: True)
     eski = tmp_path / "eski.pkg.tar.zst"; eski.write_bytes(b"e")
     hedef = tmp_path / "out" / "final.pkg.tar.zst"
     _yol, kullandi = DU.download_with_delta("https://s/final.pkg.tar.zst",

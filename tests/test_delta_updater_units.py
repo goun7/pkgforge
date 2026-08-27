@@ -51,6 +51,55 @@ def test_apply_delta_paths(monkeypatch, tmp_path):
     assert DU.apply_delta(old, dlt, out) is False
 
 
+def test_apply_delta_sha256_verification(monkeypatch, tmp_path):
+    import hashlib
+    old = tmp_path / "eski.deb"; old.write_bytes(b"A")
+    dlt = tmp_path / "fark.xdelta"; dlt.write_bytes(b"D")
+    out = tmp_path / "cikti.deb"
+    monkeypatch.setattr(DU.shutil, "which", lambda n: "/usr/bin/x3")
+    icerik = b"YENI-ICERIK"
+    beklenen = hashlib.sha256(icerik).hexdigest()
+
+    def fake_run(cmd, timeout=None):
+        out.write_bytes(icerik)          # xdelta3 ciktiyi uretmis gibi
+        return _ns(0)
+    monkeypatch.setattr(DU, "safe_run", fake_run)
+
+    # Eslesen hash -> True, dosya korunur (buyuk/kucuk harf duyarsiz)
+    assert DU.apply_delta(old, dlt, out, expected_sha256=beklenen) is True
+    assert out.is_file()
+    assert DU.apply_delta(old, dlt, out, expected_sha256=beklenen.upper()) is True
+
+    # Eslesmeyen hash -> False, cikti silinir
+    assert DU.apply_delta(old, dlt, out, expected_sha256="0" * 64) is False
+    assert not out.exists()
+
+
+def test_download_with_delta_bad_hash_falls_back(monkeypatch, tmp_path):
+    from pathlib import Path
+    old = tmp_path / "eski.deb"; old.write_bytes(b"A")
+    dest = tmp_path / "yeni.deb"
+    monkeypatch.setattr(DU.shutil, "which", lambda n: "/usr/bin/x3")
+
+    def fake_dl(url, parent, require_https=True):
+        if url.endswith(".xdelta"):
+            (parent / "delta.xdelta").write_bytes(b"D")
+            return parent / "delta.xdelta"
+        dest.write_bytes(b"TAM")
+        return dest
+    monkeypatch.setattr("core.downloader.download_package", fake_dl)
+
+    def fake_run(cmd, timeout=None):
+        Path(cmd[-1]).write_bytes(b"BOZUK-CIKTI")
+        return _ns(0)
+    monkeypatch.setattr(DU, "safe_run", fake_run)
+
+    got, used = DU.download_with_delta("https://x/yeni.deb", dest, old,
+                                       expected_sha256="f" * 64)
+    assert used is False                                  # hash tutmadi
+    assert got == dest and dest.read_bytes() == b"TAM"    # tam indirme
+
+
 def test_find_local_previous_picks_newest(tmp_path):
     eski = tmp_path / "demo-1.0-1-x86_64.pkg.tar.zst"
     yeni = tmp_path / "demo-2.0-1-x86_64.pkg.tar.zst"
@@ -95,7 +144,7 @@ def test_download_with_delta_success(monkeypatch, tmp_path):
     monkeypatch.setattr("core.downloader.download_package", fake_dl)
     seen = []
 
-    def fake_apply(old_f, d_f, out_f):
+    def fake_apply(old_f, d_f, out_f, **kwargs):
         seen.append(str(d_f.name))
         out_f.write_bytes(b"B")
         return True
