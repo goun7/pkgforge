@@ -95,6 +95,15 @@ class TestCheckPathTraversal(unittest.TestCase):
         ok = ["/usr/bin/app", "/etc/app.conf"]
         self.assertEqual(check_path_traversal(ok), [])
 
+    def test_absolute_single_level_nonfhs_flagged(self):
+        from core.security import check_path_traversal
+        # "/nonexistent" -> parts ("/", "nonexistent"), len 2, non-FHS root.
+        # Tek seviyeli FHS-disi mutlak yol kacisi yakalanmali; bu ayrica
+        # `len(parts) > 1` sinirini `> 2` yapan mutanti oldurur.
+        self.assertEqual(check_path_traversal(["/nonexistent"]), ["/nonexistent"])
+        # Tek seviyeli FHS kokleri yine serbest.
+        self.assertEqual(check_path_traversal(["/usr", "/etc"]), [])
+
 
 class TestSafeResolve(unittest.TestCase):
 

@@ -138,3 +138,26 @@
           conn.close()
   Ikiz merge sonrasi uygulanmali; o zamana dek tam-suit 'unclosed database'
   uyarilari bu satirdan gelir (7 adet).
+
+## MUTMUT-EŞDEĞER (2026-08-27): security.py survivor'larının büyük kısmı eşdeğer mutant
+- 313 survivor tek tek örneklenerek incelendi; buyuk cogunlugu ya ESDEGER ya
+  log-string mutanti, gercek acik degil. Somut kanitlar:
+  - `f.read(8192)` -> `f.read(None)` : ayni hash, esdeger (sha256_hash).
+  - `b"\x7fELF"` -> `b"\x7FELF"` : ayni bayt (0x7F), esdeger (_looks_like_elf).
+  - `resolve(strict=False)` -> `strict=None` : None falsy, esdeger (_safe_resolve).
+  - `log.info("SHA-256(%s)...")` -> `log.info(None,...)` : sadece log, islevsel degil.
+  - `entry.startswith("./")` -> `startswith("XX./XX")` : mutlak yol zaten "/" ile
+    baslar, her iki durumda da False -> esdeger (check_path_traversal).
+- Gercek ve oldurulebilir olanlar azinlikta; ornek: check_path_traversal
+  `len(parts) > 1` -> `> 2` mutanti. Tek-seviyeli FHS-disi mutlak yol
+  ("/nonexistent") testi eklendi ve bu mutanti olduruyor
+  (tests/test_security_pure_logic.py::test_absolute_single_level_nonfhs_flagged).
+- SONUC: kalan survivor'lari kovalamak azalan getiri; mutasyon testinin bilinen
+  esdeger-mutant siniridir, test-kalitesi basarisizligi degil.
+
+## SEC-SEGFAULT KAPANIŞ (2026-08-27): repro denemesi + faulthandler
+- 8 tur `pytest <7 pipeline dosyasi> --cov=core.pipeline` tekrari: segfault
+  YOK, hepsi yesil -> titrek/rastgele sinif dogrulandi, tekrarlanabilir repro yok.
+- Ana segfault kaynagi (_ensure_qt_app) zaten F4'te kaldirilmisti.
+- Onlem: pyproject `[tool.pytest.ini_options]` icine `faulthandler_timeout=120`
+  eklendi; tekrar gorulurse C/Python yigin dokumuyle kok-neden analizi yapilir.
