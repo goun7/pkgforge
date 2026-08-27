@@ -1212,6 +1212,103 @@ def handle_install_rehearse(params):
     return rehearse_install(Path(path))
 
 
+def handle_tools_rpm_to_deb(params):
+    """Feature Tezgahi: RPM -> DEB donusumu (CLI rpm-to-deb karsiligi)."""
+    from core.rpm_to_deb_converter import is_rpm_to_deb_available, rpm_to_deb
+
+    rpm_path = Path(params.get("rpm", ""))
+    if not rpm_path.is_file():
+        raise FileNotFoundError(f"RPM bulunamadi: {rpm_path}")
+    out_raw = params.get("output_dir", "")
+    out_dir = Path(out_raw) if out_raw else Path.cwd()
+
+    def _op():
+        if not is_rpm_to_deb_available():
+            return {"ok": False,
+                    "message": "rpm2cpio veya dpkg-deb bulunamadi",
+                    "deb_path": None}
+        ok, msg, deb_path = rpm_to_deb(rpm_path, out_dir)
+        return {"ok": ok, "message": msg,
+                "deb_path": str(deb_path) if deb_path else None}
+
+    _run_thread(_op, "event/rpm_to_deb_done")
+    return {"started": True}
+
+
+def handle_tools_abi_check(params):
+    """Feature Tezgahi: ABI/sembol uyumluluk taramasi (CLI abi-check)."""
+    from dataclasses import asdict
+
+    from core.abi_scanner import check_abi_compatibility
+
+    pkg_path = Path(params.get("package", ""))
+    if not pkg_path.is_file():
+        raise FileNotFoundError(f"Paket bulunamadi: {pkg_path}")
+
+    def _op():
+        report = check_abi_compatibility(pkg_path)
+        d = asdict(report)
+        d["passed"] = report.passed
+        d["error_count"] = report.error_count
+        d["summary"] = report.summary()
+        return d
+
+    _run_thread(_op, "event/abi_check_done")
+    return {"started": True}
+
+
+def handle_tools_audit(params):
+    """Feature Tezgahi: gecmis denetim izi (CLI audit karsiligi)."""
+    from dataclasses import asdict
+
+    from core.history_db import HistoryDB
+
+    limit = int(params.get("limit", 100))
+    date_from = params.get("date_from") or None
+    date_to = params.get("date_to") or None
+
+    records = HistoryDB().get_history(limit=limit)
+    if date_from or date_to:
+        filtered = []
+        for r in records:
+            if date_from and r.timestamp < date_from:
+                continue
+            if date_to and r.timestamp > date_to:
+                continue
+            filtered.append(r)
+        records = filtered
+
+    status_counts: dict[str, int] = {}
+    type_counts: dict[str, int] = {}
+    for r in records:
+        status_counts[r.status] = status_counts.get(r.status, 0) + 1
+        type_counts[r.package_type] = type_counts.get(r.package_type, 0) + 1
+
+    integrity_issues = 0
+    for r in records:
+        if r.output_pkg and not Path(r.output_pkg).exists():
+            integrity_issues += 1
+        if r.backup_pkg and not Path(r.backup_pkg).exists():
+            integrity_issues += 1
+
+    anomalies = 0
+    name_counts: dict[str, int] = {}
+    for r in records:
+        name_counts[r.package_name] = name_counts.get(r.package_name, 0) + 1
+    for count in name_counts.values():
+        if count > 3:
+            anomalies += 1
+
+    return {
+        "total": len(records),
+        "status_counts": status_counts,
+        "type_counts": type_counts,
+        "integrity_issues": integrity_issues,
+        "anomalies": anomalies,
+        "records": [asdict(r) for r in records],
+    }
+
+
 METHODS = {
     "app.version": handle_app_version,
     "app.doctor": handle_app_doctor,
@@ -1301,6 +1398,10 @@ METHODS = {
     "dbus.start": handle_dbus_start,
     "dbus.set_policy": handle_dbus_set_policy,
     "install.rehearse": handle_install_rehearse,
+    # Faz 5 / Feature Tezgahi: kalan CLI ozellikleri
+    "tools.rpm_to_deb": handle_tools_rpm_to_deb,
+    "tools.abi_check": handle_tools_abi_check,
+    "tools.audit": handle_tools_audit,
 }
 
 
