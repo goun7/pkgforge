@@ -28,10 +28,18 @@ export async function call<T = unknown>(
   return resp.result as T;
 }
 
-/** Subscribe to a sidecar push event (e.g. "event/log"). */
+/** Subscribe to a sidecar push event (e.g. "event/log").
+ *
+ * Never rejects: a failed subscription returns a no-op unlisten instead of
+ * surfacing an unhandled promise rejection at every `.then(...)` call site.
+ */
 export async function onEvent<T>(
   method: string,
   cb: (params: T) => void,
 ): Promise<UnlistenFn> {
-  return listen<T>(method, (e) => cb(e.payload));
+  try {
+    return await listen<T>(method, (e) => cb(e.payload));
+  } catch {
+    return () => {};
+  }
 }
