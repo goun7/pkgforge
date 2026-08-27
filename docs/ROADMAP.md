@@ -42,6 +42,7 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 | B6 | Toplu işlem iyileştirmeleri: filtreleme, önceliklendirme, paralel dönüştürme | ✅ Faz 2 (queue.* + Convert/Toplu sekmesi) |
 | B7 | Web arayüzü: LAN üzerinden uzaktan yönetim | ✅ Faz 2 (serve --http, bearer token) |
 | B8 | Plugin pazarı UI: mevcut plugin sistemini görselleştir/yönet | ✅ Faz 2 (Plugins sayfası + plugin.*) |
+| B9 | Evrensel girdi katmanı: .deb/.rpm ötesi her türü (kaynak/binary tar.gz, AppImage, kaynak klasör, Arch paketi) tek UI-üstü kapıdan kabul et; belirsiz tar.gz için kaynak/binary seçimi | ✅ Faz 4 (`core/intake.py` sınıflandırıcı + pipeline rota + PyQt6 & Tauri UI + sidecar `mode` parametresi) |
 
 ## Alan C — Mimari genişleme
 
