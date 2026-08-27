@@ -1,10 +1,11 @@
-"""Coverage itmesi - cli scan-image tarayici dallari + completion."""
+"""Coverage itmesi - cli scan-image (core.scan_oci_image tek kaynak) + completion."""
 from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace as NS
 
 import cli
+import core.malware_scanner as MS
 
 
 def _img(tmp_path):
@@ -15,7 +16,7 @@ def _img(tmp_path):
 
 def test_scan_trivy_image_then_fs_fallback(capsys, monkeypatch, tmp_path):
     f = _img(tmp_path)
-    monkeypatch.setattr(cli.shutil, "which",
+    monkeypatch.setattr(MS.shutil, "which",
                         lambda n: "/usr/bin/trivy" if n == "trivy" else None)
     calls = []
 
@@ -24,7 +25,7 @@ def test_scan_trivy_image_then_fs_fallback(capsys, monkeypatch, tmp_path):
         if cmd[1] == "image":
             return NS(returncode=2, stdout="", stderr="oci degil")
         return NS(returncode=0, stdout="", stderr="")
-    monkeypatch.setattr(cli, "safe_run", fake_run)
+    monkeypatch.setattr(MS, "safe_run", fake_run)
     rc = cli._cmd_scan_image(NS(image=str(f)))
     assert rc == 0 and ("trivy", "image") in calls and ("trivy", "fs") in calls
     out = capsys.readouterr().out
@@ -34,17 +35,15 @@ def test_scan_trivy_image_then_fs_fallback(capsys, monkeypatch, tmp_path):
 def test_scan_trivy_findings_and_grype_clean(capsys, monkeypatch, tmp_path):
     f = _img(tmp_path)
     which_map = {"trivy": "/usr/bin/trivy", "grype": "/usr/bin/grype"}
-    monkeypatch.setattr(cli.shutil, "which", lambda n: which_map.get(n))
-    seen = []
+    monkeypatch.setattr(MS.shutil, "which", lambda n: which_map.get(n))
 
     def fake_run(cmd, timeout=None, **kw):
         exe = Path(cmd[0]).name
-        seen.append(exe)
         if exe == "trivy":
             return NS(returncode=1,
                       stdout="p.deb CRITICAL cvex\nother satir", stderr="")
         return NS(returncode=0, stdout="", stderr="")
-    monkeypatch.setattr(cli, "safe_run", fake_run)
+    monkeypatch.setattr(MS, "safe_run", fake_run)
     rc = cli._cmd_scan_image(NS(image=str(f)))
     out = capsys.readouterr().out
     assert rc == 1 and "Trivy bulguları" in out and "CRITICAL" in out
@@ -55,7 +54,7 @@ def test_scan_trivy_findings_and_grype_clean(capsys, monkeypatch, tmp_path):
 def test_scan_grype_findings_and_clamav_infected(capsys, monkeypatch, tmp_path):
     f = _img(tmp_path)
     which_map = {"grype": "/usr/bin/grype", "clamscan": "/usr/bin/clamscan"}
-    monkeypatch.setattr(cli.shutil, "which", lambda n: which_map.get(n))
+    monkeypatch.setattr(MS.shutil, "which", lambda n: which_map.get(n))
 
     def fake_run(cmd, timeout=None, **kw):
         exe = Path(cmd[0]).name
@@ -63,7 +62,7 @@ def test_scan_grype_findings_and_clamav_infected(capsys, monkeypatch, tmp_path):
             assert cmd[1].startswith("file:")
             return NS(returncode=1, stdout="High sevmek", stderr="")
         return NS(returncode=1, stdout="VIRUS bulundu", stderr="")
-    monkeypatch.setattr(cli, "safe_run", fake_run)
+    monkeypatch.setattr(MS, "safe_run", fake_run)
     rc = cli._cmd_scan_image(NS(image=str(f)))
     out = capsys.readouterr().out
     assert rc == 1 and "Grype bulguları" in out
@@ -73,13 +72,25 @@ def test_scan_grype_findings_and_clamav_infected(capsys, monkeypatch, tmp_path):
 def test_scan_tool_errors_are_soft(capsys, monkeypatch, tmp_path):
     f = _img(tmp_path)
     which_map = {"trivy": "/t", "grype": "/g", "clamscan": "/c"}
-    monkeypatch.setattr(cli.shutil, "which", lambda n: which_map.get(n))
-    monkeypatch.setattr(cli, "safe_run",
+    monkeypatch.setattr(MS.shutil, "which", lambda n: which_map.get(n))
+    monkeypatch.setattr(MS, "safe_run",
                         lambda cmd, timeout=None, **kw: NS(returncode=9,
                                                            stdout="", stderr="koptu"))
     rc = cli._cmd_scan_image(NS(image=str(f)))
     out = capsys.readouterr().out
     assert rc == 1 and out.count("çalışamadı") >= 3
+
+
+def test_scan_missing_image(capsys, tmp_path):
+    rc = cli._cmd_scan_image(NS(image=str(tmp_path / "yok.tar")))
+    assert rc == 1 and "bulunamadı" in capsys.readouterr().out
+
+
+def test_scan_no_scanner(capsys, monkeypatch, tmp_path):
+    f = _img(tmp_path)
+    monkeypatch.setattr(MS.shutil, "which", lambda n: None)
+    rc = cli._cmd_scan_image(NS(image=str(f)))
+    assert rc == 1 and "Tarama aracı bulunamadı" in capsys.readouterr().out
 
 
 def test_completion_ok_and_invalid(capsys, monkeypatch):

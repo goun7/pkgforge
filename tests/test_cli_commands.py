@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import cli
+import core.malware_scanner as MS
 
 
 def _doctor_report(ok=True):
@@ -552,7 +553,7 @@ def test_cmd_scan_image_missing_file(capsys, tmp_path):
 def test_cmd_scan_image_no_tools(monkeypatch, capsys, tmp_path):
     f = tmp_path / "imaj.tar"
     f.write_bytes(b"x")
-    monkeypatch.setattr(cli.shutil, "which", lambda n: None)
+    monkeypatch.setattr(MS.shutil, "which", lambda n: None)
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
     out = capsys.readouterr().out
     assert rc == 1 and "Tarama aracı bulunamadı" in out
@@ -561,9 +562,9 @@ def test_cmd_scan_image_no_tools(monkeypatch, capsys, tmp_path):
 def test_cmd_scan_image_trivy_clean(monkeypatch, capsys, tmp_path):
     f = tmp_path / "imaj.tar"
     f.write_bytes(b"x")
-    monkeypatch.setattr(cli.shutil, "which",
+    monkeypatch.setattr(MS.shutil, "which",
                         lambda n: "/usr/bin/trivy" if n == "trivy" else None)
-    monkeypatch.setattr(cli, "safe_run",
+    monkeypatch.setattr(MS, "safe_run",
                         lambda cmd, timeout=None: SimpleNamespace(
                             returncode=0, stdout="", stderr=""))
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
@@ -574,10 +575,10 @@ def test_cmd_scan_image_trivy_clean(monkeypatch, capsys, tmp_path):
 def test_cmd_scan_image_grype_findings(monkeypatch, capsys, tmp_path):
     f = tmp_path / "imaj.tar"
     f.write_bytes(b"x")
-    monkeypatch.setattr(cli.shutil, "which",
+    monkeypatch.setattr(MS.shutil, "which",
                         lambda n: "/usr/bin/grype" if n == "grype" else None)
     vulns = chr(10).join(["NAME High 1.2.3", "OTHER Critical 9.9"])
-    monkeypatch.setattr(cli, "safe_run",
+    monkeypatch.setattr(MS, "safe_run",
                         lambda cmd, timeout=None: SimpleNamespace(
                             returncode=1, stdout=vulns, stderr=""))
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
@@ -588,9 +589,9 @@ def test_cmd_scan_image_grype_findings(monkeypatch, capsys, tmp_path):
 def test_cmd_scan_image_clamav_infected(monkeypatch, capsys, tmp_path):
     f = tmp_path / "imaj.tar"
     f.write_bytes(b"x")
-    monkeypatch.setattr(cli.shutil, "which",
+    monkeypatch.setattr(MS.shutil, "which",
                         lambda n: "/usr/bin/clamscan" if n == "clamscan" else None)
-    monkeypatch.setattr(cli, "safe_run",
+    monkeypatch.setattr(MS, "safe_run",
                         lambda cmd, timeout=None: SimpleNamespace(
                             returncode=1, stdout="EICAR", stderr=""))
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))

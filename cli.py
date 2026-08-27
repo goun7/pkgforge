@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import shutil
 import sys
 from pathlib import Path
 
@@ -977,93 +976,65 @@ def _cmd_audit(args: argparse.Namespace) -> int:
 
 
 def _cmd_scan_image(args: argparse.Namespace) -> int:
-    """Handle `pkgforge scan-image`."""
+    """Handle `pkgforge scan-image` (core.scan_oci_image tek kaynaktan)."""
+    from core.malware_scanner import scan_oci_image
+
     image_path = Path(args.image).resolve()
     if not image_path.is_file():
         print(f"❌ Görüntü dosyası bulunamadı: {image_path}")
         return 1
 
-    # Check for trivy or grype
-    trivy = shutil.which("trivy")
-    grype = shutil.which("grype")
-    clamscan = shutil.which("clamscan")
+    print(f"🔍 OCI Görüntü Taraması: {image_path.name}\n")
+    result = scan_oci_image(image_path)
+    tools_avail = result["tools"]
 
-    if not trivy and not grype and not clamscan:
+    if not any(tools_avail.values()):
         print("❌ Tarama aracı bulunamadı.")
         print("   Kurulum: sudo pacman -S trivy")
         print("   veya: sudo pacman -S grype")
         print("   veya: sudo pacman -S clamav")
         return 1
 
-    print(f"🔍 OCI Görüntü Taraması: {image_path.name}\n")
-    all_clean = True
+    status = result["status"]
+    findings = result["findings"]
+    errors = result["errors"]
 
-    # Trivy scan — try 'image' first, fall back to 'fs' for local dirs
-    if trivy:
+    def _print_tool(tool: str, label: str, clean_msg: str, unit: str) -> None:
+        st = status.get(tool)
+        if st == "clean":
+            print(f"  ✅ {clean_msg}")
+        elif st == "findings":
+            tf = [f for f in findings if f["tool"] == tool]
+            print(f"  ⚠️  {label} bulguları ({len(tf)} {unit}):")
+            for f in tf[:10]:
+                print(f"      {f['line']}")
+        elif st == "error":
+            print(f"  ⚠️  {label} çalışamadı: {errors.get(tool, '')}")
+
+    if tools_avail["trivy"]:
         print("  🔬 Trivy CVE taraması...")
-        res = safe_run([trivy, "image", "--severity", "HIGH,CRITICAL", str(image_path)], timeout=600)
-        if res.returncode != 0:
-            # image command failed (not an OCI image?), try fs
-            res = safe_run([trivy, "fs", "--severity", "HIGH,CRITICAL", str(image_path)], timeout=600)
-        if res.returncode == 0:
-            print("  ✅ Trivy: Kritik CVE bulunamadı")
-        else:
-            all_clean = False
-            # Show relevant lines only
-            output = res.stdout or res.stderr
-            critical_lines = [l for l in output.splitlines() if any(sev in l for sev in ["HIGH", "CRITICAL", "MEDIUM"])]
-            if critical_lines:
-                print(f"  ⚠️  Trivy bulguları ({len(critical_lines)} satır):")
-                for l in critical_lines[:10]:
-                    print(f"      {l}")
-            else:
-                print(f"  ⚠️  Trivy çalışamadı: {output[:200]}")
-
-    # Grype scan — use 'dir:' syntax for local directory/archive scanning
-    if grype:
+        _print_tool("trivy", "Trivy", "Trivy: Kritik CVE bulunamadı", "satır")
+    if tools_avail["grype"]:
         print("  🔬 Grype bağımlılık taraması...")
-        if image_path.is_dir():
-            target = f"dir:{image_path}"
-        else:
-            target = f"file:{image_path}"
-        res = safe_run([grype, target, "--fail-on", "high"], timeout=600)
-        if res.returncode == 0:
-            print("  ✅ Grype: Yüksek-seviye açık bulunamadı")
-        elif res.returncode == 1:
-            # exit 1 = vulnerabilities found (expected with --fail-on high)
-            all_clean = False
-            output = res.stdout or res.stderr
-            vuln_lines = [l for l in output.splitlines() if "High" in l or "Critical" in l]
-            if vuln_lines:
-                print(f"  ⚠️  Grype bulguları ({len(vuln_lines)} adet):")
-                for l in vuln_lines[:10]:
-                    print(f"      {l}")
-            else:
-                print("  ⚠️  Grype: Açık tespit edildi")
-        else:
-            print(f"  ⚠️  Grype çalışamadı: {(res.stderr or res.stdout)[:200]}")
-
-    # ClamAV scan — increase timeout for large images
-    if clamscan:
+        _print_tool("grype", "Grype", "Grype: Yüksek-seviye açık bulunamadı", "adet")
+    if tools_avail["clamscan"]:
         print("  🔬 ClamAV malware taraması...")
-        # Timeout: 300s for large archives (was 120s, too short)
-        res = safe_run([clamscan, "--infected", "--no-summary", str(image_path)], timeout=300)
-        if res.returncode == 0:
+        st = status.get("clamscan")
+        if st == "clean":
             print("  ✅ ClamAV: Temiz")
-        elif res.returncode == 1:
-            print(f"  ❌ ClamAV enfekte dosya tespit etti:\n{res.stdout[:500]}")
-            all_clean = False
-        else:
-            print(f"  ⚠️  ClamAV çalışamadı (returncode={res.returncode}): {res.stderr[:200]}")
+        elif st == "findings":
+            cf = [f for f in findings if f["tool"] == "clamscan"]
+            body = "\n".join(f["line"] for f in cf)
+            print(f"  ❌ ClamAV enfekte dosya tespit etti:\n{body}")
+        elif st == "error":
+            print(f"  ⚠️  ClamAV çalışamadı: {errors.get('clamscan', '')}")
 
     print()
-    if all_clean:
+    if result["clean"]:
         print("✅ Tüm taramalar temiz — görüntü güvenli.")
-    else:
-        print("⚠️  Bazı taramalar uyarı verdi — sonuçları inceleyin.")
-        return 1
-
-    return 0
+        return 0
+    print("⚠️  Bazı taramalar uyarı verdi — sonuçları inceleyin.")
+    return 1
 
 
 def _cmd_from_source(args: argparse.Namespace) -> int:

@@ -4,6 +4,7 @@ from __future__ import annotations
 from types import SimpleNamespace as NS
 
 import cli
+import core.malware_scanner as MS
 
 
 def _tools():
@@ -87,7 +88,7 @@ def test_sign_verify_paths(capsys, monkeypatch, tmp_path):
 def test_scan_image_no_tools(capsys, monkeypatch, tmp_path):
     f = tmp_path / "img.tar"
     f.write_bytes(b"x")
-    monkeypatch.setattr(cli.shutil, "which", lambda n: None)
+    monkeypatch.setattr(MS.shutil, "which", lambda n: None)
     rc = cli._cmd_scan_image(NS(image=str(f)))
     assert rc == 1 and "Tarama aracı bulunamadı" in capsys.readouterr().out
 
