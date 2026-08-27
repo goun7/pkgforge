@@ -354,3 +354,53 @@ export interface SourceResult {
   pkgbuild_path: string;
   pkgbuild_content: string;
 }
+
+/* --- Faz 5 / Feature Tezgahi --- */
+
+export interface RpmToDebResult {
+  ok: boolean;
+  message: string;
+  deb_path: string | null;
+}
+
+export interface AbiSymbolMismatch {
+  binary: string;
+  symbol: string;
+  required_version: string;
+  available_version: string;
+  library: string;
+  severity: string;
+}
+
+export interface AbiReport {
+  binary_count: number;
+  checked_symbols: number;
+  mismatches: AbiSymbolMismatch[];
+  missing_libs: [string, string][];
+  namcap_available: boolean;
+  namcap_results: { severity: string; tag: string; message: string; file: string }[];
+  passed: boolean;
+  error_count: number;
+  summary: string;
+}
+
+export interface AuditRecord {
+  id: number;
+  timestamp: string;
+  package_name: string;
+  original_file: string;
+  package_type: string;
+  sha256: string;
+  status: string;
+  output_pkg: string;
+  details: string;
+}
+
+export interface AuditReport {
+  total: number;
+  status_counts: Record<string, number>;
+  type_counts: Record<string, number>;
+  integrity_issues: number;
+  anomalies: number;
+  records: AuditRecord[];
+}

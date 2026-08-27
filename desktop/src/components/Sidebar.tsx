@@ -9,6 +9,7 @@ import {
   Puzzle,
   PackageOpen,
   GitCompare,
+  Wrench,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -22,7 +23,8 @@ export type PageId =
   | "reports"
   | "plugins"
   | "export"
-  | "compare";
+  | "compare"
+  | "tools";
 
 export interface SidebarProps {
   active: PageId;
@@ -39,6 +41,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: typeof ArrowLeftRight; soon?
   { id: "export", label: "Dışa Aktar", icon: PackageOpen },
   { id: "compare", label: "Karşılaştır", icon: GitCompare },
   { id: "plugins", label: "Eklentiler", icon: Puzzle },
+  { id: "tools", label: "Araclar", icon: Wrench },
   { id: "settings", label: "Ayarlar", icon: Settings },
 ];
 
