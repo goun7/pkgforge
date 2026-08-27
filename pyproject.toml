@@ -62,6 +62,10 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 timeout = 120
 timeout_method = "signal"
 addopts = "-q --tb=short"
+# SEC-SEGFAULT (titrek coverage+Qt native crash) tanilamasi: faulthandler
+# segfault aninda C/Python yigin dokumu uretir; timeout ise 120s asan
+# testlerde iz doker. Tekrar gorulurse kok-neden analizi bu izle yapilir.
+faulthandler_timeout = 120
 
 # F5.8: mutmut mutation-testing pilot config (calistirma: python -m mutmut run).
 # NOT: mutmut 3.x kaynaklari izole bir mutants/ dizinine kopyalar; bu
