@@ -40,12 +40,14 @@ class FakePipeline(QObject):
     def __init__(self):
         super().__init__()
         self.staged = None
+        self.staged_forced = None
         self.ran = False
         self._result = None
         type(self).cancel_called = 0
 
-    def stage(self, p):
+    def stage(self, p, forced=None):
         self.staged = p
+        self.staged_forced = forced
 
     def run_staged(self):
         self.ran = True

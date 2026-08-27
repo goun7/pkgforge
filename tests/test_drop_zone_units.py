@@ -124,15 +124,31 @@ def test_drop_only_invalid_ignores(dz, tmp_path):
     assert ev.ignored and got == []
 
 
-def test_pick_file_filters_and_emits(dz, monkeypatch, tmp_path):
+def test_pick_file_accepts_all_and_emits(dz, monkeypatch, tmp_path):
     good = tmp_path / "g.rpm"; good.write_bytes(b"g")
-    bad = tmp_path / "h.txt"; bad.write_bytes(b"h")
+    txt = tmp_path / "h.txt"; txt.write_bytes(b"h")
     from ui import drop_zone as DZM
     monkeypatch.setattr(DZM.QFileDialog, "getOpenFileNames",
-                        staticmethod(lambda *a, **k: ([str(good), str(bad)], "")))
+                        staticmethod(lambda *a, **k: ([str(good), str(txt)], "")))
     got = _collect(dz)
     dz._on_pick_file()
-    assert [Path(str(x)) for x in got[0]] == [good]
+    assert [Path(str(x)) for x in got[0]] == [good, txt]
+
+
+def test_drop_accepts_tarball_and_dir(dz, tmp_path):
+    tar = tmp_path / "app.tar.gz"; tar.write_bytes(b"x")
+    src = tmp_path / "kaynak"; src.mkdir()
+    got = _collect(dz)
+    ev = _Ev(urls=[_url(str(tar)), _url(str(src)), _url(str(tmp_path / "yok.tar.gz"))])
+    dz.dropEvent(ev)
+    assert ev.accepted and [Path(str(x)) for x in got[0]] == [tar, src]
+
+
+def test_drag_enter_accepts_existing_tarball(dz, tmp_path):
+    tar = tmp_path / "app.tar.gz"; tar.write_bytes(b"x")
+    ev = _Ev(urls=[_url(str(tar))])
+    dz.dragEnterEvent(ev)
+    assert ev.accepted and not ev.ignored
 
 
 def test_pick_file_empty_selection_silent(dz, monkeypatch):

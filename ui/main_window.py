@@ -28,6 +28,7 @@ from PyQt6.QtWidgets import (
 )
 
 from config import APP_NAME, APP_VERSION, discover_tools
+from core import intake
 from core.compatibility_checker import CheckSeverity, CompatibilityReport
 from core.pipeline import ConversionPipeline, PipelineResult
 from core.queue_manager import QueueItemStatus, QueueManager
@@ -87,6 +88,10 @@ class MainWindow(QMainWindow):
         self._pipeline_thread: QThread | None = None
         self._tools = discover_tools()
         self._queue = QueueManager(self)
+        # Universal intake: when the user resolves an ambiguous file (e.g. a
+        # .tar.gz marked as source or binary) the chosen FileType value is
+        # stored here (keyed by path string) and passed to pipeline.stage().
+        self._forced_types: dict[str, str] = {}
         self._queue.item_started.connect(self._on_queue_item_started)
         self._queue.all_finished.connect(self._on_queue_all_finished)
         self._queue.queue_changed.connect(self._on_queue_changed)
@@ -312,7 +317,18 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(list)
     def _on_files_dropped(self, file_paths: list[Path]) -> None:
-        self._queue.add_files(file_paths)
+        accepted: list[Path] = []
+        for path in file_paths:
+            ir = intake.classify(path)
+            if ir.ambiguous:
+                choice = self._resolve_ambiguous_type(path)
+                if choice is None:
+                    continue
+                self._forced_types[str(path)] = choice
+            accepted.append(path)
+        if not accepted:
+            return
+        self._queue.add_files(accepted)
         count = self._queue.total
 
         if count > 1:
@@ -323,6 +339,21 @@ class MainWindow(QMainWindow):
             self._drop_zone.set_file_info(item.name, item.pkg_type)
 
         self._start_next_in_queue()
+
+    def _resolve_ambiguous_type(self, path: Path) -> str | None:
+        """Belirsiz bir dosya icin kullanicidan kaynak/binary secimi alir."""
+        box = QMessageBox(self)
+        box.setWindowTitle(tr("ambig.title"))
+        box.setText(tr("ambig.text", name=path.name))
+        source_btn = box.addButton(tr("ambig.source"), QMessageBox.ButtonRole.AcceptRole)
+        binary_btn = box.addButton(tr("ambig.binary"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("ambig.cancel"), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() == source_btn:
+            return "source_tarball"
+        if box.clickedButton() == binary_btn:
+            return "binary_tarball"
+        return None
 
     def _start_next_in_queue(self) -> None:
         """Start processing the next pending item in the queue."""
@@ -363,7 +394,7 @@ class MainWindow(QMainWindow):
         # moveToThread()ed) so run_staged() executes on the worker thread.
         # A bare lambda here would be queued onto the main/UI thread instead,
         # freezing the GUI and creating QObjects across thread boundaries.
-        pipeline.stage(item.file_path)
+        pipeline.stage(item.file_path, self._forced_types.get(str(item.file_path)))
         self._pipeline_thread.started.connect(pipeline.run_staged)
         self._pipeline_thread.start()
 

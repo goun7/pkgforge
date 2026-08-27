@@ -7,19 +7,26 @@ STRINGS: dict[str, str] = {
     "app.window_title": "PkgForge — .deb/.rpm → Arch Linux",
 
     # ── Drop Zone ────────────────────────────────────────────────
-    "drop.hint": "Drag and drop .deb or .rpm files here",
+    "drop.hint": "Drag and drop package files (.deb, .rpm, .tar.gz, AppImage) or a source folder here",
     "drop.or": "or",
     "drop.pick": "📂  Choose File",
     "drop.pick_multi": "📂  Choose Files",
-    "drop.pick_a11y": "Opens a file picker to select .deb or .rpm files",
-    "drop.supported": "Supported: .deb, .rpm (multiple selection allowed)",
+    "drop.pick_a11y": "Opens a file picker to select package files",
+    "drop.supported": "Supported: .deb, .rpm, .tar.gz, .tar.xz, .zip, .AppImage, .pkg.tar.zst and source folders",
     "drop.active": "Drop files here!",
     "drop.processing": "Processing...",
     "drop.processing_btn": "⏳  Processing",
     "drop.file_dialog_title": "Select Package File",
-    "drop.file_filter": "Package files (*.deb *.rpm);;All files (*)",
+    "drop.file_filter": "Package files (*.deb *.rpm *.tar.gz *.tar.xz *.tar.bz2 *.tgz *.zip *.AppImage *.pkg.tar.zst *.flatpakref);;All files (*)",
     "drop.file_type": "Type: .{type}",
     "drop.selected_count": "📦 {count} packages selected",
+
+    # ── Ambiguous Tarball Choice ────────────────────────────────
+    "ambig.title": "Ambiguous file type",
+    "ambig.text": "Is '{name}' a source archive or a prebuilt binary package?",
+    "ambig.source": "🛠  Source code (build and package)",
+    "ambig.binary": "📦  Prebuilt binary (package directly)",
+    "ambig.cancel": "Cancel",
 
     # ── Step Names ───────────────────────────────────────────────
     "step.security": "Security Check",

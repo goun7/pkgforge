@@ -7,19 +7,26 @@ STRINGS: dict[str, str] = {
     "app.window_title": "PkgForge — .deb/.rpm → Arch Linux",
 
     # ── Drop Zone ────────────────────────────────────────────────
-    "drop.hint": ".deb veya .rpm dosyalarını buraya sürükleyin",
+    "drop.hint": "Paket dosyalarını (.deb, .rpm, .tar.gz, AppImage) veya kaynak klasörünü buraya sürükleyin",
     "drop.or": "veya",
     "drop.pick": "📂  Dosya Seç",
     "drop.pick_multi": "📂  Dosyaları Seç",
-    "drop.pick_a11y": ".deb veya .rpm dosyalarını seçmek için dosya seçici açar",
-    "drop.supported": "Desteklenen: .deb, .rpm (çoklu seçim yapabilirsiniz)",
+    "drop.pick_a11y": "Paket dosyalarını seçmek için dosya seçici açar",
+    "drop.supported": "Desteklenen: .deb, .rpm, .tar.gz, .tar.xz, .zip, .AppImage, .pkg.tar.zst ve kaynak klasörü",
     "drop.active": "Dosyaları bırakın!",
     "drop.processing": "İşleniyor...",
     "drop.processing_btn": "⏳  İşleniyor",
     "drop.file_dialog_title": "Paket Dosyası Seç",
-    "drop.file_filter": "Paket dosyaları (*.deb *.rpm);;Tüm dosyalar (*)",
+    "drop.file_filter": "Paket dosyaları (*.deb *.rpm *.tar.gz *.tar.xz *.tar.bz2 *.tgz *.zip *.AppImage *.pkg.tar.zst *.flatpakref);;Tüm dosyalar (*)",
     "drop.file_type": "Tür: .{type}",
     "drop.selected_count": "📦 {count} paket seçildi",
+
+    # ── Belirsiz Tarball Seçimi ─────────────────────────────────
+    "ambig.title": "Dosya türü belirsiz",
+    "ambig.text": "'{name}' bir kaynak arşivi mi yoksa hazır binary paketi mi?",
+    "ambig.source": "🛠  Kaynak kodu (derle ve paketle)",
+    "ambig.binary": "📦  Hazır binary (doğrudan paketle)",
+    "ambig.cancel": "Vazgeç",
 
     # ── Adım İsimleri ────────────────────────────────────────────
     "step.security": "Güvenlik Kontrolü",

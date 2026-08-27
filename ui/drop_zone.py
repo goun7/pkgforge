@@ -1,7 +1,8 @@
 """PkgForge — Drag-and-drop zone widget.
 
-Accepts single or multiple .deb and .rpm files via drag-and-drop
-or file picker dialog. Provides animated visual feedback.
+Accepts package files of any type (.deb, .rpm, .tar.gz, AppImage,
+.pkg.tar.zst, ...) or a source folder via drag-and-drop or file picker.
+The universal intake layer (core.intake) classifies each input later.
 """
 
 from __future__ import annotations
@@ -22,7 +23,9 @@ from PyQt6.QtWidgets import (
 from i18n import tr
 from ui.resources.icons import DROP_ICON, DROP_ICON_ACTIVE
 
-_ACCEPTED_SUFFIXES = {".deb", ".rpm"}
+# Universal intake: no suffix allow-list here. Any existing file or folder is
+# accepted at the door; core.intake.classify() decides the route (and the UI
+# asks the user when a tarball is ambiguous).
 
 
 class DropZone(QWidget):
@@ -109,7 +112,7 @@ class DropZone(QWidget):
         if mime is not None and mime.hasUrls():
             for url in mime.urls():
                 path = Path(url.toLocalFile())
-                if path.suffix.lower() in _ACCEPTED_SUFFIXES:
+                if path.exists():
                     event.acceptProposedAction()
                     self.setProperty("dragActive", True)
                     style = self.style()
@@ -139,7 +142,7 @@ class DropZone(QWidget):
         valid_paths: list[Path] = []
         for url in mime.urls():
             path = Path(url.toLocalFile())
-            if path.is_file() and path.suffix.lower() in _ACCEPTED_SUFFIXES:
+            if path.is_file() or path.is_dir():
                 valid_paths.append(path)
 
         if valid_paths:
@@ -169,7 +172,7 @@ class DropZone(QWidget):
         valid: list[Path] = []
         for fp in file_paths:
             path = Path(fp)
-            if path.suffix.lower() in _ACCEPTED_SUFFIXES:
+            if path.is_file() or path.is_dir():
                 valid.append(path)
         if valid:
             self.files_dropped.emit(valid)
