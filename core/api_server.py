@@ -118,13 +118,25 @@ def _ensure_qapp():
 
 def handle_pipeline_start(params):
     global _pipeline
+    from core import intake
     from core.pipeline import ConversionPipeline
 
     path = Path(params.get("path", ""))
-    if not path.is_file():
+    if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
-    if path.suffix.lower() not in (".deb", ".rpm"):
-        raise ValueError(f"Unsupported file type: {path.suffix}")
+    # Universal intake: accept every type; an optional 'mode' resolves an
+    # ambiguous tarball (source_tarball / binary_tarball / ...).
+    mode = params.get("mode") or None
+    forced = None
+    if mode:
+        try:
+            forced = intake.FileType(mode).value
+        except ValueError:
+            raise ValueError(f"Unknown mode: {mode}")
+    ir = intake.classify(path)
+    if ir.ambiguous and not forced:
+        raise ValueError(
+            "Ambiguous file type; pass mode='source_tarball' or mode='binary_tarball'")
     _ensure_qapp()
     _pipeline = ConversionPipeline()
     _pipeline.step_changed.connect(
@@ -141,7 +153,7 @@ def handle_pipeline_start(params):
             "message": result.message,
             "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
         }))
-    _pipeline.stage(path)
+    _pipeline.stage(path, forced)
     # run on a worker thread so stdin keeps being read
     threading.Thread(target=_pipeline.run_staged, daemon=True).start()
     return {"started": True}
@@ -875,9 +887,7 @@ def handle_queue_add(params):
     with _queue_lock:
         for raw in paths:
             path = Path(str(raw))
-            if not path.is_file():
-                continue
-            if path.suffix.lower() not in (".deb", ".rpm"):
+            if not path.exists():
                 continue
             _queue_seq += 1
             item_id = f"q{_queue_seq}"

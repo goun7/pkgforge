@@ -29,14 +29,43 @@ def test_queue_item_properties(tmp_path):
     assert rpm.pkg_type == "rpm"
 
 
-def test_add_files_filters_and_dedupes(qapp, tmp_path):
+def test_add_files_accepts_all_and_dedupes(qapp, tmp_path):
     qm = QueueManager()
     deb = _mk(tmp_path, "a.deb")
     rpm = _mk(tmp_path, "b.rpm")
     txt = _mk(tmp_path, "c.txt")
-    qm.add_files([deb, rpm, txt, deb])  # txt gecersiz, deb tekrar
-    assert qm.total == 2
-    assert qm.pending_count == 2
+    src = tmp_path / "kaynak"
+    src.mkdir()
+    qm.add_files([deb, rpm, txt, src, deb])  # hepsi kabul, deb tekrar elenir
+    assert qm.total == 4
+    assert qm.pending_count == 4
+
+
+def test_pkg_type_new_formats(qapp, tmp_path):
+    import io
+    import tarfile
+    tar = tmp_path / "app.tar.gz"
+    with tarfile.open(tar, "w:gz") as tf:
+        info = tarfile.TarInfo(name="usr/bin/app")
+        info.size = 1
+        tf.addfile(info, io.BytesIO(b"x"))
+    assert QueueItem(file_path=tar).pkg_type == "binary_tarball"
+    src = tmp_path / "kaynak"
+    src.mkdir()
+    (src / "CMakeLists.txt").write_text("project(x)")
+    assert QueueItem(file_path=src).pkg_type == "source_dir"
+
+
+def test_pkg_type_classify_error(qapp, monkeypatch, tmp_path):
+    import core.intake as INT
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"x")
+
+    def boom(p):
+        raise OSError("okunamadi")
+
+    monkeypatch.setattr(INT, "classify", boom)
+    assert QueueItem(file_path=f).pkg_type == "unknown"
 
 
 def test_remove_only_pending(qapp, tmp_path):

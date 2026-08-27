@@ -57,7 +57,8 @@ def test_queue_add_list_priority_remove_clear(temiz_kuyruk, tmp_path):
     yanit = AS.handle_queue_add({"paths": [str(iyi), str(kotu),
                                            str(tmp_path / "yok.rpm"),
                                            str(iyi)]})
-    assert yanit == {"added": 2}                                  # 876-893
+    # universal intake: a.deb + b.txt + tekrar a.deb kabul; yok.rpm elenir
+    assert yanit == {"added": 3}
 
     liste = AS.handle_queue_list({})
     assert liste[0]["name"] == "a.deb"

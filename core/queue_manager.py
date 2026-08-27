@@ -40,7 +40,15 @@ class QueueItem:
     @property
     def pkg_type(self) -> str:
         suffix = self.file_path.suffix.lower()
-        return "deb" if suffix == ".deb" else "rpm"
+        if suffix == ".deb":
+            return "deb"
+        if suffix == ".rpm":
+            return "rpm"
+        from core import intake
+        try:
+            return intake.classify(self.file_path).file_type.value
+        except (OSError, ValueError):
+            return "unknown"
 
 
 class QueueManager(QObject):
@@ -87,13 +95,9 @@ class QueueManager(QObject):
         return sum(1 for i in self._items if i.status == QueueItemStatus.PENDING)
 
     def add_files(self, paths: list[Path]) -> None:
-        """Add files to the queue."""
+        """Add files to the queue (universal intake: tum turler kabul)."""
         for path in paths:
-            if (
-                path.is_file()
-                and path.suffix.lower() in (".deb", ".rpm")
-                and not any(i.file_path == path for i in self._items)  # avoid duplicates
-            ):
+            if path.exists() and not any(i.file_path == path for i in self._items):
                 self._items.append(QueueItem(file_path=path))
                 log.info("Kuyruğa eklendi: %s", path.name)
 

@@ -46,14 +46,29 @@ def _mod(monkeypatch, ad, **ozellikler):
 
 
 def test_pipeline_start_ok_and_gates(senkron, tmp_path, monkeypatch):
+    import io
+    import tarfile
+
     _, _olaylar = senkron
     olmayan = tmp_path / "yok.deb"
     with pytest.raises(FileNotFoundError):
         AS.handle_pipeline_start({"path": str(olmayan)})
+
+    # Gecersiz mod -> ValueError
     kotu = tmp_path / "kotu.txt"
     kotu.write_text("x")
-    with pytest.raises(ValueError, match="Unsupported"):
-        AS.handle_pipeline_start({"path": str(kotu)})
+    with pytest.raises(ValueError, match="Unknown mode"):
+        AS.handle_pipeline_start({"path": str(kotu), "mode": "gecersiz"})
+
+    # Belirsiz tarball (hem kaynak hem binary) + mod yok -> ValueError
+    belirsiz = tmp_path / "belirsiz.tar.gz"
+    with tarfile.open(belirsiz, "w:gz") as tf:
+        for name in ("Cargo.toml", "usr/bin/app"):
+            info = tarfile.TarInfo(name=name)
+            info.size = 1
+            tf.addfile(info, io.BytesIO(b"x"))
+    with pytest.raises(ValueError, match="Ambiguous"):
+        AS.handle_pipeline_start({"path": str(belirsiz)})
 
     dogru = tmp_path / "iyi.deb"
     dogru.write_bytes(b"D")
@@ -66,7 +81,7 @@ def test_pipeline_start_ok_and_gates(senkron, tmp_path, monkeypatch):
             self.compatibility_ready = NS(connect=lambda f: None)
             self.finished = NS(connect=lambda f: None)
 
-        def stage(self, p):
+        def stage(self, p, forced=None):
             pass
 
         def run_staged(self):
