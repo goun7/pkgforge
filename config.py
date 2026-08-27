@@ -12,6 +12,11 @@ APP_NAME = "PkgForge"
 APP_VERSION = "2.0.0"
 APP_ID = "org.pkgforge.app"
 
+# Destek/bağış (FUNDING.yml ile aynı hedefleri işaret eder; GitHub Sponsors
+# etkinleşene kadar Polar/Kreosus yansıtıcıları kullanılır).
+REPO_URL = "https://github.com/goun7/pkgforge"
+DONATE_URL = "https://polar.sh/goun7"
+
 # Settings
 CONFIG_DIR = Path.home() / ".config" / "pkgforge"
 SETTINGS_FILE = CONFIG_DIR / "settings.json"

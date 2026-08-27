@@ -324,3 +324,13 @@
 - Mini mutasyon testi: 3 hata enjeksiyonu / 3 KILLED.
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
+
+## Oturum-5 gelir/bagis katmani
+- `.github/FUNDING.yml` (GitHub Sponsors + Polar.sh + Kreosus) eklendi.
+- About dialoguna "Destek Ol" butonu + `config.DONATE_URL`/`REPO_URL`.
+- i18n tr/en `about.support` anahtari; README destek bolumu.
+- Issue sablonlari: bug_report, feature_request, config.yml.
+- Strateji belgesi MONETIZATION_PLAN.md (bagis + gelecekte Open Core).
+- Yeni test: tests/test_support_round60.py (5 test). QApplication
+  referansi modul duzeyinde tutulmazsa qFatal abort ettigi goruldu;
+  _get_app() ile sabitlendi.

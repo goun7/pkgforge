@@ -163,6 +163,7 @@ STRINGS: dict[str, str] = {
     "about.python_label": "Python",
     "about.platform_label": "Platform",
     "about.close": "Close",
+    "about.support": "♥ Sponsor",
     "about.description": "Modern security-focused tool to convert and install .deb and .rpm packages on Arch Linux.",
     "about.author": "Developer: PkgForge Team",
     "about.license": "License: GPL-3.0-or-later",

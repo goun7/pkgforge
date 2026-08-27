@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- **support**: Gelir/bağış katmanı — `.github/FUNDING.yml` (GitHub
+  Sponsors + Polar.sh + Kreosus), About dialoguna "Destek Ol" butonu
+  (`config.DONATE_URL`), README destek bölümü, issue şablonları
+  (bug/feature/config) ve strateji belgesi MONETIZATION_PLAN.md.
+
 ### Security
 - **fix**: install_rehearsal container içi `sh -c` komutuna paket adı/klasörü
   quote'suz gömülüyordu (CWE-78) — shlex.quote ile kapatıldı; tam denetim

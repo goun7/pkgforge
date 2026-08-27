@@ -164,18 +164,32 @@ converter can never make a genuinely malicious package safe, so the goal is to
 
 ## 🧪 Running Tests
 
-To run the automated test suite (1383 tests, requires dev dependencies):
+To run the automated test suite (requires dev dependencies):
 
 ```bash
 pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **2147 tests collected, full suite green (rc=0)** ·
-**100% line coverage** on `core/`+`ui/`+`i18n/` (10 541 statements,
-0 missed) · mypy: 0 errors in 72 files · bandit CI-parity: clean.
+Current status: **full suite green (rc=0)** · **100% line coverage** on
+`core/`+`ui/`+`i18n/` (10 576 statements, 0 missed) · mypy: 0 errors in
+72 files · bandit CI-parity: clean · mini mutation score 3/3 KILLED.
 Wheel build verified (`pkgforge==2.0.0`) and E2E smoke-tested from a
 fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
+
+---
+
+## 💖 Support / Destek
+
+PkgForge is free and open-source. If it saves you time, consider supporting
+its development — sponsorship keeps the project actively maintained.
+
+PkgForge ücretsiz ve açık kaynaklıdır. Size zaman kazandırıyorsa gelişimini
+desteklemeyi düşünebilirsiniz.
+
+- **GitHub Sponsors:** [github.com/sponsors/goun7](https://github.com/sponsors/goun7)
+- **Polar.sh:** [polar.sh/goun7](https://polar.sh/goun7)
+- **Kreosus (Türkiye):** [kreosus.com/goun7](https://www.kreosus.com/goun7)
 
 ---
 

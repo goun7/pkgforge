@@ -5,7 +5,8 @@ Shows version, license, and project information.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -14,7 +15,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from config import APP_NAME, APP_VERSION
+from config import APP_NAME, APP_VERSION, DONATE_URL
 from i18n import tr
 from ui.styles import get_colors
 
@@ -86,7 +87,13 @@ class AboutDialog(QDialog):
         links.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(links)
 
-        # Close button
+        # Support (donation) + Close buttons
+        support_btn = QPushButton(tr("about.support"))
+        support_btn.clicked.connect(self._open_support)
+        support_btn.setStyleSheet(
+            f"background-color: {get_colors().TEAL}; color: #ffffff; "
+            f"padding: 8px 24px; border-radius: 4px; font-weight: bold;"
+        )
         close_btn = QPushButton(tr("about.close"))
         close_btn.clicked.connect(self.accept)
         close_btn.setStyleSheet(
@@ -95,6 +102,11 @@ class AboutDialog(QDialog):
         )
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
+        btn_layout.addWidget(support_btn)
         btn_layout.addWidget(close_btn)
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
+
+    def _open_support(self) -> bool:
+        """Destek sayfasını varsayılan tarayıcıda açar."""
+        return QDesktopServices.openUrl(QUrl(DONATE_URL))

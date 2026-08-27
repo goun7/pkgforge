@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Sorular ve tartismalar / Questions & discussions"
+    url: "https://github.com/goun7/pkgforge/discussions"
+    about: "Kullanim sorularini burada sorun."
