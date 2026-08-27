@@ -2,14 +2,18 @@ import { useRef } from "react";
 import { PackageOpen } from "lucide-react";
 import { cn } from "../lib/utils";
 
-export const ACCEPTED_EXTENSIONS = [".deb", ".rpm"];
+/** Known package extensions (used by the native dialog hint). */
+export const ACCEPTED_EXTENSIONS = [
+  ".deb", ".rpm", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2",
+  ".tbz2", ".tar.zst", ".tar", ".zip", ".appimage", ".pkg.tar.zst",
+  ".pkg.tar.xz", ".pkg.tar.gz", ".flatpakref",
+];
 
-/** Pure filter: keep only paths ending in an accepted extension. */
+/** Universal intake: forward every non-empty path to the backend, where
+ * core.intake.classify() decides the route (and asks the user when a
+ * tarball is ambiguous). The frontend no longer gates by extension. */
 export function filterAcceptedPaths(paths: string[]): string[] {
-  return paths.filter((p) => {
-    const lower = p.toLowerCase();
-    return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
-  });
+  return paths.filter((p) => typeof p === "string" && p.length > 0);
 }
 
 export interface DropZoneProps {
@@ -28,7 +32,15 @@ async function defaultBrowse(): Promise<string[]> {
   const selected = await open({
     multiple: true,
     title: "Paket seç",
-    filters: [{ name: "Paketler", extensions: ["deb", "rpm"] }],
+    filters: [
+      {
+        name: "Paketler",
+        extensions: [
+          "deb", "rpm", "tar.gz", "tgz", "tar.xz", "txz", "tar.bz2", "tbz2",
+          "tar.zst", "tar", "zip", "AppImage", "pkg.tar.zst", "flatpakref",
+        ],
+      },
+    ],
   });
   if (!selected) return [];
   return Array.isArray(selected) ? selected : [selected];
@@ -84,7 +96,7 @@ export function DropZone({
       </div>
       <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">
-          .deb / .rpm dosyalarını buraya bırakın
+          Paket dosyalarını (.deb, .rpm, .tar.gz, AppImage) buraya bırakın
         </p>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
           {hint ?? "veya seçmek için tıklayın"}
