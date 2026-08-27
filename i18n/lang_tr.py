@@ -73,6 +73,17 @@ STRINGS: dict[str, str] = {
     "tools.snapshot_stopped": "Durdurulmuş",
     "tools.snapshot_next": "Sıradaki çalıştırma",
     "tools.snapshot_not_installed": "❌ Snapshot temizlik servisi kurulu değil",
+    # Fleet konsolu (Alan D)
+    "fleet.title": "Fleet Konsolu",
+    "fleet.refresh": "Yenile",
+    "fleet.configured": "yapılandırıldı",
+    "fleet.present": "var",
+    "fleet.absent": "yok",
+    "fleet.policy": "Politika",
+    "fleet.profiles": "Profiller",
+    "fleet.history": "Geçmiş kayıt",
+    "fleet.sync": "Senkron",
+    "fleet.nav": "Fleet",
 
     # ── Adım İsimleri ────────────────────────────────────────────
     "step.security": "Güvenlik Kontrolü",

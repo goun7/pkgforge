@@ -1437,6 +1437,13 @@ def handle_tools_snapshot_remove(params):
     return {"started": True}
 
 
+def handle_fleet_status(params):
+    """Fleet konsolu: tek-cagri agregasyon (senkron, salt-okunur)."""
+    from core.fleet import get_fleet_status
+
+    return get_fleet_status()
+
+
 METHODS = {
     "app.version": handle_app_version,
     "app.doctor": handle_app_doctor,
@@ -1537,6 +1544,8 @@ METHODS = {
     "tools.snapshot_status": handle_tools_snapshot_status,
     "tools.snapshot_install": handle_tools_snapshot_install,
     "tools.snapshot_remove": handle_tools_snapshot_remove,
+    # Faz 5 / Fleet konsolu (Alan D)
+    "fleet.status": handle_fleet_status,
 }
 
 

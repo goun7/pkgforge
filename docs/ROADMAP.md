@@ -46,6 +46,7 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 | B10 | Feature Tezgâhı: kalan CLI özelliklerini (RPM→DEB, ABI denetimi, denetim izi/audit) her iki GUI'ye taşı | ✅ Faz 5 (`tools.*` RPC + PyQt6 ToolsDialog + Tauri Tools sayfası) |
 | B11 | UX modernizasyonu: 2026 standartları (motion tokenları, prefers-reduced-motion, focus-visible klavye erişilebilirliği) | ✅ Faz 5 (tokens.css/index.css + Sidebar/Button) |
 | B12 | Feature Tezgâhı Faz 2: kalan CLI özellikleri scan-image/attest/publish/snapshot-cleanup'ı her iki GUI'ye taşı | ✅ Faz 5 (`tools.*` RPC + PyQt6 4 sekme + Tauri 4 kart + `scan_oci_image` core) |
+| B13 | Fleet/kurumsal konsol (Alan D): F5.18 sync backends + F5.19 policy'yi tek konsolda birleştir (backend/policy/profil/senkron) | ✅ Faz 5 (`core/fleet.py` + `fleet.status` RPC + PyQt6 FleetDialog + Tauri Fleet sayfası) |
 
 ## Alan C — Mimari genişleme
 

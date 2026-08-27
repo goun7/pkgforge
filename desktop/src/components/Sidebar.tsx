@@ -10,6 +10,7 @@ import {
   PackageOpen,
   GitCompare,
   Wrench,
+  Server,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -24,7 +25,8 @@ export type PageId =
   | "plugins"
   | "export"
   | "compare"
-  | "tools";
+  | "tools"
+  | "fleet";
 
 export interface SidebarProps {
   active: PageId;
@@ -42,6 +44,7 @@ const NAV_ITEMS: { id: PageId; label: string; icon: typeof ArrowLeftRight; soon?
   { id: "compare", label: "Karşılaştır", icon: GitCompare },
   { id: "plugins", label: "Eklentiler", icon: Puzzle },
   { id: "tools", label: "Araclar", icon: Wrench },
+  { id: "fleet", label: "Fleet", icon: Server },
   { id: "settings", label: "Ayarlar", icon: Settings },
 ];
 

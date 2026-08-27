@@ -13,6 +13,7 @@ import { Plugins } from "./pages/Plugins";
 import { Compare } from "./pages/Compare";
 import { Browse } from "./pages/Browse";
 import { Tools } from "./pages/Tools";
+import { Fleet } from "./pages/Fleet";
 import { EmptyState } from "./components/EmptyState";
 import { Construction } from "lucide-react";
 import { loadLang } from "./lib/lang";
@@ -29,9 +30,10 @@ const PAGE_TITLES: Record<PageId, string> = {
   export: "Dışa Aktar",
   compare: "Karşılaştır",
   tools: "Araçlar",
+  fleet: "Fleet",
 };
 
-const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates", "reports", "export", "plugins", "compare", "browse", "tools"];
+const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates", "reports", "export", "plugins", "compare", "browse", "tools", "fleet"];
 
 export default function App() {
   const [page, setPage] = useState<PageId>("convert");
@@ -59,6 +61,7 @@ export default function App() {
             {page === "compare" && <Compare />}
             {page === "browse" && <Browse />}
             {page === "tools" && <Tools />}
+            {page === "fleet" && <Fleet />}
             {!READY_PAGES.includes(page) && (
               <EmptyState
                 icon={Construction}

@@ -448,3 +448,20 @@ export interface SnapshotStatus {
   next_run: string;
   last_run: string;
 }
+
+/* --- Fleet konsolu (Alan D) --- */
+
+export interface FleetBackendInfo {
+  configured: boolean;
+  available: boolean;
+}
+
+export interface FleetStatus {
+  backends: { [name: string]: FleetBackendInfo };
+  backend_names: string[];
+  age_available: boolean;
+  profiles: string[];
+  sync_configured: boolean;
+  history_count: number;
+  policy_level: string;
+}

@@ -73,6 +73,17 @@ STRINGS: dict[str, str] = {
     "tools.snapshot_stopped": "Stopped",
     "tools.snapshot_next": "Next run",
     "tools.snapshot_not_installed": "❌ Snapshot cleanup service not installed",
+    # Fleet console (Alan D)
+    "fleet.title": "Fleet Console",
+    "fleet.refresh": "Refresh",
+    "fleet.configured": "configured",
+    "fleet.present": "present",
+    "fleet.absent": "absent",
+    "fleet.policy": "Policy",
+    "fleet.profiles": "Profiles",
+    "fleet.history": "History records",
+    "fleet.sync": "Sync",
+    "fleet.nav": "Fleet",
 
     # ── Step Names ───────────────────────────────────────────────
     "step.security": "Security Check",

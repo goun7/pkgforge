@@ -34,9 +34,11 @@ from core.pipeline import ConversionPipeline, PipelineResult
 from core.queue_manager import QueueItemStatus, QueueManager
 from i18n import get_language, load_setting, set_language, tr
 from ui.drop_zone import DropZone
+from ui.fleet_dialog import FleetDialog
 from ui.log_panel import LogPanel
 from ui.resources.icons import (
     HEADER_ABOUT,
+    HEADER_FLEET,
     HEADER_HISTORY,
     HEADER_SETTINGS,
     HEADER_TOOLS,
@@ -163,6 +165,7 @@ class MainWindow(QMainWindow):
         self._history_btn = _make_header_btn(HEADER_HISTORY, tr("history.title"), self._show_history)
         self._updates_btn = _make_header_btn(HEADER_UPDATES, tr("updates.title"), self._check_upstream_updates)
         self._tools_btn = _make_header_btn(HEADER_TOOLS, tr("tools.title"), self._show_tools)
+        self._fleet_btn = _make_header_btn(HEADER_FLEET, tr("fleet.title"), self._show_fleet)
         self._settings_btn = _make_header_btn(HEADER_SETTINGS, tr("settings.title"), self._show_settings)
         self._about_btn = _make_header_btn(HEADER_ABOUT, tr("about.title"), self._show_about)
 
@@ -727,6 +730,11 @@ class MainWindow(QMainWindow):
     def _show_tools(self) -> None:
         """Feature Tezgahi: RPM->DEB / ABI / Audit araclari."""
         dialog = ToolsDialog(self)
+        dialog.exec()
+
+    def _show_fleet(self) -> None:
+        """Fleet konsolu (Alan D): backend/policy/profil ozeti."""
+        dialog = FleetDialog(self)
         dialog.exec()
 
     # ── Close event ──────────────────────────────────────────────
