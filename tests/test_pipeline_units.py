@@ -90,7 +90,7 @@ def test_stage_then_run_staged_invokes_run(pipe, monkeypatch, tmp_path):
     f.write_bytes(b"x")
     called = []
     monkeypatch.setattr(ConversionPipeline, "run",
-                        lambda self, p: called.append(p))
+                        lambda self, p, forced=None: called.append(p))
     pipe.stage(f)
     pipe.run_staged()
     assert called == [f]

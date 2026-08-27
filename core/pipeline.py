@@ -57,6 +57,7 @@ from config import (
     create_temp_dir,
     discover_tools,
 )
+from core import intake
 from core.compatibility_checker import (
     CheckSeverity,
     CompatibilityReport,
@@ -202,6 +203,10 @@ class ConversionPipeline(QObject):
         # Path staged for run_staged(); set before the worker thread starts so
         # the no-arg slot (connected to QThread.started) can pick it up.
         self._staged_path: Path | None = None
+        # Optional intake override: when the UI resolves an ambiguous input
+        # (e.g. a .tar.gz the user marked as source or binary) it stages the
+        # chosen FileType value here so classify is bypassed.
+        self._forced_type: str | None = None
 
     def cancel(self) -> None:
         """Cancel the pipeline at the earliest opportunity."""
@@ -270,9 +275,15 @@ class ConversionPipeline(QObject):
 
         return self._decision_approved and not self._cancelled
 
-    def stage(self, file_path: Path) -> None:
-        """Stage *file_path* for run_staged(); call BEFORE starting the thread."""
+    def stage(self, file_path: Path, forced_type: str | None = None) -> None:
+        """Stage *file_path* for run_staged(); call BEFORE starting the thread.
+
+        *forced_type* optionally overrides universal-intake classification
+        (one of ``core.intake.FileType`` values, e.g. ``"source_tarball"``);
+        used when the user resolves an ambiguous file in the UI.
+        """
         self._staged_path = file_path
+        self._forced_type = forced_type
 
     @pyqtSlot()
     def run_staged(self) -> None:
@@ -291,10 +302,12 @@ class ConversionPipeline(QObject):
             self._result.message = "Pipeline başlatılamadı: dosya yolu verilmedi"
             self.finished.emit(self._result)
             return
-        self.run(self._staged_path)
+        self.run(self._staged_path, self._forced_type)
 
-    def run(self, file_path: Path) -> None:
+    def run(self, file_path: Path, forced_type: str | None = None) -> None:
         """Execute the full pipeline synchronously (call from QThread)."""
+        if forced_type is not None:
+            self._forced_type = forced_type
         self._log("info", f"Pipeline başlatıldı: {file_path.name}")
         self._result = PipelineResult()
         self._result.original_file = file_path
@@ -340,6 +353,15 @@ class ConversionPipeline(QObject):
         if optional_missing:
             self._log("warning", f"İsteğe bağlı araçlar eksik: {', '.join(optional_missing)}")
 
+        # ── Universal intake: classify the input and route by type ──
+        ir = self._classify_input(file_path)
+        if ir.file_type not in (intake.FileType.DEB, intake.FileType.RPM):
+            self._temp_dir = create_temp_dir()
+            self._log("info", f"Geçici dizin: {self._temp_dir}")
+            self._run_intake_route(file_path, ir)
+            return
+        is_deb = ir.file_type == intake.FileType.DEB
+
         # Create temp directory
         self._temp_dir = create_temp_dir()
         self._log("info", f"Geçici dizin: {self._temp_dir}")
@@ -373,7 +395,6 @@ class ConversionPipeline(QObject):
         self.progress.emit(15)
 
         # GPG signature
-        is_deb = file_path.suffix.lower() == ".deb"
         if is_deb:
             self._result.signature = verify_deb_signature(file_path, self._tools)
         else:
@@ -519,6 +540,10 @@ class ConversionPipeline(QObject):
         self.progress.emit(65)
         self._set_step(PipelineStep.CONVERSION, "done")
 
+        self._finalize_pkg(converted_pkg, meta)
+
+    def _finalize_pkg(self, converted_pkg: Path, meta: PackageMetadata) -> None:
+        """Shared tail: compatibility checks, install-approval gate, install."""
         # ── Step 4: Compatibility checks ─────────────────────────
         if self._cancelled:
             return
@@ -612,6 +637,250 @@ class ConversionPipeline(QObject):
             return
 
         self._do_install(converted_pkg, meta.name)
+
+    # ── Universal intake route (non deb/rpm) ────────────────────
+    def _classify_input(self, file_path: Path) -> intake.IntakeResult:
+        """Universal intake ile siniflandir; forced_type varsa onu kullan."""
+        if self._forced_type:
+            try:
+                ft = intake.FileType(self._forced_type)
+            except ValueError:
+                ft = intake.FileType.UNKNOWN
+            return intake.IntakeResult(ft, file_path, 1.0, "kullanici secimi")
+        return intake.classify(file_path)
+
+    def _run_intake_route(self, file_path: Path, ir: intake.IntakeResult) -> None:
+        """deb/rpm disi turler icin rota: Arch paketi uret ve kur."""
+        self._log("info", "Algilanan tur: " + ir.file_type.value + " (" + ir.reason + ")")
+
+        # Adim 1: genel guvenlik (boyut + sha256)
+        if self._cancelled:
+            return
+        self._set_step(PipelineStep.SECURITY, "running")
+        self.progress.emit(5)
+        size_warn = validate_file_size(file_path, MAX_PACKAGE_SIZE_MB, WARN_PACKAGE_SIZE_MB)
+        if size_warn:
+            self._result.size_warning = size_warn
+            self._log("warning", size_warn)
+        self._result.sha256 = sha256_hash(file_path)
+        self._log("info", "SHA-256: " + self._result.sha256[:16] + "...")
+        self._set_step(PipelineStep.SECURITY, "done")
+        self.progress.emit(15)
+
+        # Ilerlenemez turler
+        if ir.file_type == intake.FileType.UNKNOWN:
+            self._set_step(PipelineStep.ANALYSIS, "error")
+            if ir.ambiguous:
+                self._result.message = (
+                    "Dosya turu belirsiz (kaynak mi, hazir binary mi?). "
+                    "Arayuzden acikca secin."
+                )
+            else:
+                self._result.message = "Taninamayan dosya turu: " + file_path.name
+            self._log("error", self._result.message)
+            return
+        if ir.file_type == intake.FileType.FLATPAKREF:
+            self._set_step(PipelineStep.ANALYSIS, "error")
+            self._result.message = (
+                "Flatpak referanslari GUIde henuz desteklenmiyor. "
+                "CLI kullanin: pkgforge flatpak-export"
+            )
+            self._log("error", self._result.message)
+            return
+
+        # Adim 2: analiz (hafif metadata)
+        if self._cancelled:
+            return
+        self._set_step(PipelineStep.ANALYSIS, "running")
+        self.progress.emit(25)
+        meta = self._intake_metadata(file_path, ir)
+        self._result.metadata = meta
+        self._log("info", "Paket: " + meta.name + " " + meta.version)
+        self._set_step(PipelineStep.ANALYSIS, "done")
+        self.progress.emit(35)
+
+        # Adim 3: donusum -> Arch paketi uret
+        if self._cancelled:
+            return
+        self._set_step(PipelineStep.CONVERSION, "running")
+        self.progress.emit(40)
+        try:
+            converted_pkg = self._intake_convert(file_path, ir, meta)
+        except Exception as exc:  # noqa: BLE001
+            self._set_step(PipelineStep.CONVERSION, "error")
+            self._result.message = "Donusum basarisiz: " + str(exc)
+            self._log("error", str(exc))
+            return
+        if self._cancelled:
+            return
+        self._result.converted_pkg = converted_pkg
+        self.progress.emit(65)
+        self._set_step(PipelineStep.CONVERSION, "done")
+
+        # Adim 4+5: uyumluluk + kurulum (ortak kuyruk)
+        self._finalize_pkg(converted_pkg, meta)
+
+    def _intake_metadata(self, file_path: Path, ir: intake.IntakeResult) -> PackageMetadata:
+        """Intake rotalari icin hafif PackageMetadata uretir."""
+        stem = file_path.name
+        tails = (".pkg.tar.zst", ".pkg.tar.xz", ".pkg.tar.gz", ".tar.gz", ".tar.xz",
+                 ".tar.bz2", ".tar.zst", ".tgz", ".txz", ".tar", ".zip",
+                 ".appimage", ".flatpakref")
+        low = stem.lower()
+        for tail in tails:
+            if low.endswith(tail):
+                stem = stem[: -len(tail)]
+                break
+        name, version = intake.derive_name_version(stem)
+        meta = PackageMetadata()
+        meta.file_path = file_path
+        meta.package_type = "deb"
+        meta.name = name
+        meta.version = version
+        meta.arch = "any"
+        meta.arch_mapped = "x86_64"
+        meta.description = ir.reason
+        meta.depends = []
+        meta.file_list = []
+        return meta
+
+    def _intake_convert(self, file_path: Path, ir: intake.IntakeResult,
+                        meta: PackageMetadata) -> Path:
+        """Ture gore Arch paketi uretir; basarisizlikta RuntimeError firlatir."""
+        assert self._temp_dir is not None
+        ft = ir.file_type
+        if ft == intake.FileType.ARCH_PKG:
+            dest = self._temp_dir / file_path.name
+            shutil.copy2(file_path, dest)
+            self._log("info", "Zaten Arch paketi — dogrudan kuruluma hazirlaniyor")
+            return dest
+        if ft == intake.FileType.SOURCE_DIR:
+            return self._build_from_source_dir(file_path, ir, meta)
+        if ft == intake.FileType.SOURCE_TARBALL:
+            return self._build_from_source_tarball(file_path, ir, meta)
+        if ft in (intake.FileType.BINARY_TARBALL, intake.FileType.APPIMAGE):
+            return self._wrap_binary(file_path, ir, meta)
+        raise RuntimeError("Desteklenmeyen tur: " + ft.value)
+
+    def _run_makepkg(self, build_dir: Path) -> Path:
+        """build_dir icinde makepkg calistirir, uretilen paketi dondurur."""
+        if not self._tools.makepkg:
+            raise RuntimeError("makepkg bulunamadi (paketleme icin gerekli)")
+        from core.security import safe_run
+        self._log("info", "makepkg calistiriliyor: " + build_dir.name)
+        r = safe_run([self._tools.makepkg, "-f", "--noconfirm"],
+                     cwd=build_dir, timeout=3600, text=True)
+        for line in (r.stdout or "").splitlines()[-15:]:
+            self._log("info", line)
+        if r.returncode != 0:
+            tail = (r.stderr or r.stdout or "").strip()[-300:]
+            raise RuntimeError("makepkg basarisiz: " + tail)
+        built = sorted(build_dir.glob("*.pkg.tar.zst"))
+        if not built:
+            raise RuntimeError("makepkg tamamlandi ama paket dosyasi bulunamadi")
+        return built[-1]
+
+    def _extract_tarball(self, file_path: Path, dest: Path) -> None:
+        """Tarballi guvenlice acar (data filtresi path traversal onler)."""
+        import tarfile as _tarfile
+        with _tarfile.open(file_path, "r:*") as tf:
+            tf.extractall(dest, filter="data")
+
+    def _build_from_source_tarball(self, file_path: Path, ir: intake.IntakeResult,
+                                   meta: PackageMetadata) -> Path:
+        """Kaynak tarballini derleyip Arch paketi uretir."""
+        assert self._temp_dir is not None
+        from core.from_source import (
+            _detect_binary_name,
+            _detect_license,
+            _extract_version_from_cargo,
+            _extract_version_from_cmake,
+            _extract_version_from_file,
+            _extract_version_from_meson,
+            _extract_version_from_pyproject,
+        )
+        extract_dir = self._temp_dir / "src_extract"
+        extract_dir.mkdir(exist_ok=True)
+        self._extract_tarball(file_path, extract_dir)
+        names = intake._list_archive(file_path) or []
+        top = intake.find_top_level_dir(names)
+        repo_dir = extract_dir / top if top else extract_dir
+        system = ir.build_system or intake.detect_build_system(names) or "make"
+        version = (
+            _extract_version_from_cargo(repo_dir)
+            or _extract_version_from_cmake(repo_dir)
+            or _extract_version_from_meson(repo_dir)
+            or _extract_version_from_pyproject(repo_dir)
+            or _extract_version_from_file(repo_dir)
+            or meta.version
+        )
+        license_id = _detect_license(repo_dir)
+        binary_name = (_detect_binary_name(repo_dir, meta.name)
+                       if system in ("cargo", "go") else None)
+        build_dir = self._temp_dir / "build_src"
+        build_dir.mkdir(exist_ok=True)
+        shutil.copy2(file_path, build_dir / file_path.name)
+        content = intake.generate_source_tarball_pkgbuild(
+            meta.name, version, file_path.name, top, system,
+            license_id=license_id, binary_name=binary_name)
+        (build_dir / "PKGBUILD").write_text(content, encoding="utf-8")
+        self._log("info", "Kaynak PKGBUILD uretildi (" + system + ")")
+        return self._run_makepkg(build_dir)
+
+    def _build_from_source_dir(self, file_path: Path, ir: intake.IntakeResult,
+                               meta: PackageMetadata) -> Path:
+        """Kaynak klasorunu tarball yapip kaynak rotasina verir."""
+        assert self._temp_dir is not None
+        import tarfile as _tarfile
+        tarball = self._temp_dir / (meta.name + ".tar.gz")
+        with _tarfile.open(tarball, "w:gz") as tf:
+            tf.add(file_path, arcname=meta.name)
+        sub_ir = intake.classify(tarball)
+        if not sub_ir.build_system and ir.build_system:
+            sub_ir.build_system = ir.build_system
+        return self._build_from_source_tarball(tarball, sub_ir, meta)
+
+    def _extract_appimage(self, file_path: Path) -> Path:
+        """AppImageyi --appimage-extract ile acip tarball olarak dondurur."""
+        assert self._temp_dir is not None
+        import tarfile as _tarfile
+
+        from core.security import safe_run
+        extract_dir = self._temp_dir / "appimage_extract"
+        extract_dir.mkdir(exist_ok=True)
+        appimg = self._temp_dir / file_path.name
+        shutil.copy2(file_path, appimg)
+        appimg.chmod(0o755)
+        r = safe_run([str(appimg), "--appimage-extract"],
+                     cwd=extract_dir, timeout=300, text=True)
+        if r.returncode != 0:
+            raise RuntimeError("AppImage acilamadi (--appimage-extract basarisiz)")
+        root = extract_dir / "squashfs-root"
+        if not root.exists():
+            raise RuntimeError("AppImage acildi ama squashfs-root bulunamadi")
+        tarball = extract_dir / (file_path.stem + ".tar.gz")
+        with _tarfile.open(tarball, "w:gz") as tf:
+            tf.add(root, arcname=".")
+        return tarball
+
+    def _wrap_binary(self, file_path: Path, ir: intake.IntakeResult,
+                     meta: PackageMetadata) -> Path:
+        """Hazir binary icerigi (tarball/AppImage) Arch paketine sarar."""
+        assert self._temp_dir is not None
+        if ir.file_type == intake.FileType.APPIMAGE:
+            src = self._extract_appimage(file_path)
+        else:
+            src = file_path
+        names = intake._list_archive(src) or []
+        entry = intake.find_binary_entrypoint(names)
+        build_dir = self._temp_dir / "build_bin"
+        build_dir.mkdir(exist_ok=True)
+        shutil.copy2(src, build_dir / src.name)
+        content = intake.generate_binary_pkgbuild(
+            meta.name, meta.version, src.name, exec_relpath=entry)
+        (build_dir / "PKGBUILD").write_text(content, encoding="utf-8")
+        self._log("info", "Binary PKGBUILD uretildi")
+        return self._run_makepkg(build_dir)
 
     def do_install_after_approval(self) -> None:
         """Called by the UI after user approves installation despite warnings.

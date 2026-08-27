@@ -74,8 +74,17 @@ class TestErrorReportWaitsForDecision(unittest.TestCase):
         self.app = _ensure_app()
         self.pipeline = ConversionPipeline()
         self.deb = Path("/tmp/hello_1.0.0-1_amd64.deb")
+        # Universal intake dosyanin varligina bakar; sahte de olsa dosya olmali
+        # ki sonek (.deb) siniflandirmasi DEB donsun ve deb/rpm akisi calissin.
+        self.deb.write_bytes(b"!<arch>fake")
         self.converted = Path("/tmp/hello-1.0.0-1-x86_64.pkg.tar.zst")
         self.installed = []
+
+    def tearDown(self):
+        try:
+            self.deb.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     def _patch_common(self):
         """Patch every stage before compatibility so the run reaches it."""
