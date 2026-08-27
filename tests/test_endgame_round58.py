@@ -311,6 +311,9 @@ def test_wal_checkpoint_busy(monkeypatch, tmp_path):
         def __exit__(self, *a):
             return False
 
+        def close(self):
+            pass  # closing() bunu cagirir; gercek baglantiyi model al
+
         def execute(self, sql):
             raise sqlite3.Error("database is locked")
 

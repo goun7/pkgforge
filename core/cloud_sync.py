@@ -19,6 +19,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+from contextlib import closing
 from pathlib import Path, PurePosixPath
 
 import config
@@ -67,7 +68,9 @@ def export_backup(output_path: str | None = None) -> dict:
         db = config.history_db_path(name)
         if db.is_file():
             try:
-                with sqlite3.connect(db) as conn:
+                # closing() guarantees the connection is released even though
+                # sqlite3's own context manager only commits/rolls back.
+                with closing(sqlite3.connect(db)) as conn:
                     conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             except sqlite3.Error:
                 pass  # busy/corrupt db: bundle whatever is readable
