@@ -122,6 +122,27 @@ def test_get_queue_store_sentinel(monkeypatch):
     assert AS._get_queue_store() is None                          # False->None
 
 
+def test_get_queue_store_registers_atexit_close(monkeypatch):
+    """Singleton QueueStore process cikisinda atexit ile kapatilmali."""
+    monkeypatch.setattr(AS, "_queue_store", None)
+    kayitli = []
+    monkeypatch.setattr(AS.atexit, "register", lambda fn: kayitli.append(fn))
+
+    class SahteStore:
+        closed = False
+
+        def close(self):
+            SahteStore.closed = True
+
+    monkeypatch.setitem(sys.modules, "core.queue_store",
+                        NS(QueueStore=SahteStore))
+    store = AS._get_queue_store()
+    assert isinstance(store, SahteStore)
+    assert len(kayitli) == 1            # atexit'e tam bir kayit
+    kayitli[0]()                        # kayitli close cagrisi
+    assert SahteStore.closed is True
+
+
 def test_queue_cancel(temiz_kuyruk):
     iptal = []
     calisan = NS(cancel=lambda: iptal.append(1))

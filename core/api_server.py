@@ -5,6 +5,7 @@ This module wraps the existing core modules; it adds NO new business logic.
 """
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import queue
@@ -757,6 +758,9 @@ def _get_queue_store():
             try:
                 from core.queue_store import QueueStore
                 _queue_store = QueueStore()
+                # Singleton yasam dongusu: process cikisinda baglantiyi kapat
+                # (sqlite WAL temizligi + dosya tutamac sizintisini onle).
+                atexit.register(_queue_store.close)
             except Exception:  # noqa: BLE001 - persistence is best-effort
                 _queue_store = False  # sentinel: tried and failed
         return _queue_store or None
