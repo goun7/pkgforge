@@ -11,3 +11,26 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Faz 5b — purposeful motion: standart gecis utility'si */
+.transition-standard {
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard);
+}
+
+/* Faz 5b — erisilebilirlik: hareketi azaltmayi secen kullanici icin
+   tum animasyon/gecisleri kapat (prefers-reduced-motion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

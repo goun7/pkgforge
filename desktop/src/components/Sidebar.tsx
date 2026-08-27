@@ -65,6 +65,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
               aria-current={active === id ? "page" : undefined}
               className={cn(
                 "flex w-full items-center gap-3 rounded-[var(--radius-btn)] px-3 py-2 text-sm font-medium transition-colors",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
                 active === id
                   ? "bg-[var(--brand-blue)]/12 text-[var(--brand-blue)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
