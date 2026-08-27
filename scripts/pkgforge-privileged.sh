@@ -34,6 +34,17 @@ _check_path() {
     fi
 }
 
+# Izinli bir prefix'in icine yerlestirilmis bir sembolik bag, hedefi disari
+# tasirabilir (orn. /usr/share/pkgforge/x -> /etc/shadow). chmod symlink'i
+# takip eder; write-file'in ebeveyn dizini bir symlink ise kacis olur. Bu
+# nedenle hedefin ve (write-file icin) ebeveyninin symlink olmamasi sart.
+_check_not_symlink() {
+    local p="$1"
+    if [ -L "$p" ]; then
+        echo "HATA: Sembolik bag hedefi reddedildi: $p" >&2; exit 10
+    fi
+}
+
 [ $# -ge 1 ] || usage
 CMD="$1"; shift
 
@@ -51,6 +62,8 @@ case "$CMD" in
         [ $# -eq 1 ] || usage
         DEST="$1"
         _check_path "$DEST"
+        _check_not_symlink "$DEST"
+        _check_not_symlink "$(dirname "$DEST")"
         mkdir -p "$(dirname "$DEST")"
         tmp="$DEST.tmp"
         cat > "$tmp"
@@ -61,12 +74,14 @@ case "$CMD" in
         MODE="$1"; DEST="$2"
         [[ "$MODE" =~ ^[0-7]{3,4}$ ]] || { echo "HATA: Gecersiz mod: $MODE" >&2; exit 7; }
         _check_path "$DEST"
+        _check_not_symlink "$DEST"
         chmod "$MODE" "$DEST"
         ;;
     remove-file)
         [ $# -eq 1 ] || usage
         DEST="$1"
         _check_path "$DEST"
+        _check_not_symlink "$DEST"
         rm -f -- "$DEST"
         ;;
     systemctl)
