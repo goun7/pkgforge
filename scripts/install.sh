@@ -31,6 +31,18 @@ python3 -c "import PyQt6" 2>/dev/null || {
     pacman -S --needed --noconfirm python-pyqt6 python-pyqt6-sip libarchive fakeroot bubblewrap || true
 }
 
+# Packaging build dependencies (Flatpak / AppImage / delta) — installed
+# directly so package builds work out of the box. Best-effort: a failure
+# here must not abort the base application install.
+echo "🔧 Installing packaging build dependencies (flatpak-builder, xdelta3)..."
+pacman -S --needed --noconfirm flatpak-builder xdelta3 2>/dev/null \
+    || echo "⚠️  flatpak-builder/xdelta3 kurulamadı (opsiyonel; paket derlemek için)"
+# Full packaging toolchain (appimagetool + Flatpak KDE runtimes).
+if [ -x "$PROJECT_DIR/scripts/install-packaging-tools.sh" ]; then
+    "$PROJECT_DIR/scripts/install-packaging-tools.sh" \
+        || echo "⚠️  Tam paketleme araç zinciri kurulumunda sorun (opsiyonel)"
+fi
+
 # 1. Copy the application tree to a stable system location so the launcher
 #    keeps working even if the git clone is moved or deleted.
 echo "📂 Installing application files: $INSTALL_DIR"
