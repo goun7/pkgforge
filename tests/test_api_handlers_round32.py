@@ -131,6 +131,13 @@ def test_history_handlers(senkron, monkeypatch, tmp_path):
     assert AS.handle_history_clear({}) == {"ok": True}          # 198
     assert SahteDB.temizlendi is True
 
+    # Faz 9 (5.7): history.restore (undo)
+    SahteDB.restore_records = lambda self, recs: len(recs)
+    assert AS.handle_history_restore({"records": [{}, {}, {}]}) == {"ok": True, "restored": 3}
+    assert AS.handle_history_restore({}) == {"ok": True, "restored": 0}
+    with pytest.raises(ValueError, match="liste"):
+        AS.handle_history_restore({"records": "not-a-list"})
+
 
 def test_security_sign_and_sbom(senkron, monkeypatch, tmp_path):
     kayit, _ = senkron

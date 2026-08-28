@@ -64,6 +64,12 @@ body {
     transform: translateX(400%);
   }
 }
+/* Faz 9 (5.4): kompakt tablo yogunlugu — tailwind py-* utility'lerini ezer. */
+table.dense tbody td {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
 .rpc-activity {
   animation: rpc-activity 1.2s linear infinite;
 }

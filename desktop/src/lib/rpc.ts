@@ -68,6 +68,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
 export async function call<T = unknown>(
   method: string,
   params?: unknown,
+  timeoutMs?: number,
 ): Promise<T> {
   const id = nextId++;
   inflight++;
@@ -81,7 +82,7 @@ export async function call<T = unknown>(
         method,
         params: params ?? {},
       }),
-      RPC_TIMEOUT_MS,
+      timeoutMs ?? RPC_TIMEOUT_MS,
       `${tFor(getLang())("rpcTimeout")}: ${method}`,
     );
   } catch (err) {

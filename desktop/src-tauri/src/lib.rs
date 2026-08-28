@@ -7,10 +7,72 @@ use tauri::{
 };
 use tauri_plugin_notification::NotificationExt;
 
+/// Faz 9 (1.12): tray + bildirim metinleri icin yerel dizeler.
+/// Rust tarafinda ayri bir i18n sozlugu yok; tr/en sabitleri yeterli.
+#[derive(Clone, Copy)]
+struct L10n {
+    show: &'static str,
+    quit: &'static str,
+    done_title: &'static str,
+    fail_title: &'static str,
+    ok_body: &'static str,
+    err_body: &'static str,
+}
+
+const TR: L10n = L10n {
+    show: "Göster",
+    quit: "Çıkış",
+    done_title: "PkgForge: Dönüştürme tamamlandı",
+    fail_title: "PkgForge: Dönüştürme başarısız",
+    ok_body: "Paket başarıyla işlendi.",
+    err_body: "İşlem sırasında bir hata oluştu.",
+};
+
+const EN: L10n = L10n {
+    show: "Show",
+    quit: "Quit",
+    done_title: "PkgForge: Conversion complete",
+    fail_title: "PkgForge: Conversion failed",
+    ok_body: "Package processed successfully.",
+    err_body: "An error occurred during the operation.",
+};
+
+/// Secili UI dilini settings.json'dan okur (profil farkindali); best-effort,
+/// okunamazsa Turkce'ye duser. Tray/bildirim baslangicta okunur.
+fn load_language() -> &'static L10n {
+    let home = match std::env::var("HOME") {
+        Ok(h) => h,
+        Err(_) => return &TR,
+    };
+    let base = std::path::PathBuf::from(home).join(".config").join("pkgforge");
+    let mut settings_path = base.join("settings.json");
+    if let Ok(profile) = std::fs::read_to_string(base.join("active_profile")) {
+        let p = profile.trim();
+        if !p.is_empty() && p != "default" {
+            let candidate = base.join("profiles").join(p).join("settings.json");
+            if candidate.exists() {
+                settings_path = candidate;
+            }
+        }
+    }
+    let raw = match std::fs::read_to_string(settings_path) {
+        Ok(r) => r,
+        Err(_) => return &TR,
+    };
+    let v: serde_json::Value = match serde_json::from_str(&raw) {
+        Ok(v) => v,
+        Err(_) => return &TR,
+    };
+    match v.get("language").and_then(|l| l.as_str()) {
+        Some("en") => &EN,
+        _ => &TR,
+    }
+}
+
 /// Build the system tray icon with a small menu.
-fn setup_tray(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let show = MenuItem::with_id(app, "show", "Göster", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Çıkış", true, None::<&str>)?;
+fn setup_tray(app: &tauri::AppHandle, l10n: &L10n) -> Result<(), Box<dyn std::error::Error>> {
+    let show = MenuItem::with_id(app, "show", l10n.show, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", l10n.quit, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;
 
     let icon = app.default_window_icon().cloned().unwrap();
@@ -54,7 +116,7 @@ fn setup_tray(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 /// Forward pipeline completion events to desktop notifications.
-fn setup_notifications(app: &tauri::AppHandle) {
+fn setup_notifications(app: &tauri::AppHandle, l10n: L10n) {
     let handle = app.clone();
     app.listen("event/finished", move |event| {
         let payload: serde_json::Value = match serde_json::from_str(event.payload()) {
@@ -67,9 +129,9 @@ fn setup_notifications(app: &tauri::AppHandle) {
             .and_then(|m| m.as_str())
             .unwrap_or("")
             .to_string();
-        let title = if success { "PkgForge: Dönüştürme tamamlandı" } else { "PkgForge: Dönüştürme başarısız" };
+        let title = if success { l10n.done_title } else { l10n.fail_title };
         let body = if message.is_empty() {
-            if success { "Paket başarıyla işlendi." } else { "İşlem sırasında bir hata oluştu." }
+            if success { l10n.ok_body } else { l10n.err_body }
         } else {
             &message
         };
@@ -88,10 +150,11 @@ pub fn run() {
         .manage(sidecar::Sidecar::new())
         .setup(|app| {
             sidecar::spawn(app.handle())?;
-            if let Err(e) = setup_tray(app.handle()) {
+            let l10n = *load_language();
+            if let Err(e) = setup_tray(app.handle(), &l10n) {
                 eprintln!("tray setup failed: {e}");
             }
-            setup_notifications(app.handle());
+            setup_notifications(app.handle(), l10n);
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())

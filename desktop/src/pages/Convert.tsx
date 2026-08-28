@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2 } from "lucide-react";
+import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2, PackageOpen } from "lucide-react";
 import { call } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
 import { useLang } from "../lib/lang";
@@ -432,7 +432,16 @@ export function Convert() {
   for (const [key, labelKey] of Object.entries(STEP_LABEL_KEYS)) stepLabels[key] = t(labelKey);
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-5">
+    <div className="relative flex h-full flex-col gap-4 overflow-y-auto p-5">
+      {/* Faz 9 (5.6): sayfanin tamami drop hedefi — surukleme sirasinda tam ekran geri bildirim. */}
+      {dragging && (
+        <div className="pointer-events-none absolute inset-2 z-40 flex items-center justify-center rounded-2xl border-2 border-dashed border-[var(--brand-blue)] bg-[var(--brand-blue)]/10 backdrop-blur-[1px]">
+          <div className="flex flex-col items-center gap-2 rounded-xl bg-[var(--bg-surface)] px-6 py-4 shadow-[var(--shadow-lg)]">
+            <PackageOpen size={28} className="text-[var(--brand-blue)]" />
+            <span className="text-sm font-medium text-[var(--text-primary)]">{t("dropOverlayHint")}</span>
+          </div>
+        </div>
+      )}
       {/* tab switcher */}
       <div className="flex gap-1 border-b border-[var(--border-subtle)]">
         <button

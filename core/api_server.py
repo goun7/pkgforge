@@ -212,6 +212,18 @@ def handle_history_clear(params):
     return {"ok": True}
 
 
+def handle_history_restore(params):
+    """Faz 9 (5.7): undo of history.clear — re-insert saved records."""
+    from core.history_db import HistoryDB
+
+    records = params.get("records") or []
+    if not isinstance(records, list):
+        raise ValueError("records bir liste olmalı")
+    db = HistoryDB()
+    restored = db.restore_records(records)
+    return {"ok": True, "restored": restored}
+
+
 # ── Faz 1 / A2: security panel ──────────────────────────────────
 
 def _require_pkg_file(params) -> Path:
@@ -1515,6 +1527,7 @@ METHODS = {
     "history.uninstall": handle_history_uninstall,
     "history.rollback": handle_history_rollback,
     "history.clear": handle_history_clear,
+    "history.restore": handle_history_restore,
     # Faz 1 / A2: security panel
     "security.verify": handle_security_verify,
     "security.sign": handle_security_sign,

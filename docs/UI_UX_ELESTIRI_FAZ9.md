@@ -201,10 +201,11 @@ Faz 9D (UX yaratıcı — Orta/Düşük): 5.1 kısayol yardımı, 5.2 log dışa
 
 ## Uygulama Durumu (Faz 9 — TAMAMLANDI)
 
-35 maddenin 30'u bu fazda uygulandı ve doğrulandı; 5 madde bilinçli olarak
-belgelendi/gelecek faza bırakıldı (hepsi [D] düşük öncelik veya tasarım kararı).
-Doğrulama kanıtları: pnpm exec tsc -b (temiz), 128 vitest testi (28 dosya) geçti,
-tauri build --no-bundle başarılı, Python coverage %100 (11682 ifade) korundu.
+35 maddenin TAMAMI (35/35) uygulandı ve doğrulandı. İlk turda 30 madde
+bitirilmiş; ardından kalan 5 [D] madde de (1.12, 2.7, 5.4, 5.6, 5.7) ikinci
+turda tamamlanmıştır. Doğrulama kanıtları: pnpm exec tsc -b (temiz),
+128 vitest testi (28 dosya) geçti, cargo check temiz, Python coverage %100
+(11704 ifade) korundu.
 
 ### 1. i18n — kalan son boşluklar
 - 1.1 ✅ rpc.ts zaman aşımı → rpcTimeout (getLang+tFor ile lib düzeyinde)
@@ -218,7 +219,7 @@ tauri build --no-bundle başarılı, Python coverage %100 (11682 ifade) korundu.
 - 1.9 ✅ Updates → updIntervalMin/updNeedName/updCrossFail/updCrossCaption/updDeltaEnablePriv/updDeltaDisablePriv
 - 1.10 ✅ Export toast'ları → expFail/expNeedAppimage/expNeedFlatpak/expNeedPkg
 - 1.11 ✅ Plugins toast'ları → plugDone/plugFail/plugRemoved. Ek: Tools sayfası da temizlendi → toolsRpmFail/toolsAbiFail/toolsImgScanFail/toolsAttestFail/toolsPublishFail/toolsSnapshotFail/toolsNeedImgPath
-- 1.12 ⚠️ Rust tray menüsü ve bildirim başlıkları Türkçe bırakıldı (desktop/src-tauri/src/lib.rs). Rust tarafında bir i18n sözlüğü yoktur ve Türkçe birincil yereldir; karar belgelendi.
+- 1.12 ✅ Rust tray menüsü + bildirim başlıkları yerelleştirildi (desktop/src-tauri/src/lib.rs). load_language() settings.json'dan (profil farkındalıklı) dili okur; tr/en L10n sabitleri. cargo check temiz.
 
 ### 2. Backend'de hazır ama UI'da yok — yaratıcı özellikler
 - 2.1 ✅ Sistem Doktoru → DoctorPanel.tsx (app.doctor), Reports sayfasına kart; eksik araçlar için kurulum komutu önerisi
@@ -227,7 +228,7 @@ tauri build --no-bundle başarılı, Python coverage %100 (11682 ifade) korundu.
 - 2.4 ✅ schedule.run → Updates zamanlayıcı kartına "Şimdi çalıştır" butonu (force=true)
 - 2.5 ✅ sync.import → zaten Settings yedek kartında "İçe Aktar" butonu vardı (doğrulandı)
 - 2.6 ✅ security.keys → Security imza sekmesine "İmza Anahtarları" listesi (GPG key_id + uid)
-- 2.7 ⚠️ install.rehearse → UI'a eklenmedi. Konteyner/distrobox bağımlılığı ve uzun süren prova süreci masaüstü UX'inde takılma riski taşır; gelecek faza bırakıldı.
+- 2.7 ✅ install.rehearse → Tools sayfasına "Kurulum Provası" kartı. rpc call()'a opsiyonel timeoutMs eklendi (prova 150s üst sınırla çağrılır); konteyner yoksa zarif düşer (neden+ipucu gösterilir).
 - 2.8 ✅ app.version → Settings sayfa altına canlı sürüm göstergesi (PkgForge Sürüm x.y.z)
 
 ### 3. Ölü kod ve bağımlılık hijyeni
@@ -246,21 +247,21 @@ tauri build --no-bundle başarılı, Python coverage %100 (11682 ifade) korundu.
 - 5.1 ✅ ShortcutsDialog.tsx → Ctrl+/ , komut paleti "Klavye kısayollarını göster" ve topbar klavye ikonu ile açılan yardım katmanı
 - 5.2 ✅ LogViewer'a logları .txt indirme butonu (pkgforge-log.txt)
 - 5.3 ✅ Reports sistem sağlığını JSON indirme (pkgforge-report.json)
-- 5.4 ⚠️ Tablo yoğunluk anahtarı → düşük öncelik, gelecek faza bırakıldı
+- 5.4 ✅ Tablo yoğunluk anahtarı → Installed başlığına Rahat/Kompakt geçiş (localStorage kalıcı, table.dense CSS).
 - 5.5 ✅ OLED siyah tema → tokens.css [data-theme="oled"], theme.ts, Settings seçeneği ve komut paleti "Tema: OLED Siyah"
-- 5.6 ⚠️ Global sürükle-bırak → düşük öncelik, gelecek faza bırakıldı (DropZone zaten mevcut)
-- 5.7 ⚠️ Yıkıcı işlem geri alma → düşük öncelik, gerçek geri-alma mekanizması gerektirir, gelecek faza bırakıldı
+- 5.6 ✅ Global sürükle-bırak → Convert sayfasının tamamı drop hedefi; sürükleme sırasında tam ekran kenarlıklı geri bildirim katmanı (Tauri window-level drag-drop zaten her yerde çalışıyordu, görsel geri bildirim eklendi).
+- 5.7 ✅ Yıkıcı işlem geri alma → history.clear öncesi kayıtlar yakalanır, toast'ta "Geri Al" eylemi; backend'e HistoryDB.restore_records + history.restore RPC eklendi (timestamp koruyarak yeniden ekler). Python testleri eklendi.
 - 5.8 ✅ Komut paleti son kullanılanlar → localStorage ile son 5 komut üste sabitlenir
 
 ### Özet
 | Kategori | Toplam | Uygulanan | Belgelenen/Erteleme |
 |----------|--------|-----------|---------------------|
-| 1. i18n | 12 | 11 | 1 (1.12) |
-| 2. Özellik | 8 | 7 | 1 (2.7) |
+| 1. i18n | 12 | 12 | 0 |
+| 2. Özellik | 8 | 8 | 0 |
 | 3. Hijyen | 1 | 1 | 0 |
 | 4. Test | 6 | 6 | 0 |
-| 5. UX | 8 | 5 | 3 (5.4/5.6/5.7) |
-| **Toplam** | **35** | **30** | **5** |
+| 5. UX | 8 | 8 | 0 |
+| **Toplam** | **35** | **35** | **0** |
 
 Yeni dosyalar: DoctorPanel.tsx, WrappedDialog.tsx, ShortcutsDialog.tsx +
 7 test dosyası (format, cache, theme, CommandPalette, ErrorBoundary, EmptyState, ShortcutsDialog).

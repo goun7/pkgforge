@@ -317,6 +317,45 @@ class HistoryDB:
         except sqlite3.Error as exc:
             log.error("HistoryDB temizleme hatası: %s", exc)
 
+    def restore_records(self, records: list[dict]) -> int:
+        """Faz 9 (5.7): bulk re-insert records (undo of clear_history).
+
+        Preserves the original timestamp when present; falls back to now.
+        Returns the number of rows restored. Never raises.
+        """
+        restored = 0
+        try:
+            with self._conn() as conn:
+                for r in records:
+                    if not isinstance(r, dict):
+                        continue
+                    conn.execute(
+                        """
+                        INSERT INTO conversions
+                        (timestamp, package_name, original_file, package_type, sha256,
+                         status, output_pkg, details, source_url, backup_pkg)
+                        VALUES (COALESCE(?, CURRENT_TIMESTAMP), ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            r.get("timestamp"),
+                            str(r.get("package_name", "")),
+                            str(r.get("original_file", "")),
+                            str(r.get("package_type", "")),
+                            str(r.get("sha256", "")),
+                            str(r.get("status", "")),
+                            str(r.get("output_pkg", "")),
+                            str(r.get("details", "")),
+                            str(r.get("source_url", "")),
+                            str(r.get("backup_pkg", "")),
+                        ),
+                    )
+                    restored += 1
+                conn.commit()
+                log.info("Geçmiş geri yüklendi: %d kayıt", restored)
+        except sqlite3.Error as exc:
+            log.error("HistoryDB geri yükleme hatası: %s", exc)
+        return restored
+
     def update_http_headers(self, record_id: int, etag: str, last_modified: str) -> None:
         """Update stored HTTP caching headers for a record (upstream tracker)."""
         try:

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Loader2, ShieldCheck, ScrollText, PackageSearch, Radar, FileCheck2,
-  UploadCloud, Trash2, RefreshCw,
+  UploadCloud, Trash2, RefreshCw, Container,
 } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
 import type {
@@ -15,6 +15,17 @@ import { Input } from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
 import { useLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
+
+/** Faz 9 (2.7): install.rehearse donus tipi. */
+interface RehearseResult {
+  ok: boolean;
+  available: boolean;
+  runtime?: string | null;
+  reason?: string;
+  hint?: string;
+  file_count?: number;
+  files?: string[];
+}
 
 export function Tools() {
   const { toast } = useToast();
@@ -46,6 +57,10 @@ export function Tools() {
 
   const [snapshot, setSnapshot] = useState<SnapshotStatus | null>(null);
   const [snapBusy, setSnapBusy] = useState(false);
+
+  const [rehearsePath, setRehearsePath] = useState("");
+  const [rehearseBusy, setRehearseBusy] = useState(false);
+  const [rehearseResult, setRehearseResult] = useState<RehearseResult | null>(null);
 
   useEffect(() => {
     const unsubs: (() => void)[] = [];
@@ -172,6 +187,20 @@ export function Tools() {
     setSnapBusy(true);
     try { await call("tools.snapshot_remove"); }
     catch (e) { setSnapBusy(false); toast("error", (e as Error).message); }
+  };
+
+  // Faz 9 (2.7): konteyner ici kurulum provasi (150s ust sinir — konteyner 120s surebilir).
+  const handleRehearse = async () => {
+    if (!rehearsePath.trim()) { toast("error", t("rehearseNeedPath")); return; }
+    setRehearseBusy(true); setRehearseResult(null);
+    try {
+      const res = await call<RehearseResult>("install.rehearse", { package_path: rehearsePath }, 150000);
+      setRehearseResult(res);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setRehearseBusy(false);
+    }
   };
 
   return (
@@ -343,6 +372,47 @@ export function Tools() {
                     (snapshot.next_run ? " | " + t("toolsSvcNext") + " " + snapshot.next_run : "")
                   : t("toolsSvcNotInstalled")}
               </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>{t("rehearseTitle")}</CardTitle></CardHeader>
+          <CardContent>
+            <p className="mb-2 text-xs text-[var(--text-muted)]">{t("rehearseDesc")}</p>
+            <div className="flex gap-2">
+              <Input value={rehearsePath} onChange={(e) => setRehearsePath(e.target.value)}
+                placeholder="/yol/paket.pkg.tar.zst" aria-label={t("toolsPkgPath")} />
+              <Button onClick={() => void handleRehearse()} disabled={rehearseBusy}>
+                {rehearseBusy ? <Loader2 className="animate-spin" size={16} /> : <Container size={16} />}
+                {t("rehearseRun")}
+              </Button>
+            </div>
+            {rehearseResult && (
+              <div className="mt-3 text-sm">
+                {!rehearseResult.available ? (
+                  <p className="text-xs text-[var(--warning)]">
+                    {rehearseResult.reason ?? t("rehearseUnavailable")}
+                    {rehearseResult.hint ? " — " + rehearseResult.hint : ""}
+                  </p>
+                ) : rehearseResult.ok ? (
+                  <>
+                    <Badge>{rehearseResult.file_count ?? 0} {t("rehearseFiles")}</Badge>
+                    {rehearseResult.runtime && (
+                      <span className="ml-2 text-xs text-[var(--text-muted)]">{rehearseResult.runtime}</span>
+                    )}
+                    {rehearseResult.files && rehearseResult.files.length > 0 && (
+                      <ul className="mt-2 max-h-40 space-y-0.5 overflow-y-auto">
+                        {rehearseResult.files.slice(0, 50).map((file, i) => (
+                          <li key={i} className="font-mono text-[10px] text-[var(--text-secondary)]">{file}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-[var(--danger)]">{rehearseResult.reason ?? t("rehearseFail")}</p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

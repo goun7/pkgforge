@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { PackageCheck, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { PackageCheck, RefreshCw, Trash2, Undo2, Rows3 } from "lucide-react";
+import { cn } from "../lib/utils";
 import { call } from "../lib/rpc";
 import type { HistoryRecord } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
@@ -44,6 +45,22 @@ export function Installed() {
     }
   }, [filter]);
   const [pageCount, setPageCount] = useState(50);
+  // Faz 9 (5.4): tablo yogunlugu (rahat/kompakt), kalici.
+  const [density, setDensity] = useState<"comfortable" | "compact">(() => {
+    try {
+      return localStorage.getItem("pkgforge.density") === "compact" ? "compact" : "comfortable";
+    } catch {
+      return "comfortable";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("pkgforge.density", density);
+    } catch {
+      /* depolama yok */
+    }
+  }, [density]);
+  const toggleDensity = () => setDensity((d) => (d === "compact" ? "comfortable" : "compact"));
   const [sortCol, setSortCol] = useState<SortCol>("timestamp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (col: SortCol) => {
@@ -99,11 +116,26 @@ export function Installed() {
     }
   };
 
+  // Faz 9 (5.7): temizleme oncesi kayitlari yakala, "Geri Al" eylemi sun.
+  const handleRestore = async (backup: HistoryRecord[]) => {
+    try {
+      await call("history.restore", { records: backup });
+      toast("success", t("instRestored"));
+      void load();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
   const handleClear = async () => {
     try {
+      const backup = await call<HistoryRecord[]>("history.list", { limit: 10000 });
       await call("history.clear");
-      toast("success", t("instCleared"));
       void load();
+      toast("success", t("instCleared"), {
+        label: t("commonUndo"),
+        onClick: () => void handleRestore(backup),
+      });
     } catch (e) {
       toast("error", (e as Error).message);
     }
@@ -140,6 +172,15 @@ export function Installed() {
             <Button variant="secondary" size="sm" onClick={() => void load()}>
               <RefreshCw size={14} /> {t("commonRefresh")}
             </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={toggleDensity}
+              title={t("densityToggle")}
+              aria-label={t("densityToggle")}
+            >
+              <Rows3 size={14} /> {density === "compact" ? t("densityCompact") : t("densityComfortable")}
+            </Button>
             <Button variant="danger" size="sm" onClick={() => setConfirm({ type: "clear" })} disabled={!records.length}>
               <Trash2 size={14} /> {t("commonClear")}
             </Button>
@@ -160,7 +201,7 @@ export function Installed() {
             />
           ) : (
             <>
-            <table className="w-full text-sm">
+            <table className={cn("w-full text-sm", density === "compact" && "dense")}>
               <caption className="sr-only">{t("instCaption")}</caption>
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
