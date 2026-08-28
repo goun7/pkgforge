@@ -14,12 +14,33 @@ export function resolveTheme(theme: string): "dark" | "light" {
   return theme === "light" ? "light" : "dark";
 }
 
+/** Faz 8 (10.4): "system" seciliyken OS tema degisikligini canli izle. */
+let systemThemeCleanup: (() => void) | null = null;
+function watchSystemTheme(theme: string): void {
+  if (systemThemeCleanup) {
+    systemThemeCleanup();
+    systemThemeCleanup = null;
+  }
+  if (theme !== "system") return;
+  try {
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const handler = () => {
+      document.documentElement.setAttribute("data-theme", resolveTheme("system"));
+    };
+    mq.addEventListener("change", handler);
+    systemThemeCleanup = () => mq.removeEventListener("change", handler);
+  } catch {
+    /* matchMedia yok */
+  }
+}
+
 /** Temayi uygular; degisim sirasinda kisa bir gecis sinifi ekler. */
 export function applyTheme(theme: string): void {
   const root = document.documentElement;
   root.classList.add("theme-switching");
   root.setAttribute("data-theme", resolveTheme(theme));
   window.setTimeout(() => root.classList.remove("theme-switching"), 400);
+  watchSystemTheme(theme);
 }
 
 /** Baslangicta kayitli temayi uygular (sidecar hazir degilse sessizce gecer). */

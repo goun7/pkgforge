@@ -21,6 +21,7 @@ import { LogViewer, type LogLine } from "../components/LogViewer";
 import { QueueList, type QueueItem } from "../components/QueueList";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Badge } from "../components/ui/Badge";
 import { Input } from "../components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
@@ -56,6 +57,7 @@ type ConvertTab = "convert" | "fromsource" | "batch";
 export function Convert() {
   const { toast } = useToast();
   const [tab, setTab] = useState<ConvertTab>("convert");
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [statuses, setStatuses] = useState<Record<string, StepStatus>>({});
   const [progress, setProgress] = useState(0);
@@ -419,6 +421,11 @@ export function Convert() {
   const needsDecision = report !== null;
   // Ilerleme hissi: uzun suren donusum adimi indeterminate + gecen sure ile akar
   const isConverting = statuses["conversion"] === "running";
+  // Faz 8 (2.1): ilerleme yüzdesinden kalan sure tahmini (ETA).
+  const eta =
+    isConverting && progress > 0 && progress < 100 && elapsed > 0
+      ? Math.round((elapsed * (100 - progress)) / progress)
+      : null;
   const activeStepKey = PIPELINE_STEPS.find((s) => statuses[s] === "running");
   // Adim gostergesine yerellestirilmis etiketler (ham anahtar yerine).
   const stepLabels: Record<string, string> = {};
@@ -475,15 +482,18 @@ export function Convert() {
               <CardContent className="flex flex-col gap-4">
                 <StepIndicator statuses={statuses} labels={stepLabels} />
                 <div className="flex items-center gap-3">
-                  <ProgressBar value={progress} gradient indeterminate={isConverting} className="flex-1" />
+                  <ProgressBar value={progress} gradient indeterminate={isConverting && progress === 0} className="flex-1" />
                   <span className="w-12 text-right text-xs text-[var(--text-secondary)]">
-                    {isConverting ? "…" : `${progress}%`}
+                    {isConverting && progress === 0 ? "…" : `${progress}%`}
                   </span>
                 </div>
                 {running && (
                   <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
                     <span>{activeStepKey && STEP_LABEL_KEYS[activeStepKey] ? t(STEP_LABEL_KEYS[activeStepKey]) : t("convertPreparing")}</span>
-                    <span>{t("convertElapsed")}: {fmtElapsed(elapsed)}</span>
+                    <span>
+                      {t("convertElapsed")}: {fmtElapsed(elapsed)}
+                      {eta !== null && ` · ${t("convEta")} ~${fmtElapsed(eta)}`}
+                    </span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
@@ -495,7 +505,7 @@ export function Convert() {
                   >
                     <Play size={14} /> {t("commonStart")}
                   </Button>
-                  <Button variant="danger" size="sm" onClick={() => void handleCancel()} disabled={!running}>
+                  <Button variant="danger" size="sm" onClick={() => setConfirmCancel(true)} disabled={!running}>
                     <Square size={14} /> {t("commonCancel")}
                   </Button>
                   {running && <Badge tone="info">{t("commonRunning")}</Badge>}
@@ -552,12 +562,11 @@ export function Convert() {
       {tab === "fromsource" && (
         <Card>
           <CardHeader>
-            <CardTitle>Kaynaktan PKGBUILD Sihirbazı</CardTitle>
+            <CardTitle>{t("convSourceWizard")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-[var(--text-muted)]">
-              Bir Git deposu URL'si girin; PkgForge projeyi klonlar, build sistemini tespit eder
-              ve bir PKGBUILD üretir.
+              {t("convSourceDesc")}
             </p>
             <div className="flex items-center gap-2">
               <Input
@@ -568,18 +577,18 @@ export function Convert() {
               />
               <Button onClick={() => void handleGenerate()} disabled={sourceBusy}>
                 {sourceBusy ? <Loader2 size={15} className="animate-spin" /> : <Code2 size={15} />}
-                Oluştur
+                {t("convGenerate")}
               </Button>
             </div>
             {sourceBusy && (
               <Badge tone="info">
-                {sourceStep === "clone" ? "Depo klonlanıyor…" : sourceStep === "detect" ? "Build sistemi tespit ediliyor…" : sourceStep === "generate" ? "PKGBUILD üretiliyor…" : "Çalışıyor…"}
+                {sourceStep === "clone" ? t("convCloning") : sourceStep === "detect" ? t("convDetecting") : sourceStep === "generate" ? t("convGenerating") : t("convWorking")}
               </Badge>
             )}
             {sourceResult && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Badge tone="success">Build sistemi: {sourceResult.build_system}</Badge>
+                  <Badge tone="success">{t("convBuildSystem")} {sourceResult.build_system}</Badge>
                   <span className="text-xs text-[var(--text-muted)]">{sourceResult.proj_name}</span>
                 </div>
                 <p className="truncate text-xs font-mono text-[var(--text-secondary)]">{sourceResult.pkgbuild_path}</p>
@@ -660,13 +669,13 @@ export function Convert() {
                       {b.message && <p className="truncate text-xs text-[var(--text-muted)]">{b.message}</p>}
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <button aria-label={`öncelik artır ${b.name}`} title="Önceliği artır" onClick={() => void handleBatchPriority(b.id, 1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
+                      <button aria-label={`${t("convPriorityUp")} ${b.name}`} title={t("convPriorityUp")} onClick={() => void handleBatchPriority(b.id, 1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
                         <ArrowUp size={14} />
                       </button>
-                      <button aria-label={`öncelik azalt ${b.name}`} title="Önceliği azalt" onClick={() => void handleBatchPriority(b.id, -1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
+                      <button aria-label={`${t("convPriorityDown")} ${b.name}`} title={t("convPriorityDown")} onClick={() => void handleBatchPriority(b.id, -1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
                         <ArrowDown size={14} />
                       </button>
-                      <button aria-label={`kaldır ${b.name}`} title="Kaldır" onClick={() => void handleBatchRemove(b.id)} disabled={b.status === "running"} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--danger)]">
+                      <button aria-label={`${t("convRemoveItem")} ${b.name}`} title={t("commonRemove")} onClick={() => void handleBatchRemove(b.id)} disabled={b.status === "running"} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--danger)]">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -682,12 +691,12 @@ export function Convert() {
       <Dialog
         open={needsDecision}
         onClose={() => void handleDismiss()}
-        title={`Uyumluluk Raporu — Sınıf ${report?.grade ?? "?"}`}
+        title={`${t("convCompatReport")} ${report?.grade ?? "?"}`}
       >
         {report && (
           <div className="flex flex-col gap-3">
             <Badge tone={overall === "error" ? "danger" : overall === "warning" ? "warning" : "success"}>
-              {overall === "error" ? "Engelleyici hatalar var" : overall === "warning" ? "Uyarılar var" : "Temiz"}
+              {overall === "error" ? t("convBlocking") : overall === "warning" ? t("convWarnings") : t("convCleanStatus")}
             </Badge>
             <ul className="max-h-56 space-y-2 overflow-y-auto text-sm">
               {report.checks.map((c, i) => (
@@ -705,18 +714,33 @@ export function Convert() {
             </ul>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" onClick={() => void handleDismiss()}>
-                Kapat
+                {t("convClose")}
               </Button>
               <Button
                 variant={overall === "error" ? "danger" : "primary"}
                 onClick={() => void handleApprove()}
               >
-                Yine de Kur
+                {t("convInstallAnyway")}
               </Button>
             </div>
           </div>
         )}
       </Dialog>
+
+      {/* Faz 8 (2.6): iptal onayi. */}
+      <ConfirmDialog
+        open={confirmCancel}
+        title={t("confirmCancelTitle")}
+        message={t("confirmCancelMsg")}
+        confirmLabel={t("confirmConfirm")}
+        cancelLabel={t("confirmCancel")}
+        danger
+        onConfirm={() => {
+          setConfirmCancel(false);
+          void handleCancel();
+        }}
+        onCancel={() => setConfirmCancel(false)}
+      />
     </div>
   );
 }

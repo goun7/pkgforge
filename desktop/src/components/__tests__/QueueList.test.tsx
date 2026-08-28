@@ -24,9 +24,9 @@ describe("QueueList", () => {
   it("calls onRemove for pending items only", () => {
     const onRemove = vi.fn();
     render(<QueueList items={items} onRemove={onRemove} />);
-    const removeBtn = screen.getByLabelText("remove a_1.0.deb");
+    const removeBtn = screen.getByLabelText("Kaldır a_1.0.deb");
     fireEvent.click(removeBtn);
     expect(onRemove).toHaveBeenCalledWith("1");
-    expect(screen.queryByLabelText("remove b_2.0.rpm")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Kaldır b_2.0.rpm")).not.toBeInTheDocument();
   });
 });

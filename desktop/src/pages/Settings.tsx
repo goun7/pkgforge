@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, Save, Trash2 } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
@@ -43,15 +43,29 @@ const DEFAULTS: SettingsShape = {
   compat_policy: "standard",
 };
 
-const BOOL_FIELDS: { key: keyof SettingsShape; label: string; hint?: string }[] = [
-  { key: "aur_check", label: "AUR güncelleme kontrolü", hint: "Kurulumdan önce AUR'da daha yeni sürüm ara" },
-  { key: "distrobox_fallback", label: "Distrobox geri dönüşü", hint: "Uyumsuz paketleri konteynerde çalıştırmayı öner" },
-  { key: "clamav_scan", label: "ClamAV malware taraması", hint: "Dönüşüm öncesi antivirüs taraması (clamscan gerekli)" },
-  { key: "snapshot", label: "Otomatik yedek (snapshot)", hint: "Kurulumdan önce mevcut paketin yedeğini al" },
-  { key: "dry_run", label: "Kuru çalıştırma (dry-run)", hint: "Gerçek kurulum yapmadan simüle et" },
-  { key: "allow_insecure_http", label: "Güvensiz HTTP'ye izin ver", hint: "Yalnızca http:// URL indirmelerine izin ver (önerilmez)" },
-  { key: "verbose", label: "Ayrıntılı log", hint: "Daha fazla hata ayıklama çıktısı" },
-  { key: "auto_sign", label: "Otomatik imzalama", hint: "Dönüştürülen paketleri otomatik imzala" },
+const BOOL_FIELDS: { key: keyof SettingsShape; labelKey: I18nKey; hintKey: I18nKey }[] = [
+  { key: "aur_check", labelKey: "setBoolAurCheck", hintKey: "setBoolAurCheckHint" },
+  { key: "distrobox_fallback", labelKey: "setBoolDistrobox", hintKey: "setBoolDistroboxHint" },
+  { key: "clamav_scan", labelKey: "setBoolClamav", hintKey: "setBoolClamavHint" },
+  { key: "snapshot", labelKey: "setBoolSnapshot", hintKey: "setBoolSnapshotHint" },
+  { key: "dry_run", labelKey: "setBoolDryRun", hintKey: "setBoolDryRunHint" },
+  { key: "allow_insecure_http", labelKey: "setBoolInsecure", hintKey: "setBoolInsecureHint" },
+  { key: "verbose", labelKey: "setBoolVerbose", hintKey: "setBoolVerboseHint" },
+  { key: "auto_sign", labelKey: "setBoolAutoSign", hintKey: "setBoolAutoSignHint" },
+];
+
+/** Faz 8 (10.1): ayar arama indeksi (etiket + ipucu + hedef sekme). */
+const SEARCH_INDEX: { labelKey: I18nKey; hintKey?: I18nKey; tab: "general" | "profiles" | "cloud" }[] = [
+  { labelKey: "setLang", tab: "general" },
+  { labelKey: "setCompat", tab: "general" },
+  { labelKey: "setTheme", tab: "general" },
+  ...BOOL_FIELDS.map((f) => ({ labelKey: f.labelKey, hintKey: f.hintKey, tab: "general" as const })),
+  { labelKey: "setTimeout", tab: "general" },
+  { labelKey: "setOutputDir", tab: "general" },
+  { labelKey: "profilesTitle", tab: "profiles" },
+  { labelKey: "backupTitle", tab: "cloud" },
+  { labelKey: "setWebdavTitle", tab: "cloud" },
+  { labelKey: "dbusTitle", tab: "cloud" },
 ];
 
 export function Settings() {
@@ -60,6 +74,7 @@ export function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<"general" | "profiles" | "cloud">("general");
+  const [searchQuery, setSearchQuery] = useState("");
   // C2: profiles
   const [profiles, setProfiles] = useState<{ name: string; active: boolean }[]>([]);
   const [newProfile, setNewProfile] = useState("");
@@ -135,6 +150,47 @@ export function Settings() {
   const set = <K extends keyof SettingsShape>(key: K, value: SettingsShape[K]) =>
     setSettings((prev) => ({ ...prev, [key]: value }));
 
+  // Faz 8 (10.2): varsayilanlara sifirla.
+  const handleReset = async () => {
+    setSaving(true);
+    try {
+      await call("settings.set", DEFAULTS);
+      setSettings(DEFAULTS);
+      applyTheme(DEFAULTS.theme);
+      toast("success", t("setResetDone"));
+    } catch (err) {
+      toast("error", (err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Faz 8 (10.3): ayarlari JSON olarak disa/ice aktar.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleExportSettings = () => {
+    try {
+      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pkgforge-settings.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast("error", (err as Error).message);
+    }
+  };
+  const handleImportFile = async (file: File) => {
+    try {
+      const parsed = JSON.parse(await file.text()) as Partial<SettingsShape>;
+      await call("settings.set", parsed);
+      setSettings({ ...DEFAULTS, ...parsed });
+      toast("success", t("setImportDone"));
+    } catch {
+      toast("error", t("setImportFail"));
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -161,7 +217,7 @@ export function Settings() {
       await call("profile.create", { name });
       setNewProfile("");
       await loadProfiles();
-      toast("success", `Profil oluşturuldu: ${name}`);
+      toast("success", `${t("setProfileCreated")}: ${name}`);
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -174,7 +230,7 @@ export function Settings() {
     try {
       await call("profile.switch", { name });
       await refreshAll();
-      toast("success", `Profil değiştirildi: ${name}`);
+      toast("success", `${t("setProfileSwitched")}: ${name}`);
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -187,7 +243,7 @@ export function Settings() {
     try {
       await call("profile.delete", { name });
       await loadProfiles();
-      toast("success", `Profil silindi: ${name}`);
+      toast("success", `${t("setProfileDeleted")}: ${name}`);
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -201,9 +257,9 @@ export function Settings() {
       "event/sync_done",
       (payload) => {
         if (payload.ok) {
-          toast("success", `Bulut işlemi tamamlandı${payload.result?.path ? ": " + payload.result.path : ""}`);
+          toast("success", `${t("setCloudDone")}${payload.result?.path ? ": " + payload.result.path : ""}`);
         } else {
-          toast("error", payload.error ?? "Bulut işlemi başarısız");
+          toast("error", payload.error ?? t("setCloudFail"));
         }
       },
     ).then((fn) => {
@@ -230,9 +286,9 @@ export function Settings() {
       "event/dbus_done",
       (payload) => {
         if (payload.ok) {
-          toast("success", "D-Bus servisi yayında");
+          toast("success", t("setDbusPublished"));
         } else {
-          toast("error", payload.error ?? "D-Bus servisi başlatılamadı");
+          toast("error", payload.error ?? t("setDbusFail"));
         }
         void loadDbusStatus();
       },
@@ -262,9 +318,70 @@ export function Settings() {
     );
   }
 
+  // Faz 8 (10.1): ayar arama sonuclari.
+  const q = searchQuery.trim().toLowerCase();
+  const searchMatches = q
+    ? SEARCH_INDEX.filter((entry) => {
+        const label = t(entry.labelKey).toLowerCase();
+        const hint = entry.hintKey ? t(entry.hintKey).toLowerCase() : "";
+        return label.includes(q) || hint.includes(q);
+      })
+    : [];
+
   return (
     <div className="h-full overflow-y-auto p-5">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
+        {/* Faz 8 (10.1/10.2): ayar arama + varsayilanlara sifirla */}
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder={t("setSearchPh")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1"
+          />
+          <Button variant="ghost" size="sm" onClick={() => void handleReset()} disabled={saving}>
+            {t("setResetDefaults")}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleExportSettings} disabled={saving}>
+            <HardDriveDownload size={14} /> {t("setExportSettings")}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={saving}>
+            <HardDriveUpload size={14} /> {t("setImportSettings")}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleImportFile(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {q ? (
+          <Card>
+            <CardContent className="flex flex-col gap-1 pt-3">
+              {searchMatches.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-[var(--text-muted)]">{t("setSearchNoResult")}</p>
+              ) : (
+                searchMatches.map((m) => (
+                  <button
+                    key={m.labelKey}
+                    onClick={() => { setTab(m.tab); setSearchQuery(""); }}
+                    className="flex flex-col gap-0.5 rounded-md px-3 py-2 text-left hover:bg-[var(--bg-elevated)]"
+                  >
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{t(m.labelKey)}</span>
+                    {m.hintKey && <span className="text-xs text-[var(--text-muted)]">{t(m.hintKey)}</span>}
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <>
         {/* Faz 7: ayar sekmeleri (10) */}
         <div className="flex gap-1 border-b border-[var(--border-subtle)]">
           {(
@@ -339,14 +456,14 @@ export function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Dönüştürme & Güvenlik</CardTitle>
+            <CardTitle>{t("setConvertSecTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {BOOL_FIELDS.map(({ key, label, hint }) => (
+            {BOOL_FIELDS.map(({ key, labelKey, hintKey }) => (
               <label key={key} className="flex items-start justify-between gap-4">
                 <span>
-                  <span className="block text-sm font-medium text-[var(--text-primary)]">{label}</span>
-                  {hint && <span className="block text-xs text-[var(--text-muted)]">{hint}</span>}
+                  <span className="block text-sm font-medium text-[var(--text-primary)]">{t(labelKey)}</span>
+                  <span className="block text-xs text-[var(--text-muted)]">{t(hintKey)}</span>
                 </span>
                 <input
                   type="checkbox"
@@ -361,11 +478,11 @@ export function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Gelişmiş</CardTitle>
+            <CardTitle>{t("setAdvancedTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-[var(--text-secondary)]">Zaman aşımı (saniye)</span>
+              <span className="text-[var(--text-secondary)]">{t("setTimeout")}</span>
               <Input
                 type="number"
                 min={10}
@@ -375,9 +492,9 @@ export function Settings() {
               />
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-[var(--text-secondary)]">Çıktı dizini (boş = varsayılan)</span>
+              <span className="text-[var(--text-secondary)]">{t("setOutputDir")}</span>
               <Input
-                placeholder="/home/kullanici/paketler"
+                placeholder={t("setOutputDirPh")}
                 value={settings.output_dir}
                 onChange={(e) => set("output_dir", e.target.value)}
               />
@@ -395,7 +512,7 @@ export function Settings() {
           <CardContent className="flex flex-col gap-3">
             {profiles.length === 0 && (
               <p className="text-sm text-[var(--text-muted)]">
-                Profil yüklenemedi veya kullanılamıyor.
+                {t("setProfilesUnavailable")}
               </p>
             )}
             {profiles.map((p) => (
@@ -411,7 +528,7 @@ export function Settings() {
                   />
                   <span className="font-medium text-[var(--text-primary)]">{p.name}</span>
                   {p.active && (
-                    <span className="text-xs text-[var(--text-muted)]">(etkin)</span>
+                    <span className="text-xs text-[var(--text-muted)]">{t("setProfileActive")}</span>
                   )}
                 </label>
                 {p.name !== "default" && (
@@ -428,7 +545,7 @@ export function Settings() {
             ))}
             <div className="flex items-center gap-2 pt-1">
               <Input
-                placeholder="Yeni profil adı…"
+                placeholder={t("setNewProfilePh")}
                 value={newProfile}
                 onChange={(e) => setNewProfile(e.target.value)}
               />
@@ -449,38 +566,38 @@ export function Settings() {
           <CardContent className="flex flex-col gap-4">
             {/* Local zip backup */}
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-[var(--text-primary)]">Yerel yedek (zip)</span>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{t("setLocalBackup")}</span>
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="Yedek yolu (boş = varsayılan)…"
+                  placeholder={t("setBackupPathPh")}
                   value={backupPath}
                   onChange={(e) => setBackupPath(e.target.value)}
                 />
                 <Button
                   disabled={syncBusy}
-                  onClick={() => void runSyncCall("sync.export", { output_path: backupPath || undefined }, "Yedek oluşturuldu")}
+                  onClick={() => void runSyncCall("sync.export", { output_path: backupPath || undefined }, t("setBackupCreated"))}
                 >
-                  <HardDriveDownload size={15} /> Dışa Aktar
+                  <HardDriveDownload size={15} /> {t("setBackupExportBtn")}
                 </Button>
               </div>
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="Geri yüklenecek yedek dosyası…"
+                  placeholder={t("setImportPathPh")}
                   value={importPath}
                   onChange={(e) => setImportPath(e.target.value)}
                 />
                 <Button
                   disabled={syncBusy}
-                  onClick={() => void runSyncCall("sync.import", { backup_path: importPath }, "Yedek geri yüklendi")}
+                  onClick={() => void runSyncCall("sync.import", { backup_path: importPath }, t("setBackupRestored"))}
                 >
-                  <HardDriveUpload size={15} /> İçe Aktar
+                  <HardDriveUpload size={15} /> {t("setBackupImportBtn")}
                 </Button>
               </div>
             </div>
 
             {/* WebDAV */}
             <div className="flex flex-col gap-2 border-t border-[var(--border-subtle)] pt-3">
-              <span className="text-sm font-medium text-[var(--text-primary)]">WebDAV bulut senkronizasyonu</span>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{t("setWebdavTitle")}</span>
               <Input
                 placeholder="https://sunucu/dav/"
                 value={syncUrl}
@@ -488,13 +605,13 @@ export function Settings() {
               />
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  placeholder="Kullanıcı adı"
+                  placeholder={t("setWebdavUserPh")}
                   value={syncUser}
                   onChange={(e) => setSyncUser(e.target.value)}
                 />
                 <Input
                   type="password"
-                  placeholder="Şifre"
+                  placeholder={t("setWebdavPassPh")}
                   value={syncPass}
                   onChange={(e) => setSyncPass(e.target.value)}
                 />
@@ -545,13 +662,12 @@ export function Settings() {
           <CardContent className="flex flex-col gap-3">
             {dbusStatus === null ? (
               <p className="text-sm text-[var(--text-muted)]">
-                D-Bus durumu okunamadı.
+                {t("setDbusUnavailable")}
               </p>
             ) : (
               <>
                 <p className="text-sm text-[var(--text-secondary)]">
-                  Üçüncü taraf araçlar aynı JSON-RPC yöntemlerini oturum
-                  veriyolu üzerinden çağırabilir.
+                  {t("setDbusDesc")}
                 </p>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-[var(--text-primary)]">
@@ -570,7 +686,7 @@ export function Settings() {
                 </div>
                 {!dbusStatus.available && (
                   <p className="text-xs text-[var(--text-muted)]">
-                    jeepney paketi gerekli: pip install jeepney
+                    {t("setDbusJeepney")}
                   </p>
                 )}
                 <div className="flex justify-end">
@@ -587,6 +703,8 @@ export function Settings() {
           </CardContent>
         </Card>
         </>)}
+          </>
+        )}
 
         <div className="flex justify-end pb-4">
           <Button onClick={() => void handleSave()} disabled={saving}>

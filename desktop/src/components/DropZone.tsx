@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { PackageOpen } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useLang } from "../lib/lang";
+import { useLang, getLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
 
 /** Known package extensions (used by the native dialog hint). */
@@ -31,12 +31,13 @@ export interface DropZoneProps {
 
 async function defaultBrowse(): Promise<string[]> {
   const { open } = await import("@tauri-apps/plugin-dialog");
+  const t = tFor(getLang());
   const selected = await open({
     multiple: true,
-    title: "Paket seç",
+    title: t("dropBrowseTitle"),
     filters: [
       {
-        name: "Paketler",
+        name: t("dropFilterPackages"),
         extensions: [
           "deb", "rpm", "tar.gz", "tgz", "tar.xz", "txz", "tar.bz2", "tbz2",
           "tar.zst", "tar", "zip", "AppImage", "pkg.tar.zst", "flatpakref",

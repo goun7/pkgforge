@@ -40,6 +40,34 @@ body {
     border-color var(--duration-slow) var(--ease-standard) !important;
 }
 
+/* Faz 8 (4.3): sayfa degisiminde hafif giris animasyonu. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-in {
+  animation: page-in var(--duration-base) var(--ease-decelerate);
+}
+
+/* Faz 8 (3.4): global RPC aktivite cizgisi (ust barda kayan ince segment). */
+@keyframes rpc-activity {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+.rpc-activity {
+  animation: rpc-activity 1.2s linear infinite;
+}
+
 /* Faz 6 — belirsiz (indeterminate) ilerleme cubugu: suren isin yuzdesi
    bilinmediginde kayan segment ile "calisiyor" hissi verir. */
 @keyframes progress-slide {

@@ -11,7 +11,7 @@ import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useLang } from "../lib/lang";
-import { tFor } from "../lib/i18n";
+import { tFor, type I18nKey } from "../lib/i18n";
 
 function statusToPill(status: string): PipelineStatus {
   if (status === "success" || status === "installed") return "success";
@@ -20,13 +20,40 @@ function statusToPill(status: string): PipelineStatus {
   return "pending";
 }
 
+/** Faz 8 (2.5): siralanabilir sutunlar. */
+type SortCol = "timestamp" | "package_name" | "package_type" | "status";
+
 export function Installed() {
   const { toast } = useToast();
   const t = tFor(useLang());
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("");
+  // Faz 8 (6.2): filtre sayfa degisince kaybolmasin.
+  const [filter, setFilter] = useState(() => {
+    try {
+      return sessionStorage.getItem("pkgforge.installed.filter") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("pkgforge.installed.filter", filter);
+    } catch {
+      /* depolama yok */
+    }
+  }, [filter]);
   const [pageCount, setPageCount] = useState(50);
+  const [sortCol, setSortCol] = useState<SortCol>("timestamp");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir(col === "timestamp" ? "desc" : "asc");
+    }
+  };
   const [confirm, setConfirm] = useState<
     null | { type: "clear" } | { type: "uninstall"; pkg: string }
   >(null);
@@ -51,7 +78,7 @@ export function Installed() {
     try {
       const res = await call<{ requires_privilege?: boolean }>("history.uninstall", { name });
       if (res.requires_privilege) {
-        toast("info", `${name}: kaldırma yetkili işlem gerektiriyor (pkexec) — Faz 1'de etkin`);
+        toast("info", `${name}: ${t("instPrivUninstall")}`);
       }
     } catch (e) {
       toast("error", (e as Error).message);
@@ -65,7 +92,7 @@ export function Installed() {
         { name },
       );
       if (res.requires_privilege) {
-        toast("info", `${name}: geri alma yetkili işlem gerektiriyor (pkexec) — Faz 1'de etkin`);
+        toast("info", `${name}: ${t("instPrivRollback")}`);
       }
     } catch (e) {
       toast("error", (e as Error).message);
@@ -75,7 +102,7 @@ export function Installed() {
   const handleClear = async () => {
     try {
       await call("history.clear");
-      toast("success", "Geçmiş temizlendi");
+      toast("success", t("instCleared"));
       void load();
     } catch (e) {
       toast("error", (e as Error).message);
@@ -88,14 +115,21 @@ export function Installed() {
       r.package_name.toLowerCase().includes(filter.toLowerCase()) ||
       r.original_file.toLowerCase().includes(filter.toLowerCase()),
   );
+  // Faz 8 (2.5): secilen sutuna gore sirala.
+  const sorted = [...visible].sort((a, b) => {
+    const av = String(a[sortCol] ?? "");
+    const bv = String(b[sortCol] ?? "");
+    const cmp = av.localeCompare(bv);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
   // Faz 7 (6.3): cok kayitta tabloyu sinirla, "daha fazla" ile ac.
-  const shown = visible.slice(0, pageCount);
+  const shown = sorted.slice(0, pageCount);
 
   return (
     <div className="h-full overflow-y-auto p-5">
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Kurulanlar / Geçmiş ({records.length})</CardTitle>
+          <CardTitle className="flex items-center gap-2"><PackageCheck size={16} /> {t("instTitle")} ({records.length})</CardTitle>
           <div className="flex items-center gap-2">
             <Input
               placeholder={t("commonFilter")}
@@ -121,21 +155,35 @@ export function Installed() {
           ) : visible.length === 0 ? (
             <EmptyState
               icon={PackageCheck}
-              title="Henüz kayıt yok"
-              description="Dönüştürdüğünüz ve kurduğunuz paketler burada listelenecek."
+              title={t("instEmptyTitle")}
+              description={t("instEmptyDesc")}
             />
           ) : (
             <>
             <table className="w-full text-sm">
-              <caption className="sr-only">Kurulan paketler geçmişi</caption>
+              <caption className="sr-only">{t("instCaption")}</caption>
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                  <th scope="col" className="py-2 pr-3">Tarih</th>
-                  <th scope="col" className="py-2 pr-3">Paket</th>
-                  <th scope="col" className="py-2 pr-3">Tür</th>
-                  <th scope="col" className="py-2 pr-3">Durum</th>
-                  <th scope="col" className="py-2 pr-3">Kaynak dosya</th>
-                  <th scope="col" className="py-2">İşlemler</th>
+                  {([
+                    { col: "timestamp", labelKey: "instColDate" },
+                    { col: "package_name", labelKey: "instColPkg" },
+                    { col: "package_type", labelKey: "instColType" },
+                    { col: "status", labelKey: "instColStatus" },
+                  ] as { col: SortCol; labelKey: I18nKey }[]).map(({ col, labelKey }) => (
+                    <th key={col} scope="col" className="py-2 pr-3">
+                      <button
+                        onClick={() => toggleSort(col)}
+                        aria-label={t(labelKey)}
+                        title={sortCol === col && sortDir === "asc" ? t("sortDesc") : t("sortAsc")}
+                        className="inline-flex items-center gap-1 hover:text-[var(--text-primary)]"
+                      >
+                        {t(labelKey)}
+                        {sortCol === col && <span aria-hidden="true">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                      </button>
+                    </th>
+                  ))}
+                  <th scope="col" className="py-2 pr-3">{t("instColSource")}</th>
+                  <th scope="col" className="py-2">{t("instColActions")}</th>
                 </tr>
               </thead>
               <tbody>

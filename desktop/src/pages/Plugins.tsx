@@ -120,7 +120,7 @@ export function Plugins() {
     <div className="h-full overflow-y-auto p-5">
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>{t("plugTitle")}</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Puzzle size={16} /> {t("plugTitle")}</CardTitle>
           <Button variant="secondary" size="sm" onClick={() => void handleAudit()} disabled={busy === "__audit__"}>
             {busy === "__audit__" ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
             {t("plugAudit")}

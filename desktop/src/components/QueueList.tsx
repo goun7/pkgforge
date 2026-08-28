@@ -1,6 +1,8 @@
 import { FileArchive, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import { StatusPill, type PipelineStatus } from "./StatusPill";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 export interface QueueItem {
   id: string;
@@ -16,10 +18,11 @@ export interface QueueListProps {
 }
 
 export function QueueList({ items, onRemove, className }: QueueListProps) {
+  const t = tFor(useLang());
   if (items.length === 0) {
     return (
       <p className={cn("py-6 text-center text-sm text-[var(--text-muted)]", className)}>
-        Kuyruk boş
+        {t("queueEmpty")}
       </p>
     );
   }
@@ -47,7 +50,7 @@ export function QueueList({ items, onRemove, className }: QueueListProps) {
           <StatusPill status={item.status} />
           {onRemove && item.status === "pending" && (
             <button
-              aria-label={`remove ${item.name}`}
+              aria-label={`${t("queueRemoveAria")} ${item.name}`}
               onClick={() => onRemove(item.id)}
               className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--danger)]"
             >

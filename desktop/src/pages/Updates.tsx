@@ -225,7 +225,7 @@ export function Updates() {
       {/* Cross-check card */}
       <Card>
         <CardHeader>
-          <CardTitle>{t("updatesCrossTitle")}</CardTitle>
+          <CardTitle className="flex items-center gap-2"><CalendarClock size={16} /> {t("updatesCrossTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-3 flex items-center gap-2">

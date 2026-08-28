@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PackageOpen, ArrowLeftRight, PackageCheck } from "lucide-react";
 import { Dialog } from "./ui/Dialog";
 import { Button } from "./ui/Button";
@@ -17,6 +17,13 @@ export function Onboarding() {
       return false;
     }
   });
+
+  // Faz 8 (2.3): komut paletinden yeniden acilabilme.
+  useEffect(() => {
+    const reopen = () => setOpen(true);
+    window.addEventListener("pkgforge:reopen-onboarding", reopen);
+    return () => window.removeEventListener("pkgforge:reopen-onboarding", reopen);
+  }, []);
 
   const close = () => {
     try {

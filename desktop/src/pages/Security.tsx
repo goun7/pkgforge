@@ -270,7 +270,8 @@ export function Security() {
                 onClick={() => setTab(s.id)}
                 aria-label={`${s.label} durumu: ${s.text}`}
                 className={cn(
-                  "flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-colors",
+                  "flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-all",
+                  "hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
                   s.tone === "success" && "border-[var(--success)]/40 bg-[var(--success)]/10",
                   s.tone === "warning" && "border-[var(--warning)]/40 bg-[var(--warning)]/10",
@@ -298,6 +299,7 @@ export function Security() {
                 onClick={() => setTab(id)}
                 className={cn(
                   "flex items-center gap-1.5 rounded-t-md px-3 py-2 text-sm font-medium transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
                   tab === id
                     ? "border-b-2 border-[var(--brand-blue)] text-[var(--brand-blue)]"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
@@ -312,7 +314,7 @@ export function Security() {
           {/* tab content */}
           {tab === "sign" && (
             <div className="space-y-3">
-              <Button onClick={() => void handleVerify()} disabled={loading}>
+              <Button variant="secondary" onClick={() => void handleVerify()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
                 {t("secVerify")}
               </Button>
@@ -341,7 +343,7 @@ export function Security() {
 
           {tab === "sbom" && (
             <div className="space-y-3">
-              <Button onClick={() => void handleSbom()} disabled={loading}>
+              <Button variant="secondary" onClick={() => void handleSbom()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <FileSearch size={15} />}
                 {t("secSbomCreate")}
               </Button>
@@ -393,7 +395,7 @@ export function Security() {
 
           {tab === "quality" && (
             <div className="space-y-3">
-              <Button onClick={() => void handleQuality()} disabled={loading}>
+              <Button variant="secondary" onClick={() => void handleQuality()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <Award size={15} />}
                 {t("secQuality")}
               </Button>
@@ -423,7 +425,7 @@ export function Security() {
 
           {tab === "provenance" && (
             <div className="space-y-3">
-              <Button onClick={() => void handleProvenance()} disabled={loading}>
+              <Button variant="secondary" onClick={() => void handleProvenance()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <ScrollText size={15} />}
                 {t("secProvQuery")}
               </Button>
@@ -444,7 +446,7 @@ export function Security() {
 
           {tab === "cve" && (
             <div className="space-y-3">
-              <Button onClick={() => void handleCve()} disabled={loading}>
+              <Button variant="secondary" onClick={() => void handleCve()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <Bug size={15} />}
                 {t("secCveStart")}
               </Button>
@@ -483,7 +485,7 @@ export function Security() {
 
           {tab === "sigstore" && (
             <div className="space-y-3">
-              <Button onClick={() => void handleSigstore()} disabled={loading}>
+              <Button variant="secondary" onClick={() => void handleSigstore()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
                 {t("secSigstoreStatus")}
               </Button>

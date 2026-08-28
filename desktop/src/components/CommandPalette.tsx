@@ -1,6 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
+
+/** Faz 8 (2.4): basit fuzzy (alt dizi) eslesme + puanlama. */
+function fuzzyScore(label: string, q: string): number {
+  const hay = label.toLowerCase();
+  if (hay.includes(q)) return 1000 - hay.indexOf(q);
+  let hi = 0;
+  let gap = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const found = hay.indexOf(q[qi], hi);
+    if (found === -1) return -1;
+    gap += found - hi;
+    hi = found + 1;
+  }
+  return 500 - gap;
+}
 
 export interface Command {
   id: string;
@@ -17,6 +34,7 @@ export interface CommandPaletteProps {
 
 /** Ctrl+K ile acilan komut paleti: sayfa gecisi + eylemler, ok tuslariyla gezinme. */
 export function CommandPalette({ open, onClose, commands }: CommandPaletteProps) {
+  const t = tFor(useLang());
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,7 +42,11 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return commands;
-    return commands.filter((c) => c.label.toLowerCase().includes(q));
+    return commands
+      .map((c) => ({ c, score: fuzzyScore(c.label, q) }))
+      .filter((x) => x.score >= 0)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.c);
   }, [query, commands]);
 
   useEffect(() => {
@@ -71,7 +93,7 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Komut paleti"
+        aria-label={t("cmdPaletteAria")}
         className="w-full max-w-lg overflow-hidden rounded-[var(--radius-modal)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)]"
       >
         <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] px-4">
@@ -81,15 +103,15 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Komut ara veya sayfa adı yaz…"
-            aria-label="Komut ara"
+            placeholder={t("cmdPlaceholder")}
+            aria-label={t("cmdSearchAria")}
             className="h-12 flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
           <kbd className="rounded bg-[var(--bg-base)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">Esc</kbd>
         </div>
         <ul className="max-h-72 overflow-y-auto p-2" role="listbox">
           {filtered.length === 0 && (
-            <li className="px-3 py-4 text-center text-sm text-[var(--text-muted)]">Sonuç yok</li>
+            <li className="px-3 py-4 text-center text-sm text-[var(--text-muted)]">{t("cmdNoResult")}</li>
           )}
           {filtered.map((cmd, i) => (
             <li key={cmd.id} role="option" aria-selected={i === index}>

@@ -3,6 +3,8 @@ import { FolderOpen, FileSearch } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 /** Yerel dialog icin paket dosyasi filtresi (donusturulmus Arch paketleri + kaynaklar). */
 export const PKG_DIALOG_FILTERS = [
@@ -63,6 +65,7 @@ export function PathPicker({
   browse,
 }: PathPickerProps) {
   const busy = useRef(false);
+  const t = tFor(useLang());
 
   const handleBrowse = async () => {
     if (disabled || busy.current) return;
@@ -91,11 +94,11 @@ export function PathPicker({
         size="sm"
         onClick={() => void handleBrowse()}
         disabled={disabled}
-        aria-label="path-browse"
+        aria-label={t("pathBrowseAria")}
         type="button"
       >
         {mode === "dir" ? <FolderOpen size={14} /> : <FileSearch size={14} />}
-        Seç
+        {t("pathSelect")}
       </Button>
     </div>
   );

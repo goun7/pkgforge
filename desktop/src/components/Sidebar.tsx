@@ -92,13 +92,30 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
   const lang = useLang();
   const t = tFor(lang);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [compact, setCompact] = useState(false);
+  // Faz 8 (3.1): kompakt modu localStorage'da sakla.
+  const [compact, setCompact] = useState(() => {
+    try {
+      return localStorage.getItem("pkgforge.sidebar.compact") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleCompact = () =>
+    setCompact((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("pkgforge.sidebar.compact", next ? "1" : "0");
+      } catch {
+        /* depolama yok */
+      }
+      return next;
+    });
   const toggle = (id: string) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <nav
-      aria-label="Ana gezinme"
+      aria-label={t("sidebarNavAria")}
       className={cn(
         "flex shrink-0 flex-col overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 transition-[width] duration-200",
         compact ? "w-16" : "w-56",
@@ -163,9 +180,9 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
 
       {/* Daralt / genislet */}
       <button
-        onClick={() => setCompact((c) => !c)}
-        aria-label={compact ? "Kenar çubuğunu genişlet" : "Kenar çubuğunu daralt"}
-        title={compact ? "Genişlet" : "Daralt"}
+        onClick={toggleCompact}
+        aria-label={compact ? t("sidebarExpandAria") : t("sidebarCollapseAria")}
+        title={compact ? t("sidebarExpandTitle") : t("sidebarCollapseTitle")}
         className={cn(
           "mt-2 flex items-center gap-2 rounded-[var(--radius-btn)] py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
           compact ? "justify-center px-0" : "px-3",
@@ -173,7 +190,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
         )}
       >
         {compact ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-        {!compact && <span>Daralt</span>}
+        {!compact && <span>{t("sidebarCollapseTitle")}</span>}
       </button>
     </nav>
   );

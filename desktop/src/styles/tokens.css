@@ -63,11 +63,18 @@
   --bg-elevated: #f0f1f3;
 
   --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #7a8494;
+  /* Faz 8 (4.1): acik temada ikincil/soluk metin kontrasti guclendirildi. */
+  --text-secondary: #4b5563;
+  --text-muted: #5f6b7e;
 
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-strong: rgba(0, 0, 0, 0.12);
+  /* Faz 8 (5.5): acik temada rozet/uyari renkleri koyulastirildi (kontrast). */
+  --success: #047857;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --info: #0369a1;
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.16);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);

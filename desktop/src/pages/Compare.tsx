@@ -8,6 +8,8 @@ import { Badge } from "../components/ui/Badge";
 import { PathPicker, PKG_DIALOG_FILTERS } from "../components/PathPicker";
 import { EmptyState } from "../components/EmptyState";
 import { useToast } from "../components/ui/Toast";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 function fmtSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
@@ -17,6 +19,7 @@ function fmtSize(bytes: number): string {
 
 export function Compare() {
   const { toast } = useToast();
+  const t = tFor(useLang());
   const [oldPath, setOldPath] = useState("");
   const [newPath, setNewPath] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,7 +32,7 @@ export function Compare() {
       (p) => {
         setBusy(false);
         if (p.ok && p.result) setDiff(p.result);
-        else toast("error", p.error ?? "Karşılaştırma başarısız");
+        else toast("error", p.error ?? t("cmpFailToast"));
       },
     ).then((u) => { un = u; });
     return () => { if (un) un(); };
@@ -37,7 +40,7 @@ export function Compare() {
 
   const handleCompare = async () => {
     if (!oldPath.trim() || !newPath.trim()) {
-      toast("error", "İki paket yolu da gerekli");
+      toast("error", t("cmpNeedBoth"));
       return;
     }
     setBusy(true);
@@ -58,38 +61,38 @@ export function Compare() {
     <div className="h-full overflow-y-auto p-5">
       <Card>
         <CardHeader>
-          <CardTitle>Paket Karşılaştırma</CardTitle>
+          <CardTitle className="flex items-center gap-2"><GitCompare size={16} /> {t("cmpTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-[var(--text-muted)]">
-            İki paket sürümünü SBOM üzerinden karşılaştır: dosya listesi, boyut ve bağımlılık farkları.
+            {t("cmpDesc")}
           </p>
           <div className="flex flex-col gap-2">
             <PathPicker
-              placeholder="Eski paket yolu (.pkg.tar.zst)…"
+              placeholder={t("cmpOldPh")}
               value={oldPath}
               onChange={setOldPath}
               filters={PKG_DIALOG_FILTERS}
-              title="Eski paketi seç"
+              title={t("cmpSelectOld")}
             />
             <PathPicker
-              placeholder="Yeni paket yolu (.pkg.tar.zst)…"
+              placeholder={t("cmpNewPh")}
               value={newPath}
               onChange={setNewPath}
               filters={PKG_DIALOG_FILTERS}
-              title="Yeni paketi seç"
+              title={t("cmpSelectNew")}
             />
           </div>
           <Button onClick={() => void handleCompare()} disabled={busy}>
             {busy ? <Loader2 size={15} className="animate-spin" /> : <GitCompare size={15} />}
-            Karşılaştır
+            {t("cmpCompare")}
           </Button>
 
           {!diff && !busy && (
             <EmptyState
               icon={GitCompare}
-              title="Henüz karşılaştırma yok"
-              description="İki paket seçip Karşılaştır düğmesine basın; dosya, boyut ve bağımlılık farkları burada görünecek."
+              title={t("cmpEmptyTitle")}
+              description={t("cmpEmptyDesc")}
             />
           )}
 
@@ -104,27 +107,27 @@ export function Compare() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-md bg-[var(--bg-elevated)] p-2 text-center">
                   <div className="text-lg font-semibold">{diff.old_total_files} → {diff.new_total_files}</div>
-                  <div className="text-xs text-[var(--text-muted)]">dosya</div>
+                  <div className="text-xs text-[var(--text-muted)]">{t("cmpFiles")}</div>
                 </div>
                 <div className="rounded-md bg-[var(--bg-elevated)] p-2 text-center">
                   <div className="text-lg font-semibold">{fmtSize(diff.old_total_size)} → {fmtSize(diff.new_total_size)}</div>
-                  <div className="text-xs text-[var(--text-muted)]">boyut</div>
+                  <div className="text-xs text-[var(--text-muted)]">{t("cmpSize")}</div>
                 </div>
                 <div className="rounded-md bg-[var(--bg-elevated)] p-2 text-center">
                   <div className="text-lg font-semibold text-[var(--success)]">+{diff.added_files.length}</div>
-                  <div className="text-xs text-[var(--text-muted)]">eklenen</div>
+                  <div className="text-xs text-[var(--text-muted)]">{t("cmpAdded")}</div>
                 </div>
                 <div className="rounded-md bg-[var(--bg-elevated)] p-2 text-center">
                   <div className="text-lg font-semibold text-[var(--danger)]">-{diff.removed_files.length}</div>
-                  <div className="text-xs text-[var(--text-muted)]">silinen</div>
+                  <div className="text-xs text-[var(--text-muted)]">{t("cmpRemoved")}</div>
                 </div>
               </div>
 
-              {noChange && <Badge tone="success">Fark yok — paketler aynı</Badge>}
+              {noChange && <Badge tone="success">{t("cmpNoDiff")}</Badge>}
 
               {diff.added_deps.length > 0 && (
                 <div>
-                  <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Yeni bağımlılıklar</h4>
+                  <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{t("cmpNewDeps")}</h4>
                   <div className="flex flex-wrap gap-1">
                     {diff.added_deps.map((d) => <Badge key={d} tone="success">{d}</Badge>)}
                   </div>
@@ -132,7 +135,7 @@ export function Compare() {
               )}
               {diff.removed_deps.length > 0 && (
                 <div>
-                  <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Kaldırılan bağımlılıklar</h4>
+                  <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{t("cmpRemovedDeps")}</h4>
                   <div className="flex flex-wrap gap-1">
                     {diff.removed_deps.map((d) => <Badge key={d} tone="danger">{d}</Badge>)}
                   </div>
@@ -140,7 +143,7 @@ export function Compare() {
               )}
               {diff.version_changes.length > 0 && (
                 <div>
-                  <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Versiyon değişiklikleri</h4>
+                  <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{t("cmpVersionChanges")}</h4>
                   <div className="space-y-1">
                     {diff.version_changes.map((vc, i) => (
                       <div key={i} className="rounded-md bg-[var(--bg-elevated)] px-3 py-1.5 text-xs">
@@ -153,7 +156,7 @@ export function Compare() {
               {diff.changed_files.length > 0 && (
                 <div>
                   <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                    Değişen dosyalar ({diff.changed_files.length})
+                    {t("cmpChangedFiles")} ({diff.changed_files.length})
                   </h4>
                   <div className="max-h-48 space-y-1 overflow-y-auto">
                     {diff.changed_files.map((cf, i) => (
@@ -168,7 +171,7 @@ export function Compare() {
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {diff.added_files.length > 0 && (
                     <div>
-                      <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--success)]">Eklenen dosyalar</h4>
+                      <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--success)]">{t("cmpAddedFiles")}</h4>
                       <div className="max-h-40 space-y-1 overflow-y-auto">
                         {diff.added_files.map((f) => (
                           <div key={f} className="truncate rounded-md bg-[var(--bg-elevated)] px-3 py-1 font-mono text-xs">{f}</div>
@@ -178,7 +181,7 @@ export function Compare() {
                   )}
                   {diff.removed_files.length > 0 && (
                     <div>
-                      <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--danger)]">Silinen dosyalar</h4>
+                      <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--danger)]">{t("cmpRemovedFiles")}</h4>
                       <div className="max-h-40 space-y-1 overflow-y-auto">
                         {diff.removed_files.map((f) => (
                           <div key={f} className="truncate rounded-md bg-[var(--bg-elevated)] px-3 py-1 font-mono text-xs">{f}</div>

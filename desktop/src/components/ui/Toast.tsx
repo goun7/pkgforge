@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useLang } from "../../lib/lang";
+import { tFor } from "../../lib/i18n";
 
 type ToastKind = "success" | "warning" | "error" | "info";
 
@@ -48,6 +50,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const nextId = useRef(1);
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+  // Faz 8 (2.7): uzun mesajlar icin genisletilmis gorunum.
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpand = (id: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const dismiss = useCallback((id: number) => {
     const timer = timers.current.get(id);
@@ -69,6 +80,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [dismiss],
   );
 
+  const tt = tFor(useLang());
+
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
@@ -86,7 +99,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             >
               <Icon size={17} className={cn("mt-0.5 shrink-0", kindColor[t.kind])} />
               <div className="min-w-0 flex-1">
-                <p className="break-words text-sm text-[var(--text-primary)]">{t.message}</p>
+                <p className="break-words text-sm text-[var(--text-primary)]">
+                  {t.message.length > 120 && !expanded.has(t.id) ? t.message.slice(0, 120) + "…" : t.message}
+                </p>
+                {t.message.length > 120 && (
+                  <button
+                    onClick={() => toggleExpand(t.id)}
+                    className="mt-1 text-xs font-semibold text-[var(--brand-blue)] hover:underline"
+                  >
+                    {expanded.has(t.id) ? tt("toastHideDetail") : tt("toastShowDetail")}
+                  </button>
+                )}
                 {t.action && (
                   <button
                     onClick={() => {
@@ -101,7 +124,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               </div>
               <button
                 onClick={() => dismiss(t.id)}
-                aria-label="Bildirimi kapat"
+                aria-label={tt("toastDismissAria")}
                 className="shrink-0 rounded p-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
               >
                 <X size={14} />

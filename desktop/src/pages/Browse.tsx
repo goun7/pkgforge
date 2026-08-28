@@ -7,6 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
+import { EmptyState } from "../components/EmptyState";
 import { useToast } from "../components/ui/Toast";
 import { useLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
@@ -15,10 +16,25 @@ export function Browse() {
   const { toast } = useToast();
   const lang = useLang();
   const t = tFor(lang);
-  const [query, setQuery] = useState("");
+  // Faz 8 (6.2): sorgu sayfa degisince kaybolmasin.
+  const [query, setQuery] = useState(() => {
+    try {
+      return sessionStorage.getItem("pkgforge.browse.query") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("pkgforge.browse.query", query);
+    } catch {
+      /* depolama yok */
+    }
+  }, [query]);
   const [results, setResults] = useState<AurSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [limit, setLimit] = useState(25);
   const [building, setBuilding] = useState("");
   const [buildStep, setBuildStep] = useState("");
   const [info, setInfo] = useState<AurInfo | null>(null);
@@ -32,14 +48,14 @@ export function Browse() {
         setSearching(false);
         setSearched(true);
         if (p.ok && p.result) setResults(p.result);
-        else toast("error", p.error ?? "Arama başarısız");
+        else toast("error", p.error ?? t("browseSearchFail"));
       },
     ).then((u) => unsubs.push(u));
     void onEvent<{ ok: boolean; result?: AurInfo; error?: string }>(
       "event/aur_info_done",
       (p) => {
         if (p.ok && p.result) setInfo(p.result);
-        else toast("error", p.error ?? "Bilgi alınamadı");
+        else toast("error", p.error ?? t("browseInfoFail"));
       },
     ).then((u) => unsubs.push(u));
     void onEvent<{ name: string; step: string }>(
@@ -52,26 +68,36 @@ export function Browse() {
         setBuilding("");
         setBuildStep("");
         if (p.ok && p.result) {
-          toast("success", `${p.result.name} derlendi: ${p.result.pkg_path.split("/").pop()}`);
+          toast("success", `${p.result.name} ${t("browseBuilt")}: ${p.result.pkg_path.split("/").pop()}`);
         } else {
-          toast("error", p.error ?? "Derleme başarısız");
+          toast("error", p.error ?? t("browseBuildFail"));
         }
       },
     ).then((u) => unsubs.push(u));
     return () => { unsubs.forEach((u) => u()); };
-  }, [toast]);
+  }, [toast, t]);
 
-  const handleSearch = async () => {
+  // Faz 8 (6.3): limit state ile "daha fazla" destegi.
+  const doSearch = async (lim: number) => {
     if (!query.trim()) return;
     setSearching(true);
     setResults([]);
     setSearched(false);
     try {
-      await call("aur.search", { query, limit: 25 });
+      await call("aur.search", { query, limit: lim });
     } catch (e) {
       setSearching(false);
       toast("error", (e as Error).message);
     }
+  };
+  const handleSearch = () => {
+    setLimit(25);
+    void doSearch(25);
+  };
+  const handleLoadMore = () => {
+    const next = limit + 25;
+    setLimit(next);
+    void doSearch(next);
   };
 
   const handleInfo = async (name: string) => {
@@ -86,7 +112,7 @@ export function Browse() {
 
   const handleBuild = async (name: string) => {
     setBuilding(name);
-    setBuildStep("başlatılıyor");
+    setBuildStep("starting");
     try {
       await call("aur.build", { name });
     } catch (e) {
@@ -100,7 +126,7 @@ export function Browse() {
     <div className="h-full overflow-y-auto p-5">
       <Card>
         <CardHeader>
-          <CardTitle>{t("browseTitle")}</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Globe size={16} /> {t("browseTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
@@ -126,7 +152,7 @@ export function Browse() {
           )}
 
           {!searching && searched && results.length === 0 && (
-            <p className="text-sm text-[var(--text-muted)]">{t("browseNoResults")}</p>
+            <EmptyState icon={Globe} title={t("browseNoResults")} />
           )}
 
           {!searching && results.length > 0 && (
@@ -161,6 +187,14 @@ export function Browse() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {!searching && results.length > 0 && results.length >= limit && (
+            <div className="flex justify-center">
+              <Button variant="secondary" size="sm" onClick={handleLoadMore}>
+                {t("loadMore")}
+              </Button>
             </div>
           )}
 
