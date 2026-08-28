@@ -97,9 +97,14 @@ def test_system_handlers(senkron, monkeypatch):
     sc = _mod(monkeypatch, "core.snapshot_cleanup")
     monkeypatch.setattr(sc, "get_cleanup_status",
                         lambda: {"kurulu": False})
+    monkeypatch.setattr(sc, "install_cleanup_service",
+                        lambda max_age_days=7: (True, "kuruldu"))
+    monkeypatch.setattr(sc, "remove_cleanup_service",
+                        lambda: (True, "kaldirildi"))
     assert AS.handle_system_snapshot_status({}) == {"kurulu": False}
-    assert AS.handle_system_snapshot_install({})["requires_privilege"]
-    assert AS.handle_system_snapshot_remove({})["requires_privilege"]
+    # artik gercek kurulumu baslatir (thread), hemen {"started": True} doner
+    assert AS.handle_system_snapshot_install({})["started"] is True
+    assert AS.handle_system_snapshot_remove({})["started"] is True
 
     rv = _mod(monkeypatch, "core.rollback_verify")
 

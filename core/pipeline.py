@@ -443,13 +443,18 @@ class ConversionPipeline(QObject):
                         self._log("error", self._result.message)
                         return
                     self._log("info", scan_result.detail)
+                    self._set_step(PipelineStep.MALWARE_SCAN, "done")
                 else:
                     self._log("warning", "clamscan bulunamadı — malware taraması atlandı")
-                self._set_step(PipelineStep.MALWARE_SCAN, "done")
+                    self._set_step(PipelineStep.MALWARE_SCAN, "skipped")
             except Exception as exc:  # noqa: BLE001
                 self._log("warning", f"Malware taraması başarısız: {exc}")
-                self._set_step(PipelineStep.MALWARE_SCAN, "done")
+                self._set_step(PipelineStep.MALWARE_SCAN, "warning")
             self.progress.emit(25)
+        else:
+            # Tarama ayarlardan kapaliysa adimi "pending" birakma, atlandigini goster
+            self._set_step(PipelineStep.MALWARE_SCAN, "skipped")
+            self._log("info", "Malware taraması ayarlardan kapalı — atlandı")
 
         # ── Step 2: Package analysis ─────────────────────────────
         if self._cancelled:

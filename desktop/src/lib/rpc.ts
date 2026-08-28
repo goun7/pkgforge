@@ -11,17 +11,36 @@ import type { RpcResponse } from "./types";
 
 let nextId = 1;
 
+/** Bir RPC cagrisinin ust siniri: sidecar yanit vermezse UI sonsuz beklemez.
+ *  Uzun isler (donusum, SBOM, CVE) zaten hemen {"started":true} dondurup
+ *  sonucu event ile bildirir; bu nedenle 60s guvenli bir ust sinirdir. */
+const RPC_TIMEOUT_MS = 60000;
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(label)), ms);
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 /** Call a sidecar method and await its result. */
 export async function call<T = unknown>(
   method: string,
   params?: unknown,
 ): Promise<T> {
   const id = nextId++;
-  const resp = await invoke<RpcResponse<T>>("rpc_call", {
-    id,
-    method,
-    params: params ?? {},
-  });
+  const resp = await withTimeout(
+    invoke<RpcResponse<T>>("rpc_call", {
+      id,
+      method,
+      params: params ?? {},
+    }),
+    RPC_TIMEOUT_MS,
+    `Yanıt zaman aşımı: ${method}`,
+  );
   if (resp.error) {
     throw new Error(`${resp.error.code}: ${resp.error.message}`);
   }

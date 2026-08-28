@@ -78,3 +78,36 @@ def test_methods_registry_and_openapi():
     assert len(schema["paths"]) == len(names)
     sample = schema["paths"]["/rpc/" + names[0]]["post"]
     assert sample["operationId"] and sample["tags"]
+
+def test_dispatch_blocking(monkeypatch):
+    sent = []
+    monkeypatch.setattr(API, "_send", lambda obj: sent.append(obj))
+    monkeypatch.setitem(API.METHODS, "test.db", lambda p: "db-sonuc")
+    API._dispatch_blocking({"id": 9, "method": "test.db"})
+    assert len(sent) == 1
+    assert sent[0]["id"] == 9 and sent[0]["result"] == "db-sonuc"
+
+def test_route_request_main_thread(monkeypatch):
+    # pipeline el-sikma metodlari main thread'de senkron gonderilir
+    sent = []
+    monkeypatch.setattr(API, "_send", lambda obj: sent.append(obj))
+    monkeypatch.setitem(API.METHODS, "pipeline.cancel", lambda p: {"ok": True})
+    API._route_request({"id": 1, "method": "pipeline.cancel"})
+    assert len(sent) == 1 and sent[0]["id"] == 1
+
+def test_route_request_worker_thread(monkeypatch):
+    # diger metodlar worker thread'e yonlendirilir
+    spawned = []
+
+    class FakeThread:
+        def __init__(self, target=None, args=(), daemon=None):
+            spawned.append((target, args))
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(API.threading, "Thread", FakeThread)
+    API._route_request({"id": 2, "method": "settings.get"})
+    assert len(spawned) == 1
+    assert spawned[0][0] is API._dispatch_blocking
+    assert spawned[0][1][0]["method"] == "settings.get"

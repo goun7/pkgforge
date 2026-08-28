@@ -194,7 +194,7 @@ STRINGS: dict[str, str] = {
     "settings.clamav_scan": "ClamAV ile malware taraması yap",
     "settings.clamav_scan_desc": "Dönüşüm öncesi paketi ClamAV ile tarar (clamscan gerekli)",
     "settings.snapshot": "Kurulum öncesi dosya sistemi snapshot'ı al (Btrfs/ZFS)",
-    "settings.snapshot_desc": "Btrfs veya ZFS ile原子 snapshot alarak güvenli geri dönüş sağlar",
+    "settings.snapshot_desc": "Btrfs veya ZFS ile snapshot alarak olası bir sorunda güvenli geri dönüş imkânı sağlar",
     "settings.dry_run": "Kuru çalıştırma (dönüştür ama kurma)",
     "settings.dry_run_desc": "Paketleri dönüştürür ve analiz eder ancak sisteme kurmaz",
     "settings.insecure_http": "Güvensiz HTTP indirmelerine izin ver",

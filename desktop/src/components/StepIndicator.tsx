@@ -1,4 +1,4 @@
-import { Check, X, AlertTriangle, Loader2 } from "lucide-react";
+import { Check, X, AlertTriangle, Loader2, Minus } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export const PIPELINE_STEPS = [
@@ -10,7 +10,7 @@ export const PIPELINE_STEPS = [
   "install",
 ] as const;
 
-export type StepStatus = "pending" | "running" | "done" | "error" | "warning";
+export type StepStatus = "pending" | "running" | "done" | "error" | "warning" | "skipped";
 
 export interface StepIndicatorProps {
   /** Map of step name -> status. Missing steps render as pending. */
@@ -27,6 +27,7 @@ export function StepIndicator({ statuses, labels }: StepIndicatorProps) {
           status === "done" ? Check
           : status === "error" ? X
           : status === "warning" ? AlertTriangle
+          : status === "skipped" ? Minus
           : status === "running" ? Loader2
           : null;
         return (
@@ -42,6 +43,7 @@ export function StepIndicator({ statuses, labels }: StepIndicatorProps) {
                   status === "error" && "border-transparent bg-[var(--danger)] text-white",
                   status === "warning" && "border-transparent bg-[var(--warning)] text-white",
                   status === "running" && "border-[var(--brand-blue)] text-[var(--brand-blue)]",
+                  status === "skipped" && "border-transparent bg-[var(--bg-elevated)] text-[var(--text-muted)]",
                   status === "pending" && "border-[var(--border-strong)] text-[var(--text-muted)]",
                 )}
               >

@@ -545,13 +545,29 @@ def handle_system_snapshot_status(params):
 
 
 def handle_system_snapshot_install(params):
-    return {"ok": False, "requires_privilege": True,
-            "message": "Snapshot temizlik servisi kurulumu yetkili işlem gerektiriyor (pkexec)"}
+    """Snapshot temizlik servisini kurar; pkexec ekranda yetki ister."""
+    from core.snapshot_cleanup import install_cleanup_service
+
+    max_age = int(params.get("max_age_days", 7))
+
+    def _op():
+        ok, msg = install_cleanup_service(max_age_days=max_age)
+        return {"ok": ok, "message": msg}
+
+    _run_thread(_op, "event/snapshot_done")
+    return {"started": True}
 
 
 def handle_system_snapshot_remove(params):
-    return {"ok": False, "requires_privilege": True,
-            "message": "Snapshot temizlik servisi kaldırma yetkili işlem gerektiriyor (pkexec)"}
+    """Snapshot temizlik servisini kaldirir; pkexec ekranda yetki ister."""
+    from core.snapshot_cleanup import remove_cleanup_service
+
+    def _op():
+        ok, msg = remove_cleanup_service()
+        return {"ok": ok, "message": msg}
+
+    _run_thread(_op, "event/snapshot_done")
+    return {"started": True}
 
 
 def handle_system_verify_rollback(params):
@@ -1573,6 +1589,30 @@ def _dispatch(msg: dict) -> dict:
                 "error": {"code": -32000, "message": str(exc)}}
 
 
+# Qt signal affinity si geregi pipeline el sikma metodlari stdin (main) thread'
+# inde calismali; diger tum handler'lar worker thread'e alinir ki yavas bir
+# cagri tum RPC dongusunu ve Qt event dagitimini tikamasin (Ayarlar takilmasi).
+_MAIN_THREAD_METHODS = frozenset({
+    "pipeline.start", "pipeline.approve", "pipeline.dismiss", "pipeline.cancel",
+})
+
+
+def _dispatch_blocking(msg: dict) -> None:
+    """Bir handler'i stdin dongusunun disinda calistirir; yanit id ile eslestigi
+    icin siralama onemsizdir, _send zaten _write_lock ile serilestirilir."""
+    _send(_dispatch(msg))
+
+
+def _route_request(msg: dict) -> None:
+    """Bir istegi yonlendirir: pipeline el-sikma metodlari Qt signal affinity
+    icin main thread'de senkron, diger handler'lar worker thread'de calisir ki
+    yavas bir cagri stdin dongusunu ve Qt event dagitimini tikamasin."""
+    if msg.get("method", "") in _MAIN_THREAD_METHODS:
+        _send(_dispatch(msg))
+    else:
+        threading.Thread(target=_dispatch_blocking, args=(msg,), daemon=True).start()
+
+
 def serve() -> None:
     """Run the sidecar main loop (blocking).
 
@@ -1604,7 +1644,7 @@ def serve() -> None:
         except json.JSONDecodeError:
             _error(None, -32700, "Parse error")
             continue
-        _send(_dispatch(msg))
+        _route_request(msg)
 
 
 # HTTP hardening limits (F4.2).

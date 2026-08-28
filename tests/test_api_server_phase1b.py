@@ -118,14 +118,17 @@ def test_system_snapshot_status_returns_dict(sidecar):
     assert isinstance(resp["result"], dict)
 
 
-def test_system_snapshot_install_requires_privilege(sidecar):
+def test_system_snapshot_install_starts(sidecar):
+    # Artik gercek kurulumu (pkexec) baslatir, hemen {"started": True} doner;
+    # sonuc event/snapshot_done ile gelir. Test sisteminde Btrfs/ZFS yok,
+    # detect_backend "none" doner ve kurulum yan-etkisiz erken biter.
     resp = _rpc(sidecar, "system.snapshot_install")
-    assert resp["result"]["requires_privilege"] is True
+    assert resp["result"]["started"] is True
 
 
-def test_system_snapshot_remove_requires_privilege(sidecar):
+def test_system_snapshot_remove_starts(sidecar):
     resp = _rpc(sidecar, "system.snapshot_remove")
-    assert resp["result"]["requires_privilege"] is True
+    assert resp["result"]["started"] is True
 
 
 def test_system_verify_rollback_starts(sidecar):

@@ -15,6 +15,7 @@ export function Reports() {
   const [bench, setBench] = useState<BenchmarkReport | null>(null);
   const [benching, setBenching] = useState(false);
   const [snap, setSnap] = useState<SnapshotStatus | null>(null);
+  const [snapBusy, setSnapBusy] = useState(false);
   const [rollback, setRollback] = useState<RollbackVerifyResult | null>(null);
   const [verifying, setVerifying] = useState(false);
 
@@ -43,6 +44,25 @@ export function Reports() {
     void loadHealth();
     void loadSnap();
   }, [loadHealth, loadSnap]);
+
+  // snapshot kur/kaldir sonucu pkexec yetki diyaloğundan sonra event/snapshot_done ile gelir
+  useEffect(() => {
+    let un: (() => void) | undefined;
+    void onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
+      "event/snapshot_done",
+      (p) => {
+        setSnapBusy(false);
+        if (p.ok && p.result) {
+          if (p.result.ok) toast("success", p.result.message);
+          else toast("error", p.result.message);
+        } else {
+          toast("error", p.error ?? "Snapshot işlemi başarısız");
+        }
+        void loadSnap();
+      },
+    ).then((u) => { un = u; });
+    return () => { if (un) un(); };
+  }, [toast, loadSnap]);
 
   const handleBenchmark = async () => {
     setBenching(true);
@@ -85,21 +105,21 @@ export function Reports() {
   };
 
   const handleSnapInstall = async () => {
+    setSnapBusy(true);
     try {
-      const res = await call<{ requires_privilege?: boolean; message?: string }>("system.snapshot_install");
-      if (res.requires_privilege) toast("info", res.message ?? "Yetkili işlem gerekli (pkexec)");
-      void loadSnap();
+      await call("system.snapshot_install", { max_age_days: 7 });
     } catch (e) {
+      setSnapBusy(false);
       toast("error", (e as Error).message);
     }
   };
 
   const handleSnapRemove = async () => {
+    setSnapBusy(true);
     try {
-      const res = await call<{ requires_privilege?: boolean; message?: string }>("system.snapshot_remove");
-      if (res.requires_privilege) toast("info", res.message ?? "Yetkili işlem gerekli (pkexec)");
-      void loadSnap();
+      await call("system.snapshot_remove");
     } catch (e) {
+      setSnapBusy(false);
       toast("error", (e as Error).message);
     }
   };
@@ -226,10 +246,18 @@ export function Reports() {
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => void handleSnapInstall()}>Kur</Button>
-              <Button variant="danger" size="sm" onClick={() => void handleSnapRemove()}>Kaldır</Button>
+              <Button variant="secondary" size="sm" onClick={() => void handleSnapInstall()} disabled={snapBusy}>
+                {snapBusy ? <Loader2 size={14} className="animate-spin" /> : null}
+                Kur
+              </Button>
+              <Button variant="danger" size="sm" onClick={() => void handleSnapRemove()} disabled={snapBusy}>
+                Kaldır
+              </Button>
             </div>
           </div>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
+            Kurulum yönetici yetkisi ister; ekranda gelecek parola/onay penceresini (pkexec) onaylayın.
+          </p>
         </CardContent>
       </Card>
 
@@ -248,14 +276,30 @@ export function Reports() {
             <div className="rounded-md border border-[var(--border-subtle)] p-3 text-sm">
               <div className="mb-2 flex items-center gap-2">
                 <Activity size={15} className="text-[var(--text-muted)]" />
-                <Badge tone={rollback.verified ? "success" : "warning"}>
-                  {rollback.verified ? "Doğrulandı" : "Doğrulanamadı"}
-                </Badge>
-                <span className="text-xs text-[var(--text-muted)]">backend: {rollback.backend}</span>
+                {rollback.backend === "none" ? (
+                  <Badge tone="neutral">Snapshot altyapısı yok</Badge>
+                ) : (
+                  <Badge tone={rollback.verified ? "success" : "warning"}>
+                    {rollback.verified ? "Doğrulandı" : "Doğrulanamadı"}
+                  </Badge>
+                )}
+                {rollback.backend !== "none" && (
+                  <span className="text-xs text-[var(--text-muted)]">backend: {rollback.backend}</span>
+                )}
               </div>
-              {rollback.detail && <p className="text-xs text-[var(--text-muted)]">{rollback.detail}</p>}
-              {rollback.snapshot_name && (
-                <p className="mt-1 text-xs font-mono text-[var(--text-secondary)]">{rollback.snapshot_name}</p>
+              {rollback.backend === "none" ? (
+                <p className="text-xs text-[var(--text-muted)]">
+                  Rollback doğrulaması Btrfs veya ZFS dosya sistemi gerektirir; sisteminizde
+                  bunlardan biri kurulu değil. Bu bir hata değil — sisteminiz ext4 gibi farklı
+                  bir dosya sistemi kullanıyor olabilir.
+                </p>
+              ) : (
+                <>
+                  {rollback.detail && <p className="text-xs text-[var(--text-muted)]">{rollback.detail}</p>}
+                  {rollback.snapshot_name && (
+                    <p className="mt-1 text-xs font-mono text-[var(--text-secondary)]">{rollback.snapshot_name}</p>
+                  )}
+                </>
               )}
             </div>
           )}
