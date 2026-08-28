@@ -54,7 +54,7 @@ export function Tools() {
       (p) => {
         setRpmBusy(false);
         if (p.ok && p.result) setRpmResult(p.result);
-        else toast("error", p.error ?? "RPM dönüşümü başarısız");
+        else toast("error", p.error ?? t("toolsRpmFail"));
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: AbiReport; error?: string }>(
@@ -62,7 +62,7 @@ export function Tools() {
       (p) => {
         setAbiBusy(false);
         if (p.ok && p.result) setAbiReport(p.result);
-        else toast("error", p.error ?? "ABI taraması başarısız");
+        else toast("error", p.error ?? t("toolsAbiFail"));
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: ScanImageResult; error?: string }>(
@@ -70,7 +70,7 @@ export function Tools() {
       (p) => {
         setScanBusy(false);
         if (p.ok && p.result) setScanResult(p.result);
-        else toast("error", p.error ?? "İmaj taraması başarısız");
+        else toast("error", p.error ?? t("toolsImgScanFail"));
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: AttestResult; error?: string }>(
@@ -78,7 +78,7 @@ export function Tools() {
       (p) => {
         setAttestBusy(false);
         if (p.ok && p.result) setAttestResult(p.result);
-        else toast("error", p.error ?? "Attestasyon başarısız");
+        else toast("error", p.error ?? t("toolsAttestFail"));
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: PublishResult; error?: string }>(
@@ -86,7 +86,7 @@ export function Tools() {
       (p) => {
         setPublishBusy(false);
         if (p.ok && p.result) setPublishResult(p.result);
-        else toast("error", p.error ?? "Yayınlama başarısız");
+        else toast("error", p.error ?? t("toolsPublishFail"));
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
@@ -97,7 +97,7 @@ export function Tools() {
           if (p.result.ok) toast("success", p.result.message);
           else toast("error", p.result.message);
         } else {
-          toast("error", p.error ?? "Snapshot işlemi başarısız");
+          toast("error", p.error ?? t("toolsSnapshotFail"));
         }
         void loadSnapshot();
       },
@@ -142,7 +142,7 @@ export function Tools() {
   };
 
   const handleScan = async () => {
-    if (!scanPath.trim()) { toast("error", "İmaj yolu gerekli"); return; }
+    if (!scanPath.trim()) { toast("error", t("toolsNeedImgPath")); return; }
     setScanBusy(true); setScanResult(null);
     try { await call("tools.scan_image", { image: scanPath }); }
     catch (e) { setScanBusy(false); toast("error", (e as Error).message); }

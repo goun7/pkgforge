@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import type { DepGraphData, DepNode } from "../lib/types";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 interface DepGraphProps {
   data: DepGraphData;
@@ -20,6 +22,7 @@ interface Positioned {
  */
 export function DepGraph({ data, width = 640, height = 480 }: DepGraphProps) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const t = tFor(useLang());
 
   const { positioned, edges } = useMemo(() => {
     const names = Object.keys(data.nodes);
@@ -99,17 +102,17 @@ export function DepGraph({ data, width = 640, height = 480 }: DepGraphProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
-        <span>Toplam: {data.stats.total}</span>
-        <span>Kurulu: {data.stats.installed}</span>
-        <span>Eksik: {data.stats.missing}</span>
-        <span>Yabancı: {data.stats.foreign}</span>
-        <span>Derinlik: {data.stats.max_depth}</span>
+        <span>{t("depTotal")}: {data.stats.total}</span>
+        <span>{t("depInstalled")}: {data.stats.installed}</span>
+        <span>{t("depMissing")}: {data.stats.missing}</span>
+        <span>{t("depForeign")}: {data.stats.foreign}</span>
+        <span>{t("depDepth")}: {data.stats.max_depth}</span>
       </div>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-base)]"
         role="img"
-        aria-label="Bağımlılık grafiği"
+        aria-label={t("depGraphAria")}
       >
         {/* edges */}
         {edges.map(([src, dst]) => {
@@ -150,7 +153,7 @@ export function DepGraph({ data, width = 640, height = 480 }: DepGraphProps) {
           <span className="font-medium text-[var(--text-primary)]">{hoveredNode.name}</span>
           {hoveredNode.version && <span className="ml-2 text-[var(--text-muted)]">{hoveredNode.version}</span>}
           <span className="ml-2 text-[var(--text-muted)]">
-            {hoveredNode.is_installed ? "kurulu" : "eksik"}{hoveredNode.is_foreign ? " · yabancı" : ""}
+            {hoveredNode.is_installed ? t("depInstalled") : t("depMissing")}{hoveredNode.is_foreign ? ` · ${t("depForeignTag")}` : ""}
           </span>
           {hoveredNode.deps.length > 0 && (
             <span className="ml-2 text-[var(--text-muted)]">→ {hoveredNode.deps.join(", ")}</span>

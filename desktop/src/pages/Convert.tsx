@@ -163,7 +163,7 @@ export function Convert() {
           copy[idx] = { ...copy[idx], status: success ? "success" : "failed" };
           return copy;
         });
-        toast(success ? "success" : "error", message || (success ? "Tamamlandı" : "Başarısız"));
+        toast(success ? "success" : "error", message || (success ? t("convDone") : t("convFailed")));
         // Kick off the next queued item on the next tick.
         setTimeout(() => void startNext(), 0);
       }),
@@ -171,7 +171,7 @@ export function Convert() {
         setGraphLoading(false);
         const p = e.payload;
         if (p.ok && p.result) setGraph(p.result);
-        else toast("error", p.error ?? "Grafik oluşturulamadı");
+        else toast("error", p.error ?? t("convGraphFail"));
       }),
       listen<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>("event/install_done", (e) => {
         setInstalling(false);
@@ -180,7 +180,7 @@ export function Convert() {
           if (p.result.ok) toast("success", p.result.message);
           else toast("error", p.result.message);
         } else {
-          toast("error", p.error ?? "Kurulum başarısız");
+          toast("error", p.error ?? t("convInstallFail"));
         }
       }),
       listen<{ step: string }>("event/source_progress", (e) => setSourceStep(e.payload.step)),
@@ -189,7 +189,7 @@ export function Convert() {
         setSourceStep("");
         const p = e.payload;
         if (p.ok && p.result) setSourceResult(p.result);
-        else toast("error", p.error ?? "PKGBUILD oluşturulamadı");
+        else toast("error", p.error ?? t("convPkgbuildFail"));
       }),
     ];
     return () => {
@@ -266,7 +266,7 @@ export function Convert() {
     if (!outputPkg) return;
     try {
       await call("export.oci", { pkg_path: outputPkg });
-      toast("info", "OCI imajı oluşturuluyor — Dışa Aktar sekmesinden takip edin");
+      toast("info", t("convOciStarted"));
     } catch (e) {
       toast("error", (e as Error).message);
     }
@@ -322,7 +322,7 @@ export function Convert() {
     }
     setSourceBusy(true);
     setSourceResult(null);
-    setSourceStep("başlatılıyor");
+    setSourceStep("starting");
     try {
       await call("source.generate", { repo_url: repoUrl });
     } catch (e) {
@@ -376,7 +376,7 @@ export function Convert() {
       );
       if (!res.started) {
         setBatchRunning(false);
-        toast("info", res.reason === "no pending items" ? "Bekleyen öğe yok" : "Zaten çalışıyor");
+        toast("info", res.reason === "no pending items" ? t("queueNoPending") : t("queueAlreadyRunning"));
       }
     } catch (e) {
       setBatchRunning(false);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Languages, Moon, Sun, Wifi, WifiOff, Loader2 } from "lucide-react";
+import { Languages, Moon, Sun, Wifi, WifiOff, Loader2, Keyboard } from "lucide-react";
 import { useLang, setLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 import { applyTheme, resolveTheme } from "../lib/theme";
 import { call } from "../lib/rpc";
 import { cn } from "../lib/utils";
@@ -11,6 +12,7 @@ const iconBtn =
 /** Topbar sag tarafi: sidecar durumu + dil ve tema degistiriciler. */
 export function TopbarActions() {
   const lang = useLang();
+  const t = tFor(lang);
   const [theme, setThemeState] = useState<string>(
     () => document.documentElement.getAttribute("data-theme") ?? "dark",
   );
@@ -60,8 +62,8 @@ export function TopbarActions() {
   return (
     <div className="flex items-center gap-1">
       <span
-        title={online === null ? "Sidecar bağlanıyor…" : online ? "Sidecar bağlı" : "Sidecar bağlı değil"}
-        aria-label={online === null ? "Sidecar bağlanıyor" : online ? "Sidecar bağlı" : "Sidecar bağlı değil"}
+        title={online === null ? t("sidecarConnecting") : online ? t("sidecarConnected") : t("sidecarNotConnected")}
+        aria-label={online === null ? t("sidecarConnecting") : online ? t("sidecarConnected") : t("sidecarNotConnected")}
         className={cn(
           "mr-1 flex items-center",
           online === null
@@ -79,11 +81,19 @@ export function TopbarActions() {
           <WifiOff size={15} />
         )}
       </span>
-      <button onClick={() => void toggleLang()} aria-label="Dili değiştir" title="Dil" className={iconBtn}>
+      <button
+        onClick={() => window.dispatchEvent(new Event("pkgforge:open-shortcuts"))}
+        aria-label={t("shortcutsTitle")}
+        title={t("shortcutsTitle")}
+        className={iconBtn}
+      >
+        <Keyboard size={15} />
+      </button>
+      <button onClick={() => void toggleLang()} aria-label={t("langToggleAria")} title={t("langToggleTitle")} className={iconBtn}>
         <Languages size={15} />
         <span className="text-xs font-semibold uppercase">{lang}</span>
       </button>
-      <button onClick={() => void toggleTheme()} aria-label="Temayı değiştir" title="Tema" className={iconBtn}>
+      <button onClick={() => void toggleTheme()} aria-label={t("themeToggleAria")} title={t("themeToggleTitle")} className={iconBtn}>
         {resolveTheme(theme) === "light" ? <Moon size={15} /> : <Sun size={15} />}
       </button>
     </div>

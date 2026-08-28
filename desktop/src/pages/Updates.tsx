@@ -63,7 +63,7 @@ export function Updates() {
   const handleScheduleInterval = async () => {
     const h = parseFloat(intervalInput);
     if (!h || h < 1) {
-      toast("error", "Aralık en az 1 saat olmalı");
+      toast("error", t("updIntervalMin"));
       return;
     }
     try {
@@ -74,11 +74,21 @@ export function Updates() {
     }
   };
 
+  const handleScheduleRun = async () => {
+    try {
+      await call("schedule.run", { force: true });
+      toast("success", t("schedRan"));
+      void loadSchedule();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
   const handleEnable = async () => {
     try {
       const res = await call<{ requires_privilege?: boolean; message?: string }>("delta.enable");
       if (res.requires_privilege) {
-        toast("info", res.message ?? "Delta auto-update etkinleştirme yetkili işlem gerektiriyor (pkexec)");
+        toast("info", res.message ?? t("updDeltaEnablePriv"));
       }
       void loadDelta();
     } catch (e) {
@@ -90,7 +100,7 @@ export function Updates() {
     try {
       const res = await call<{ requires_privilege?: boolean; message?: string }>("delta.disable");
       if (res.requires_privilege) {
-        toast("info", res.message ?? "Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)");
+        toast("info", res.message ?? t("updDeltaDisablePriv"));
       }
       void loadDelta();
     } catch (e) {
@@ -100,7 +110,7 @@ export function Updates() {
 
   const handleCrossCheck = async () => {
     if (!pkgName.trim()) {
-      toast("error", "Bir paket adı girin");
+      toast("error", t("updNeedName"));
       return;
     }
     setChecking(true);
@@ -110,7 +120,7 @@ export function Updates() {
       (p) => {
         setChecking(false);
         if (p.ok && p.result) setCross(p.result);
-        else toast("error", p.error ?? "Cross-check başarısız");
+        else toast("error", p.error ?? t("updCrossFail"));
         void un();
       },
     );
@@ -211,6 +221,9 @@ export function Updates() {
                 <Button size="sm" variant="secondary" onClick={() => void handleScheduleToggle(false)} disabled={!schedule.enabled}>
                   {t("updatesDisable")}
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => void handleScheduleRun()}>
+                  {t("schedRunNow")}
+                </Button>
               </div>
               {schedule.last_run && (
                 <p className="text-xs text-[var(--text-muted)]">{t("updatesLastRun")} {schedule.last_run}</p>
@@ -244,7 +257,7 @@ export function Updates() {
           {cross && (
             <div className="rounded-md border border-[var(--border-subtle)] p-3 text-sm">
               <table className="w-full text-xs">
-                <caption className="sr-only">Kaynak sürüm karşılaştırması</caption>
+                <caption className="sr-only">{t("updCrossCaption")}</caption>
                 <thead>
                   <tr className="text-left text-[var(--text-muted)]">
                     <th scope="col" className="py-1 pr-3">{t("updatesSource")}</th>

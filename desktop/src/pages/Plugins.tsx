@@ -61,10 +61,10 @@ export function Plugins() {
       (p) => {
         setBusy("");
         if (p.ok) {
-          toast("success", p.result?.message ?? "İşlem tamamlandı");
+          toast("success", p.result?.message ?? t("plugDone"));
           void loadInstalled();
         } else {
-          toast("error", p.error ?? "Plugin işlemi başarısız");
+          toast("error", p.error ?? t("plugFail"));
         }
       },
     ).then((u) => { un = u; });
@@ -85,7 +85,7 @@ export function Plugins() {
     setBusy(name);
     try {
       await call("plugin.uninstall", { name });
-      toast("success", `${name} kaldırıldı`);
+      toast("success", `${name} ${t("plugRemoved")}`);
       void loadInstalled();
     } catch (e) {
       toast("error", (e as Error).message);

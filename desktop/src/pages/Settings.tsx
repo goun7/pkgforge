@@ -91,6 +91,20 @@ export function Settings() {
     { available: boolean; running: boolean; bus_name: string } | null
   >(null);
   const [dbusBusy, setDbusBusy] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  // Faz 9 (2.8): uygulama surumunu footer icin getir.
+  useEffect(() => {
+    let alive = true;
+    call<{ name: string; version: string }>("app.version")
+      .then((res) => {
+        if (alive) setAppVersion(res.version);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -448,6 +462,7 @@ export function Settings() {
               >
                 <option value="dark">{t("setThemeDark")}</option>
                 <option value="light">{t("setThemeLight")}</option>
+                <option value="oled">{t("setThemeOled")}</option>
                 <option value="system">{t("setThemeSystem")}</option>
               </select>
             </label>
@@ -629,7 +644,7 @@ export function Settings() {
                         sync_username: syncUser,
                         ...(syncPass ? { sync_password: syncPass } : {}),
                       },
-                      "Senkron ayarları kaydedildi",
+                      t("setSyncSaved"),
                     )
                   }
                 >
@@ -711,6 +726,13 @@ export function Settings() {
             <Save size={15} /> {saving ? t("setSaving") : t("updatesSave")}
           </Button>
         </div>
+
+        {/* Faz 9 (2.8): uygulama surumu */}
+        {appVersion && (
+          <p className="pb-4 text-center text-xs text-[var(--text-muted)]">
+            PkgForge {t("aboutVersion")} {appVersion}
+          </p>
+        )}
       </div>
     </div>
   );

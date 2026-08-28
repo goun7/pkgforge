@@ -81,3 +81,18 @@
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
   --glow-brand: 0 0 24px rgba(14, 122, 181, 0.15);
 }
+
+/* Faz 9 (5.5): OLED siyah tema — saf siyah yuzeyler (OLED ekranlarda gercek siyah).
+ * Metin/semantik renkler :root'tan (dark-first) devralinir. */
+[data-theme="oled"] {
+  --bg-base: #000000;
+  --bg-surface: #050507;
+  --bg-elevated: #0d0d11;
+
+  --border-subtle: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.9);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.95);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 1);
+}

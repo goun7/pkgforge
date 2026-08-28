@@ -39,10 +39,11 @@ export function Security() {
   const [prov, setProv] = useState<Provenance | null>(null);
   const [sigstore, setSigstore] = useState<SigstoreStatus | null>(null);
   const [cve, setCve] = useState<CveScanResult | null>(null);
+  const [keys, setKeys] = useState<{ key_id: string; uid?: string; algo?: string; created?: string }[] | null>(null);
 
   const requirePath = (): boolean => {
     if (!pkgPath.trim()) {
-      toast("error", "Önce bir paket yolu girin");
+      toast("error", t("secNeedPath"));
       return false;
     }
     return true;
@@ -61,6 +62,18 @@ export function Security() {
     }
   };
 
+  const handleLoadKeys = async () => {
+    setLoading(true);
+    try {
+      const res = await call<{ key_id: string; uid?: string; algo?: string; created?: string }[]>("security.keys");
+      setKeys(res ?? []);
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSbom = async () => {
     if (!requirePath()) return;
     setLoading(true);
@@ -69,7 +82,7 @@ export function Security() {
       (p) => {
         setLoading(false);
         if (p.ok && p.result) setSbom(p.result);
-        else toast("error", p.error ?? "SBOM oluşturulamadı");
+        else toast("error", p.error ?? t("secSbomFail"));
         void un();
       },
     );
@@ -89,7 +102,7 @@ export function Security() {
       (p) => {
         setLoading(false);
         if (p.ok && p.result) setQuality(p.result);
-        else toast("error", p.error ?? "Kalite analizi başarısız");
+        else toast("error", p.error ?? t("secQualityFail"));
         void un();
       },
     );
@@ -107,7 +120,7 @@ export function Security() {
     try {
       const res = await call<Provenance | null>("security.provenance", { pkg_path: pkgPath });
       setProv(res);
-      if (!res) toast("info", "Bu paket için provenance kaydı bulunamadı");
+      if (!res) toast("info", t("secNoProvenance"));
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -135,7 +148,7 @@ export function Security() {
       (p) => {
         setLoading(false);
         if (p.ok && p.result) setCve(p.result);
-        else toast("error", p.error ?? "CVE taraması başarısız");
+        else toast("error", p.error ?? t("secCveFail"));
         void un();
       },
     );
@@ -183,7 +196,7 @@ export function Security() {
       setSbom(await runEventCheck<SbomDocument>("security.sbom"));
       setQuality(await runEventCheck<QualityReport>("security.quality"));
       setCve(await runEventCheck<CveScanResult>("security.cve_scan"));
-      toast("success", "Tüm güvenlik kontrolleri tamamlandı");
+      toast("success", t("secAllDone"));
     } finally {
       setLoading(false);
     }
@@ -338,6 +351,29 @@ export function Security() {
                   {sig.detail && <p className="mt-2 text-xs text-[var(--text-muted)]">{sig.detail}</p>}
                 </div>
               )}
+              {/* Faz 9 (2.6): imza anahtarlari */}
+              <div className="rounded-md border border-[var(--border-subtle)] p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="text-sm font-medium">{t("secKeysTitle")}</h4>
+                  <Button variant="secondary" size="sm" onClick={() => void handleLoadKeys()} disabled={loading}>
+                    {t("secKeysLoad")}
+                  </Button>
+                </div>
+                {keys && keys.length === 0 && (
+                  <p className="text-xs text-[var(--text-muted)]">{t("secKeysNone")}</p>
+                )}
+                {keys && keys.length > 0 && (
+                  <ul className="space-y-1">
+                    {keys.map((k) => (
+                      <li key={k.key_id} className="flex items-center gap-2 text-xs">
+                        <KeyRound size={13} className="shrink-0 text-[var(--text-muted)]" />
+                        <span className="font-mono">{k.key_id}</span>
+                        {k.uid && <span className="truncate text-[var(--text-secondary)]">{k.uid}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           )}
 

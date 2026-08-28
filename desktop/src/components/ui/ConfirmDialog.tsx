@@ -2,6 +2,8 @@ import { Dialog } from "./Dialog";
 import { Button } from "./Button";
 import { AsyncButton } from "./AsyncButton";
 import { AlertTriangle } from "lucide-react";
+import { useLang } from "../../lib/lang";
+import { tFor } from "../../lib/i18n";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -20,13 +22,16 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "Onayla",
-  cancelLabel = "Vazgeç",
+  confirmLabel,
+  cancelLabel,
   danger = true,
   busy = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const t = tFor(useLang());
+  const confirmText = confirmLabel ?? t("confirmConfirm");
+  const cancelText = cancelLabel ?? t("confirmCancel");
   return (
     <Dialog open={open} onClose={onCancel} title={title}>
       <div className="flex items-start gap-3">
@@ -39,10 +44,10 @@ export function ConfirmDialog({
       </div>
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="secondary" onClick={onCancel} disabled={busy}>
-          {cancelLabel}
+          {cancelText}
         </Button>
         <AsyncButton variant={danger ? "danger" : "primary"} busy={busy} onClick={onConfirm}>
-          {confirmLabel}
+          {confirmText}
         </AsyncButton>
       </div>
     </Dialog>

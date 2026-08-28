@@ -26,6 +26,26 @@ export interface Command {
   action: () => void;
 }
 
+/** Faz 9 (5.8): son kullanilan komutlarin id'leri (en yeni basta, max 5). */
+const RECENT_KEY = "pkgforge.palette.recent";
+function loadRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+function saveRecent(id: string): void {
+  try {
+    const cur = loadRecent().filter((x) => x !== id);
+    cur.unshift(id);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(cur.slice(0, 5)));
+  } catch {
+    /* depolama yok */
+  }
+}
+
 export interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
@@ -41,7 +61,19 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return commands;
+    if (!q) {
+      // Faz 9 (5.8): sorgu yokken son kullanilan komutlar üste sabitlenir.
+      const recent = loadRecent();
+      if (recent.length === 0) return commands;
+      return [...commands].sort((a, b) => {
+        const ai = recent.indexOf(a.id);
+        const bi = recent.indexOf(b.id);
+        if (ai === -1 && bi === -1) return 0;
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
+    }
     return commands
       .map((c) => ({ c, score: fuzzyScore(c.label, q) }))
       .filter((x) => x.score >= 0)
@@ -65,6 +97,7 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
   if (!open) return null;
 
   const run = (cmd: Command) => {
+    saveRecent(cmd.id);
     cmd.action();
     onClose();
   };

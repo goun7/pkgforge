@@ -85,7 +85,7 @@ export function Export() {
           if (p.result.ok) toast("success", p.result.message);
           else toast("error", p.result.message);
         } else {
-          toast("error", p.error ?? "Dışa aktarma başarısız");
+          toast("error", p.error ?? t("expFail"));
         }
         void un();
       },
@@ -94,7 +94,7 @@ export function Export() {
 
   const handleAppimage = async () => {
     if (!appimagePath.trim()) {
-      toast("error", "Bir AppImage dosyası seçin");
+      toast("error", t("expNeedAppimage"));
       return;
     }
     setAppimageBusy(true);
@@ -110,7 +110,7 @@ export function Export() {
 
   const handleFlatpak = async () => {
     if (!selectedApp) {
-      toast("error", "Bir Flatpak uygulaması seçin");
+      toast("error", t("expNeedFlatpak"));
       return;
     }
     setFlatpakBusy(true);
@@ -126,7 +126,7 @@ export function Export() {
 
   const handleOci = async () => {
     if (!ociPath.trim()) {
-      toast("error", "Bir .pkg.tar.zst paketi seçin");
+      toast("error", t("expNeedPkg"));
       return;
     }
     setOciBusy(true);

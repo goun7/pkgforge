@@ -8,6 +8,7 @@ import { Onboarding } from "./components/Onboarding";
 import { WhatsNew } from "./components/WhatsNew";
 import { SidecarGuard } from "./components/SidecarGuard";
 import { FeatureTour } from "./components/FeatureTour";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Convert } from "./pages/Convert";
 import { Installed } from "./pages/Installed";
 import { Settings } from "./pages/Settings";
@@ -114,6 +115,7 @@ export default function App() {
       { id: "action-theme-dark", label: t("cmdThemeDark"), action: setThemeCmd("dark") },
       { id: "action-theme-light", label: t("cmdThemeLight"), action: setThemeCmd("light") },
       { id: "action-theme-system", label: t("cmdThemeSystem"), action: setThemeCmd("system") },
+      { id: "action-theme-oled", label: t("cmdThemeOled"), action: setThemeCmd("oled") },
       { id: "action-lang-tr", label: t("cmdLangTr"), action: setLangCmd("tr") },
       { id: "action-lang-en", label: t("cmdLangEn"), action: setLangCmd("en") },
       {
@@ -135,6 +137,13 @@ export default function App() {
           window.dispatchEvent(new Event("pkgforge:open-tour"));
         },
       },
+      {
+        id: "action-shortcuts",
+        label: t("cmdShortcuts"),
+        action: () => {
+          window.dispatchEvent(new Event("pkgforge:open-shortcuts"));
+        },
+      },
     ];
     return [...nav, ...actions];
   }, [t]);
@@ -145,6 +154,12 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen((o) => !o);
+        return;
+      }
+      // Faz 9 (5.1): Ctrl+/ klavye kisayol yardimi.
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        window.dispatchEvent(new Event("pkgforge:open-shortcuts"));
         return;
       }
       const target = e.target as HTMLElement | null;
@@ -220,6 +235,7 @@ export default function App() {
       <Onboarding />
       <WhatsNew />
       <FeatureTour />
+      <ShortcutsDialog />
       {/* Faz 8 (5.2): sayfa degisimini ekran okuyucuya duyur. */}
       <div aria-live="polite" role="status" className="sr-only">
         {`${t(PAGE_TITLES[page])} ${t("pageOpened")}`}

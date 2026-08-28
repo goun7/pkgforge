@@ -1,9 +1,10 @@
 import { call } from "./rpc";
 
-export type Theme = "dark" | "light" | "system";
+export type Theme = "dark" | "light" | "system" | "oled";
+export type ResolvedTheme = "dark" | "light" | "oled";
 
 /** "system" tercihini isletim sistemi renk semasina gore cozer. */
-export function resolveTheme(theme: string): "dark" | "light" {
+export function resolveTheme(theme: string): ResolvedTheme {
   if (theme === "system") {
     try {
       return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -11,6 +12,7 @@ export function resolveTheme(theme: string): "dark" | "light" {
       return "dark";
     }
   }
+  if (theme === "oled") return "oled";
   return theme === "light" ? "light" : "dark";
 }
 

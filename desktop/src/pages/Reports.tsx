@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { cacheGet, cacheSet } from "../lib/cache";
-import { Activity, Gauge, Camera, ShieldCheck, Loader2, RefreshCw } from "lucide-react";
+import { Activity, Gauge, Camera, ShieldCheck, Loader2, RefreshCw, PartyPopper, HardDriveDownload } from "lucide-react";
+import { DoctorPanel } from "../components/DoctorPanel";
+import { WrappedDialog } from "../components/WrappedDialog";
 import { call, onEvent } from "../lib/rpc";
 import type { HealthStats, BenchmarkReport, SnapshotStatus, RollbackVerifyResult } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
@@ -18,6 +20,7 @@ export function Reports() {
   const [health, setHealth] = useState<HealthStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [wrappedOpen, setWrappedOpen] = useState(false);
   const [bench, setBench] = useState<BenchmarkReport | null>(null);
   const [benching, setBenching] = useState(false);
   const [snap, setSnap] = useState<SnapshotStatus | null>(null);
@@ -145,15 +148,35 @@ export function Reports() {
     }
   };
 
+  // Faz 9 (5.3): sistem sagligi raporunu JSON olarak indir.
+  const handleExportHealth = () => {
+    if (!health) return;
+    const blob = new Blob([JSON.stringify(health, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pkgforge-report.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="h-full space-y-4 overflow-y-auto p-5">
       {/* Health dashboard */}
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2"><Activity size={16} /> {t("repTitle")}</CardTitle>
-          <Button variant="secondary" size="sm" onClick={() => void loadHealth(true)}>
-            <RefreshCw size={14} /> {t("commonRefresh")}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setWrappedOpen(true)}>
+              <PartyPopper size={14} /> {t("wrappedTitle")}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleExportHealth} disabled={!health}>
+              <HardDriveDownload size={14} /> {t("repExport")}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => void loadHealth(true)}>
+              <RefreshCw size={14} /> {t("commonRefresh")}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -336,6 +359,12 @@ export function Reports() {
           )}
         </CardContent>
       </Card>
+
+      {/* Faz 9 (2.1): sistem doktoru */}
+      <DoctorPanel />
+
+      {/* Faz 9 (2.2): yillik ozet dialog */}
+      <WrappedDialog open={wrappedOpen} onClose={() => setWrappedOpen(false)} />
     </div>
   );
 }

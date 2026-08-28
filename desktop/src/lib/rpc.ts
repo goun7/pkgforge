@@ -8,6 +8,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { RpcResponse } from "./types";
+import { getLang } from "./lang";
+import { tFor } from "./i18n";
 
 let nextId = 1;
 
@@ -80,7 +82,7 @@ export async function call<T = unknown>(
         params: params ?? {},
       }),
       RPC_TIMEOUT_MS,
-      `Yanıt zaman aşımı: ${method}`,
+      `${tFor(getLang())("rpcTimeout")}: ${method}`,
     );
   } catch (err) {
     // Sidecar erisim hatasi (zaman asimi / kopuk baglanti).
