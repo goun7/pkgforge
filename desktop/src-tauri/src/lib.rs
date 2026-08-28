@@ -37,13 +37,9 @@ const EN: L10n = L10n {
     err_body: "An error occurred during the operation.",
 };
 
-/// Secili UI dilini settings.json'dan okur (profil farkindali); best-effort,
-/// okunamazsa Turkce'ye duser. Tray/bildirim baslangicta okunur.
-fn load_language() -> &'static L10n {
-    let home = match std::env::var("HOME") {
-        Ok(h) => h,
-        Err(_) => return &TR,
-    };
+/// Aktif profilin settings.json'ini okur (profil farkindali); best-effort.
+fn read_settings() -> Option<serde_json::Value> {
+    let home = std::env::var("HOME").ok()?;
     let base = std::path::PathBuf::from(home).join(".config").join("pkgforge");
     let mut settings_path = base.join("settings.json");
     if let Ok(profile) = std::fs::read_to_string(base.join("active_profile")) {
@@ -55,17 +51,28 @@ fn load_language() -> &'static L10n {
             }
         }
     }
-    let raw = match std::fs::read_to_string(settings_path) {
-        Ok(r) => r,
-        Err(_) => return &TR,
-    };
-    let v: serde_json::Value = match serde_json::from_str(&raw) {
-        Ok(v) => v,
-        Err(_) => return &TR,
+    let raw = std::fs::read_to_string(settings_path).ok()?;
+    serde_json::from_str(&raw).ok()
+}
+
+/// Secili UI dilini settings.json'dan okur; okunamazsa Turkce'ye duser.
+fn load_language() -> &'static L10n {
+    let v = match read_settings() {
+        Some(v) => v,
+        None => return &TR,
     };
     match v.get("language").and_then(|l| l.as_str()) {
         Some("en") => &EN,
         _ => &TR,
+    }
+}
+
+/// Faz 10 (5.5): masaustu bildirimleri acik mi? Varsayilan true. Her olayda
+/// yeniden okunur, boylece ayar degisikligi yeniden baslatma gerektirmez.
+fn notifications_enabled() -> bool {
+    match read_settings() {
+        Some(v) => v.get("notifications").and_then(|n| n.as_bool()).unwrap_or(true),
+        None => true,
     }
 }
 
@@ -119,6 +126,9 @@ fn setup_tray(app: &tauri::AppHandle, l10n: &L10n) -> Result<(), Box<dyn std::er
 fn setup_notifications(app: &tauri::AppHandle, l10n: L10n) {
     let handle = app.clone();
     app.listen("event/finished", move |event| {
+        if !notifications_enabled() {
+            return;
+        }
         let payload: serde_json::Value = match serde_json::from_str(event.payload()) {
             Ok(v) => v,
             Err(_) => return,

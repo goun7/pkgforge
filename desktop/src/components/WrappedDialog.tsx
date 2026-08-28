@@ -91,6 +91,34 @@ export function WrappedDialog({ open, onClose, year }: WrappedDialogProps) {
               <div className="text-[11px] text-[var(--text-muted)]">{t("wrappedBusiestMonth")}</div>
             </div>
           </div>
+          {/* Faz 10 (5.2): ay-bazli mini bar grafik. */}
+          {Object.keys(report.by_month).length > 0 && (
+            <div>
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                {t("wrappedByMonth")}
+              </h4>
+              <div className="flex items-end gap-1">
+                {Object.entries(report.by_month)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([month, count]) => {
+                    const max = Math.max(...Object.values(report.by_month), 1);
+                    const h = Math.max(6, Math.round((count / max) * 64));
+                    return (
+                      <div
+                        key={month}
+                        className="flex flex-1 flex-col items-center gap-1"
+                        title={month + ": " + count}
+                      >
+                        <div className="w-full rounded-t bg-[var(--brand-gradient)]" style={{ height: h + "px" }} />
+                        <span className="text-[9px] text-[var(--text-muted)]">
+                          {month.length > 5 ? month.slice(5) : month}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
           {report.top_packages.length > 0 && (
             <div>
               <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">

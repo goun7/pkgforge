@@ -26,16 +26,18 @@ describe("CommandPalette (Faz 9 4.4)", () => {
       />,
     );
     await user.type(getPaletteInput(), "conv");
-    expect(screen.getByText("Convert")).toBeInTheDocument();
-    expect(screen.queryByText("Settings")).not.toBeInTheDocument();
+    // Faz 10 (5.4): eslesme <mark> ile vurgulanir; erisilebilir ad uzerinden dogrula.
+    expect(screen.getByRole("option", { name: /Convert/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Settings/ })).not.toBeInTheDocument();
   });
 
   it("matches a subsequence (fuzzy) query", async () => {
     const user = userEvent.setup();
     render(<CommandPalette open onClose={vi.fn()} commands={[mkCmd("a", "Security"), mkCmd("b", "Convert")]} />);
     await user.type(getPaletteInput(), "scrty");
-    expect(screen.getByText("Security")).toBeInTheDocument();
-    expect(screen.queryByText("Convert")).not.toBeInTheDocument();
+    // Faz 10 (5.4): alt dizi vurgusu metni boler; erisilebilir ad uzerinden dogrula.
+    expect(screen.getByRole("option", { name: /Security/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Convert/ })).not.toBeInTheDocument();
   });
 
   it("hides non-matching commands for a nonsense query", async () => {

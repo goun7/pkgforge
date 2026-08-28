@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Stethoscope, Loader2, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Stethoscope, Loader2, CheckCircle2, AlertTriangle, XCircle, Copy } from "lucide-react";
 import { call } from "../lib/rpc";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import { Skeleton } from "./ui/Skeleton";
+import { useToast } from "./ui/Toast";
 import { useLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
 
@@ -51,9 +52,35 @@ function StatusIcon({ ok }: { ok: boolean }) {
 /** Faz 9 (2.1): app.doctor sonuclarini gorsellestiren sistem sagligi karti. */
 export function DoctorPanel() {
   const t = tFor(useLang());
+  const { toast } = useToast();
   const [report, setReport] = useState<DoctorReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Faz 10 (5.10): hata raporu icin tanilari Markdown olarak panoya kopyala.
+  const copyReport = async () => {
+    if (!report) return;
+    const lines: string[] = [
+      "# PkgForge Diagnostics",
+      "- version: " + report.version,
+      "- ok: " + String(report.ok),
+      "- tools.ok: " + String(report.tools.ok),
+    ];
+    if (report.tools.missing_required.length) lines.push("- missing_required: " + report.tools.missing_required.join(", "));
+    if (report.tools.missing_optional.length) lines.push("- missing_optional: " + report.tools.missing_optional.join(", "));
+    lines.push("- keyring.ok: " + String(report.keyring.ok));
+    lines.push("- storage.ok: " + String(report.storage.ok) + (report.storage.profile ? " (profile: " + report.storage.profile + ")" : ""));
+    lines.push("- dbus.ok: " + String(report.dbus.ok));
+    lines.push("- scheduler.ok: " + String(report.scheduler.ok) + (typeof report.scheduler.tasks === "number" ? " (tasks: " + report.scheduler.tasks + ")" : ""));
+    lines.push("- platform: " + navigator.platform);
+    lines.push("- lang: " + navigator.language);
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      toast("success", t("doctorCopied"));
+    } catch {
+      toast("error", t("doctorCopyFail"));
+    }
+  };
 
   const run = async () => {
     setBusy(true);
@@ -84,10 +111,17 @@ export function DoctorPanel() {
         <CardTitle className="flex items-center gap-2">
           <Stethoscope size={16} /> {t("doctorTitle")}
         </CardTitle>
-        <Button size="sm" onClick={() => void run()} disabled={busy}>
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Stethoscope size={14} />}
-          {t("doctorRun")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {report && (
+            <Button size="sm" variant="secondary" onClick={() => void copyReport()}>
+              <Copy size={14} /> {t("doctorCopy")}
+            </Button>
+          )}
+          <Button size="sm" onClick={() => void run()} disabled={busy}>
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Stethoscope size={14} />}
+            {t("doctorRun")}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {busy && <Skeleton className="h-24 w-full" />}

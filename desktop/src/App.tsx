@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Sidebar, type PageId } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { TopbarActions } from "./components/TopbarActions";
@@ -10,22 +10,24 @@ import { SidecarGuard } from "./components/SidecarGuard";
 import { FeatureTour } from "./components/FeatureTour";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Convert } from "./pages/Convert";
-import { Installed } from "./pages/Installed";
-import { Settings } from "./pages/Settings";
-import { Security } from "./pages/Security";
-import { Updates } from "./pages/Updates";
-import { Reports } from "./pages/Reports";
-import { Export } from "./pages/Export";
-import { Plugins } from "./pages/Plugins";
-import { Compare } from "./pages/Compare";
-import { Browse } from "./pages/Browse";
-import { Tools } from "./pages/Tools";
-import { Fleet } from "./pages/Fleet";
+// Faz 10 (4.1): sayfalar tembel yuklenir (kod bolme). Convert her zaman mount
+// kaldigi icin statik import olarak kalir; diger 11 sayfa lazy.
+const Installed = lazy(() => import("./pages/Installed").then((m) => ({ default: m.Installed })));
+const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const Security = lazy(() => import("./pages/Security").then((m) => ({ default: m.Security })));
+const Updates = lazy(() => import("./pages/Updates").then((m) => ({ default: m.Updates })));
+const Reports = lazy(() => import("./pages/Reports").then((m) => ({ default: m.Reports })));
+const Export = lazy(() => import("./pages/Export").then((m) => ({ default: m.Export })));
+const Plugins = lazy(() => import("./pages/Plugins").then((m) => ({ default: m.Plugins })));
+const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
+const Browse = lazy(() => import("./pages/Browse").then((m) => ({ default: m.Browse })));
+const Tools = lazy(() => import("./pages/Tools").then((m) => ({ default: m.Tools })));
+const Fleet = lazy(() => import("./pages/Fleet").then((m) => ({ default: m.Fleet })));
 import { EmptyState } from "./components/EmptyState";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Construction } from "lucide-react";
+import { Construction, Loader2 } from "lucide-react";
 import { loadLang, useLang, setLang } from "./lib/lang";
-import { loadTheme, applyTheme } from "./lib/theme";
+import { loadTheme, applyTheme, loadAccentLocal } from "./lib/theme";
 import { call } from "./lib/rpc";
 import { tFor, type I18nKey } from "./lib/i18n";
 
@@ -62,27 +64,117 @@ const PAGE_DESC: Record<PageId, I18nKey> = {
 
 const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates", "reports", "export", "plugins", "compare", "browse", "tools", "fleet"];
 
+// Faz 10 (4.1): tembel yuklenen sayfa yuklenene kadar gosterilen durum.
+function PageLoading() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <Loader2 className="animate-spin text-[var(--text-muted)]" size={28} aria-hidden />
+    </div>
+  );
+}
+
+function loadInitialPage(): PageId {
+  try {
+    const saved = localStorage.getItem("pkgforge.lastPage");
+    if (saved && (Object.keys(PAGE_TITLES) as string[]).includes(saved)) return saved as PageId;
+  } catch {
+    /* depolama yok */
+  }
+  return "convert";
+}
+
+function loadRecentPages(): PageId[] {
+  try {
+    const raw = localStorage.getItem("pkgforge.recentPages");
+    if (raw) {
+      const arr = JSON.parse(raw) as string[];
+      return arr.filter((p): p is PageId => (Object.keys(PAGE_TITLES) as string[]).includes(p));
+    }
+  } catch {
+    /* depolama yok */
+  }
+  return [];
+}
+
 export default function App() {
   // Faz 8 (3.2): son aktif sayfayi localStorage'dan geri yukle.
-  const [page, setPage] = useState<PageId>(() => {
-    try {
-      const saved = localStorage.getItem("pkgforge.lastPage");
-      if (saved && (Object.keys(PAGE_TITLES) as string[]).includes(saved)) {
-        return saved as PageId;
-      }
-    } catch {
-      /* depolama yok */
-    }
-    return "convert";
-  });
+  const [page, setPageRaw] = useState<PageId>(loadInitialPage);
+  // Faz 10 (5.8): sayfa gecmisi yigini (Alt+Sol/Sag ileri-geri).
+  const stackRef = useRef<PageId[]>([loadInitialPage()]);
+  const idxRef = useRef(0);
+  const skipPushRef = useRef(false);
+  // Faz 10 (5.6): son gezilen sayfalar (sidebar'da gosterilir).
+  const [recent, setRecent] = useState<PageId[]>(loadRecentPages);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const lang = useLang();
   const t = tFor(lang);
+  // Faz 10 (5.9): paletten kurulu pakete atlamak icin gecmis paket adlari.
+  const [pkgNames, setPkgNames] = useState<string[]>([]);
+
+  const setPage = (p: PageId) => {
+    if (!skipPushRef.current) {
+      stackRef.current = stackRef.current.slice(0, idxRef.current + 1);
+      if (stackRef.current[stackRef.current.length - 1] !== p) {
+        stackRef.current.push(p);
+        idxRef.current = stackRef.current.length - 1;
+      }
+    }
+    skipPushRef.current = false;
+    setPageRaw(p);
+    setRecent((prev) => {
+      const next = [p, ...prev.filter((x) => x !== p)].slice(0, 3);
+      try {
+        localStorage.setItem("pkgforge.recentPages", JSON.stringify(next));
+      } catch {
+        /* depolama yok */
+      }
+      return next;
+    });
+  };
+
+  const goBack = () => {
+    if (idxRef.current > 0) {
+      idxRef.current -= 1;
+      skipPushRef.current = true;
+      setPage(stackRef.current[idxRef.current]);
+    }
+  };
+  const goForward = () => {
+    if (idxRef.current < stackRef.current.length - 1) {
+      idxRef.current += 1;
+      skipPushRef.current = true;
+      setPage(stackRef.current[idxRef.current]);
+    }
+  };
+
+  // Faz 10 (5.9): gecmisteki paket adlarini palet icin getir.
+  useEffect(() => {
+    let alive = true;
+    call<{ package_name: string }[]>("history.list", { limit: 200 })
+      .then((list) => {
+        if (!alive || !Array.isArray(list)) return;
+        const seen = new Set<string>();
+        const names: string[] = [];
+        for (const r of list) {
+          if (r.package_name && !seen.has(r.package_name)) {
+            seen.add(r.package_name);
+            names.push(r.package_name);
+          }
+          if (names.length >= 20) break;
+        }
+        setPkgNames(names);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // F5.20: hydrate the shared live-language store once at startup.
   useEffect(() => {
     void loadLang();
     void loadTheme();
+    loadAccentLocal(); // Faz 10 (5.1): vurgu rengi (senkron, sidecar gerektirmez)
   }, []);
 
   // Faz 8 (3.2): aktif sayfayi kalici yap.
@@ -145,8 +237,23 @@ export default function App() {
         },
       },
     ];
-    return [...nav, ...actions];
-  }, [t]);
+    // Faz 10 (5.9): kurulu paket adlari — secilince Installed o filtreyle acilir.
+    const pkgCmds: Command[] = pkgNames.map((name) => ({
+      id: "pkg-" + name,
+      label: name,
+      hint: t("navInstalled"),
+      action: () => {
+        try {
+          sessionStorage.setItem("pkgforge.installed.filter", name);
+        } catch {
+          /* depolama yok */
+        }
+        window.dispatchEvent(new CustomEvent("pkgforge:installed-filter", { detail: name }));
+        setPage("installed");
+      },
+    }));
+    return [...nav, ...actions, ...pkgCmds];
+  }, [t, pkgNames]);
 
   // Global klavye kisayollari: Ctrl/Cmd+K komut paleti, Alt+1..9 sayfa gecisi.
   useEffect(() => {
@@ -160,6 +267,17 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === "/") {
         e.preventDefault();
         window.dispatchEvent(new Event("pkgforge:open-shortcuts"));
+        return;
+      }
+      // Faz 10 (5.8): sayfa gecmisinde Alt+Sol/Sag ile ileri/geri.
+      if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        goBack();
+        return;
+      }
+      if (e.altKey && e.key === "ArrowRight") {
+        e.preventDefault();
+        goForward();
         return;
       }
       const target = e.target as HTMLElement | null;
@@ -196,7 +314,7 @@ export default function App() {
         >
           {t("skipToContent")}
         </a>
-        <Sidebar active={page} onNavigate={setPage} />
+        <Sidebar active={page} onNavigate={setPage} recent={recent} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar title={t(PAGE_TITLES[page])} subtitle={t(PAGE_DESC[page])} right={<TopbarActions />} />
           <main id="main-content" className="min-h-0 flex-1 overflow-hidden">
@@ -208,6 +326,7 @@ export default function App() {
             {/* Faz 8 (4.3/8.1): sayfa gecisi + sayfa duzeyli hata siniri. */}
             <ErrorBoundary variant="page" key={page}>
             <div className="page-in h-full">
+              <Suspense fallback={<PageLoading />}>
               {page === "installed" && <Installed />}
               {page === "settings" && <Settings />}
               {page === "security" && <Security />}
@@ -219,6 +338,7 @@ export default function App() {
               {page === "browse" && <Browse />}
               {page === "tools" && <Tools />}
               {page === "fleet" && <Fleet />}
+              </Suspense>
               {!READY_PAGES.includes(page) && (
                 <EmptyState
                   icon={Construction}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2, PackageOpen } from "lucide-react";
+import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2, PackageOpen, X } from "lucide-react";
 import { call } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
 import { useLang } from "../lib/lang";
@@ -413,6 +413,16 @@ export function Convert() {
     }
   };
 
+  // Faz 10 (2.1): calisan bir batch ogisini iptal et (queue.cancel).
+  const handleBatchCancel = async (id: string) => {
+    try {
+      await call("queue.cancel", { item_id: id });
+      void loadBatch();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
   const filteredBatch = batchFilter
     ? batch.filter((b) => b.name.toLowerCase().includes(batchFilter.toLowerCase()))
     : batch;
@@ -684,6 +694,11 @@ export function Convert() {
                       <button aria-label={`${t("convPriorityDown")} ${b.name}`} title={t("convPriorityDown")} onClick={() => void handleBatchPriority(b.id, -1)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]">
                         <ArrowDown size={14} />
                       </button>
+                      {b.status === "running" && (
+                        <button aria-label={`${t("batchCancel")} ${b.name}`} title={t("batchCancel")} onClick={() => void handleBatchCancel(b.id)} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--warning)]">
+                          <X size={14} />
+                        </button>
+                      )}
                       <button aria-label={`${t("convRemoveItem")} ${b.name}`} title={t("commonRemove")} onClick={() => void handleBatchRemove(b.id)} disabled={b.status === "running"} className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--danger)]">
                         <Trash2 size={14} />
                       </button>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { cacheGet, cacheSet } from "../lib/cache";
-import { Activity, Gauge, Camera, ShieldCheck, Loader2, RefreshCw, PartyPopper, HardDriveDownload } from "lucide-react";
+import { Activity, Gauge, Camera, ShieldCheck, Loader2, RefreshCw, PartyPopper, HardDriveDownload, FileDown, Copy } from "lucide-react";
 import { DoctorPanel } from "../components/DoctorPanel";
 import { WrappedDialog } from "../components/WrappedDialog";
 import { call, onEvent } from "../lib/rpc";
@@ -148,6 +148,52 @@ export function Reports() {
     }
   };
 
+  // Faz 10 (5.7): sistem sagligi raporunu Markdown olarak kur (indir/kopyala).
+  const buildMarkdown = () => {
+    if (!health) return "";
+    const lines: string[] = [
+      "# PkgForge System Report",
+      "",
+      "- date: " + new Date().toISOString(),
+      "",
+      "## Health",
+      "- total: " + health.total,
+      "- installed: " + health.installed,
+      "- converted: " + health.converted,
+      "- failed: " + health.failed,
+      "- success_rate: " + health.success_rate + "%",
+      "",
+      "## Type distribution",
+    ];
+    for (const [type, count] of Object.entries(health.by_type)) {
+      lines.push("- " + type + ": " + count);
+    }
+    return lines.join("\n");
+  };
+
+  const handleExportMd = () => {
+    const md = buildMarkdown();
+    if (!md) return;
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pkgforge-report.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyMd = async () => {
+    const md = buildMarkdown();
+    if (!md) return;
+    try {
+      await navigator.clipboard.writeText(md);
+      toast("success", t("reportCopied"));
+    } catch {
+      toast("error", t("reportCopyFail"));
+    }
+  };
+
   // Faz 9 (5.3): sistem sagligi raporunu JSON olarak indir.
   const handleExportHealth = () => {
     if (!health) return;
@@ -172,6 +218,12 @@ export function Reports() {
             </Button>
             <Button variant="secondary" size="sm" onClick={handleExportHealth} disabled={!health}>
               <HardDriveDownload size={14} /> {t("repExport")}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleExportMd} disabled={!health} title={t("reportExportMd")} aria-label={t("reportExportMd")}>
+              <FileDown size={14} /> {t("reportExportMd")}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => void handleCopyMd()} disabled={!health} title={t("reportCopy")} aria-label={t("reportCopy")}>
+              <Copy size={14} /> {t("reportCopy")}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => void loadHealth(true)}>
               <RefreshCw size={14} /> {t("commonRefresh")}

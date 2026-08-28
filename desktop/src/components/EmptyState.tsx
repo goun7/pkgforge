@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 export interface EmptyStateProps {
   icon: LucideIcon;
@@ -8,7 +8,8 @@ export interface EmptyStateProps {
   action?: ReactNode;
 }
 
-export function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
+// Faz 10 (4.2): saf goruntu bileseni — memo ile gereksiz re-render onlenir.
+export const EmptyState = memo(function EmptyState({ icon: Icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]">
@@ -21,4 +22,4 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       {action}
     </div>
   );
-}
+});

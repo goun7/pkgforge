@@ -37,6 +37,8 @@ export type PageId =
 export interface SidebarProps {
   active: PageId;
   onNavigate: (page: PageId) => void;
+  /** Faz 10 (5.6): son gezilen sayfalar (en yeni basta). */
+  recent?: PageId[];
 }
 
 interface NavItem {
@@ -88,9 +90,17 @@ const NAV_SECTIONS: { id: string; titleKey: I18nKey | null; items: NavItem[] }[]
   },
 ];
 
-export function Sidebar({ active, onNavigate }: SidebarProps) {
+const ALL_NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items);
+
+export function Sidebar({ active, onNavigate, recent }: SidebarProps) {
   const lang = useLang();
   const t = tFor(lang);
+  // Faz 10 (5.6): aktif sayfa haricindeki son sayfalar.
+  const recentItems = (recent ?? [])
+    .filter((id) => id !== active)
+    .map((id) => ALL_NAV_ITEMS.find((i) => i.id === id))
+    .filter((x): x is NavItem => !!x)
+    .slice(0, 3);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   // Faz 8 (3.1): kompakt modu localStorage'da sakla.
   const [compact, setCompact] = useState(() => {
@@ -131,6 +141,32 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2">
+        {/* Faz 10 (5.6): son gezilen sayfalar. */}
+        {!compact && recentItems.length > 0 && (
+          <div>
+            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              {t("recentPages")}
+            </div>
+            <ul className="mt-0.5 flex flex-col gap-0.5">
+              {recentItems.map(({ id, labelKey, icon: Icon }) => (
+                <li key={"recent-" + id}>
+                  <button
+                    onClick={() => onNavigate(id)}
+                    title={t(labelKey)}
+                    aria-label={t(labelKey)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-[var(--radius-btn)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
+                    )}
+                  >
+                    <Icon size={15} className="shrink-0 opacity-70" />
+                    <span className="flex-1 text-left">{t(labelKey)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {NAV_SECTIONS.map((section) => {
           const isCollapsed = !!collapsed[section.id];
           return (

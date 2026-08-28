@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLang } from "../lib/lang";
@@ -24,6 +24,41 @@ export interface Command {
   label: string;
   hint?: string;
   action: () => void;
+}
+
+/** Faz 10 (5.4): eslesen alt dizi/karakterleri vurgula. */
+function highlightLabel(label: string, q: string): ReactNode {
+  if (!q) return label;
+  const hay = label.toLowerCase();
+  const idx = hay.indexOf(q);
+  if (idx >= 0) {
+    return (
+      <>
+        {label.slice(0, idx)}
+        <mark className="rounded bg-[var(--brand-blue)]/25 px-0.5 text-inherit">
+          {label.slice(idx, idx + q.length)}
+        </mark>
+        {label.slice(idx + q.length)}
+      </>
+    );
+  }
+  const parts: ReactNode[] = [];
+  let hi = 0;
+  let last = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const found = hay.indexOf(q[qi], hi);
+    if (found === -1) break;
+    if (found > last) parts.push(label.slice(last, found));
+    parts.push(
+      <mark key={qi} className="rounded bg-[var(--brand-blue)]/25 px-0.5 text-inherit">
+        {label[found]}
+      </mark>,
+    );
+    last = found + 1;
+    hi = found + 1;
+  }
+  if (last < label.length) parts.push(label.slice(last));
+  return <>{parts}</>;
 }
 
 /** Faz 9 (5.8): son kullanilan komutlarin id'leri (en yeni basta, max 5). */
@@ -158,7 +193,7 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
                     : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]",
                 )}
               >
-                <span>{cmd.label}</span>
+                <span>{highlightLabel(cmd.label, query.trim().toLowerCase())}</span>
                 {cmd.hint && <span className="text-xs text-[var(--text-muted)]">{cmd.hint}</span>}
               </button>
             </li>

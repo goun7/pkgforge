@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Badge } from "./ui/Badge";
 import { useLang } from "../lib/lang";
 import { tFor, type I18nKey } from "../lib/i18n";
@@ -20,7 +21,8 @@ const labelKeyMap: Record<PipelineStatus, I18nKey> = {
   cancelled: "statusCancelled",
 };
 
-export function StatusPill({ status }: { status: PipelineStatus }) {
+// Faz 10 (4.2): saf goruntu bileseni — memo ile gereksiz re-render onlenir.
+export const StatusPill = memo(function StatusPill({ status }: { status: PipelineStatus }) {
   const t = tFor(useLang());
   return <Badge tone={toneMap[status]}>{t(labelKeyMap[status])}</Badge>;
-}
+});

@@ -3,7 +3,7 @@ import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, S
 import { call, onEvent } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
 import { setLang } from "../lib/lang";
-import { applyTheme } from "../lib/theme";
+import { applyTheme, applyAccent, getAccentLocal, type Accent } from "../lib/theme";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -25,6 +25,7 @@ interface SettingsShape {
   verbose: boolean;
   auto_sign: boolean;
   compat_policy: string;
+  notifications: boolean;
 }
 
 const DEFAULTS: SettingsShape = {
@@ -41,6 +42,7 @@ const DEFAULTS: SettingsShape = {
   verbose: false,
   auto_sign: false,
   compat_policy: "standard",
+  notifications: true,
 };
 
 const BOOL_FIELDS: { key: keyof SettingsShape; labelKey: I18nKey; hintKey: I18nKey }[] = [
@@ -52,6 +54,7 @@ const BOOL_FIELDS: { key: keyof SettingsShape; labelKey: I18nKey; hintKey: I18nK
   { key: "allow_insecure_http", labelKey: "setBoolInsecure", hintKey: "setBoolInsecureHint" },
   { key: "verbose", labelKey: "setBoolVerbose", hintKey: "setBoolVerboseHint" },
   { key: "auto_sign", labelKey: "setBoolAutoSign", hintKey: "setBoolAutoSignHint" },
+  { key: "notifications", labelKey: "notifEnable", hintKey: "notifDesc" },
 ];
 
 /** Faz 8 (10.1): ayar arama indeksi (etiket + ipucu + hedef sekme). */
@@ -92,6 +95,8 @@ export function Settings() {
   >(null);
   const [dbusBusy, setDbusBusy] = useState(false);
   const [appVersion, setAppVersion] = useState<string | null>(null);
+  // Faz 10 (5.1): vurgu rengi (localStorage tabanli, UI-only).
+  const [accent, setAccent] = useState<Accent>(() => getAccentLocal());
 
   // Faz 9 (2.8): uygulama surumunu footer icin getir.
   useEffect(() => {
@@ -464,6 +469,24 @@ export function Settings() {
                 <option value="light">{t("setThemeLight")}</option>
                 <option value="oled">{t("setThemeOled")}</option>
                 <option value="system">{t("setThemeSystem")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-[var(--text-secondary)]">{t("accentTitle")}</span>
+              <select
+                value={accent}
+                onChange={(e) => {
+                  const a = e.target.value as Accent;
+                  setAccent(a);
+                  applyAccent(a); // aninda onizleme
+                }}
+                className="h-10 rounded-[var(--radius-input)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)]"
+              >
+                <option value="blue">{t("accentBlue")}</option>
+                <option value="green">{t("accentGreen")}</option>
+                <option value="purple">{t("accentPurple")}</option>
+                <option value="orange">{t("accentOrange")}</option>
+                <option value="rose">{t("accentRose")}</option>
               </select>
             </label>
           </CardContent>

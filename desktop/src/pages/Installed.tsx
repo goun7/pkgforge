@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { PackageCheck, RefreshCw, Trash2, Undo2, Rows3 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { PackageCheck, RefreshCw, Trash2, Undo2, Rows3, Download } from "lucide-react";
 import { cn } from "../lib/utils";
 import { call } from "../lib/rpc";
 import type { HistoryRecord } from "../lib/types";
@@ -44,6 +44,15 @@ export function Installed() {
       /* depolama yok */
     }
   }, [filter]);
+  // Faz 10 (5.9): paletten / baska sayfadan event ile filtre ayarlanabilir.
+  useEffect(() => {
+    const onFilter = (ev: Event) => {
+      const detail = (ev as CustomEvent<string>).detail;
+      if (typeof detail === "string") setFilter(detail);
+    };
+    window.addEventListener("pkgforge:installed-filter", onFilter);
+    return () => window.removeEventListener("pkgforge:installed-filter", onFilter);
+  }, []);
   const [pageCount, setPageCount] = useState(50);
   // Faz 9 (5.4): tablo yogunlugu (rahat/kompakt), kalici.
   const [density, setDensity] = useState<"comfortable" | "compact">(() => {
@@ -116,6 +125,26 @@ export function Installed() {
     }
   };
 
+  // Faz 10 (5.3): gecmisi CSV olarak indir.
+  const exportCsv = () => {
+    const headers = ["timestamp", "package_name", "package_type", "status", "original_file", "source_url"];
+    const esc = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const rows = sorted.map((r) =>
+      [r.timestamp, r.package_name, r.package_type, r.status, r.original_file, r.source_url].map(esc).join(","),
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pkgforge-history.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Faz 9 (5.7): temizleme oncesi kayitlari yakala, "Geri Al" eylemi sun.
   const handleRestore = async (backup: HistoryRecord[]) => {
     try {
@@ -141,19 +170,28 @@ export function Installed() {
     }
   };
 
-  const visible = records.filter(
-    (r) =>
-      !filter ||
-      r.package_name.toLowerCase().includes(filter.toLowerCase()) ||
-      r.original_file.toLowerCase().includes(filter.toLowerCase()),
+  // Faz 10 (3.2/4.3): filtre + siralama memoize (her render'da yeniden hesaplanmasin).
+  const visible = useMemo(
+    () =>
+      records.filter(
+        (r) =>
+          !filter ||
+          r.package_name.toLowerCase().includes(filter.toLowerCase()) ||
+          r.original_file.toLowerCase().includes(filter.toLowerCase()),
+      ),
+    [records, filter],
   );
   // Faz 8 (2.5): secilen sutuna gore sirala.
-  const sorted = [...visible].sort((a, b) => {
-    const av = String(a[sortCol] ?? "");
-    const bv = String(b[sortCol] ?? "");
-    const cmp = av.localeCompare(bv);
-    return sortDir === "asc" ? cmp : -cmp;
-  });
+  const sorted = useMemo(
+    () =>
+      [...visible].sort((a, b) => {
+        const av = String(a[sortCol] ?? "");
+        const bv = String(b[sortCol] ?? "");
+        const cmp = av.localeCompare(bv);
+        return sortDir === "asc" ? cmp : -cmp;
+      }),
+    [visible, sortCol, sortDir],
+  );
   // Faz 7 (6.3): cok kayitta tabloyu sinirla, "daha fazla" ile ac.
   const shown = sorted.slice(0, pageCount);
 
@@ -180,6 +218,16 @@ export function Installed() {
               aria-label={t("densityToggle")}
             >
               <Rows3 size={14} /> {density === "compact" ? t("densityCompact") : t("densityComfortable")}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={exportCsv}
+              disabled={!records.length}
+              title={t("instExportCsv")}
+              aria-label={t("instExportCsv")}
+            >
+              <Download size={14} /> {t("instExportCsv")}
             </Button>
             <Button variant="danger" size="sm" onClick={() => setConfirm({ type: "clear" })} disabled={!records.length}>
               <Trash2 size={14} /> {t("commonClear")}

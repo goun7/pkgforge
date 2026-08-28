@@ -96,3 +96,22 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.95);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 1);
 }
+
+/* Faz 10 (5.1): vurgu rengi onayarlari — marka degiskenlerini ezer.
+   Tema bloklarindan SONRA gelir, bu nedenle hem dark hem light'ta kazanir. */
+[data-accent="green"] {
+  --brand-blue: #16a34a;
+  --brand-gradient: linear-gradient(135deg, #16a34a, #14b8a6);
+}
+[data-accent="purple"] {
+  --brand-blue: #8b5cf6;
+  --brand-gradient: linear-gradient(135deg, #8b5cf6, #ec4899);
+}
+[data-accent="orange"] {
+  --brand-blue: #f97316;
+  --brand-gradient: linear-gradient(135deg, #f97316, #f59e0b);
+}
+[data-accent="rose"] {
+  --brand-blue: #e11d48;
+  --brand-gradient: linear-gradient(135deg, #e11d48, #fb7185);
+}

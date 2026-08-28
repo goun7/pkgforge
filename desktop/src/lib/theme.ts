@@ -54,3 +54,44 @@ export async function loadTheme(): Promise<void> {
     // sidecar henuz hazir degil — varsayilan tema kalir
   }
 }
+
+/** Faz 10 (5.1): vurgu rengi kisisellestirme. UI-only oldugu icin backend
+ *  ayarlarina degil localStorage'a yazilir; CSS [data-accent] ile uygulanir. */
+export type Accent = "blue" | "green" | "purple" | "orange" | "rose";
+export const ACCENTS: Accent[] = ["blue", "green", "purple", "orange", "rose"];
+const ACCENT_KEY = "pkgforge.accent";
+
+export function applyAccent(accent: string): void {
+  const root = document.documentElement;
+  if (!ACCENTS.includes(accent as Accent) || accent === "blue") {
+    root.removeAttribute("data-accent");
+  } else {
+    root.setAttribute("data-accent", accent);
+  }
+  try {
+    localStorage.setItem(ACCENT_KEY, accent);
+  } catch {
+    /* depolama yok */
+  }
+}
+
+/** Baslangicta kayitli vurgu rengini uygular (senkron, sidecar gerektirmez). */
+export function loadAccentLocal(): void {
+  try {
+    const a = localStorage.getItem(ACCENT_KEY);
+    if (a) applyAccent(a);
+  } catch {
+    /* depolama yok */
+  }
+}
+
+/** Kayitli vurgu rengini dondurur (Settings secici durumu icin). */
+export function getAccentLocal(): Accent {
+  try {
+    const a = localStorage.getItem(ACCENT_KEY);
+    if (a && ACCENTS.includes(a as Accent)) return a as Accent;
+  } catch {
+    /* depolama yok */
+  }
+  return "blue";
+}
