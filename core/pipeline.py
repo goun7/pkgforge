@@ -8,6 +8,7 @@ QThread, emitting signals for UI progress updates.
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import threading
 from enum import IntEnum
@@ -806,6 +807,15 @@ class ConversionPipeline(QObject):
         top = intake.find_top_level_dir(names)
         repo_dir = extract_dir / top if top else extract_dir
         system = ir.build_system or intake.detect_build_system(names) or "make"
+        # Onceden derlenmis binary tarball'larda (orn. foo-linux-x64.tar.gz)
+        # gercek bir build agaci yoktur; 'make' varsayip Makefile olmadan
+        # derlemeye calismak makepkg'yi "make dosyasi yok" hatasiyla dusurur.
+        # Bu durumda binary sarmalama yoluna geri don.
+        if system == "make" and not any(
+                (repo_dir / mk).is_file()
+                for mk in ("Makefile", "makefile", "GNUmakefile")):
+            self._log("info", "Makefile bulunamadi — binary tarball olarak sariliyor")
+            return self._wrap_binary(file_path, ir, meta)
         version = (
             _extract_version_from_cargo(repo_dir)
             or _extract_version_from_cmake(repo_dir)
@@ -1047,11 +1057,25 @@ class ConversionPipeline(QObject):
             converter.convert(rpm_path, work_dir, meta)
             done_event.wait()
 
+    @staticmethod
+    def _on_rm_error(func, path, exc_info):
+        """makepkg salt-okunur/root sahipli dosya birakabilir; yolun kendisine ve
+        ebeveynine yazma izni verip silmeyi yeniden dene (EACCES temizligi)."""
+        try:
+            try:
+                os.chmod(os.path.dirname(path), 0o700)
+            except OSError:
+                pass
+            os.chmod(path, 0o700)
+            func(path)
+        except OSError:
+            pass
+
     def _cleanup(self) -> None:
         """Remove temporary directory."""
         if self._temp_dir and self._temp_dir.exists():
             try:
-                shutil.rmtree(self._temp_dir)
+                shutil.rmtree(self._temp_dir, onerror=self._on_rm_error)
                 self._log("info", "Geçici dosyalar temizlendi")
             except OSError as exc:
                 self._log("warning", f"Temizlik hatası: {exc}")

@@ -399,7 +399,7 @@ def test_cleanup_oserror_tolerated(pipe, monkeypatch, tmp_path):
     logs = []
     pipe._log = lambda level, msg: logs.append((level, msg))
 
-    def boom(path):
+    def boom(path, **kwargs):
         raise OSError("kilitli")
     monkeypatch.setattr(_shutil, "rmtree", boom)
     pipe._cleanup()

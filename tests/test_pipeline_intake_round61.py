@@ -273,6 +273,58 @@ def test_build_source_tarball(pipe, tmp_path, monkeypatch):
     assert "pkgname=foo" in pkgbuild and "cmake -B build" in pkgbuild
 
 
+def test_build_source_tarball_no_makefile_falls_back_to_binary(pipe, tmp_path, monkeypatch):
+    """Build sistemi/Makefile olmayan tarball (ornegin onceden derlenmis
+    foo-linux-x64.tar.gz) 'make' ile derlenmeye calisilmaz, binary sarilir."""
+    f = _make_tar(tmp_path / "app-linux-x64-1.0.tar.gz",
+                  {"app-linux-x64/app": b"ELF",
+                   "app-linux-x64/resources.dat": b"x"})
+    pipe._temp_dir = tmp_path / "temp"
+    pipe._temp_dir.mkdir()
+    meta = NS(name="app-linux-x64", version="1.0")
+    monkeypatch.setattr(pipe, "_wrap_binary",
+                        lambda fp, ir, m: Path("wrapped.pkg.tar.zst"))
+    out = pipe._build_from_source_tarball(f, _ir(intake.FileType.SOURCE_TARBALL, f), meta)
+    assert out == Path("wrapped.pkg.tar.zst")
+
+
+def test_build_source_tarball_make_proceeds(pipe, tmp_path, monkeypatch):
+    """Gercek bir make projesi (Makefile var) derleme yolunda ilerler."""
+    f = _make_tar(tmp_path / "bar-1.0.tar.gz",
+                  {"bar-1.0/Makefile": b"all:\n\techo hi"})
+    pipe._temp_dir = tmp_path / "temp"
+    pipe._temp_dir.mkdir()
+    meta = NS(name="bar", version="1.0")
+    monkeypatch.setattr(pipe, "_run_makepkg", lambda bd: bd / "bar.pkg.tar.zst")
+    out = pipe._build_from_source_tarball(f, _ir(intake.FileType.SOURCE_TARBALL, f), meta)
+    assert out.name == "bar.pkg.tar.zst"
+
+
+def test_cleanup_handles_permission_error(pipe, tmp_path):
+    """makepkg'nin salt-okunur biraktigi dizinler temizlikte EACCES vermemeli."""
+    d = tmp_path / "temp"
+    ro = d / "build_src" / "pkg"
+    ro.mkdir(parents=True)
+    (ro / "file.txt").write_text("x")
+    (ro / "sub").mkdir()
+    (ro / "sub" / "deep.txt").write_text("y")
+    ro.chmod(0o500)          # salt-okunur -> normal rmtree EACCES verir
+    (d / "build_src").chmod(0o500)
+    pipe._temp_dir = d
+    pipe._cleanup()          # raise etmemeli, salt-okunur agaci tamamen silmeli
+    assert not d.exists()
+
+
+def test_on_rm_error_swallows_all_errors():
+    """_on_rm_error: ebeveyn ve yol chmod'u patlasa bile sessizce yutar."""
+    # dirname chmod OSError (ic except+pass) ve path chmod OSError (dis except+pass)
+    ConversionPipeline._on_rm_error(lambda p: None, "/nonexistent/deep/file", None)
+    # func(path) chmod sonrasi bile OSError verse patlamaz
+    def bad(path):
+        raise OSError("silinemedi")
+    ConversionPipeline._on_rm_error(bad, "/nonexistent/deep/file", None)
+
+
 # ── _build_from_source_dir ──────────────────────────────────────
 def test_build_source_dir(pipe, tmp_path, monkeypatch):
     src = tmp_path / "mysrc"

@@ -221,6 +221,8 @@ def _patch_systemctl_queries(monkeypatch, enabled, active, show_out):
 
 def test_status_matrix(monkeypatch):
     monkeypatch.setattr("os.path.isfile", lambda p: False)
+    # Ortam-bagimsizlik: sistemde xdelta3 kurulu olsa bile yok sayilmali.
+    monkeypatch.setattr(DU.shutil, "which", lambda n: None)
     st = DU.get_auto_update_status()
     assert st["installed"] is False
     assert st["experimental"] is True and st["xdelta3_available"] is False
