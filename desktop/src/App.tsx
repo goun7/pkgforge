@@ -50,7 +50,11 @@ export default function App() {
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar title={PAGE_TITLES[page]} />
           <main className="min-h-0 flex-1 overflow-hidden">
-            {page === "convert" && <Convert />}
+            {/* Convert her zaman mount kalir: sekme degisince donusum state'i
+                ve event listener'lar kaybolmasin (aktif degilse sadece gizlenir). */}
+            <div className={page === "convert" ? "h-full" : "hidden"}>
+              <Convert />
+            </div>
             {page === "installed" && <Installed />}
             {page === "settings" && <Settings />}
             {page === "security" && <Security />}

@@ -5,7 +5,7 @@ import type { SbomDiff } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
-import { Input } from "../components/ui/Input";
+import { PathPicker, PKG_DIALOG_FILTERS } from "../components/PathPicker";
 import { useToast } from "../components/ui/Toast";
 
 function fmtSize(bytes: number): string {
@@ -64,17 +64,19 @@ export function Compare() {
             İki paket sürümünü SBOM üzerinden karşılaştır: dosya listesi, boyut ve bağımlılık farkları.
           </p>
           <div className="flex flex-col gap-2">
-            <Input
+            <PathPicker
               placeholder="Eski paket yolu (.pkg.tar.zst)…"
               value={oldPath}
-              onChange={(e) => setOldPath(e.target.value)}
-              className="h-9"
+              onChange={setOldPath}
+              filters={PKG_DIALOG_FILTERS}
+              title="Eski paketi seç"
             />
-            <Input
+            <PathPicker
               placeholder="Yeni paket yolu (.pkg.tar.zst)…"
               value={newPath}
-              onChange={(e) => setNewPath(e.target.value)}
-              className="h-9"
+              onChange={setNewPath}
+              filters={PKG_DIALOG_FILTERS}
+              title="Yeni paketi seç"
             />
           </div>
           <Button onClick={() => void handleCompare()} disabled={busy}>

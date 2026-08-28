@@ -4,7 +4,7 @@ import { call, onEvent } from "../lib/rpc";
 import type { SignatureInfo, SbomDocument, QualityReport, Provenance, SigstoreStatus, CveScanResult } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { PathPicker, PKG_DIALOG_FILTERS } from "../components/PathPicker";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
@@ -142,6 +142,48 @@ export function Security() {
     }
   };
 
+  /** Event tabanli tek guvenlik kontrolunu calistirir, sonucla resolve olur.
+   *  Hepsi ayni event/security_done kanalini kullandigind paralel degil
+   *  sirali cagrilirlar (handleRunAll). */
+  const runEventCheck = <T,>(method: string): Promise<T | null> =>
+    new Promise((resolve) => {
+      let un: (() => void) | undefined;
+      const timer = setTimeout(() => {
+        if (un) un();
+        resolve(null);
+      }, 180000);
+      void onEvent<{ ok: boolean; result?: T; error?: string }>(
+        "event/security_done",
+        (p) => {
+          clearTimeout(timer);
+          if (un) un();
+          resolve(p.ok && p.result ? p.result : null);
+        },
+      ).then((u) => { un = u; });
+      call(method, { pkg_path: pkgPath }).catch(() => {
+        clearTimeout(timer);
+        if (un) un();
+        resolve(null);
+      });
+    });
+
+  /** Paket uzerindeki tum guvenlik kontrollerini sirayla calistirir. */
+  const handleRunAll = async () => {
+    if (!requirePath()) return;
+    setLoading(true);
+    try {
+      try { setSig(await call<SignatureInfo>("security.verify", { pkg_path: pkgPath })); } catch { /* atla */ }
+      try { setSigstore(await call<SigstoreStatus>("security.sigstore_status")); } catch { /* atla */ }
+      try { setProv(await call<Provenance | null>("security.provenance", { pkg_path: pkgPath })); } catch { /* atla */ }
+      setSbom(await runEventCheck<SbomDocument>("security.sbom"));
+      setQuality(await runEventCheck<QualityReport>("security.quality"));
+      setCve(await runEventCheck<CveScanResult>("security.cve_scan"));
+      toast("success", "Tüm güvenlik kontrolleri tamamlandı");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto p-5">
       <Card>
@@ -149,14 +191,24 @@ export function Security() {
           <CardTitle>Güvenlik Paneli</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* package path input */}
-          <div className="mb-4 flex items-center gap-2">
-            <Input
+          {/* package path input + tum kontroller */}
+          <div className="mb-4 flex flex-col gap-2">
+            <PathPicker
               placeholder="Paket yolu (.pkg.tar.zst)…"
               value={pkgPath}
-              onChange={(e) => setPkgPath(e.target.value)}
-              className="h-9 flex-1"
+              onChange={setPkgPath}
+              filters={PKG_DIALOG_FILTERS}
+              title="Paket seç"
             />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleRunAll()}
+              disabled={loading || !pkgPath.trim()}
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+              Tüm Kontrolleri Çalıştır
+            </Button>
           </div>
 
           {/* tabs */}

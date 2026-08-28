@@ -5,6 +5,7 @@ import type { FlatpakApp, ExportResult } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { PathPicker, PKG_DIALOG_FILTERS } from "../components/PathPicker";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
@@ -136,14 +137,13 @@ export function Export() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="AppImage yolu…"
-                value={appimagePath}
-                onChange={(e) => setAppimagePath(e.target.value)}
-                className="h-9 flex-1"
-              />
-            </div>
+            <PathPicker
+              placeholder="AppImage yolu…"
+              value={appimagePath}
+              onChange={setAppimagePath}
+              filters={[{ name: "AppImage", extensions: ["AppImage", "appimage"] }]}
+              title="AppImage seç"
+            />
             <Button size="sm" onClick={() => void handleAppimage()} disabled={appimageBusy}>
               {appimageBusy ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
               Dönüştür
@@ -207,11 +207,12 @@ export function Export() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Input
+            <PathPicker
               placeholder="Paket yolu (.pkg.tar.zst)…"
               value={ociPath}
-              onChange={(e) => setOciPath(e.target.value)}
-              className="h-9"
+              onChange={setOciPath}
+              filters={PKG_DIALOG_FILTERS}
+              title="Paket seç"
             />
             <Input
               placeholder="İmaj tag'i (opsiyonel)…"
