@@ -10,8 +10,9 @@ export PKGFORGE_ROOT="$ROOT"
 export PKGFORGE_PYTHON="${PKGFORGE_PYTHON:-$ROOT/.venv/bin/python}"
 # Kaynak agacindaki guncel Python sidecar'i kullan (bundled binary eski olabilir).
 export PKGFORGE_SIDECAR="${PKGFORGE_SIDECAR:-python}"
-# Wayland oturumlarinda GTK/webkit protokol hatasini onlemek icin XWayland.
-export GDK_BACKEND="${GDK_BACKEND:-x11}"
+# Wayland + webkit2gtk: DMABUF renderer "GBM buffer" hatasi ve Error 71
+# (protokol) verip pencereyi bos/minimize birakiyor; kapatarak native Wayland kullan.
+export WEBKIT_DISABLE_DMABUF_RENDERER="${WEBKIT_DISABLE_DMABUF_RENDERER:-1}"
 
 BIN="$ROOT/desktop/src-tauri/target/release/pkgforge-desktop"
 if [ ! -x "$BIN" ]; then
