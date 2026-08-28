@@ -8,21 +8,26 @@ import { PathPicker, PKG_DIALOG_FILTERS } from "../components/PathPicker";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
+import { InfoTip } from "../components/ui/InfoTip";
 import { cn } from "../lib/utils";
+import { useLang } from "../lib/lang";
+import { tFor, type I18nKey } from "../lib/i18n";
 
 type Tab = "sign" | "sbom" | "quality" | "provenance" | "sigstore" | "cve";
 
-const TABS: { id: Tab; label: string; icon: typeof ShieldCheck }[] = [
-  { id: "sign", label: "İmza", icon: KeyRound },
-  { id: "sbom", label: "SBOM", icon: FileSearch },
-  { id: "quality", label: "Kalite", icon: Award },
-  { id: "provenance", label: "Provenance", icon: ScrollText },
-  { id: "sigstore", label: "Sigstore", icon: ShieldCheck },
-  { id: "cve", label: "CVE Tara", icon: Bug },
+const TABS: { id: Tab; labelKey: I18nKey; icon: typeof ShieldCheck }[] = [
+  { id: "sign", labelKey: "secTabSign", icon: KeyRound },
+  { id: "sbom", labelKey: "secTabSbom", icon: FileSearch },
+  { id: "quality", labelKey: "secTabQuality", icon: Award },
+  { id: "provenance", labelKey: "secTabProvenance", icon: ScrollText },
+  { id: "sigstore", labelKey: "secTabSigstore", icon: ShieldCheck },
+  { id: "cve", labelKey: "secTabCve", icon: Bug },
 ];
 
 export function Security() {
   const { toast } = useToast();
+  const lang = useLang();
+  const t = tFor(lang);
   const [tab, setTab] = useState<Tab>("sign");
   const [pkgPath, setPkgPath] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,39 +194,39 @@ export function Security() {
   const summary: { id: Tab; label: string; tone: SumTone; text: string }[] = [
     {
       id: "sign",
-      label: "İmza",
+      label: t("secTabSign"),
       tone: sig ? (sig.valid ? "success" : sig.signed ? "danger" : "warning") : "neutral",
-      text: sig ? (sig.valid ? "Geçerli" : sig.signed ? "Geçersiz" : "İmzasız") : "—",
+      text: sig ? (sig.valid ? t("secSumValid") : sig.signed ? t("secSumInvalid") : t("secSumUnsigned")) : "—",
     },
     {
       id: "sbom",
-      label: "SBOM",
+      label: t("secTabSbom"),
       tone: sbom ? "success" : "neutral",
-      text: sbom ? `${sbom.total_files} dosya` : "—",
+      text: sbom ? `${sbom.total_files} ${t("secFiles")}` : "—",
     },
     {
       id: "quality",
-      label: "Kalite",
+      label: t("secTabQuality"),
       tone: quality ? (quality.passed ? "success" : "warning") : "neutral",
       text: quality ? `${quality.grade} (${quality.total_score}/${quality.max_score})` : "—",
     },
     {
       id: "provenance",
-      label: "Provenance",
+      label: t("secTabProvenance"),
       tone: prov ? "success" : "neutral",
-      text: prov ? "Bulundu" : "—",
+      text: prov ? t("secSumFound") : "—",
     },
     {
       id: "sigstore",
-      label: "Sigstore",
+      label: t("secTabSigstore"),
       tone: sigstore ? (sigstore.cosign_available ? "success" : "warning") : "neutral",
-      text: sigstore ? (sigstore.cosign_available ? "Cosign hazır" : "Cosign yok") : "—",
+      text: sigstore ? (sigstore.cosign_available ? t("secCosignReady") : t("secCosignNone")) : "—",
     },
     {
       id: "cve",
       label: "CVE",
       tone: cve ? (cve.count === 0 ? "success" : "danger") : "neutral",
-      text: cve ? (cve.count === 0 ? "Temiz" : `${cve.count} açık`) : "—",
+      text: cve ? (cve.count === 0 ? t("secClean") : `${cve.count} ${t("secOpen")}`) : "—",
     },
   ];
 
@@ -229,17 +234,22 @@ export function Security() {
     <div className="h-full overflow-y-auto p-5">
       <Card>
         <CardHeader>
-          <CardTitle>Güvenlik Paneli</CardTitle>
+          <CardTitle>
+            <span className="flex items-center gap-1.5">
+              {t("secTitle")}
+              <InfoTip text={t("helpSecurity")} />
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {/* package path input + tum kontroller */}
           <div className="mb-4 flex flex-col gap-2">
             <PathPicker
-              placeholder="Paket yolu (.pkg.tar.zst)…"
+              placeholder={t("secPkgPh")}
               value={pkgPath}
               onChange={setPkgPath}
               filters={PKG_DIALOG_FILTERS}
-              title="Paket seç"
+              title={t("secSelectPkg")}
             />
             <Button
               variant="secondary"
@@ -248,7 +258,7 @@ export function Security() {
               disabled={loading || !pkgPath.trim()}
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-              Tüm Kontrolleri Çalıştır
+              {t("secRunAll")}
             </Button>
           </div>
 
@@ -282,7 +292,7 @@ export function Security() {
 
           {/* tabs */}
           <div className="mb-4 flex gap-1 border-b border-[var(--border-subtle)]">
-            {TABS.map(({ id, label, icon: Icon }) => (
+            {TABS.map(({ id, labelKey, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
@@ -294,7 +304,7 @@ export function Security() {
                 )}
               >
                 <Icon size={15} />
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -304,22 +314,22 @@ export function Security() {
             <div className="space-y-3">
               <Button onClick={() => void handleVerify()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
-                Doğrula
+                {t("secVerify")}
               </Button>
               {sig && (
                 <div className="rounded-md border border-[var(--border-subtle)] p-3 text-sm">
                   <div className="mb-2 flex items-center gap-2">
                     <Badge tone={sig.valid ? "success" : sig.signed ? "warning" : "neutral"}>
-                      {sig.valid ? "Geçerli imza" : sig.signed ? "Geçersiz imza" : "İmzasız"}
+                      {sig.valid ? t("secValidSig") : sig.signed ? t("secInvalidSig") : t("secUnsigned")}
                     </Badge>
                   </div>
                   {sig.signed && (
                     <dl className="grid grid-cols-[120px_1fr] gap-y-1 text-xs">
                       <dt className="text-[var(--text-muted)]">Key ID</dt>
                       <dd className="font-mono">{sig.key_id}</dd>
-                      <dt className="text-[var(--text-muted)]">İmzalayan</dt>
+                      <dt className="text-[var(--text-muted)]">{t("secSigner")}</dt>
                       <dd>{sig.signer}</dd>
-                      <dt className="text-[var(--text-muted)]">Zaman</dt>
+                      <dt className="text-[var(--text-muted)]">{t("secTime")}</dt>
                       <dd>{sig.timestamp}</dd>
                     </dl>
                   )}
@@ -333,7 +343,7 @@ export function Security() {
             <div className="space-y-3">
               <Button onClick={() => void handleSbom()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <FileSearch size={15} />}
-                SBOM Oluştur
+                {t("secSbomCreate")}
               </Button>
               {loading && <Skeleton className="h-24 w-full" />}
               {sbom && (
@@ -341,7 +351,7 @@ export function Security() {
                   <div className="grid grid-cols-4 gap-2 text-center">
                     <div className="rounded-md bg-[var(--bg-elevated)] p-2">
                       <div className="text-lg font-bold">{sbom.total_files}</div>
-                      <div className="text-xs text-[var(--text-muted)]">Dosya</div>
+                      <div className="text-xs text-[var(--text-muted)]">{t("secFiles")}</div>
                     </div>
                     <div className="rounded-md bg-[var(--bg-elevated)] p-2">
                       <div className="text-lg font-bold">{sbom.elf_count}</div>
@@ -353,16 +363,16 @@ export function Security() {
                     </div>
                     <div className="rounded-md bg-[var(--bg-elevated)] p-2">
                       <div className="text-lg font-bold">{sbom.dependencies.length}</div>
-                      <div className="text-xs text-[var(--text-muted)]">Bağımlılık</div>
+                      <div className="text-xs text-[var(--text-muted)]">{t("secDeps")}</div>
                     </div>
                   </div>
                   <div className="max-h-64 overflow-y-auto rounded-md border border-[var(--border-subtle)]">
                     <table className="w-full text-xs">
                       <thead className="sticky top-0 bg-[var(--bg-surface)]">
                         <tr className="text-left text-[var(--text-muted)]">
-                          <th className="p-2">Yol</th>
-                          <th className="p-2">Tür</th>
-                          <th className="p-2">Boyut</th>
+                          <th scope="col" className="p-2">{t("secPath")}</th>
+                          <th scope="col" className="p-2">{t("secType")}</th>
+                          <th scope="col" className="p-2">{t("secSize")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -385,7 +395,7 @@ export function Security() {
             <div className="space-y-3">
               <Button onClick={() => void handleQuality()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <Award size={15} />}
-                Kalite Analizi
+                {t("secQuality")}
               </Button>
               {loading && <Skeleton className="h-24 w-full" />}
               {quality && (
@@ -415,16 +425,16 @@ export function Security() {
             <div className="space-y-3">
               <Button onClick={() => void handleProvenance()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <ScrollText size={15} />}
-                Provenance Sorgula
+                {t("secProvQuery")}
               </Button>
               {prov && (
                 <div className="rounded-md border border-[var(--border-subtle)] p-3 text-xs">
                   <dl className="grid grid-cols-[140px_1fr] gap-y-1">
-                    <dt className="text-[var(--text-muted)]">Kaynak dosya</dt>
+                    <dt className="text-[var(--text-muted)]">{t("secSourceFile")}</dt>
                     <dd className="font-mono">{prov.source_file}</dd>
-                    <dt className="text-[var(--text-muted)]">Kaynak türü</dt>
+                    <dt className="text-[var(--text-muted)]">{t("secSourceType")}</dt>
                     <dd>{prov.source_type}</dd>
-                    <dt className="text-[var(--text-muted)]">Çıktı dosyası</dt>
+                    <dt className="text-[var(--text-muted)]">{t("secOutputFile")}</dt>
                     <dd className="font-mono">{prov.output_file}</dd>
                   </dl>
                 </div>
@@ -436,19 +446,19 @@ export function Security() {
             <div className="space-y-3">
               <Button onClick={() => void handleCve()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <Bug size={15} />}
-                Taramayı Başlat
+                {t("secCveStart")}
               </Button>
               {loading && <Skeleton className="h-24 w-full" />}
               {cve && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Badge tone={cve.count === 0 ? "success" : "danger"}>
-                      {cve.count === 0 ? "Açık bulunamadı" : `${cve.count} açık bulundu`}
+                      {cve.count === 0 ? t("secCveNone") : `${cve.count} ${t("secCveFound")}`}
                     </Badge>
                     <span className="text-xs text-[var(--text-muted)]">
-                      {cve.deps_scanned} bağımlılık tarandı
+                      {cve.deps_scanned} {t("secDepsScanned")}
                     </span>
-                    {cve.offline && <Badge tone="warning">çevrimdışı</Badge>}
+                    {cve.offline && <Badge tone="warning">{t("secOffline")}</Badge>}
                   </div>
                   {cve.vulns.length > 0 && (
                     <div className="max-h-64 space-y-1 overflow-y-auto">
@@ -475,13 +485,13 @@ export function Security() {
             <div className="space-y-3">
               <Button onClick={() => void handleSigstore()} disabled={loading}>
                 {loading ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
-                Sigstore Durumu
+                {t("secSigstoreStatus")}
               </Button>
               {sigstore && (
                 <div className="rounded-md border border-[var(--border-subtle)] p-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Badge tone={sigstore.cosign_available ? "success" : "warning"}>
-                      {sigstore.cosign_available ? "cosign kurulu" : "cosign yok"}
+                      {sigstore.cosign_available ? t("secCosignIn") : t("secCosignOut")}
                     </Badge>
                   </div>
                   {sigstore.cosign_version && (

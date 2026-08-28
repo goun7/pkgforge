@@ -13,9 +13,13 @@ import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Input } from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 export function Tools() {
   const { toast } = useToast();
+  const lang = useLang();
+  const t = tFor(lang);
 
   const [rpmPath, setRpmPath] = useState("");
   const [rpmBusy, setRpmBusy] = useState(false);
@@ -50,7 +54,7 @@ export function Tools() {
       (p) => {
         setRpmBusy(false);
         if (p.ok && p.result) setRpmResult(p.result);
-        else toast("error", p.error ?? "RPM donusumu basarisiz");
+        else toast("error", p.error ?? "RPM dönüşümü başarısız");
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: AbiReport; error?: string }>(
@@ -58,7 +62,7 @@ export function Tools() {
       (p) => {
         setAbiBusy(false);
         if (p.ok && p.result) setAbiReport(p.result);
-        else toast("error", p.error ?? "ABI taramasi basarisiz");
+        else toast("error", p.error ?? "ABI taraması başarısız");
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: ScanImageResult; error?: string }>(
@@ -66,7 +70,7 @@ export function Tools() {
       (p) => {
         setScanBusy(false);
         if (p.ok && p.result) setScanResult(p.result);
-        else toast("error", p.error ?? "Imaj taramasi basarisiz");
+        else toast("error", p.error ?? "İmaj taraması başarısız");
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: AttestResult; error?: string }>(
@@ -74,7 +78,7 @@ export function Tools() {
       (p) => {
         setAttestBusy(false);
         if (p.ok && p.result) setAttestResult(p.result);
-        else toast("error", p.error ?? "Attestasyon basarisiz");
+        else toast("error", p.error ?? "Attestasyon başarısız");
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: PublishResult; error?: string }>(
@@ -82,7 +86,7 @@ export function Tools() {
       (p) => {
         setPublishBusy(false);
         if (p.ok && p.result) setPublishResult(p.result);
-        else toast("error", p.error ?? "Yayinlama basarisiz");
+        else toast("error", p.error ?? "Yayınlama başarısız");
       },
     ).then((u) => { unsubs.push(u); });
     void onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
@@ -93,7 +97,7 @@ export function Tools() {
           if (p.result.ok) toast("success", p.result.message);
           else toast("error", p.result.message);
         } else {
-          toast("error", p.error ?? "Snapshot islemi basarisiz");
+          toast("error", p.error ?? "Snapshot işlemi başarısız");
         }
         void loadSnapshot();
       },
@@ -138,7 +142,7 @@ export function Tools() {
   };
 
   const handleScan = async () => {
-    if (!scanPath.trim()) { toast("error", "Imaj yolu gerekli"); return; }
+    if (!scanPath.trim()) { toast("error", "İmaj yolu gerekli"); return; }
     setScanBusy(true); setScanResult(null);
     try { await call("tools.scan_image", { image: scanPath }); }
     catch (e) { setScanBusy(false); toast("error", (e as Error).message); }
@@ -178,15 +182,15 @@ export function Tools() {
           <CardContent>
             <div className="flex gap-2">
               <Input value={rpmPath} onChange={(e) => setRpmPath(e.target.value)}
-                placeholder="/yol/paket.rpm" aria-label="RPM dosya yolu" />
+                placeholder={t("toolsRpmPh")} aria-label={t("toolsRpmAria")} />
               <Button onClick={handleRpm} disabled={rpmBusy}>
                 {rpmBusy ? <Loader2 className="animate-spin" size={16} /> : <PackageSearch size={16} />}
-                Donustur
+                {t("toolsConvert")}
               </Button>
             </div>
             {rpmResult && (
               <p className="mt-3 text-sm">
-                <Badge>{rpmResult.ok ? "BASARILI" : "HATA"}</Badge>{" "}
+                <Badge>{rpmResult.ok ? t("toolsOk") : t("toolsErr")}</Badge>{" "}
                 {rpmResult.message}
                 {rpmResult.deb_path ? " -> " + rpmResult.deb_path : ""}
               </p>
@@ -195,19 +199,19 @@ export function Tools() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>ABI Uyumluluk Denetimi</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("toolsAbiTitle")}</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <Input value={abiPath} onChange={(e) => setAbiPath(e.target.value)}
-                placeholder="/yol/paket.pkg.tar.zst" aria-label="Paket yolu" />
+                placeholder="/yol/paket.pkg.tar.zst" aria-label={t("toolsPkgPath")} />
               <Button onClick={handleAbi} disabled={abiBusy}>
                 {abiBusy ? <Loader2 className="animate-spin" size={16} /> : <ShieldCheck size={16} />}
-                Tara
+                {t("toolsScan")}
               </Button>
             </div>
             {abiReport && (
               <div className="mt-3 text-sm">
-                <Badge>{abiReport.passed ? "UYUMLU" : abiReport.error_count + " SORUN"}</Badge>
+                <Badge>{abiReport.passed ? t("toolsCompatible") : abiReport.error_count + " " + t("toolsIssues")}</Badge>
                 <pre className="mt-2 whitespace-pre-wrap text-xs text-[var(--text-secondary)]">
                   {abiReport.summary}
                 </pre>
@@ -217,17 +221,17 @@ export function Tools() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Denetim İzi (Audit)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("toolsAuditTitle")}</CardTitle></CardHeader>
           <CardContent>
             <Button onClick={handleAudit} disabled={auditBusy}>
               {auditBusy ? <Loader2 className="animate-spin" size={16} /> : <ScrollText size={16} />}
-              Denetim İzini Yukle
+              {t("toolsLoadAudit")}
             </Button>
             {audit && (
               <div className="mt-3 text-sm">
                 <p>
-                  Toplam {audit.total} kayıt — {audit.integrity_issues} butunluk sorunu,{" "}
-                  {audit.anomalies} anomali
+                  {t("toolsTotal")} {audit.total} — {audit.integrity_issues} {t("toolsIntegrity")},{" "}
+                  {audit.anomalies} {t("toolsAnomaly")}
                 </p>
                 <ul className="mt-2 space-y-1">
                   {Object.entries(audit.status_counts).map(([status, count]) => (
@@ -242,19 +246,19 @@ export function Tools() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>İmaj Taraması (CVE/Malware)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("toolsImgTitle")}</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <Input value={scanPath} onChange={(e) => setScanPath(e.target.value)}
-                placeholder="/yol/imaj.tar" aria-label="Imaj yolu" />
+                placeholder="/yol/imaj.tar" aria-label={t("toolsImgPath")} />
               <Button onClick={handleScan} disabled={scanBusy}>
                 {scanBusy ? <Loader2 className="animate-spin" size={16} /> : <Radar size={16} />}
-                Imaji Tara
+                {t("toolsScanImg")}
               </Button>
             </div>
             {scanResult && (
               <div className="mt-3 text-sm">
-                <Badge>{scanResult.clean ? "TEMIZ" : scanResult.findings.length + " BULGU"}</Badge>
+                <Badge>{scanResult.clean ? t("toolsClean") : scanResult.findings.length + " " + t("toolsFinding")}</Badge>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">{scanResult.detail}</p>
                 <ul className="mt-2 space-y-1">
                   {scanResult.findings.slice(0, 10).map((f, i) => (
@@ -273,15 +277,15 @@ export function Tools() {
           <CardContent>
             <div className="flex gap-2">
               <Input value={attestPath} onChange={(e) => setAttestPath(e.target.value)}
-                placeholder="/yol/paket.pkg.tar.zst" aria-label="Attest paket yolu" />
+                placeholder="/yol/paket.pkg.tar.zst" aria-label={t("toolsAttestPath")} />
               <Button onClick={handleAttest} disabled={attestBusy}>
                 {attestBusy ? <Loader2 className="animate-spin" size={16} /> : <FileCheck2 size={16} />}
-                Attestasyon Uret
+                {t("toolsAttestGen")}
               </Button>
             </div>
             {attestResult && (
               <div className="mt-3 text-sm">
-                <Badge>{attestResult.ok ? "OLUSTURULDU" : "HATA"}</Badge>
+                <Badge>{attestResult.ok ? t("toolsCreated") : t("toolsErr")}</Badge>
                 {attestResult.ok ? (
                   <p className="mt-1 text-xs text-[var(--text-secondary)]">
                     {attestResult.subject + " → " + attestResult.attestation_path}
@@ -295,19 +299,19 @@ export function Tools() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>AUR Yayınla</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("toolsPubTitle")}</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <Input value={publishPath} onChange={(e) => setPublishPath(e.target.value)}
-                placeholder="/yol/paket.pkg.tar.zst" aria-label="Yayinlanacak paket" />
+                placeholder="/yol/paket.pkg.tar.zst" aria-label={t("toolsPubPkg")} />
               <Button onClick={handlePublish} disabled={publishBusy}>
                 {publishBusy ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}
-                AUR Paketi Hazirla
+                {t("toolsPubPrep")}
               </Button>
             </div>
             {publishResult && (
               <div className="mt-3 text-sm">
-                <Badge>{publishResult.ok ? "HAZIR" : "HATA"}</Badge>
+                <Badge>{publishResult.ok ? t("toolsReady") : t("toolsErr")}</Badge>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">{publishResult.message}</p>
                 {publishResult.pkgbuild ? (
                   <p className="text-xs text-[var(--text-secondary)]">PKGBUILD: {publishResult.pkgbuild}</p>
@@ -318,26 +322,26 @@ export function Tools() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Snapshot Temizliği</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("toolsSnapTitle")}</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => void loadSnapshot()}>
-                <RefreshCw size={16} /> Yenile
+                <RefreshCw size={16} /> {t("toolsRefresh")}
               </Button>
               <Button onClick={handleSnapInstall} disabled={snapBusy}>
                 {snapBusy ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-                Servisi Kur
+                {t("toolsInstallSvc")}
               </Button>
               <Button variant="danger" onClick={handleSnapRemove} disabled={snapBusy}>
-                Servisi Kaldir
+                {t("toolsRemoveSvc")}
               </Button>
             </div>
             {snapshot && (
               <p className="mt-3 text-sm">
                 {snapshot.installed
-                  ? "Servis kurulu — " + (snapshot.active ? "Aktif" : "Durdurulmus") +
-                    (snapshot.next_run ? " | Sıradaki: " + snapshot.next_run : "")
-                  : "Snapshot temizlik servisi kurulu değil"}
+                  ? t("toolsSvcInstalled") + " — " + (snapshot.active ? t("toolsSvcActive") : t("toolsSvcStopped")) +
+                    (snapshot.next_run ? " | " + t("toolsSvcNext") + " " + snapshot.next_run : "")
+                  : t("toolsSvcNotInstalled")}
               </p>
             )}
           </CardContent>

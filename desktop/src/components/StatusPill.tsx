@@ -1,4 +1,6 @@
 import { Badge } from "./ui/Badge";
+import { useLang } from "../lib/lang";
+import { tFor, type I18nKey } from "../lib/i18n";
 
 export type PipelineStatus = "success" | "failed" | "pending" | "running" | "cancelled";
 
@@ -10,6 +12,15 @@ const toneMap: Record<PipelineStatus, "success" | "danger" | "neutral" | "info" 
   cancelled: "warning",
 };
 
+const labelKeyMap: Record<PipelineStatus, I18nKey> = {
+  success: "statusSuccess",
+  failed: "statusFailed",
+  pending: "statusPending",
+  running: "statusRunning",
+  cancelled: "statusCancelled",
+};
+
 export function StatusPill({ status }: { status: PipelineStatus }) {
-  return <Badge tone={toneMap[status]}>{status}</Badge>;
+  const t = tFor(useLang());
+  return <Badge tone={toneMap[status]}>{t(labelKeyMap[status])}</Badge>;
 }

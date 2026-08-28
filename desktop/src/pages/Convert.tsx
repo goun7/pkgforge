@@ -420,6 +420,9 @@ export function Convert() {
   // Ilerleme hissi: uzun suren donusum adimi indeterminate + gecen sure ile akar
   const isConverting = statuses["conversion"] === "running";
   const activeStepKey = PIPELINE_STEPS.find((s) => statuses[s] === "running");
+  // Adim gostergesine yerellestirilmis etiketler (ham anahtar yerine).
+  const stepLabels: Record<string, string> = {};
+  for (const [key, labelKey] of Object.entries(STEP_LABEL_KEYS)) stepLabels[key] = t(labelKey);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-5">
@@ -470,7 +473,7 @@ export function Convert() {
                 <CardTitle>{t("convertTitle")}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <StepIndicator statuses={statuses} />
+                <StepIndicator statuses={statuses} labels={stepLabels} />
                 <div className="flex items-center gap-3">
                   <ProgressBar value={progress} gradient indeterminate={isConverting} className="flex-1" />
                   <span className="w-12 text-right text-xs text-[var(--text-secondary)]">
@@ -530,7 +533,7 @@ export function Convert() {
 
                 {graph && <DepGraph data={graph} />}
 
-                <LogViewer lines={logs} />
+                <LogViewer lines={logs} onClear={() => setLogs([])} />
               </CardContent>
             </Card>
 

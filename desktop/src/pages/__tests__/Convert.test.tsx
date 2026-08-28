@@ -46,7 +46,7 @@ describe("Convert page", () => {
 
   it("renders the drop zone and empty queue", () => {
     renderConvert();
-    expect(screen.getByRole("button", { name: "drop-zone" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Paket bırakma alanı" })).toBeInTheDocument();
     expect(screen.getByText("Kuyruk (0)")).toBeInTheDocument();
   });
 
@@ -76,7 +76,7 @@ describe("Convert page", () => {
     emit("tauri://drag-drop", { paths: ["/tmp/bad.deb"] });
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalled());
     emit("event/finished", { success: false, message: "analiz hatası" });
-    await vi.waitFor(() => expect(screen.getByText("failed")).toBeInTheDocument());
+    await vi.waitFor(() => expect(screen.getByText("Başarısız")).toBeInTheDocument());
   });
 
   it("shows the compatibility dialog and approves install", async () => {

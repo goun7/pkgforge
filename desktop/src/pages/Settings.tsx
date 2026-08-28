@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, Save, Trash2 } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
-import { tFor } from "../lib/i18n";
+import { tFor, type I18nKey } from "../lib/i18n";
 import { setLang } from "../lib/lang";
+import { applyTheme } from "../lib/theme";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -58,6 +59,7 @@ export function Settings() {
   const [settings, setSettings] = useState<SettingsShape>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"general" | "profiles" | "cloud">("general");
   // C2: profiles
   const [profiles, setProfiles] = useState<{ name: string; active: boolean }[]>([]);
   const [newProfile, setNewProfile] = useState("");
@@ -137,9 +139,9 @@ export function Settings() {
     setSaving(true);
     try {
       await call("settings.set", settings);
-      toast("success", "Ayarlar kaydedildi");
-      // Apply theme immediately.
-      document.documentElement.setAttribute("data-theme", settings.theme === "light" ? "light" : "dark");
+      toast("success", t("setSaved"));
+      // Apply theme immediately (system tercihini de cozer).
+      applyTheme(settings.theme);
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -263,13 +265,38 @@ export function Settings() {
   return (
     <div className="h-full overflow-y-auto p-5">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
+        {/* Faz 7: ayar sekmeleri (10) */}
+        <div className="flex gap-1 border-b border-[var(--border-subtle)]">
+          {(
+            [
+              { id: "general", labelKey: "setTabGeneral" },
+              { id: "profiles", labelKey: "setTabProfiles" },
+              { id: "cloud", labelKey: "setTabCloud" },
+            ] as { id: "general" | "profiles" | "cloud"; labelKey: I18nKey }[]
+          ).map(({ id, labelKey }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={
+                "rounded-t-md px-3 py-2 text-sm font-medium transition-colors " +
+                (tab === id
+                  ? "border-b-2 border-[var(--brand-blue)] text-[var(--brand-blue)]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]")
+              }
+            >
+              {t(labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {tab === "general" && (<>
         <Card>
           <CardHeader>
-            <CardTitle>Görünüm & Dil</CardTitle>
+            <CardTitle>{t("setAppearance")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-[var(--text-secondary)]">Dil</span>
+              <span className="text-[var(--text-secondary)]">{t("setLang")}</span>
               <select
                 value={settings.language}
                 onChange={(e) => set("language", e.target.value)}
@@ -281,27 +308,30 @@ export function Settings() {
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="text-[var(--text-secondary)]">
-                Uyumluluk politikası
+                {t("setCompat")}
               </span>
               <select
                 value={settings.compat_policy}
                 onChange={(e) => set("compat_policy", e.target.value)}
                 className="h-10 rounded-[var(--radius-input)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)]"
               >
-                <option value="standard">Standart (yalnızca hata bloklar)</option>
-                <option value="strict">Sıkı (uyarılar da bloklar)</option>
+                <option value="standard">{t("setCompatStandard")}</option>
+                <option value="strict">{t("setCompatStrict")}</option>
               </select>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-[var(--text-secondary)]">Tema</span>
+              <span className="text-[var(--text-secondary)]">{t("setTheme")}</span>
               <select
                 value={settings.theme}
-                onChange={(e) => set("theme", e.target.value)}
+                onChange={(e) => {
+                  set("theme", e.target.value);
+                  applyTheme(e.target.value); // aninda onizleme
+                }}
                 className="h-10 rounded-[var(--radius-input)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)]"
               >
-                <option value="dark">Koyu</option>
-                <option value="light">Açık</option>
-                <option value="system">Sistem</option>
+                <option value="dark">{t("setThemeDark")}</option>
+                <option value="light">{t("setThemeLight")}</option>
+                <option value="system">{t("setThemeSystem")}</option>
               </select>
             </label>
           </CardContent>
@@ -355,6 +385,9 @@ export function Settings() {
           </CardContent>
         </Card>
 
+        </>)}
+
+        {tab === "profiles" && (<>
         <Card>
           <CardHeader>
             <CardTitle>{t("profilesTitle")}</CardTitle>
@@ -406,6 +439,9 @@ export function Settings() {
           </CardContent>
         </Card>
 
+        </>)}
+
+        {tab === "cloud" && (<>
         <Card>
           <CardHeader>
             <CardTitle>{t("backupTitle")}</CardTitle>
@@ -550,10 +586,11 @@ export function Settings() {
             )}
           </CardContent>
         </Card>
+        </>)}
 
         <div className="flex justify-end pb-4">
           <Button onClick={() => void handleSave()} disabled={saving}>
-            <Save size={15} /> {saving ? "Kaydediliyor…" : "Kaydet"}
+            <Save size={15} /> {saving ? t("setSaving") : t("updatesSave")}
           </Button>
         </div>
       </div>

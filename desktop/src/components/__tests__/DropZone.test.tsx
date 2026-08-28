@@ -17,14 +17,14 @@ describe("filterAcceptedPaths", () => {
 describe("DropZone", () => {
   it("renders the drop hint", () => {
     render(<DropZone onPaths={() => {}} browse={async () => []} />);
-    expect(screen.getByRole("button", { name: "drop-zone" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Paket bırakma alanı" })).toBeInTheDocument();
   });
 
   it("passes browsed paths through to the backend", async () => {
     const onPaths = vi.fn();
     const browse = vi.fn().mockResolvedValue(["/a/p.deb", "/b/app.tar.gz"]);
     render(<DropZone onPaths={onPaths} browse={browse} />);
-    fireEvent.click(screen.getByRole("button", { name: "drop-zone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
     await vi.waitFor(() => expect(onPaths).toHaveBeenCalledTimes(1));
     expect(onPaths).toHaveBeenCalledWith(["/a/p.deb", "/b/app.tar.gz"]);
   });
@@ -33,7 +33,7 @@ describe("DropZone", () => {
     const onPaths = vi.fn();
     const browse = vi.fn().mockResolvedValue([]);
     render(<DropZone onPaths={onPaths} browse={browse} />);
-    fireEvent.click(screen.getByRole("button", { name: "drop-zone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
     await vi.waitFor(() => expect(browse).toHaveBeenCalled());
     expect(onPaths).not.toHaveBeenCalled();
   });
@@ -41,7 +41,7 @@ describe("DropZone", () => {
   it("ignores clicks when disabled", () => {
     const browse = vi.fn();
     render(<DropZone onPaths={() => {}} browse={browse} disabled />);
-    fireEvent.click(screen.getByRole("button", { name: "drop-zone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
     expect(browse).not.toHaveBeenCalled();
   });
 });

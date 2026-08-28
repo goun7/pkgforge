@@ -80,7 +80,8 @@ describe("Settings page", () => {
     );
     renderSettings();
     await vi.waitFor(() => expect(screen.getByText("Profiller")).toBeInTheDocument());
-    expect(screen.getByText("default")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Profiller")); // Faz 7: profil sekmesi
+    await vi.waitFor(() => expect(screen.getByText("default")).toBeInTheDocument());
     expect(screen.getByText("work")).toBeInTheDocument();
   });
 
@@ -96,6 +97,8 @@ describe("Settings page", () => {
       }),
     );
     renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Profiller")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Profiller")); // Faz 7: profil sekmesi
     await vi.waitFor(() => expect(screen.getByPlaceholderText("Yeni profil adı…")).toBeInTheDocument());
     fireEvent.change(screen.getByPlaceholderText("Yeni profil adı…"), {
       target: { value: "deneme" },
@@ -124,6 +127,8 @@ describe("Settings page", () => {
       }),
     );
     renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Profiller")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Profiller")); // Faz 7: profil sekmesi
     await vi.waitFor(() => expect(screen.getByText("work")).toBeInTheDocument());
     const radio = screen.getByLabelText(/work/) as HTMLInputElement;
     fireEvent.click(radio);
@@ -149,6 +154,8 @@ describe("Settings page", () => {
       }),
     );
     renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Bulut ve Servis")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Bulut ve Servis")); // Faz 7: bulut sekmesi
     await vi.waitFor(() => expect(screen.getByText("Dışa Aktar")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Dışa Aktar"));
     await vi.waitFor(() =>
@@ -169,6 +176,8 @@ describe("Settings page", () => {
       }),
     );
     renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Bulut ve Servis")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Bulut ve Servis")); // Faz 7: bulut sekmesi
     await vi.waitFor(() => expect(screen.getByText("Sunucuyu Kaydet")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Sunucuyu Kaydet"));
     await vi.waitFor(() =>
@@ -193,6 +202,8 @@ describe("Settings page", () => {
       }),
     );
     renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Bulut ve Servis")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Bulut ve Servis")); // Faz 7: bulut sekmesi
     await vi.waitFor(() => expect(screen.getByText("D-Bus Servisi")).toBeInTheDocument());
     expect(screen.getByText("org.pkgforge.App")).toBeInTheDocument();
     expect(screen.getByText("Kapalı")).toBeInTheDocument();
@@ -212,6 +223,8 @@ describe("Settings page", () => {
       }),
     );
     renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Bulut ve Servis")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Bulut ve Servis")); // Faz 7: bulut sekmesi
     await vi.waitFor(() => expect(screen.getByText("Başlat")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Başlat"));
     await vi.waitFor(() =>

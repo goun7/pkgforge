@@ -13,6 +13,8 @@ import {
   Wrench,
   Server,
   ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLang } from "../lib/lang";
@@ -43,8 +45,6 @@ interface NavItem {
   icon: typeof ArrowLeftRight;
 }
 
-/** Sayfalar mantiksal boluklere ayrildi: kalabalik azalir, nis sayfalar
- *  Sistem bolumunde toplanir. Her bolum katlanabilir. Etiketler i18n anahtari. */
 const NAV_SECTIONS: { id: string; titleKey: I18nKey | null; items: NavItem[] }[] = [
   {
     id: "core",
@@ -92,27 +92,33 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
   const lang = useLang();
   const t = tFor(lang);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [compact, setCompact] = useState(false);
   const toggle = (id: string) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <nav
       aria-label="Ana gezinme"
-      className="flex w-56 shrink-0 flex-col overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+      className={cn(
+        "flex shrink-0 flex-col overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 transition-[width] duration-200",
+        compact ? "w-16" : "w-56",
+      )}
     >
-      <div className="mb-4 flex items-center gap-2 px-2 pt-1">
-        <img src="/favicon.svg" alt="PkgForge" className="h-7 w-7" />
-        <span className="bg-[var(--brand-gradient)] bg-clip-text text-lg font-bold text-transparent">
-          PkgForge
-        </span>
+      <div className={cn("mb-4 flex items-center gap-2 px-2 pt-1", compact && "justify-center px-0")}>
+        <img src="/favicon.svg" alt="PkgForge" className="h-7 w-7 shrink-0" />
+        {!compact && (
+          <span className="bg-[var(--brand-gradient)] bg-clip-text text-lg font-bold text-transparent">
+            PkgForge
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         {NAV_SECTIONS.map((section) => {
           const isCollapsed = !!collapsed[section.id];
           return (
             <div key={section.id}>
-              {section.titleKey && (
+              {section.titleKey && !compact && (
                 <button
                   onClick={() => toggle(section.id)}
                   aria-expanded={!isCollapsed}
@@ -125,23 +131,26 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
                   />
                 </button>
               )}
-              {!isCollapsed && (
+              {(!isCollapsed || compact) && (
                 <ul className="mt-0.5 flex flex-col gap-0.5">
                   {section.items.map(({ id, labelKey, icon: Icon }) => (
                     <li key={id}>
                       <button
                         onClick={() => onNavigate(id)}
                         aria-current={active === id ? "page" : undefined}
+                        title={t(labelKey)}
+                        aria-label={t(labelKey)}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-[var(--radius-btn)] px-3 py-2 text-sm font-medium transition-colors",
+                          "flex w-full items-center gap-3 rounded-[var(--radius-btn)] py-2 text-sm font-medium transition-colors",
+                          compact ? "justify-center px-0" : "px-3",
                           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
                           active === id
                             ? "bg-[var(--brand-blue)]/12 text-[var(--brand-blue)]"
                             : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
                         )}
                       >
-                        <Icon size={17} />
-                        <span className="flex-1 text-left">{t(labelKey)}</span>
+                        <Icon size={17} className="shrink-0" />
+                        {!compact && <span className="flex-1 text-left">{t(labelKey)}</span>}
                       </button>
                     </li>
                   ))}
@@ -151,6 +160,21 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
           );
         })}
       </div>
+
+      {/* Daralt / genislet */}
+      <button
+        onClick={() => setCompact((c) => !c)}
+        aria-label={compact ? "Kenar çubuğunu genişlet" : "Kenar çubuğunu daralt"}
+        title={compact ? "Genişlet" : "Daralt"}
+        className={cn(
+          "mt-2 flex items-center gap-2 rounded-[var(--radius-btn)] py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+          compact ? "justify-center px-0" : "px-3",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
+        )}
+      >
+        {compact ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        {!compact && <span>Daralt</span>}
+      </button>
     </nav>
   );
 }

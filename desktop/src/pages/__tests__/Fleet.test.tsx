@@ -65,7 +65,7 @@ describe("Fleet page (Fleet konsolu)", () => {
     await vi.waitFor(() =>
       expect(screen.getByText(/default, is/)).toBeInTheDocument(),
     );
-    expect(screen.getByText(/7 gecmis kayit/)).toBeInTheDocument();
+    expect(screen.getByText(/7 geçmiş kayıt/)).toBeInTheDocument();
   });
 
   it("calls sync.push when Push clicked", async () => {

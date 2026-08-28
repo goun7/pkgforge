@@ -8,9 +8,14 @@ import { Input } from "../components/ui/Input";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
+import { InfoTip } from "../components/ui/InfoTip";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 export function Updates() {
   const { toast } = useToast();
+  const lang = useLang();
+  const t = tFor(lang);
   const [delta, setDelta] = useState<DeltaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [pkgName, setPkgName] = useState("");
@@ -122,9 +127,14 @@ export function Updates() {
       {/* Delta auto-update card */}
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Delta Auto-Update</CardTitle>
+          <CardTitle>
+            <span className="flex items-center gap-1.5">
+              {t("updatesDeltaTitle")}
+              <InfoTip text={t("helpDelta")} />
+            </span>
+          </CardTitle>
           <Button variant="secondary" size="sm" onClick={() => void loadDelta()}>
-            <RefreshCw size={14} /> Yenile
+            <RefreshCw size={14} /> {t("toolsRefresh")}
           </Button>
         </CardHeader>
         <CardContent>
@@ -136,22 +146,22 @@ export function Updates() {
                 <Timer size={18} className="text-[var(--text-muted)]" />
                 <div className="flex items-center gap-2 text-sm">
                   <Badge tone={delta.installed ? "success" : "neutral"}>
-                    {delta.installed ? "Timer kurulu" : "Timer kurulu değil"}
+                    {delta.installed ? t("updatesTimerInstalled") : t("updatesTimerNot")}
                   </Badge>
                   <Badge tone={delta.active ? "success" : "neutral"}>
-                    {delta.active ? "Aktif" : "Pasif"}
+                    {delta.active ? t("updatesActive") : t("updatesInactive")}
                   </Badge>
                 </div>
               </div>
               {delta.next_run && (
-                <p className="text-xs text-[var(--text-muted)]">Sonraki çalışma: {delta.next_run}</p>
+                <p className="text-xs text-[var(--text-muted)]">{t("updatesNextRun")} {delta.next_run}</p>
               )}
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => void handleEnable()} disabled={delta.active}>
-                  Etkinleştir
+                  {t("updatesEnable")}
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => void handleDisable()} disabled={!delta.installed}>
-                  Kapat
+                  {t("updatesDisable")}
                 </Button>
               </div>
             </div>
@@ -162,7 +172,12 @@ export function Updates() {
       {/* Scheduled tasks card (B3) */}
       <Card>
         <CardHeader>
-          <CardTitle>Zamanlanmış Görevler</CardTitle>
+          <CardTitle>
+            <span className="flex items-center gap-1.5">
+              {t("updatesSchedTitle")}
+              <InfoTip text={t("helpSchedule")} />
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {schedule ? (
@@ -170,10 +185,10 @@ export function Updates() {
               <div className="flex items-center gap-2 text-sm">
                 <CalendarClock size={18} className="text-[var(--text-muted)]" />
                 <Badge tone={schedule.enabled ? "success" : "neutral"}>
-                  {schedule.enabled ? "Etkin" : "Devre dışı"}
+                  {schedule.enabled ? t("updatesEnabled") : t("updatesDisabledState")}
                 </Badge>
                 {schedule.next_run && (
-                  <span className="text-xs text-[var(--text-muted)]">Sonraki: {schedule.next_run}</span>
+                  <span className="text-xs text-[var(--text-muted)]">{t("updatesNext")} {schedule.next_run}</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -184,21 +199,21 @@ export function Updates() {
                   onChange={(e) => setIntervalInput(e.target.value)}
                   className="h-9 w-24"
                 />
-                <span className="text-xs text-[var(--text-muted)]">saat arayla</span>
+                <span className="text-xs text-[var(--text-muted)]">{t("updatesEvery")}</span>
                 <Button size="sm" variant="secondary" onClick={() => void handleScheduleInterval()}>
-                  Kaydet
+                  {t("updatesSave")}
                 </Button>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => void handleScheduleToggle(true)} disabled={schedule.enabled}>
-                  Etkinleştir
+                  {t("updatesEnable")}
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => void handleScheduleToggle(false)} disabled={!schedule.enabled}>
-                  Kapat
+                  {t("updatesDisable")}
                 </Button>
               </div>
               {schedule.last_run && (
-                <p className="text-xs text-[var(--text-muted)]">Son çalışma: {schedule.last_run}</p>
+                <p className="text-xs text-[var(--text-muted)]">{t("updatesLastRun")} {schedule.last_run}</p>
               )}
             </div>
           ) : (
@@ -210,34 +225,35 @@ export function Updates() {
       {/* Cross-check card */}
       <Card>
         <CardHeader>
-          <CardTitle>Kaynak Karşılaştırma (Cross-Check)</CardTitle>
+          <CardTitle>{t("updatesCrossTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-3 flex items-center gap-2">
             <Input
-              placeholder="Paket adı…"
+              placeholder={t("updatesPkgPh")}
               value={pkgName}
               onChange={(e) => setPkgName(e.target.value)}
               className="h-9 flex-1"
             />
             <Button onClick={() => void handleCrossCheck()} disabled={checking}>
               {checking ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-              Karşılaştır
+              {t("updatesCompare")}
             </Button>
           </div>
           {checking && <Skeleton className="h-20 w-full" />}
           {cross && (
             <div className="rounded-md border border-[var(--border-subtle)] p-3 text-sm">
               <table className="w-full text-xs">
+                <caption className="sr-only">Kaynak sürüm karşılaştırması</caption>
                 <thead>
                   <tr className="text-left text-[var(--text-muted)]">
-                    <th className="py-1 pr-3">Kaynak</th>
-                    <th className="py-1">Versiyon</th>
+                    <th scope="col" className="py-1 pr-3">{t("updatesSource")}</th>
+                    <th scope="col" className="py-1">{t("updatesVersion")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-t border-[var(--border-subtle)]/50">
-                    <td className="py-1.5 pr-3">Yerel</td>
+                    <td className="py-1.5 pr-3">{t("updatesLocal")}</td>
                     <td className="py-1.5 font-mono">{cross.local_version || "—"}</td>
                   </tr>
                   <tr className="border-t border-[var(--border-subtle)]/50">
@@ -251,7 +267,7 @@ export function Updates() {
                 </tbody>
               </table>
               <div className="mt-2 flex items-center gap-2">
-                <Badge tone="success">Öneri: {cross.recommended_source}</Badge>
+                <Badge tone="success">{t("updatesRecommended")} {cross.recommended_source}</Badge>
               </div>
               {cross.recommendation_reason && (
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{cross.recommendation_reason}</p>

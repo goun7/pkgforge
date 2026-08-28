@@ -1,6 +1,8 @@
 import { useRef } from "react";
 import { PackageOpen } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 /** Known package extensions (used by the native dialog hint). */
 export const ACCEPTED_EXTENSIONS = [
@@ -46,6 +48,9 @@ async function defaultBrowse(): Promise<string[]> {
   return Array.isArray(selected) ? selected : [selected];
 }
 
+/** Gorsel ipucu: kabul edilen ana tur rozetleri (3.6). */
+const TYPE_HINTS = [".deb", ".rpm", ".tar.gz", ".zip", "AppImage", ".pkg.tar.zst"];
+
 export function DropZone({
   onPaths,
   dragging = false,
@@ -54,6 +59,7 @@ export function DropZone({
   browse = defaultBrowse,
 }: DropZoneProps) {
   const busy = useRef(false);
+  const t = tFor(useLang());
 
   const handleBrowse = async () => {
     if (disabled || busy.current) return;
@@ -70,7 +76,7 @@ export function DropZone({
     <div
       role="button"
       tabIndex={0}
-      aria-label="drop-zone"
+      aria-label={t("dropzoneAria")}
       onClick={handleBrowse}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") handleBrowse();
@@ -96,11 +102,22 @@ export function DropZone({
       </div>
       <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">
-          Paket dosyalarını (.deb, .rpm, .tar.gz, AppImage) buraya bırakın
+          {t("dropzoneTitle")}
         </p>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          {hint ?? "veya seçmek için tıklayın"}
+          {hint ?? t("dropzoneHint")}
         </p>
+      </div>
+      {/* Kabul edilen tur rozetleri */}
+      <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+        {TYPE_HINTS.map((ty) => (
+          <span
+            key={ty}
+            className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]"
+          >
+            {ty}
+          </span>
+        ))}
       </div>
     </div>
   );

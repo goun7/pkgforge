@@ -9,6 +9,7 @@ import { StatusPill, type PipelineStatus } from "../components/StatusPill";
 import { EmptyState } from "../components/EmptyState";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
 
@@ -25,6 +26,10 @@ export function Installed() {
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [pageCount, setPageCount] = useState(50);
+  const [confirm, setConfirm] = useState<
+    null | { type: "clear" } | { type: "uninstall"; pkg: string }
+  >(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,6 +88,8 @@ export function Installed() {
       r.package_name.toLowerCase().includes(filter.toLowerCase()) ||
       r.original_file.toLowerCase().includes(filter.toLowerCase()),
   );
+  // Faz 7 (6.3): cok kayitta tabloyu sinirla, "daha fazla" ile ac.
+  const shown = visible.slice(0, pageCount);
 
   return (
     <div className="h-full overflow-y-auto p-5">
@@ -99,7 +106,7 @@ export function Installed() {
             <Button variant="secondary" size="sm" onClick={() => void load()}>
               <RefreshCw size={14} /> {t("commonRefresh")}
             </Button>
-            <Button variant="danger" size="sm" onClick={() => void handleClear()} disabled={!records.length}>
+            <Button variant="danger" size="sm" onClick={() => setConfirm({ type: "clear" })} disabled={!records.length}>
               <Trash2 size={14} /> {t("commonClear")}
             </Button>
           </div>
@@ -118,19 +125,21 @@ export function Installed() {
               description="Dönüştürdüğünüz ve kurduğunuz paketler burada listelenecek."
             />
           ) : (
+            <>
             <table className="w-full text-sm">
+              <caption className="sr-only">Kurulan paketler geçmişi</caption>
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                  <th className="py-2 pr-3">Tarih</th>
-                  <th className="py-2 pr-3">Paket</th>
-                  <th className="py-2 pr-3">Tür</th>
-                  <th className="py-2 pr-3">Durum</th>
-                  <th className="py-2 pr-3">Kaynak dosya</th>
-                  <th className="py-2">İşlemler</th>
+                  <th scope="col" className="py-2 pr-3">Tarih</th>
+                  <th scope="col" className="py-2 pr-3">Paket</th>
+                  <th scope="col" className="py-2 pr-3">Tür</th>
+                  <th scope="col" className="py-2 pr-3">Durum</th>
+                  <th scope="col" className="py-2 pr-3">Kaynak dosya</th>
+                  <th scope="col" className="py-2">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
-                {visible.map((r) => (
+                {shown.map((r) => (
                   <tr key={r.id} className="border-b border-[var(--border-subtle)]/50">
                     <td className="py-2.5 pr-3 text-xs text-[var(--text-secondary)]">{r.timestamp}</td>
                     <td className="py-2.5 pr-3 font-medium text-[var(--text-primary)]">{r.package_name}</td>
@@ -144,16 +153,16 @@ export function Installed() {
                     <td className="py-2.5">
                       <div className="flex gap-1">
                         <button
-                          aria-label={`uninstall ${r.package_name}`}
-                          title="Kaldır"
-                          onClick={() => void handleUninstall(r.package_name)}
+                          aria-label={`${t("commonRemove")} ${r.package_name}`}
+                          title={t("commonRemove")}
+                          onClick={() => setConfirm({ type: "uninstall", pkg: r.package_name })}
                           className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--danger)]"
                         >
                           <Trash2 size={14} />
                         </button>
                         <button
-                          aria-label={`rollback ${r.package_name}`}
-                          title="Geri al"
+                          aria-label={`${t("commonRollback")} ${r.package_name}`}
+                          title={t("commonRollback")}
                           onClick={() => void handleRollback(r.package_name)}
                           className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--warning)]"
                         >
@@ -165,9 +174,37 @@ export function Installed() {
                 ))}
               </tbody>
             </table>
+            {visible.length > pageCount && (
+              <div className="mt-3 flex justify-center">
+                <Button variant="secondary" size="sm" onClick={() => setPageCount((c) => c + 50)}>
+                  {t("loadMore")} ({visible.length - pageCount})
+                </Button>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.type === "clear" ? t("confirmClearTitle") : t("confirmUninstallTitle")}
+        message={
+          confirm?.type === "clear"
+            ? t("confirmClearMsg")
+            : confirm?.type === "uninstall"
+              ? `${confirm.pkg} ${t("confirmUninstallMsg")}`
+              : ""
+        }
+        confirmLabel={t("confirmConfirm")}
+        cancelLabel={t("confirmCancel")}
+        onConfirm={() => {
+          if (confirm?.type === "clear") void handleClear();
+          else if (confirm?.type === "uninstall") void handleUninstall(confirm.pkg);
+          setConfirm(null);
+        }}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

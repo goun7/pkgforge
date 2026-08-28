@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import {
-  Loader2, Server, UploadCloud, Download, PackageOpen, RefreshCw,
+  Server, UploadCloud, Download, PackageOpen, RefreshCw,
 } from "lucide-react";
 import { call, onEvent } from "../lib/rpc";
 import type { FleetStatus } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
+import { AsyncButton } from "../components/ui/AsyncButton";
 import { Badge } from "../components/ui/Badge";
 import { useToast } from "../components/ui/Toast";
+import { InfoTip } from "../components/ui/InfoTip";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 export function Fleet() {
   const { toast } = useToast();
+  const lang = useLang();
+  const t = tFor(lang);
   const [status, setStatus] = useState<FleetStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [syncBusy, setSyncBusy] = useState(false);
@@ -38,8 +43,8 @@ export function Fleet() {
       "event/sync_done",
       (p) => {
         setSyncBusy(false);
-        if (p.ok) toast("success", "Senkron tamamlandi");
-        else toast("error", p.error ?? "Senkron basarisiz");
+        if (p.ok) toast("success", t("fleetSyncDone"));
+        else toast("error", p.error ?? t("fleetSyncFail"));
       },
     ).then((u) => { unsub = u; });
     return () => { if (unsub) unsub(); };
@@ -63,7 +68,7 @@ export function Fleet() {
     try {
       await call("sync.export");
       setSyncBusy(false);
-      toast("success", "Yedek export tamamlandi");
+      toast("success", t("fleetExportDone"));
     } catch (e) { setSyncBusy(false); toast("error", (e as Error).message); }
   };
 
@@ -71,18 +76,24 @@ export function Fleet() {
     <div className="h-full overflow-y-auto p-5">
       <div className="grid gap-4">
         <Card>
-          <CardHeader><CardTitle>Fleet Konsolu</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>
+              <span className="flex items-center gap-1.5">
+                {t("fleetTitle")}
+                <InfoTip text={t("helpFleet")} />
+              </span>
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Button onClick={() => void load()} disabled={busy}>
-                {busy ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
-                Yenile
-              </Button>
+              <AsyncButton onClick={() => void load()} busy={busy} icon={<RefreshCw size={16} />}>
+                {t("toolsRefresh")}
+              </AsyncButton>
               {status ? <Badge>{status.policy_level}</Badge> : null}
               {status ? (
                 <span className="text-xs text-[var(--text-secondary)]">
                   <Server size={14} className="mr-1 inline" />
-                  {status.history_count} gecmis kayit
+                  {status.history_count} {t("fleetHistory")}
                 </span>
               ) : null}
             </div>
@@ -91,22 +102,22 @@ export function Fleet() {
 
         {status ? (
           <Card>
-            <CardHeader><CardTitle>Senkron Backend'leri</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("fleetBackends")}</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 {status.backend_names.map((name) => {
                   const b = status.backends[name] ?? { configured: false, available: false };
                   return (
                     <li key={name} className="flex items-center gap-2 text-sm">
-                      <Badge>{b.available ? "HAZIR" : "YOK"}</Badge>
+                      <Badge>{b.available ? t("fleetReady") : t("fleetMissing")}</Badge>
                       <span>{name}</span>
-                      {b.configured ? <Badge>yapilandirildi</Badge> : null}
+                      {b.configured ? <Badge>{t("fleetConfigured")}</Badge> : null}
                     </li>
                   );
                 })}
               </ul>
               <p className="mt-3 text-xs text-[var(--text-secondary)]">
-                age sifreleme: {status.age_available ? "var" : "yok"}
+                {t("fleetAge")} {status.age_available ? t("fleetHave") : t("fleetNone")}
               </p>
             </CardContent>
           </Card>
@@ -114,30 +125,30 @@ export function Fleet() {
 
         {status ? (
           <Card>
-            <CardHeader><CardTitle>Durum Ozeti</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t("fleetSummary")}</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-1 text-sm">
-                <li>Profiller: {status.profiles.join(", ") || "-"}</li>
-                <li>Senkron: {status.sync_configured ? "yapilandirildi" : "yok"}</li>
-                <li>Politika: {status.policy_level}</li>
+                <li>{t("fleetProfiles")} {status.profiles.join(", ") || "-"}</li>
+                <li>{t("fleetSync")} {status.sync_configured ? t("fleetConfigured") : t("fleetNone")}</li>
+                <li>{t("fleetPolicy")} {status.policy_level}</li>
               </ul>
             </CardContent>
           </Card>
         ) : null}
 
         <Card>
-          <CardHeader><CardTitle>Senkron Eylemleri</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("fleetActions")}</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-2">
-              <Button onClick={syncPush} disabled={syncBusy}>
-                <UploadCloud size={16} /> Push
-              </Button>
-              <Button onClick={syncPull} disabled={syncBusy}>
-                <Download size={16} /> Pull
-              </Button>
-              <Button variant="outline" onClick={syncExport} disabled={syncBusy}>
-                <PackageOpen size={16} /> Yedek Export
-              </Button>
+              <AsyncButton onClick={syncPush} busy={syncBusy} icon={<UploadCloud size={16} />}>
+                Push
+              </AsyncButton>
+              <AsyncButton onClick={syncPull} busy={syncBusy} icon={<Download size={16} />}>
+                Pull
+              </AsyncButton>
+              <AsyncButton variant="outline" onClick={syncExport} busy={syncBusy} icon={<PackageOpen size={16} />}>
+                {t("fleetBackup")}
+              </AsyncButton>
             </div>
           </CardContent>
         </Card>

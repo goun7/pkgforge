@@ -9,7 +9,7 @@ export interface TopbarProps {
 export function Topbar({ title, onSearchClick, right }: TopbarProps) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5">
-      <h1 className="text-base font-semibold text-[var(--text-primary)]">{title}</h1>
+      <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">{title}</h1>
       <div className="flex items-center gap-3">
         {onSearchClick && (
           <button

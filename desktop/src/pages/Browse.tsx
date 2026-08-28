@@ -8,9 +8,13 @@ import { Badge } from "../components/ui/Badge";
 import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 export function Browse() {
   const { toast } = useToast();
+  const lang = useLang();
+  const t = tFor(lang);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AurSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -96,12 +100,12 @@ export function Browse() {
     <div className="h-full overflow-y-auto p-5">
       <Card>
         <CardHeader>
-          <CardTitle>AUR Gözat</CardTitle>
+          <CardTitle>{t("browseTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
             <Input
-              placeholder="AUR'da ara (örn. firefox-bin)…"
+              placeholder={t("browsePlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void handleSearch(); }}
@@ -109,7 +113,7 @@ export function Browse() {
             />
             <Button onClick={() => void handleSearch()} disabled={searching}>
               {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-              Ara
+              {t("browseSearch")}
             </Button>
           </div>
 
@@ -122,7 +126,7 @@ export function Browse() {
           )}
 
           {!searching && searched && results.length === 0 && (
-            <p className="text-sm text-[var(--text-muted)]">Sonuç bulunamadı.</p>
+            <p className="text-sm text-[var(--text-muted)]">{t("browseNoResults")}</p>
           )}
 
           {!searching && results.length > 0 && (
@@ -134,7 +138,7 @@ export function Browse() {
                       <Globe size={14} className="shrink-0 text-[var(--brand-blue)]" />
                       <span className="font-medium">{r.name}</span>
                       <Badge tone="neutral">v{r.version}</Badge>
-                      {r.out_of_date && <Badge tone="warning">eski</Badge>}
+                      {r.out_of_date && <Badge tone="warning">{t("browseOutOfDate")}</Badge>}
                       <span className="flex items-center gap-0.5 text-xs text-[var(--text-muted)]">
                         <ThumbsUp size={11} /> {r.num_votes}
                       </span>
@@ -143,8 +147,8 @@ export function Browse() {
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <button
-                      aria-label={`info ${r.name}`}
-                      title="Bilgi"
+                      aria-label={`${t("browseInfo")} ${r.name}`}
+                      title={t("browseInfo")}
                       onClick={() => void handleInfo(r.name)}
                       className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--brand-blue)]"
                     >
@@ -152,7 +156,7 @@ export function Browse() {
                     </button>
                     <Button size="sm" variant="secondary" onClick={() => void handleBuild(r.name)} disabled={building !== ""}>
                       {building === r.name ? <Loader2 size={13} className="animate-spin" /> : <Hammer size={13} />}
-                      Derle
+                      {t("browseBuild")}
                     </Button>
                   </div>
                 </div>
@@ -164,7 +168,7 @@ export function Browse() {
             <div className="flex items-center gap-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2 text-sm">
               <Loader2 size={14} className="animate-spin text-[var(--brand-blue)]" />
               <span>
-                {building} {buildStep === "clone" ? "klonlanıyor…" : buildStep === "build" ? "derleniyor (makepkg)…" : "başlatılıyor…"}
+                {building} {buildStep === "clone" ? t("browseCloning") : buildStep === "build" ? t("browseBuilding") : t("browseStarting")}
               </span>
             </div>
           )}
@@ -175,7 +179,7 @@ export function Browse() {
                 <span className="font-medium">{infoName}</span>
                 <Badge tone={info.status === "not_found" ? "danger" : "success"}>{info.status}</Badge>
               </div>
-              {info.aur_version && <p className="text-xs text-[var(--text-muted)]">AUR sürümü: {info.aur_version}</p>}
+              {info.aur_version && <p className="text-xs text-[var(--text-muted)]">{t("browseAurVersion")} {info.aur_version}</p>}
               {info.detail && <p className="text-xs text-[var(--text-muted)]">{info.detail}</p>}
             </div>
           )}

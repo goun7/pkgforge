@@ -15,7 +15,7 @@
   /* Text */
   --text-primary: #e8ecf4;
   --text-secondary: #8b95a8;
-  --text-muted: #5a6478;
+  --text-muted: #6e7891;
 
   /* Semantic */
   --success: #10b981;
@@ -64,7 +64,7 @@
 
   --text-primary: #111827;
   --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-muted: #7a8494;
 
   --border-subtle: rgba(0, 0, 0, 0.06);
   --border-strong: rgba(0, 0, 0, 0.12);

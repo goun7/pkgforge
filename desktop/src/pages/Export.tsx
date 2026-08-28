@@ -10,9 +10,21 @@ import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
 import { cn } from "../lib/utils";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
+
+/** Faz 7 (6.2): Flatpak listesi icin modul duzeyi onbellek. */
+let flatpakCache: FlatpakApp[] | null = null;
+
+/** Testler icin onbellegi sifirlar. */
+export function __resetFlatpakCache(): void {
+  flatpakCache = null;
+}
 
 export function Export() {
   const { toast } = useToast();
+  const lang = useLang();
+  const t = tFor(lang);
 
   // AppImage -> DEB
   const [appimagePath, setAppimagePath] = useState("");
@@ -32,17 +44,28 @@ export function Export() {
   const [ociBusy, setOciBusy] = useState(false);
   const [ociResult, setOciResult] = useState<ExportResult | null>(null);
 
-  const loadFlatpak = useCallback(async () => {
-    setFlatpakLoading(true);
-    try {
-      const res = await call<FlatpakApp[]>("export.flatpak_list");
-      setFlatpakApps(res);
-    } catch (e) {
-      toast("error", (e as Error).message);
-    } finally {
-      setFlatpakLoading(false);
-    }
-  }, [toast]);
+  const loadFlatpak = useCallback(
+    async (force = false) => {
+      // Faz 7 (6.2): sayfa degisince gereksiz yeniden yuklemeyi onlemek icin
+      // sonuc onbellege alinir; Yenile dugmesi force=true ile tazeler.
+      if (!force && flatpakCache) {
+        setFlatpakApps(flatpakCache);
+        setFlatpakLoading(false);
+        return;
+      }
+      setFlatpakLoading(true);
+      try {
+        const res = await call<FlatpakApp[]>("export.flatpak_list");
+        flatpakCache = res;
+        setFlatpakApps(res);
+      } catch (e) {
+        toast("error", (e as Error).message);
+      } finally {
+        setFlatpakLoading(false);
+      }
+    },
+    [toast],
+  );
 
   useEffect(() => {
     void loadFlatpak();
@@ -117,11 +140,19 @@ export function Export() {
     }
   };
 
-  const resultBadge = (r: ExportResult | null) =>
+  const resultBadge = (r: ExportResult | null, onRetry?: () => void) =>
     r ? (
       <div className="mt-2 flex items-center gap-2">
-        <Badge tone={r.ok ? "success" : "danger"}>{r.ok ? "Başarılı" : "Başarısız"}</Badge>
+        <Badge tone={r.ok ? "success" : "danger"}>{r.ok ? t("exportSuccess") : t("exportFailed")}</Badge>
         <span className="truncate text-xs text-[var(--text-muted)]">{r.message}</span>
+        {!r.ok && onRetry && (
+          <button
+            onClick={onRetry}
+            className="shrink-0 text-xs font-semibold text-[var(--brand-blue)] hover:underline"
+          >
+            {t("commonRetry")}
+          </button>
+        )}
       </div>
     ) : null;
 
@@ -138,18 +169,18 @@ export function Export() {
           </CardHeader>
           <CardContent className="space-y-2">
             <PathPicker
-              placeholder="AppImage yolu…"
+              placeholder={t("exportAppimagePh")}
               value={appimagePath}
               onChange={setAppimagePath}
               filters={[{ name: "AppImage", extensions: ["AppImage", "appimage"] }]}
-              title="AppImage seç"
+              title={t("exportSelectAppimage")}
             />
             <Button size="sm" onClick={() => void handleAppimage()} disabled={appimageBusy}>
               {appimageBusy ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
-              Dönüştür
+              {t("exportConvert")}
             </Button>
             {appimageBusy && <Skeleton className="h-8 w-full" />}
-            {resultBadge(appimageResult)}
+            {resultBadge(appimageResult, () => void handleAppimage())}
             {appimageResult?.ok && appimageResult.deb_path && (
               <p className="truncate text-xs font-mono text-[var(--text-secondary)]">{appimageResult.deb_path}</p>
             )}
@@ -163,13 +194,13 @@ export function Export() {
               <Boxes size={17} className="text-[var(--brand-ember)]" />
               Flatpak → DEB
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => void loadFlatpak()}>Yenile</Button>
+            <Button variant="ghost" size="sm" onClick={() => void loadFlatpak(true)}>{t("toolsRefresh")}</Button>
           </CardHeader>
           <CardContent className="space-y-2">
             {flatpakLoading ? (
               <Skeleton className="h-24 w-full" />
             ) : flatpakApps.length === 0 ? (
-              <p className="text-sm text-[var(--text-muted)]">Flatpak uygulaması bulunamadı.</p>
+              <p className="text-sm text-[var(--text-muted)]">{t("exportFlatpakEmpty")}</p>
             ) : (
               <div className="max-h-40 overflow-y-auto rounded-md border border-[var(--border-subtle)]">
                 {flatpakApps.map((app) => (
@@ -191,10 +222,10 @@ export function Export() {
             )}
             <Button size="sm" onClick={() => void handleFlatpak()} disabled={flatpakBusy || !selectedApp}>
               {flatpakBusy ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
-              Dönüştür
+              {t("exportConvert")}
             </Button>
             {flatpakBusy && <Skeleton className="h-8 w-full" />}
-            {resultBadge(flatpakResult)}
+            {resultBadge(flatpakResult, () => void handleFlatpak())}
           </CardContent>
         </Card>
 
@@ -208,24 +239,24 @@ export function Export() {
           </CardHeader>
           <CardContent className="space-y-2">
             <PathPicker
-              placeholder="Paket yolu (.pkg.tar.zst)…"
+              placeholder={t("exportOciPh")}
               value={ociPath}
               onChange={setOciPath}
               filters={PKG_DIALOG_FILTERS}
-              title="Paket seç"
+              title={t("exportSelectPkg")}
             />
             <Input
-              placeholder="İmaj tag'i (opsiyonel)…"
+              placeholder={t("exportOciTag")}
               value={ociTag}
               onChange={(e) => setOciTag(e.target.value)}
               className="h-9"
             />
             <Button size="sm" onClick={() => void handleOci()} disabled={ociBusy}>
               {ociBusy ? <Loader2 size={14} className="animate-spin" /> : <Container size={14} />}
-              İmaj Oluştur
+              {t("exportOciCreate")}
             </Button>
             {ociBusy && <Skeleton className="h-8 w-full" />}
-            {resultBadge(ociResult)}
+            {resultBadge(ociResult, () => void handleOci())}
             {ociResult?.ok && ociResult.output_path && (
               <p className="truncate text-xs font-mono text-[var(--text-secondary)]">{ociResult.output_path}</p>
             )}

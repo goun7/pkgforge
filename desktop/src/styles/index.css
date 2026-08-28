@@ -29,6 +29,17 @@ body {
     opacity var(--duration-base) var(--ease-standard);
 }
 
+/* Faz 7 — tema degisiminde yumusak gecis (applyTheme gecici sinif ekler). */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color var(--duration-slow) var(--ease-standard),
+    color var(--duration-slow) var(--ease-standard),
+    border-color var(--duration-slow) var(--ease-standard) !important;
+}
+
 /* Faz 6 — belirsiz (indeterminate) ilerleme cubugu: suren isin yuzdesi
    bilinmediginde kayan segment ile "calisiyor" hissi verir. */
 @keyframes progress-slide {

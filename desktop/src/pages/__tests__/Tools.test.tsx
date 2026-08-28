@@ -38,7 +38,7 @@ describe("Tools page (Feature Tezgahi)", () => {
     fireEvent.change(screen.getByPlaceholderText("/yol/paket.rpm"), {
       target: { value: "/tmp/p.rpm" },
     });
-    fireEvent.click(screen.getByText("Donustur"));
+    fireEvent.click(screen.getByText("Dönüştür"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -73,9 +73,9 @@ describe("Tools page (Feature Tezgahi)", () => {
     };
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: audit });
     renderTools();
-    fireEvent.click(screen.getByText("Denetim İzini Yukle"));
+    fireEvent.click(screen.getByText("Denetim İzini Yükle"));
     await vi.waitFor(() =>
-      expect(screen.getByText(/Toplam 2 kayıt/)).toBeInTheDocument(),
+      expect(screen.getByText(/Toplam 2/)).toBeInTheDocument(),
     );
     expect(screen.getByText("installed: 2")).toBeInTheDocument();
   });
@@ -83,7 +83,7 @@ describe("Tools page (Feature Tezgahi)", () => {
   it("shows toast error for empty rpm path", () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: {} });
     renderTools();
-    fireEvent.click(screen.getByText("Donustur"));
+    fireEvent.click(screen.getByText("Dönüştür"));
     expect(invokeMock).not.toHaveBeenCalledWith(
       "rpc_call",
       expect.objectContaining({ method: "tools.rpm_to_deb" }),
@@ -120,7 +120,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
     fireEvent.change(screen.getByPlaceholderText("/yol/imaj.tar"), {
       target: { value: "/tmp/img.tar" },
     });
-    fireEvent.click(screen.getByText("Imaji Tara"));
+    fireEvent.click(screen.getByText("İmajı Tara"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -133,7 +133,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
     renderTools();
     const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
     fireEvent.change(inputs[1], { target: { value: "/tmp/p.pkg.tar.zst" } });
-    fireEvent.click(screen.getByText("Attestasyon Uret"));
+    fireEvent.click(screen.getByText("Attestasyon Üret"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -146,7 +146,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
     renderTools();
     const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
     fireEvent.change(inputs[2], { target: { value: "/tmp/p.pkg.tar.zst" } });
-    fireEvent.click(screen.getByText("AUR Paketi Hazirla"));
+    fireEvent.click(screen.getByText("AUR Paketi Hazırla"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",

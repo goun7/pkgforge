@@ -84,7 +84,9 @@ describe("Installed page", () => {
       .mockResolvedValueOnce({ jsonrpc: "2.0", id: 2, result: { ok: true, requires_privilege: true, package: "pkgx" } });
     renderInstalled();
     await vi.waitFor(() => expect(screen.getByText("pkgx")).toBeInTheDocument());
-    fireEvent.click(screen.getByLabelText("uninstall pkgx"));
+    fireEvent.click(screen.getByLabelText("Kaldır pkgx"));
+    // Faz 7: onay dialogu eklendi — once "Onayla"ya tiklanir.
+    fireEvent.click(await screen.findByText("Onayla"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",

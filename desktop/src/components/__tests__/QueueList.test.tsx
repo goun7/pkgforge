@@ -18,7 +18,7 @@ describe("QueueList", () => {
     render(<QueueList items={items} />);
     expect(screen.getByText("a_1.0.deb")).toBeInTheDocument();
     expect(screen.getByText("b_2.0.rpm")).toBeInTheDocument();
-    expect(screen.getByText("success")).toBeInTheDocument();
+    expect(screen.getByText("Başarılı")).toBeInTheDocument();
   });
 
   it("calls onRemove for pending items only", () => {

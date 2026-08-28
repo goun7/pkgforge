@@ -12,7 +12,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(() => Promise.resolve(null)),
 }));
 
-import { Export } from "../Export";
+import { Export, __resetFlatpakCache } from "../Export";
 import { ToastProvider } from "../../components/ui/Toast";
 
 function renderExport() {
@@ -26,6 +26,7 @@ function renderExport() {
 describe("Export page", () => {
   beforeEach(() => {
     invokeMock.mockReset();
+    __resetFlatpakCache(); // Faz 7: onbellegi her test oncesi sifirla
     // flatpak_list returns empty by default on mount
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: [] });
   });
