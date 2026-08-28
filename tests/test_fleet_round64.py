@@ -43,7 +43,7 @@ def test_full_status(monkeypatch):
 def test_no_binaries_no_sync(monkeypatch):
     monkeypatch.setattr(FL.shutil, "which", lambda n: None)
     import i18n
-    monkeypatch.setattr(i18n, "load_settings", lambda: {})
+    monkeypatch.setattr(i18n, "load_settings", dict)
     import core.sync_backends as SB
     monkeypatch.setattr(SB, "age_available", lambda: False)
 

@@ -218,7 +218,7 @@ def handle_history_restore(params):
 
     records = params.get("records") or []
     if not isinstance(records, list):
-        raise ValueError("records bir liste olmalı")
+        raise TypeError("records bir liste olmalı")
     db = HistoryDB()
     restored = db.restore_records(records)
     return {"ok": True, "restored": restored}

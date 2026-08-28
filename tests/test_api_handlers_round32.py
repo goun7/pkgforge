@@ -135,7 +135,7 @@ def test_history_handlers(senkron, monkeypatch, tmp_path):
     SahteDB.restore_records = lambda self, recs: len(recs)
     assert AS.handle_history_restore({"records": [{}, {}, {}]}) == {"ok": True, "restored": 3}
     assert AS.handle_history_restore({}) == {"ok": True, "restored": 0}
-    with pytest.raises(ValueError, match="liste"):
+    with pytest.raises(TypeError, match="liste"):
         AS.handle_history_restore({"records": "not-a-list"})
 
 

@@ -34,6 +34,10 @@ def _collect_frontend_listened() -> set[str]:
         for path in root.rglob("*"):
             if path.suffix not in {".ts", ".tsx", ".rs"} or not path.is_file():
                 continue
+            # Test dosyalari uretim frontend'i degildir; event adlarini mock/hata
+            # mesajlarinda serbestce anabilirler (yanlis pozitif uretirler).
+            if "__tests__" in path.parts:
+                continue
             text = path.read_text(encoding="utf-8", errors="replace")
             listened.update(re.findall(r'"(event/[^"]+)"', text))
     return listened

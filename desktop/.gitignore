@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Test coverage reports
+coverage/
+
 # Rust / Tauri
 src-tauri/target/
 src-tauri/gen/

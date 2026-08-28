@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -103,7 +103,7 @@ def test_pick_scan(td, monkeypatch):
 
 # ── Attest ──────────────────────────────────────────────────────
 class _FakeAtt:
-    subject = [{"name": "p.pkg.tar.zst"}]
+    subject: ClassVar[list] = [{"name": "p.pkg.tar.zst"}]
 
 
 def test_attest_missing_file(td, sync_bg):

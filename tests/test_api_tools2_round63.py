@@ -5,6 +5,8 @@ snapshot_remove.
 """
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
 
 import core.api_server as AS
@@ -48,8 +50,8 @@ def test_scan_image_missing(senkron):
 class _FakeAtt:
     _type = "https://in-toto.io/Statement/v1"
     predicate_type = "https://pkgforge.app/attestation/v1"
-    subject = [{"name": "p.pkg.tar.zst"}]
-    predicate = {"builder": {"id": "pkgforge"},
+    subject: ClassVar[list] = [{"name": "p.pkg.tar.zst"}]
+    predicate: ClassVar[dict] = {"builder": {"id": "pkgforge"},
                  "metadata": {"buildInvocationId": "b1"}}
 
 
