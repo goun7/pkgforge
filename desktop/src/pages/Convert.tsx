@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2 } from "lucide-react";
 import { call } from "../lib/rpc";
-import { tFor } from "../lib/i18n";
+import { tFor, type I18nKey } from "../lib/i18n";
 import { useLang } from "../lib/lang";
 import type {
   StepChangedEvent,
@@ -34,6 +34,23 @@ function stepName(index: number): string {
   return PIPELINE_STEPS[index] ?? "unknown";
 }
 
+/** Adim anahtarlarindan i18n etiket anahtarlari. */
+const STEP_LABEL_KEYS: Record<string, I18nKey> = {
+  security: "stepSecurity",
+  malware: "stepMalware",
+  analysis: "stepAnalysis",
+  conversion: "stepConversion",
+  compatibility: "stepCompatibility",
+  install: "stepInstall",
+};
+
+/** Gecen sureyi (saniye) "Xdk Ysn" biciminde gosterir. */
+function fmtElapsed(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m} dk ${sec} sn` : `${sec} sn`;
+}
+
 type ConvertTab = "convert" | "fromsource" | "batch";
 
 export function Convert() {
@@ -47,6 +64,9 @@ export function Convert() {
   const [report, setReport] = useState<CompatibilityReport | null>(null);
   const [dragging, setDragging] = useState(false);
   const [outputPkg, setOutputPkg] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const [installing, setInstalling] = useState(false);
+  const startRef = useRef<number>(0);
 
   // graph viewer
   const [graph, setGraph] = useState<DepGraphData | null>(null);
@@ -67,6 +87,7 @@ export function Convert() {
   // F5.20: live language — follows the shared store set in Settings.
   const lang = useLang();
   const tBatch = tFor(lang);
+  const t = tFor(lang);
   const [batchFilter, setBatchFilter] = useState("");
 
   // Refs so event callbacks always see fresh state without re-subscribing.
@@ -74,6 +95,19 @@ export function Convert() {
   queueRef.current = queue;
   const runningRef = useRef(running);
   runningRef.current = running;
+
+  // Donusum surerken gecen sureyi sayar; bitince sifirlanir.
+  useEffect(() => {
+    if (!running) {
+      setElapsed(0);
+      return;
+    }
+    startRef.current = Date.now();
+    const iv = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [running]);
 
   /** Start the next pending item in the queue, if idle. */
   const startNext = useCallback(async () => {
@@ -136,6 +170,16 @@ export function Convert() {
         const p = e.payload;
         if (p.ok && p.result) setGraph(p.result);
         else toast("error", p.error ?? "Grafik oluşturulamadı");
+      }),
+      listen<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>("event/install_done", (e) => {
+        setInstalling(false);
+        const p = e.payload;
+        if (p.ok && p.result) {
+          if (p.result.ok) toast("success", p.result.message);
+          else toast("error", p.result.message);
+        } else {
+          toast("error", p.error ?? "Kurulum başarısız");
+        }
       }),
       listen<{ step: string }>("event/source_progress", (e) => setSourceStep(e.payload.step)),
       listen<{ ok: boolean; result?: SourceResult; error?: string }>("event/source_done", (e) => {
@@ -234,6 +278,36 @@ export function Convert() {
       await call("graph.build", { pkg_path: outputPkg });
     } catch (e) {
       setGraphLoading(false);
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleOpenFolder = async () => {
+    if (!outputPkg) return;
+    try {
+      await call("system.open_path", { path: outputPkg });
+    } catch (e) {
+      toast("error", (e as Error).message);
+    }
+  };
+
+  const handleCopyPath = async () => {
+    if (!outputPkg) return;
+    try {
+      await navigator.clipboard.writeText(outputPkg);
+      toast("success", t("copiedPath"));
+    } catch {
+      toast("error", t("copyFailed"));
+    }
+  };
+
+  const handleInstall = async () => {
+    if (!outputPkg) return;
+    setInstalling(true);
+    try {
+      await call("system.install_pkg", { pkg_path: outputPkg });
+    } catch (e) {
+      setInstalling(false);
       toast("error", (e as Error).message);
     }
   };
@@ -343,6 +417,9 @@ export function Convert() {
 
   const overall = report?.overall ?? "pass";
   const needsDecision = report !== null;
+  // Ilerleme hissi: uzun suren donusum adimi indeterminate + gecen sure ile akar
+  const isConverting = statuses["conversion"] === "running";
+  const activeStepKey = PIPELINE_STEPS.find((s) => statuses[s] === "running");
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-5">
@@ -357,7 +434,7 @@ export function Convert() {
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
           )}
         >
-          <Play size={15} /> Dönüştür
+          <Play size={15} /> {t("tabConvert")}
         </button>
         <button
           onClick={() => setTab("fromsource")}
@@ -368,7 +445,7 @@ export function Convert() {
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
           )}
         >
-          <Code2 size={15} /> Kaynaktan
+          <Code2 size={15} /> {t("tabSource")}
         </button>
         <button
           onClick={() => setTab("batch")}
@@ -379,7 +456,7 @@ export function Convert() {
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
           )}
         >
-          <ListChecks size={15} /> Toplu
+          <ListChecks size={15} /> {t("tabBatch")}
         </button>
       </div>
 
@@ -390,16 +467,22 @@ export function Convert() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Dönüştürme</CardTitle>
+                <CardTitle>{t("convertTitle")}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <StepIndicator statuses={statuses} />
                 <div className="flex items-center gap-3">
-                  <ProgressBar value={progress} gradient className="flex-1" />
-                  <span className="w-10 text-right text-xs text-[var(--text-secondary)]">
-                    {progress}%
+                  <ProgressBar value={progress} gradient indeterminate={isConverting} className="flex-1" />
+                  <span className="w-12 text-right text-xs text-[var(--text-secondary)]">
+                    {isConverting ? "…" : `${progress}%`}
                   </span>
                 </div>
+                {running && (
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                    <span>{activeStepKey && STEP_LABEL_KEYS[activeStepKey] ? t(STEP_LABEL_KEYS[activeStepKey]) : t("convertPreparing")}</span>
+                    <span>{t("convertElapsed")}: {fmtElapsed(elapsed)}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Button
                     variant="primary"
@@ -407,27 +490,41 @@ export function Convert() {
                     onClick={() => void startNext()}
                     disabled={running || !queue.some((q) => q.status === "pending")}
                   >
-                    <Play size={14} /> Başlat
+                    <Play size={14} /> {t("commonStart")}
                   </Button>
                   <Button variant="danger" size="sm" onClick={() => void handleCancel()} disabled={!running}>
-                    <Square size={14} /> İptal
+                    <Square size={14} /> {t("commonCancel")}
                   </Button>
-                  {running && <Badge tone="info">çalışıyor…</Badge>}
+                  {running && <Badge tone="info">{t("commonRunning")}</Badge>}
                 </div>
 
-                {/* post-conversion actions */}
+                {/* Kalici sonuc bandi: yol + ac/kopyala/kur + ileri islemler */}
                 {outputPkg && !running && (
-                  <div className="flex flex-wrap items-center gap-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-2">
-                    <span className="max-w-[260px] truncate text-xs font-mono text-[var(--text-secondary)]">
-                      {outputPkg.split("/").pop()}
-                    </span>
-                    <Button variant="secondary" size="sm" onClick={() => void handleOciExport()}>
-                      <Container size={14} /> OCI olarak dışa aktar
-                    </Button>
-                    <Button variant="secondary" size="sm" onClick={() => void handleShowGraph()} disabled={graphLoading}>
-                      {graphLoading ? <Loader2 size={14} className="animate-spin" /> : <Network size={14} />}
-                      Bağımlılık grafiği
-                    </Button>
+                  <div className="rounded-lg border border-[var(--success)]/40 bg-[var(--success)]/10 p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <CheckCircle2 size={17} className="shrink-0 text-[var(--success)]" />
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{t("convertDone")}</span>
+                    </div>
+                    <p className="mb-3 break-all font-mono text-xs text-[var(--text-secondary)]">{outputPkg}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button variant="primary" size="sm" onClick={() => void handleInstall()} disabled={installing}>
+                        {installing ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        {t("commonInstall")}
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => void handleOpenFolder()}>
+                        <FolderOpen size={14} /> {t("commonOpenFolder")}
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => void handleCopyPath()}>
+                        <Copy size={14} /> {t("commonCopyPath")}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => void handleOciExport()}>
+                        <Container size={14} /> {t("convertOci")}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => void handleShowGraph()} disabled={graphLoading}>
+                        {graphLoading ? <Loader2 size={14} className="animate-spin" /> : <Network size={14} />}
+                        {t("convertGraph")}
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -439,7 +536,7 @@ export function Convert() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Kuyruk ({queue.length})</CardTitle>
+                <CardTitle>{t("convertQueue")} ({queue.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <QueueList items={queue} onRemove={removeItem} />

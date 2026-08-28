@@ -30,12 +30,13 @@ describe("Security page", () => {
 
   it("renders all six tabs", () => {
     renderSecurity();
-    expect(screen.getByText("İmza")).toBeInTheDocument();
-    expect(screen.getByText("SBOM")).toBeInTheDocument();
-    expect(screen.getByText("Kalite")).toBeInTheDocument();
-    expect(screen.getByText("Provenance")).toBeInTheDocument();
-    expect(screen.getByText("Sigstore")).toBeInTheDocument();
-    expect(screen.getByText("CVE Tara")).toBeInTheDocument();
+    // Ozet karti da ayni etiketleri tasidigi icin getAllByText kullanilir.
+    expect(screen.getAllByText("İmza").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("SBOM").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Kalite").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Provenance").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sigstore").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("CVE Tara").length).toBeGreaterThan(0);
   });
 
   it("calls security.cve_scan when CVE tab used with a path", async () => {

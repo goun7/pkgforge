@@ -1,11 +1,64 @@
-// PkgForge desktop i18n bridge (F4.11).
-// Scope (honest): covers the Faz-3/4 Settings cards and batch controls.
-// Full-app translation remains future work; legacy pages stay Turkish.
+// PkgForge desktop i18n bridge.
+// Faz 6: sozluk tum ana yuzeyleri (gezinti, sayfa basliklari, ortak
+// eylemler, donusturme akisi) kapsar; dil degisimi uygulama genelinde calisir.
 
 export type Lang = "tr" | "en";
 
 export const dict = {
   tr: {
+    // --- Gezinme (Sidebar) ---
+    navConvert: "Dönüştür",
+    navInstalled: "Kurulanlar",
+    navReports: "Raporlar",
+    navBrowse: "AUR Gözat",
+    navUpdates: "Güncellemeler",
+    navSecurity: "Güvenlik",
+    navCompare: "Karşılaştır",
+    navExport: "Dışa Aktar",
+    navTools: "Araçlar",
+    navPlugins: "Eklentiler",
+    navFleet: "Fleet",
+    navSettings: "Ayarlar",
+    sectionLibrary: "Kütüphane",
+    sectionDiscover: "Keşfet",
+    sectionQuality: "Güvenlik ve Kalite",
+    sectionSystem: "Sistem",
+
+    // --- Ortak eylemler ---
+    commonRefresh: "Yenile",
+    commonClear: "Temizle",
+    commonCancel: "İptal",
+    commonStart: "Başlat",
+    commonFilter: "Filtrele…",
+    commonInstall: "Kur",
+    commonOpenFolder: "Klasörü Aç",
+    commonCopyPath: "Yolu Kopyala",
+    commonLoading: "Yükleniyor…",
+    commonRemove: "Kaldır",
+    commonRollback: "Geri al",
+    commonRunning: "çalışıyor…",
+
+    // --- Donusturme sayfasi ---
+    convertTitle: "Dönüştürme",
+    convertQueue: "Kuyruk",
+    tabConvert: "Dönüştür",
+    tabSource: "Kaynaktan",
+    tabBatch: "Toplu",
+    convertElapsed: "Geçen süre",
+    convertPreparing: "Hazırlanıyor…",
+    convertDone: "Dönüşüm tamamlandı",
+    convertOci: "OCI",
+    convertGraph: "Bağımlılık grafiği",
+    copiedPath: "Yol panoya kopyalandı",
+    copyFailed: "Yol kopyalanamadı",
+    stepSecurity: "Güvenlik kontrolü",
+    stepMalware: "Malware taraması",
+    stepAnalysis: "Paket analizi",
+    stepConversion: "Dönüşüm",
+    stepCompatibility: "Uyumluluk testi",
+    stepInstall: "Kurulum",
+
+    // --- Ayarlar / Faz 3-4 (mevcut) ---
     profilesTitle: "Profiller",
     profilesCreate: "Oluştur",
     profilesDelete: "Sil",
@@ -29,6 +82,59 @@ export const dict = {
     batchPriority: "öncelik",
   },
   en: {
+    // --- Navigation (Sidebar) ---
+    navConvert: "Convert",
+    navInstalled: "Installed",
+    navReports: "Reports",
+    navBrowse: "Browse AUR",
+    navUpdates: "Updates",
+    navSecurity: "Security",
+    navCompare: "Compare",
+    navExport: "Export",
+    navTools: "Tools",
+    navPlugins: "Plugins",
+    navFleet: "Fleet",
+    navSettings: "Settings",
+    sectionLibrary: "Library",
+    sectionDiscover: "Discover",
+    sectionQuality: "Security & Quality",
+    sectionSystem: "System",
+
+    // --- Common actions ---
+    commonRefresh: "Refresh",
+    commonClear: "Clear",
+    commonCancel: "Cancel",
+    commonStart: "Start",
+    commonFilter: "Filter…",
+    commonInstall: "Install",
+    commonOpenFolder: "Open Folder",
+    commonCopyPath: "Copy Path",
+    commonLoading: "Loading…",
+    commonRemove: "Remove",
+    commonRollback: "Roll back",
+    commonRunning: "running…",
+
+    // --- Convert page ---
+    convertTitle: "Conversion",
+    convertQueue: "Queue",
+    tabConvert: "Convert",
+    tabSource: "From Source",
+    tabBatch: "Batch",
+    convertElapsed: "Elapsed",
+    convertPreparing: "Preparing…",
+    convertDone: "Conversion complete",
+    convertOci: "OCI",
+    convertGraph: "Dependency graph",
+    copiedPath: "Path copied to clipboard",
+    copyFailed: "Could not copy path",
+    stepSecurity: "Security check",
+    stepMalware: "Malware scan",
+    stepAnalysis: "Package analysis",
+    stepConversion: "Conversion",
+    stepCompatibility: "Compatibility test",
+    stepInstall: "Installation",
+
+    // --- Settings / Faz 3-4 (existing) ---
     profilesTitle: "Profiles",
     profilesCreate: "Create",
     profilesDelete: "Delete",

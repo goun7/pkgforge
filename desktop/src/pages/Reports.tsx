@@ -6,10 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card"
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
+import { EmptyState } from "../components/EmptyState";
 import { useToast } from "../components/ui/Toast";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 export function Reports() {
   const { toast } = useToast();
+  const t = tFor(useLang());
   const [health, setHealth] = useState<HealthStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [bench, setBench] = useState<BenchmarkReport | null>(null);
@@ -131,7 +135,7 @@ export function Reports() {
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Sağlık Raporu</CardTitle>
           <Button variant="secondary" size="sm" onClick={() => void loadHealth()}>
-            <RefreshCw size={14} /> Yenile
+            <RefreshCw size={14} /> {t("commonRefresh")}
           </Button>
         </CardHeader>
         <CardContent>
@@ -139,7 +143,11 @@ export function Reports() {
             <Skeleton className="h-24 w-full" />
           ) : health ? (
             health.total === 0 ? (
-              <p className="text-sm text-[var(--text-muted)]">Henüz kayıtlı dönüşüm bulunmuyor.</p>
+              <EmptyState
+                icon={Activity}
+                title="Henüz kayıtlı dönüşüm yok"
+                description="İlk dönüşümünüzü yaptığınızda başarı oranı ve sağlık metrikleri burada görünecek."
+              />
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center gap-6">

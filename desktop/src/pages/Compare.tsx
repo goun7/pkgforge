@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card"
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { PathPicker, PKG_DIALOG_FILTERS } from "../components/PathPicker";
+import { EmptyState } from "../components/EmptyState";
 import { useToast } from "../components/ui/Toast";
 
 function fmtSize(bytes: number): string {
@@ -83,6 +84,14 @@ export function Compare() {
             {busy ? <Loader2 size={15} className="animate-spin" /> : <GitCompare size={15} />}
             Karşılaştır
           </Button>
+
+          {!diff && !busy && (
+            <EmptyState
+              icon={GitCompare}
+              title="Henüz karşılaştırma yok"
+              description="İki paket seçip Karşılaştır düğmesine basın; dosya, boyut ve bağımlılık farkları burada görünecek."
+            />
+          )}
 
           {diff && (
             <div className="space-y-3 pt-2">

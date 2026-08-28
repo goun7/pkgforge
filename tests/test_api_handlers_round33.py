@@ -127,6 +127,61 @@ def test_system_handlers(senkron, monkeypatch):
     assert senkron[-1][1]["sonuc"]["skor"] == 9
 
 
+def test_system_open_path(senkron, monkeypatch, tmp_path):
+    import subprocess as _sp
+
+    with pytest.raises(FileNotFoundError):
+        AS.handle_system_open_path({"path": str(tmp_path / "yok")})
+
+    calls = []
+
+    def sahte_popen(cmd, **k):
+        calls.append(cmd)
+        return NS()
+
+    monkeypatch.setattr(_sp, "Popen", sahte_popen)
+
+    dosya = tmp_path / "paket.pkg.tar.zst"
+    dosya.write_bytes(b"P")
+    assert AS.handle_system_open_path({"path": str(dosya)}) == {"ok": True}
+    assert calls[-1] == ["xdg-open", str(tmp_path)]
+
+    assert AS.handle_system_open_path({"path": str(tmp_path)}) == {"ok": True}
+    assert calls[-1] == ["xdg-open", str(tmp_path)]
+
+
+def test_system_install_pkg(senkron, monkeypatch, tmp_path):
+    with pytest.raises(FileNotFoundError):
+        AS.handle_system_install_pkg({"pkg_path": str(tmp_path / "yok.pkg.tar.zst")})
+
+    duz = tmp_path / "duz.txt"
+    duz.write_bytes(b"x")
+    with pytest.raises(ValueError):
+        AS.handle_system_install_pkg({"pkg_path": str(duz)})
+
+    pkg = tmp_path / "demo-1.0-1-x86_64.pkg.tar.zst"
+    pkg.write_bytes(b"P")
+
+    monkeypatch.setattr(AS, "discover_tools", lambda: NS(pkexec="", pacman=""))
+    with pytest.raises(RuntimeError):
+        AS.handle_system_install_pkg({"pkg_path": str(pkg)})
+
+    sec = _mod(monkeypatch, "core.security")
+    monkeypatch.setattr(sec, "safe_run",
+                        lambda cmd, timeout=0, **k: NS(returncode=0))
+    monkeypatch.setattr(AS, "discover_tools",
+                        lambda: NS(pkexec="/usr/bin/pkexec", pacman="/usr/bin/pacman"))
+    assert AS.handle_system_install_pkg({"pkg_path": str(pkg)})["started"] is True
+    bulunan = [r for r in senkron if r[0] == "event/install_done"]
+    assert bulunan and bulunan[-1][1]["sonuc"]["ok"] is True
+
+    monkeypatch.setattr(sec, "safe_run",
+                        lambda cmd, timeout=0, **k: NS(returncode=1))
+    AS.handle_system_install_pkg({"pkg_path": str(pkg)})
+    hatali = [r for r in senkron if r[0] == "event/install_done"]
+    assert hatali and hatali[-1][1]["sonuc"]["ok"] is False
+
+
 # --- plugin ----------------------------------------------------------------------
 
 def test_plugin_handlers(senkron, monkeypatch):

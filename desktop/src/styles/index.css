@@ -12,6 +12,13 @@ body {
   min-height: 100vh;
 }
 
+/* Faz 6 — erisilebilirlik: klavyeyle odaklanan her ogeye tutarli focus
+   halkasi. Tekil bilesenlerdeki focus-visible utility'lerini tamamlar. */
+:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
 /* Faz 5b — purposeful motion: standart gecis utility'si */
 .transition-standard {
   transition:
@@ -20,6 +27,17 @@ body {
     border-color var(--duration-base) var(--ease-standard),
     box-shadow var(--duration-base) var(--ease-standard),
     opacity var(--duration-base) var(--ease-standard);
+}
+
+/* Faz 6 — belirsiz (indeterminate) ilerleme cubugu: suren isin yuzdesi
+   bilinmediginde kayan segment ile "calisiyor" hissi verir. */
+@keyframes progress-slide {
+  0% {
+    margin-left: -35%;
+  }
+  100% {
+    margin-left: 100%;
+  }
 }
 
 /* Faz 5b — erisilebilirlik: hareketi azaltmayi secen kullanici icin

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ArrowLeftRight,
   PackageCheck,
@@ -11,8 +12,11 @@ import {
   GitCompare,
   Wrench,
   Server,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useLang } from "../lib/lang";
+import { tFor, type I18nKey } from "../lib/i18n";
 
 export type PageId =
   | "convert"
@@ -33,26 +37,68 @@ export interface SidebarProps {
   onNavigate: (page: PageId) => void;
 }
 
-const NAV_ITEMS: { id: PageId; label: string; icon: typeof ArrowLeftRight; soon?: boolean }[] = [
-  { id: "convert", label: "Dönüştür", icon: ArrowLeftRight },
-  { id: "installed", label: "Kurulanlar", icon: PackageCheck },
-  { id: "browse", label: "AUR Gözat", icon: Globe },
-  { id: "updates", label: "Güncellemeler", icon: RefreshCw },
-  { id: "security", label: "Güvenlik", icon: ShieldCheck },
-  { id: "reports", label: "Raporlar", icon: FileText },
-  { id: "export", label: "Dışa Aktar", icon: PackageOpen },
-  { id: "compare", label: "Karşılaştır", icon: GitCompare },
-  { id: "plugins", label: "Eklentiler", icon: Puzzle },
-  { id: "tools", label: "Araçlar", icon: Wrench },
-  { id: "fleet", label: "Fleet", icon: Server },
-  { id: "settings", label: "Ayarlar", icon: Settings },
+interface NavItem {
+  id: PageId;
+  labelKey: I18nKey;
+  icon: typeof ArrowLeftRight;
+}
+
+/** Sayfalar mantiksal boluklere ayrildi: kalabalik azalir, nis sayfalar
+ *  Sistem bolumunde toplanir. Her bolum katlanabilir. Etiketler i18n anahtari. */
+const NAV_SECTIONS: { id: string; titleKey: I18nKey | null; items: NavItem[] }[] = [
+  {
+    id: "core",
+    titleKey: null,
+    items: [{ id: "convert", labelKey: "navConvert", icon: ArrowLeftRight }],
+  },
+  {
+    id: "library",
+    titleKey: "sectionLibrary",
+    items: [
+      { id: "installed", labelKey: "navInstalled", icon: PackageCheck },
+      { id: "reports", labelKey: "navReports", icon: FileText },
+    ],
+  },
+  {
+    id: "discover",
+    titleKey: "sectionDiscover",
+    items: [
+      { id: "browse", labelKey: "navBrowse", icon: Globe },
+      { id: "updates", labelKey: "navUpdates", icon: RefreshCw },
+    ],
+  },
+  {
+    id: "quality",
+    titleKey: "sectionQuality",
+    items: [
+      { id: "security", labelKey: "navSecurity", icon: ShieldCheck },
+      { id: "compare", labelKey: "navCompare", icon: GitCompare },
+    ],
+  },
+  {
+    id: "system",
+    titleKey: "sectionSystem",
+    items: [
+      { id: "export", labelKey: "navExport", icon: PackageOpen },
+      { id: "tools", labelKey: "navTools", icon: Wrench },
+      { id: "plugins", labelKey: "navPlugins", icon: Puzzle },
+      { id: "fleet", labelKey: "navFleet", icon: Server },
+      { id: "settings", labelKey: "navSettings", icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar({ active, onNavigate }: SidebarProps) {
+  const lang = useLang();
+  const t = tFor(lang);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) =>
+    setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
+
   return (
     <nav
       aria-label="Ana gezinme"
-      className="flex w-56 shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+      className="flex w-56 shrink-0 flex-col overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
     >
       <div className="mb-4 flex items-center gap-2 px-2 pt-1">
         <img src="/favicon.svg" alt="PkgForge" className="h-7 w-7" />
@@ -60,31 +106,51 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
           PkgForge
         </span>
       </div>
-      <ul className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ id, label, icon: Icon, soon }) => (
-          <li key={id}>
-            <button
-              onClick={() => onNavigate(id)}
-              aria-current={active === id ? "page" : undefined}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-[var(--radius-btn)] px-3 py-2 text-sm font-medium transition-colors",
-                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
-                active === id
-                  ? "bg-[var(--brand-blue)]/12 text-[var(--brand-blue)]"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+
+      <div className="flex flex-col gap-2">
+        {NAV_SECTIONS.map((section) => {
+          const isCollapsed = !!collapsed[section.id];
+          return (
+            <div key={section.id}>
+              {section.titleKey && (
+                <button
+                  onClick={() => toggle(section.id)}
+                  aria-expanded={!isCollapsed}
+                  className="flex w-full items-center justify-between rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-secondary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]"
+                >
+                  <span>{t(section.titleKey)}</span>
+                  <ChevronDown
+                    size={12}
+                    className={cn("transition-transform", isCollapsed && "-rotate-90")}
+                  />
+                </button>
               )}
-            >
-              <Icon size={17} />
-              <span className="flex-1 text-left">{label}</span>
-              {soon && (
-                <span className="rounded-full bg-[var(--bg-elevated)] px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-[var(--text-muted)]">
-                  Faz 1-2
-                </span>
+              {!isCollapsed && (
+                <ul className="mt-0.5 flex flex-col gap-0.5">
+                  {section.items.map(({ id, labelKey, icon: Icon }) => (
+                    <li key={id}>
+                      <button
+                        onClick={() => onNavigate(id)}
+                        aria-current={active === id ? "page" : undefined}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-[var(--radius-btn)] px-3 py-2 text-sm font-medium transition-colors",
+                          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
+                          active === id
+                            ? "bg-[var(--brand-blue)]/12 text-[var(--brand-blue)]"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+                        )}
+                      >
+                        <Icon size={17} />
+                        <span className="flex-1 text-left">{t(labelKey)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </button>
-          </li>
-        ))}
-      </ul>
+            </div>
+          );
+        })}
+      </div>
     </nav>
   );
 }

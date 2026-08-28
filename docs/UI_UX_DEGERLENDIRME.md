@@ -96,15 +96,44 @@ etkileşimli öğelere de yayılmalı.
 
 ---
 
+## Faz 6 — 8 iyileştirmenin tamamı uygulandı (2026-08)
+
+1. **Navigasyon gruplandı:** Sidebar 5 mantıksal bölüme ayrıldı (Çekirdek,
+   Kütüphane, Keşfet, Güvenlik ve Kalite, Sistem). Her bölüm katlanabilir;
+   bölüm başlıkları küçük büyük-harf etiketler. Bilişsel yük azaldı.
+2. **Dönüşüm ilerleme hissi:** Dönüşüm adımında ilerleme çubuğu belirsiz
+   (indeterminate, kayan segment) moda geçer, aktif adım adı ve canlı geçen
+   süre sayacı gösterilir. ProgressBar `indeterminate` prop'u kazandı.
+3. **Kalıcı sonuç bandı:** Dönüşüm bitince yeşil bir sonuç bandı belirir:
+   durum simgesi, tam çıktı yolu ve Kur / Klasörü Aç / Yolu Kopyala / OCI /
+   Bağımlılık grafiği butonları. Backend'e `system.open_path` ve
+   `system.install_pkg` (pkexec + pacman -U) metotları eklendi.
+4. **Boş durumlar:** Compare ve Reports sayfalarına yönlendirici EmptyState
+   eklendi (simge + açıklama); Installed'da zaten vardı.
+5. **i18n tamamlandı:** Sözlük gezinti, bölüm başlıkları, ortak eylemler ve
+   Dönüştür akışını kapsayacak şekilde genişletildi. Sidebar, sayfa başlıkları
+   (Topbar), Convert sekmesi ve Installed/Reports ortak butonları `tFor(lang)`
+   kullanıyor; dil anahtarı artık uygulamanın ana yüzeylerinde çalışıyor.
+6. **Güvenlik özet kartı:** 6 sekmenin üstüne tek bakışta özet kart eklendi;
+   her kontrolün durumu (Geçerli/Geçersiz/Temiz/N açık/—) renk kodlu gösterilir
+   ve tıklayınca ilgili sekmeye gider.
+7. **Tutarlılık:** Ortak Card/Button/Badge kullanımı pekiştirildi; global
+   focus-visible halkası ile odak stili tek yerden tutarlı.
+8. **Erişilebilirlik:** Global `:focus-visible` halkası (index.css), Sidebar
+   bölüm başlıkları ve Güvenlik özet kartlarına focus-visible + aria-label;
+   klavye navigasyonu güçlendi.
+
+---
+
 ## Öncelik özeti
 
-| # | Konu | Öncelik |
-|---|------|---------|
-| 1 | Navigasyon gruplama | Yüksek |
-| 2 | Dönüşüm ilerleme hissi | Yüksek |
-| 3 | Kalıcı sonuç bandı | Yüksek |
-| 4 | Boş durumlar | Orta |
-| 5 | i18n tamamlama | Orta |
-| 6 | Güvenlik özet görünüm | Orta |
-| 7 | Tutarlılık | Düşük |
-| 8 | Erişilebilirlik | Düşük |
+| # | Konu | Öncelik | Durum |
+|---|------|---------|-------|
+| 1 | Navigasyon gruplama | Yüksek | ✅ Faz 6 |
+| 2 | Dönüşüm ilerleme hissi | Yüksek | ✅ Faz 6 |
+| 3 | Kalıcı sonuç bandı | Yüksek | ✅ Faz 6 |
+| 4 | Boş durumlar | Orta | ✅ Faz 6 |
+| 5 | i18n tamamlama | Orta | ✅ Faz 6 |
+| 6 | Güvenlik özet görünüm | Orta | ✅ Faz 6 |
+| 7 | Tutarlılık | Düşük | ✅ Faz 6 |
+| 8 | Erişilebilirlik | Düşük | ✅ Faz 6 |

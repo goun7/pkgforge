@@ -184,6 +184,47 @@ export function Security() {
     }
   };
 
+  // Ozet kart: 6 kontrolun anlik durumu (bir bakista sonuc).
+  type SumTone = "neutral" | "success" | "warning" | "danger";
+  const summary: { id: Tab; label: string; tone: SumTone; text: string }[] = [
+    {
+      id: "sign",
+      label: "İmza",
+      tone: sig ? (sig.valid ? "success" : sig.signed ? "danger" : "warning") : "neutral",
+      text: sig ? (sig.valid ? "Geçerli" : sig.signed ? "Geçersiz" : "İmzasız") : "—",
+    },
+    {
+      id: "sbom",
+      label: "SBOM",
+      tone: sbom ? "success" : "neutral",
+      text: sbom ? `${sbom.total_files} dosya` : "—",
+    },
+    {
+      id: "quality",
+      label: "Kalite",
+      tone: quality ? (quality.passed ? "success" : "warning") : "neutral",
+      text: quality ? `${quality.grade} (${quality.total_score}/${quality.max_score})` : "—",
+    },
+    {
+      id: "provenance",
+      label: "Provenance",
+      tone: prov ? "success" : "neutral",
+      text: prov ? "Bulundu" : "—",
+    },
+    {
+      id: "sigstore",
+      label: "Sigstore",
+      tone: sigstore ? (sigstore.cosign_available ? "success" : "warning") : "neutral",
+      text: sigstore ? (sigstore.cosign_available ? "Cosign hazır" : "Cosign yok") : "—",
+    },
+    {
+      id: "cve",
+      label: "CVE",
+      tone: cve ? (cve.count === 0 ? "success" : "danger") : "neutral",
+      text: cve ? (cve.count === 0 ? "Temiz" : `${cve.count} açık`) : "—",
+    },
+  ];
+
   return (
     <div className="h-full overflow-y-auto p-5">
       <Card>
@@ -209,6 +250,34 @@ export function Security() {
               {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
               Tüm Kontrolleri Çalıştır
             </Button>
+          </div>
+
+          {/* ozet kart: tum kontroller bir bakista, tiklayinca ilgili sekmeye gider */}
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {summary.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setTab(s.id)}
+                aria-label={`${s.label} durumu: ${s.text}`}
+                className={cn(
+                  "flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)]",
+                  s.tone === "success" && "border-[var(--success)]/40 bg-[var(--success)]/10",
+                  s.tone === "warning" && "border-[var(--warning)]/40 bg-[var(--warning)]/10",
+                  s.tone === "danger" && "border-[var(--danger)]/40 bg-[var(--danger)]/10",
+                  s.tone === "neutral" && "border-[var(--border-subtle)] bg-[var(--bg-elevated)]",
+                )}
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{s.label}</span>
+                <span className={cn(
+                  "text-sm font-semibold",
+                  s.tone === "success" && "text-[var(--success)]",
+                  s.tone === "warning" && "text-[var(--warning)]",
+                  s.tone === "danger" && "text-[var(--danger)]",
+                  s.tone === "neutral" && "text-[var(--text-secondary)]",
+                )}>{s.text}</span>
+              </button>
+            ))}
           </div>
 
           {/* tabs */}

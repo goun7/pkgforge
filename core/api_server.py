@@ -570,6 +570,43 @@ def handle_system_snapshot_remove(params):
     return {"started": True}
 
 
+def handle_system_open_path(params):
+    """Dosya yoneticisinde yolun bulundugu klasoru acar (sonuc bandi 'Klasoru Ac')."""
+    import subprocess
+
+    path = Path(params.get("path", ""))
+    if not path.exists():
+        raise FileNotFoundError(f"Yol bulunamadı: {path}")
+    target = path.parent if path.is_file() else path
+    subprocess.Popen(["xdg-open", str(target)],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return {"ok": True}
+
+
+def handle_system_install_pkg(params):
+    """Donusturulmus .pkg.tar.zst paketini pkexec + pacman -U ile kurar."""
+    from core.security import safe_run
+
+    pkg = Path(params.get("pkg_path", ""))
+    if not pkg.is_file():
+        raise FileNotFoundError(f"Paket bulunamadı: {pkg}")
+    if ".pkg.tar" not in pkg.name:
+        raise ValueError(f"Geçersiz paket dosyası: {pkg.name}")
+    tools = discover_tools()
+    if not tools.pkexec or not tools.pacman:
+        raise RuntimeError("pkexec veya pacman bulunamadı")
+
+    def _op():
+        res = safe_run([tools.pkexec, tools.pacman, "-U", "--noconfirm", "--", str(pkg)],
+                       timeout=600)
+        if res.returncode == 0:
+            return {"ok": True, "message": f"{pkg.name} kuruldu"}
+        return {"ok": False, "message": f"Kurulum başarısız (kod {res.returncode})"}
+
+    _run_thread(_op, "event/install_done")
+    return {"started": True}
+
+
 def handle_system_verify_rollback(params):
     from dataclasses import asdict
 
@@ -1511,16 +1548,15 @@ METHODS = {
     "system.snapshot_status": handle_system_snapshot_status,
     "system.snapshot_install": handle_system_snapshot_install,
     "system.snapshot_remove": handle_system_snapshot_remove,
+    "system.open_path": handle_system_open_path,
+    "system.install_pkg": handle_system_install_pkg,
     "system.verify_rollback": handle_system_verify_rollback,
     "system.benchmark": handle_system_benchmark,
-    # Faz 2 / B8: plugin marketplace
-    "plugin.list": handle_plugin_list,
-    "plugin.available": handle_plugin_available,
-    "plugin.install": handle_plugin_install,
     "plugin.uninstall": handle_plugin_uninstall,
     "plugin.update": handle_plugin_update,
     "plugin.audit": handle_plugin_audit,
-    # Faz 2 / B5: package comparison
+    "plugin.list": handle_plugin_list,
+    "plugin.available": handle_plugin_available,
     "compare.diff": handle_compare_diff,
     # Faz 2 / B1: AUR browser
     "aur.search": handle_aur_search,

@@ -16,27 +16,30 @@ import { Tools } from "./pages/Tools";
 import { Fleet } from "./pages/Fleet";
 import { EmptyState } from "./components/EmptyState";
 import { Construction } from "lucide-react";
-import { loadLang } from "./lib/lang";
+import { loadLang, useLang } from "./lib/lang";
+import { tFor, type I18nKey } from "./lib/i18n";
 
-const PAGE_TITLES: Record<PageId, string> = {
-  convert: "Dönüştür",
-  installed: "Kurulanlar",
-  settings: "Ayarlar",
-  browse: "AUR Gözat",
-  updates: "Güncellemeler",
-  security: "Güvenlik",
-  reports: "Raporlar",
-  plugins: "Eklentiler",
-  export: "Dışa Aktar",
-  compare: "Karşılaştır",
-  tools: "Araçlar",
-  fleet: "Fleet",
+const PAGE_TITLES: Record<PageId, I18nKey> = {
+  convert: "navConvert",
+  installed: "navInstalled",
+  settings: "navSettings",
+  browse: "navBrowse",
+  updates: "navUpdates",
+  security: "navSecurity",
+  reports: "navReports",
+  plugins: "navPlugins",
+  export: "navExport",
+  compare: "navCompare",
+  tools: "navTools",
+  fleet: "navFleet",
 };
 
 const READY_PAGES: PageId[] = ["convert", "installed", "settings", "security", "updates", "reports", "export", "plugins", "compare", "browse", "tools", "fleet"];
 
 export default function App() {
   const [page, setPage] = useState<PageId>("convert");
+  const lang = useLang();
+  const t = tFor(lang);
 
   // F5.20: hydrate the shared live-language store once at startup.
   useEffect(() => {
@@ -48,7 +51,7 @@ export default function App() {
       <div className="flex h-screen overflow-hidden bg-[var(--bg-base)]">
         <Sidebar active={page} onNavigate={setPage} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar title={PAGE_TITLES[page]} />
+          <Topbar title={t(PAGE_TITLES[page])} />
           <main className="min-h-0 flex-1 overflow-hidden">
             {/* Convert her zaman mount kalir: sekme degisince donusum state'i
                 ve event listener'lar kaybolmasin (aktif degilse sadece gizlenir). */}

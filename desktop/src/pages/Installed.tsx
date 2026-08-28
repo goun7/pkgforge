@@ -9,6 +9,8 @@ import { StatusPill, type PipelineStatus } from "../components/StatusPill";
 import { EmptyState } from "../components/EmptyState";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
+import { useLang } from "../lib/lang";
+import { tFor } from "../lib/i18n";
 
 function statusToPill(status: string): PipelineStatus {
   if (status === "success" || status === "installed") return "success";
@@ -19,6 +21,7 @@ function statusToPill(status: string): PipelineStatus {
 
 export function Installed() {
   const { toast } = useToast();
+  const t = tFor(useLang());
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -88,16 +91,16 @@ export function Installed() {
           <CardTitle>Kurulanlar / Geçmiş ({records.length})</CardTitle>
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Filtrele…"
+              placeholder={t("commonFilter")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="h-9 w-56"
             />
             <Button variant="secondary" size="sm" onClick={() => void load()}>
-              <RefreshCw size={14} /> Yenile
+              <RefreshCw size={14} /> {t("commonRefresh")}
             </Button>
             <Button variant="danger" size="sm" onClick={() => void handleClear()} disabled={!records.length}>
-              <Trash2 size={14} /> Temizle
+              <Trash2 size={14} /> {t("commonClear")}
             </Button>
           </div>
         </CardHeader>
