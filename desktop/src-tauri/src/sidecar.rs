@@ -84,7 +84,14 @@ fn find_bundled_sidecar(app: &AppHandle) -> Option<PathBuf> {
 /// Prefers a bundled single-file binary (production); falls back to running
 /// `python main.py serve` from the source tree (development).
 pub fn spawn(app: &AppHandle) -> Result<(), String> {
-    let mut child = if let Some(bin) = find_bundled_sidecar(app) {
+    // PKGFORGE_SIDECAR=python: bundled binary yerine kaynak agacindaki guncel
+    // Python sidecar'i kullan (bundled sidecar eski kalabilir; kaynak-koku/dev).
+    let bundled = if std::env::var("PKGFORGE_SIDECAR").as_deref() == Ok("python") {
+        None
+    } else {
+        find_bundled_sidecar(app)
+    };
+    let mut child = if let Some(bin) = bundled {
         Command::new(&bin)
             .arg("serve")
             .stdin(Stdio::piped())
