@@ -75,6 +75,9 @@ export function PathPicker({
       const paths = (await fn()).filter((p) => typeof p === "string" && p.length > 0);
       if (!paths.length) return;
       onChange(multiple ? paths.join(",") : paths[0]);
+    } catch {
+      // Dialog acilamadi/kullanici iptal etti — sessizce gec; busy kilidi
+      // finally'de duserek tekrar denenebilir hale gelir.
     } finally {
       busy.current = false;
     }

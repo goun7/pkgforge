@@ -325,6 +325,18 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 19a: kapsam — düşük bileşenler kapatıldı (29 Ağu)
+- 5 yeni kapsam testi dosyası: LogViewer (temizle/kopyala/indir/1000-satır
+  kırpma), SidecarGuard (koptu→uyarı, düzeldi→başarı, down-ref dedupe),
+  TopbarActions (offline/dil/tema/kısayol/sidecarsız), PathPicker (boş seçim/
+  multiple/disabled/dir/çift-tık kilidi), Dialog (backdrop/başlıksız/odak
+  tuzağı/preventDefault/odak-geri-dönüş).
+- BUG BULUNDU: PathPicker handleBrowse browse reject'ini yakalamıyordu →
+  unhandled promise rejection (catch eklendi; busy finally'de düşüyor).
+- Genel kapsam %88.7 → %90.1: LogViewer 84.37, SidecarGuard 100,
+  ConfirmDialog 100, Topbar 100. Kalan düşükler: Installed 54.47,
+  Dialog 55.55, Settings 68.44, Sidebar 68.75.
+
 ## Oturum-8 Faz 18a: score_package refaktörü (29 Ağu)
 - 341 satırlık tek fonksiyon → 37 satır orkestratör + 4 kategori yardımcısı
   (_security/_compatibility/_metadata/_size_checks) + _grade.

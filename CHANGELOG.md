@@ -39,6 +39,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **refactor(core)**: `score_package` 341 → 37 satır orkestratör; güvenlik/
   uyumluluk/üstveri/boyut denetimleri kategori fonksiyonlarına ayrıldı
   (davranış birebir; quality testleri 51/51, ruff+mypy temiz).
+- **fix(desktop)**: PathPicker'da dialog reddi yakalanmıyordu — browse hatası
+  yakalanmamış promise reddi üretiyordu; artık sessizce atlanıp kilit düşüyor.
+- **test(desktop)**: kapsam %88.7 → %90.1: LogViewer %43.75→%84.37,
+  SidecarGuard %53.84→%100, TopbarActions/PathPicker dalları, Dialog odak
+  tuzağı + backdrop/başlıksız/odak-geri-dönüş (10/10). 552→557 test.
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
