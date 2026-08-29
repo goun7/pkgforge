@@ -143,6 +143,117 @@ def _detect_file_type(path: Path) -> str:
     return "binary"
 
 
+def _fill_sbom_metadata(
+    sbom: SBOMDocument, pkg_path: Path, pkginfo: dict, tools: ToolPaths,
+) -> None:
+    """Paket kimligi (.PKGINFO) + F5.15 arac makbuzunu doldurur.
+
+    Makbuz en iyi eforsla toplanir; hatasi SBOM'u asla engellemez.
+    Kullanilan adi/versiyon: pkgname yoksa extract_package_name devreye
+    girer (noktali versiyonlarda stem.split yanlis ayristiriyordu).
+    """
+    sbom.package_name = pkginfo.get("pkgname", "") or extract_package_name(pkg_path.name)
+    sbom.package_version = pkginfo.get("pkgver", "")
+    sbom.package_arch = pkginfo.get("arch", "")
+    sbom.package_description = pkginfo.get("desc", "")
+
+    try:
+        from core.build_receipt import collect_build_receipt
+
+        sbom.build_receipt = collect_build_receipt(tools)
+    except Exception:  # noqa: BLE001 - receipt is optional
+        sbom.build_receipt = {}
+
+
+def _collect_tar_files(
+    sbom: SBOMDocument, pkg_path: Path, bsdtar: str, *, include_hashes: bool,
+) -> bool:
+    """Tar uye listesini gez; siniflandir ve (istendiyse) SHA-256 hesapla.
+
+    Basari: True. Liste alinamazsa False doner; sbom yari bos kalir.
+    """
+    res = safe_run(
+        [bsdtar, "-tvf", str(pkg_path)],
+        timeout=30,
+    )
+    if res.returncode != 0:
+        log.warning("SBOM: tar listing başarısız: %s", res.stderr[:200])
+        return False
+
+    total_size = 0
+    for line in res.stdout.splitlines():
+        parsed = _parse_tv_line(line)
+        if parsed is None:
+            continue
+
+        perms, size, entry_path = parsed
+
+        is_symlink = perms.startswith("l")
+        is_dir = perms.startswith("d")
+
+        mime = ""
+        file_type = "symlink" if is_symlink else ("directory" if is_dir else "")
+
+        if not is_symlink and not is_dir:
+            # Determine MIME by suffix or magic
+            if entry_path.endswith((".py", ".sh", ".conf", ".txt", ".md", ".json", ".xml", ".yaml", ".yml")):
+                file_type = "text"
+            else:
+                file_type = "binary"
+
+        total_size += size
+
+        # Extract to /dev/null to compute hash without temp files
+        sha = ""
+        if include_hashes and not is_symlink and not is_dir and size > 0 and size < 10_000_000:
+            try:
+                inner = safe_run(
+                    [bsdtar, "-xf", str(pkg_path), "-O", entry_path],
+                    timeout=10,
+                )
+                if inner.returncode == 0 and inner.stdout:
+                    sha = hashlib.sha256(inner.stdout.encode("utf-8", errors="replace")).hexdigest()
+            except Exception as exc:  # noqa: BLE001
+                log.debug("SHA hesaplama başarısız: %s", exc)
+
+        sbom.files.append(SBOMEntry(
+            path=entry_path,
+            file_type=file_type,
+            sha256=sha,
+            size_bytes=size,
+            mime_type=mime,
+        ))
+
+    sbom.total_files = len(sbom.files)
+    sbom.total_size_bytes = total_size
+    return True
+
+
+def _summarize_file_counts(sbom: SBOMDocument) -> None:
+    """Tur/kategori sayicilarini tek yerde toplar."""
+    sbom.elf_count = sum(1 for f in sbom.files if f.file_type == "elf")
+    sbom.text_count = sum(1 for f in sbom.files if f.file_type == "text")
+    sbom.symlink_count = sum(1 for f in sbom.files if f.file_type == "symlink")
+    sbom.dir_count = sum(1 for f in sbom.files if f.file_type == "directory")
+
+
+def _fill_runtime_deps(sbom: SBOMDocument, tools: ToolPaths, *, offline: bool) -> None:
+    """Calisma zamani bagimliliklarini ekler (offline modda atlanir).
+
+    Bilincli tembel ice aktarma: dep_resolver agir moduller ceker;
+    cevrimdisi/aracsiz cagrilarda yuklenmemesi tercih edilir.
+    """
+    if offline:
+        log.debug("Çevrimdışı mod — bağımlılık çözümleme atlandı")
+        return
+    try:
+        from core.dep_resolver import resolve_runtime_dependencies
+        deps = resolve_runtime_dependencies(Path("/"), tools)
+        sbom.dependencies = deps
+    except Exception as exc:  # noqa: BLE001
+        log.debug("Bağımlılık çözümleme başarısız: %s", exc)
+
+
 def generate_sbom(
     pkg_path: Path,
     tools: ToolPaths,
@@ -168,102 +279,17 @@ def generate_sbom(
     sbom.created = datetime.datetime.now(datetime.timezone.utc).isoformat()
     sbom.document_name = f"sbom-{pkg_path.name}"
 
-    # Package metadata from .PKGINFO
     pkginfo = _read_pkginfo(pkg_path)
-    # Fallback: authoritative name extraction (handles dotted versions and
-    # deb/rpm/arch naming; stem.split mis-parses dotted versions).
-    sbom.package_name = pkginfo.get("pkgname", "") or extract_package_name(pkg_path.name)
-    sbom.package_version = pkginfo.get("pkgver", "")
-    sbom.package_arch = pkginfo.get("arch", "")
-    sbom.package_description = pkginfo.get("desc", "")
+    _fill_sbom_metadata(sbom, pkg_path, pkginfo, tools)
 
-    # F5.15: embed the toolchain receipt (best-effort, never blocks the SBOM).
-    # Bilinçli tembel içe aktarma: makbuz modülü isteğe bağlıdır ve hatası
-    # SBOM üretimini asla engellememelidir.
-    try:
-        from core.build_receipt import collect_build_receipt
-
-        sbom.build_receipt = collect_build_receipt(tools)
-    except Exception:  # noqa: BLE001 - receipt is optional
-        sbom.build_receipt = {}
-
-    # List tarball members with sizes
     bsdtar = tools.bsdtar or "bsdtar"
     try:
-        res = safe_run(
-            [bsdtar, "-tvf", str(pkg_path)],
-            timeout=30,
-        )
-        if res.returncode != 0:
-            log.warning("SBOM: tar listing başarısız: %s", res.stderr[:200])
-            return sbom
-
-        total_size = 0
-        for line in res.stdout.splitlines():
-            parsed = _parse_tv_line(line)
-            if parsed is None:
-                continue
-
-            perms, size, entry_path = parsed
-
-            is_symlink = perms.startswith("l")
-            is_dir = perms.startswith("d")
-
-            mime = ""
-            file_type = "symlink" if is_symlink else ("directory" if is_dir else "")
-
-            if not is_symlink and not is_dir:
-                # Determine MIME by suffix or magic
-                if entry_path.endswith((".py", ".sh", ".conf", ".txt", ".md", ".json", ".xml", ".yaml", ".yml")):
-                    file_type = "text"
-                else:
-                    file_type = "binary"
-
-            total_size += size
-
-            # Extract to /dev/null to compute hash without temp files
-            sha = ""
-            if include_hashes and not is_symlink and not is_dir and size > 0 and size < 10_000_000:
-                try:
-                    inner = safe_run(
-                        [bsdtar, "-xf", str(pkg_path), "-O", entry_path],
-                        timeout=10,
-                    )
-                    if inner.returncode == 0 and inner.stdout:
-                        sha = hashlib.sha256(inner.stdout.encode("utf-8", errors="replace")).hexdigest()
-                except Exception as exc:  # noqa: BLE001
-                    log.debug("SHA hesaplama başarısız: %s", exc)
-
-            sbom.files.append(SBOMEntry(
-                path=entry_path,
-                file_type=file_type,
-                sha256=sha,
-                size_bytes=size,
-                mime_type=mime,
-            ))
-
-        sbom.total_files = len(sbom.files)
-        sbom.total_size_bytes = total_size
-        sbom.elf_count = sum(1 for f in sbom.files if f.file_type == "elf")
-        sbom.text_count = sum(1 for f in sbom.files if f.file_type == "text")
-        sbom.symlink_count = sum(1 for f in sbom.files if f.file_type == "symlink")
-        sbom.dir_count = sum(1 for f in sbom.files if f.file_type == "directory")
-
+        if _collect_tar_files(sbom, pkg_path, bsdtar, include_hashes=include_hashes):
+            _summarize_file_counts(sbom)
     except Exception as exc:  # noqa: BLE001
         log.warning("SBOM oluşturma başarısız: %s", exc)
 
-    # Shared-library dependencies (skip in offline mode)
-    if not offline:
-        try:
-            # Bilinçli tembel içe aktarma: dep_resolver ağır modüller çeker;
-            # çevrimdışı/araçsız çağrılarda yüklenmemesi tercih edilir.
-            from core.dep_resolver import resolve_runtime_dependencies
-            deps = resolve_runtime_dependencies(Path("/"), tools)
-            sbom.dependencies = deps
-        except Exception as exc:  # noqa: BLE001
-            log.debug("Bağımlılık çözümleme başarısız: %s", exc)
-    else:
-        log.debug("Çevrimdışı mod — bağımlılık çözümleme atlandı")
+    _fill_runtime_deps(sbom, tools, offline=offline)
 
     return sbom
 

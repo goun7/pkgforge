@@ -211,27 +211,21 @@ _SERVICE_NAME = "pkgforge-auto-update"
 _TIMER_NAME = "pkgforge-auto-update"
 
 
-def install_auto_update(interval_hours: int = 6) -> tuple[bool, str]:
-    """Install a systemd timer that periodically checks for updates.
-
-    Args:
-        interval_hours: How often to check (default: every 6 hours).
-
-    Returns:
-        (success, message)
-    """
+def _find_systemctl() -> str | None:
+    """Bilinen yollar arasindan systemctl'i bulur (yoksa None)."""
     import os
-
-    # Check for systemd
-    systemctl = None
     for path in ["/usr/bin/systemctl", "/bin/systemctl", "/usr/sbin/systemctl"]:
         if os.path.isfile(path):
-            systemctl = path
-            break
-    if not systemctl:
-        return False, "systemctl bulunamadı — systemd kurulu değil"
+            return path
+    return None
 
-    # Generate check script
+
+def _auto_update_units(interval_hours: int) -> tuple:
+    """Auto-update biriminin (script, service, timer) iceriklerini uretir.
+
+    Timer plani — Faz 14: interval_hours takvime gercek yansir.
+    24'un bolenleri OnCalendar saat adimiyla; digerleri OnUnitActiveSec.
+    """
     script_content = """#!/bin/bash
 # PkgForge Auto-Update Check
 # Checks for upstream updates and optionally downloads with delta
@@ -251,7 +245,6 @@ echo "[$TIMESTAMP] Auto-update check complete" >> "$LOG_FILE" 2>/dev/null || tru
 """
     script_path = Path("/usr/local/bin/pkgforge-auto-update.sh")
 
-    # Service unit
     service_content = """[Unit]
 Description=PkgForge Auto-Update Check
 After=network-online.target
@@ -265,8 +258,6 @@ StandardOutput=journal
 StandardError=journal
 """
 
-    # Timer unit — Faz 14: interval_hours artik takvime gercek yansir.
-    # 24'un bölenleri OnCalendar saat adimiyla; digerleri OnUnitActiveSec.
     hours = max(int(interval_hours), 1)
     if 24 % hours == 0:
         sched = f"OnCalendar=*-*-* 00/{hours}:00:00"
@@ -286,50 +277,80 @@ WantedBy=timers.target
 
     service_path = Path(f"/etc/systemd/system/{_SERVICE_NAME}.service")
     timer_path = Path(f"/etc/systemd/system/{_TIMER_NAME}.timer")
+    return (
+        script_path, script_content,
+        service_path, service_content,
+        timer_path, timer_content,
+    )
 
+
+def _write_and_enable_units(units: tuple) -> tuple[bool, str]:
+    """Unit dosyalarini TEK yetkili diyalogda yazar ve timer'i acar.
+
+    Faz 14: TUM dosyalar TEK pkexec diyalogunda yazilir (write-batch);
+    eski akis 4 ayri diyalog aciyordu ve diyaloglar saniyeler icinde
+    art arda yagdiginda 'sudo bombardimani' deneyimi olusuyordu.
+    systemctl fiilleri de helper uzerinden yetkili yapilir (eski akis
+    bunlari yetkisiz cagiriyordu → sessiz basarisizlik).
+    """
+    script_path, script_content, service_path, service_content, timer_path, timer_content = units
+    from core.privileged import (
+        build_write_batch_manifest,
+        privileged_systemctl_argv,
+        privileged_write_batch_argv,
+    )
+    from core.security import safe_run as _safe_run
+
+    manifest = build_write_batch_manifest([
+        ("755", str(script_path), script_content),
+        ("644", str(service_path), service_content),
+        ("644", str(timer_path), timer_content),
+    ])
+    res = _safe_run(privileged_write_batch_argv("pkexec"),
+                    input=manifest, timeout=30)
+    if res.returncode != 0:
+        return False, f"Dosyalar yazılamadı (kod {res.returncode})"
+
+    _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
+    res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
+                                             f"{_TIMER_NAME}.timer"), timeout=15)
+    if res.returncode != 0:
+        return False, "Timer etkinleştirilemedi (yetki reddedildi?)"
+    _safe_run(privileged_systemctl_argv("pkexec", "start",
+                                        f"{_TIMER_NAME}.timer"), timeout=15)
+    return True, ""
+
+
+def install_auto_update(interval_hours: int = 6) -> tuple[bool, str]:
+    """Install a systemd timer that periodically checks for updates.
+
+    Args:
+        interval_hours: How often to check (default: every 6 hours).
+
+    Returns:
+        (success, message)
+    """
+    if not _find_systemctl():
+        return False, "systemctl bulunamadı — systemd kurulu değil"
+
+    units = _auto_update_units(interval_hours)
     try:
-        # Faz 14: TUM dosyalar TEK pkexec diyaloğunda yazılır (write-batch);
-        # eski akış 4 ayrı diyalog açıyordu ve diyaloglar saniyeler içinde
-        # art arda yağdığında "sudo bombardımanı" deneyimi oluşuyordu.
-        from core.privileged import (
-            build_write_batch_manifest,
-            privileged_systemctl_argv,
-            privileged_write_batch_argv,
-        )
-        from core.security import safe_run as _safe_run
-
-        manifest = build_write_batch_manifest([
-            ("755", str(script_path), script_content),
-            ("644", str(service_path), service_content),
-            ("644", str(timer_path), timer_content),
-        ])
-        res = _safe_run(privileged_write_batch_argv("pkexec"),
-                        input=manifest, timeout=30)
-        if res.returncode != 0:
-            return False, f"Dosyalar yazılamadı (kod {res.returncode})"
-
-        # Enable: systemctl fiilleri de helper üzerinden yetkili yapılır.
-        # (Eski akış bunları yetkisiz çağırıyordu → sessiz başarısızlık.)
-        _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
-        res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
-                                                 f"{_TIMER_NAME}.timer"), timeout=15)
-        if res.returncode != 0:
-            return False, "Timer etkinleştirilemedi (yetki reddedildi?)"
-        _safe_run(privileged_systemctl_argv("pkexec", "start",
-                                            f"{_TIMER_NAME}.timer"), timeout=15)
-
-        msg = (
-            f"✅ Auto-update servisi kuruldu!\n\n"
-            f"  Timer: Her {interval_hours} saatte bir kontrol\n"
-            f"  Servis: {_SERVICE_NAME}.service\n"
-            f"  Timer: {_TIMER_NAME}.timer\n\n"
-            f"  Durum: systemctl status {_TIMER_NAME}.timer\n"
-            f"  Kaldır: pkgforge auto-update --remove (GUI'den Updates sayfası da olur)"
-        )
-        return True, msg
-
+        ok, err = _write_and_enable_units(units)
+        if not ok:
+            return False, err
     except Exception as exc:  # noqa: BLE001
         return False, f"Kurulum başarısız: {exc}"
+
+    NL = chr(10)
+    msg = (
+        "✅ Auto-update servisi kuruldu!" + NL + NL
+        + f"  Timer: Her {interval_hours} saatte bir kontrol" + NL
+        + f"  Servis: {_SERVICE_NAME}.service" + NL
+        + f"  Timer: {_TIMER_NAME}.timer" + NL + NL
+        + f"  Durum: systemctl status {_TIMER_NAME}.timer" + NL
+        + "  Kaldır: pkgforge auto-update --remove (GUI'den Updates sayfası da olur)"
+    )
+    return True, msg
 
 
 def remove_auto_update() -> tuple[bool, str]:

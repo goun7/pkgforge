@@ -38,6 +38,91 @@ class VerifyResult:
     rebuild_hash: str = ""
 
 
+def _extract_pkgbuild(
+    original_pkg: Path, tools: ToolPaths, extract_dir: Path,
+) -> Path | None:
+    """Paketi cikarip ilk PKGBUILD'in yolunu dondurur (yoksa None).
+
+    Cikarma basarisizsa None doner; ayrinti mesaji cagirana birakilir.
+    """
+    res = safe_run(
+        [tools.bsdtar, "-xf", str(original_pkg), "-C", str(extract_dir)],
+        timeout=60,
+    )
+    if res.returncode != 0:
+        return None
+    candidates = list(extract_dir.rglob("PKGBUILD"))
+    return candidates[0] if candidates else None
+
+
+def _rebuild_package(
+    tools: ToolPaths, build_dir: Path, rebuild_pkg: Path,
+) -> Path | None:
+    """makepkg ile yeniden olusturur; cikti paketini dondurur (yoksa None)."""
+    import os
+    env = {**os.environ, "PKGDEST": str(rebuild_pkg)}
+
+    res = safe_run(
+        [tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"],
+        cwd=str(build_dir),
+        env=env,
+        timeout=600,
+    )
+    if res.returncode != 0:
+        return None
+
+    for f in rebuild_pkg.iterdir():
+        if f.is_file() and ".pkg.tar" in f.name and not f.name.endswith((".sig", ".json")):
+            return f
+    return None
+
+
+def _compare_rebuild(
+    original_pkg: Path, rebuilt: Path, verify_dir: Path,
+    original_hash: str, rebuild_hash: str,
+) -> VerifyResult:
+    """Hashler esitse birebir dogrulama; degilse xdelta3 ile eslesme orani.
+
+    Adim 6 binary diff: xdelta3 varsa paketler arasi fark olculur ve
+    match_ratio = 1 - diff/total ile raporlanir.
+    """
+    if original_hash == rebuild_hash:
+        return VerifyResult(
+            verified=True,
+            match_ratio=1.0,
+            detail="✓ Paket birebir aynı — reproducible build doğrulandı",
+            original_hash=original_hash,
+            rebuild_hash=rebuild_hash,
+        )
+
+    diff_size = 0
+    if shutil.which("xdelta3"):
+        diff_file = verify_dir / "diff.xdelta"
+        res = safe_run(
+            ["xdelta3", "-e", "-f", "-s", str(original_pkg), str(rebuilt), str(diff_file)],
+            timeout=120,
+        )
+        if res.returncode == 0 and diff_file.is_file():
+            diff_size = diff_file.stat().st_size
+
+    total_size = original_pkg.stat().st_size
+    match_ratio = 1.0 - (diff_size / total_size) if total_size > 0 else 0.0
+
+    return VerifyResult(
+        verified=False,
+        match_ratio=match_ratio,
+        diff_size=diff_size,
+        total_size=total_size,
+        detail=(
+            f"Paket farklı — eşleşme oranı: {match_ratio:.1%}\n"
+            f"  Orijinal: {original_hash[:32]}…\n"
+            f"  Yeniden:  {rebuild_hash[:32]}…"
+        ),
+        original_hash=original_hash,
+        rebuild_hash=rebuild_hash,
+    )
+
+
 def verify_reproducible(
     original_pkg: Path,
     tools: ToolPaths,
@@ -68,105 +153,28 @@ def verify_reproducible(
     with tempfile.TemporaryDirectory(prefix="pkgforge_verify_") as tmpdir:
         verify_dir = Path(tmpdir)
 
-        # 1. Extract the original package to get the PKGBUILD
         extract_dir = verify_dir / "extracted"
         extract_dir.mkdir()
 
-        res = safe_run(
-            [tools.bsdtar, "-xf", str(original_pkg), "-C", str(extract_dir)],
-            timeout=60,
-        )
-        if res.returncode != 0:
+        pkgbuild_path = _extract_pkgbuild(original_pkg, tools, extract_dir)
+        if pkgbuild_path is None:
             return VerifyResult(
-                detail=f"Paket çıkarılamadı: {res.stderr[:200]}",
+                detail="Paket çıkarılamadı veya PKGBUILD bulunamadı — yeniden oluşturma yapılamıyor",
                 original_hash=original_hash,
             )
 
-        # 2. Look for PKGBUILD in the extracted content or build directory
-        # For PkgForge-converted packages, the PKGBUILD was used during build
-        # We need to find the source metadata to rebuild
-
-        # Try to find PKGBUILD-like content
-        pkgbuild_candidates = list(extract_dir.rglob("PKGBUILD"))
-        if not pkgbuild_candidates:
-            # No PKGBUILD found — we can't rebuild
-            return VerifyResult(
-                detail="Paket içinde PKGBUILD bulunamadı — yeniden oluşturma yapılamıyor",
-                original_hash=original_hash,
-            )
-
-        pkgbuild_path = pkgbuild_candidates[0]
         build_dir = pkgbuild_path.parent
-
-        # 3. Run makepkg to rebuild
         rebuild_pkg = verify_dir / "rebuild" / "pkg"
         rebuild_pkg.mkdir(parents=True)
 
-        import os
-        env = {**os.environ, "PKGDEST": str(rebuild_pkg)}
-
-        res = safe_run(
-            [tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"],
-            cwd=str(build_dir),
-            env=env,
-            timeout=600,
-        )
-
-        if res.returncode != 0:
-            return VerifyResult(
-                detail=f"Yeniden oluşturma başarısız (kod: {res.returncode})",
-                original_hash=original_hash,
-            )
-
-        # 4. Find the rebuilt package
-        rebuilt = None
-        for f in rebuild_pkg.iterdir():
-            if f.is_file() and ".pkg.tar" in f.name and not f.name.endswith((".sig", ".json")):
-                rebuilt = f
-                break
-
-        if not rebuilt:
+        rebuilt = _rebuild_package(tools, build_dir, rebuild_pkg)
+        if rebuilt is None:
             return VerifyResult(
                 detail="Yeniden oluşturma başarısız — çıktı paketi bulunamadı",
                 original_hash=original_hash,
             )
 
         rebuild_hash = sha256_hash(rebuilt)
-
-        # 5. Compare hashes
-        if original_hash == rebuild_hash:
-            return VerifyResult(
-                verified=True,
-                match_ratio=1.0,
-                detail="✓ Paket birebir aynı — reproducible build doğrulandı",
-                original_hash=original_hash,
-                rebuild_hash=rebuild_hash,
-            )
-
-        # 6. Compute binary diff if xdelta3 available
-        diff_size = 0
-        if shutil.which("xdelta3"):
-            diff_file = verify_dir / "diff.xdelta"
-            res = safe_run(
-                ["xdelta3", "-e", "-f", "-s", str(original_pkg), str(rebuilt), str(diff_file)],
-                timeout=120,
-            )
-            if res.returncode == 0 and diff_file.is_file():
-                diff_size = diff_file.stat().st_size
-
-        total_size = original_pkg.stat().st_size
-        match_ratio = 1.0 - (diff_size / total_size) if total_size > 0 else 0.0
-
-        return VerifyResult(
-            verified=False,
-            match_ratio=match_ratio,
-            diff_size=diff_size,
-            total_size=total_size,
-            detail=(
-                f"Paket farklı — eşleşme oranı: {match_ratio:.1%}\n"
-                f"  Orijinal: {original_hash[:32]}…\n"
-                f"  Yeniden:  {rebuild_hash[:32]}…"
-            ),
-            original_hash=original_hash,
-            rebuild_hash=rebuild_hash,
+        return _compare_rebuild(
+            original_pkg, rebuilt, verify_dir, original_hash, rebuild_hash,
         )

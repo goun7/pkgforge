@@ -112,20 +112,12 @@ def _create_test_deb(path: Path) -> bool:
         return result.returncode == 0
 
 
-def run_benchmarks(
-    test_file: Path | None = None,
-    quick: bool = False,
-) -> BenchmarkReport:
-    """Run all benchmarks and return results.
+def _bench_create_deb() -> BenchmarkResult:
+    """Benc 1: test .deb olusturma hizi.
 
-    Not: zamanlanan bölümler içindeki `from core.X import ...` satırları
-    BİLİNÇLİDİR — ilk çağrının içe aktarma maliyeti ölçümün parçasıdır.
+    Zamanlanan bolumler icindeki import satirlari BILINCLIDIR - ilk
+    cagrinin ice aktarma maliyeti olcumun parcasidir.
     """
-    report = BenchmarkReport()
-    tools = discover_tools()
-    start_time = time.monotonic()
-
-    # Benchmark 1: File creation speed
     r = BenchmarkResult(name="Test DEB oluşturma")
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
@@ -136,119 +128,161 @@ def run_benchmarks(
     r.memory_peak_kb = _get_memory_usage() - mem_start
     r.passed = ok
     r.details = f"Oluşturulan: {deb_path.name}" if ok else "Başarısız"
-    report.results.append(r)
+    return r
 
-    # Benchmark 2: SHA-256 hash speed
-    if test_file and test_file.is_file():
-        r = BenchmarkResult(name="SHA-256 hash")
-        r.input_size_bytes = test_file.stat().st_size
-        mem_start = _get_memory_usage()
-        t0 = time.monotonic()
-        from core.security import sha256_hash
-        h = sha256_hash(test_file)
-        r.duration_ms = int((time.monotonic() - t0) * 1000)
-        r.memory_peak_kb = _get_memory_usage() - mem_start
-        r.passed = len(h) == 64
-        r.details = f"{r.input_size_bytes / 1024:.0f}KB → {r.duration_ms}ms"
-        report.results.append(r)
 
-    # Benchmark 3: MIME type validation
-    if test_file and test_file.is_file():
-        r = BenchmarkResult(name="MIME type doğrulama")
-        mem_start = _get_memory_usage()
-        t0 = time.monotonic()
-        from core.security import validate_mime_type
-        try:
-            mime = validate_mime_type(test_file, tools)
-            r.passed = True
-            r.details = mime
-        except ValueError:
-            r.passed = False
-            r.details = "Geçersiz MIME"
-        r.duration_ms = int((time.monotonic() - t0) * 1000)
-        r.memory_peak_kb = _get_memory_usage() - mem_start
-        report.results.append(r)
+def _bench_sha256(test_file: Path | None) -> BenchmarkResult | None:
+    """Benc 2: SHA-256 hash hizi (test dosyasi yoksa atlanir)."""
+    if not (test_file and test_file.is_file()):
+        return None
+    r = BenchmarkResult(name="SHA-256 hash")
+    r.input_size_bytes = test_file.stat().st_size
+    mem_start = _get_memory_usage()
+    t0 = time.monotonic()
+    from core.security import sha256_hash
+    h = sha256_hash(test_file)
+    r.duration_ms = int((time.monotonic() - t0) * 1000)
+    r.memory_peak_kb = _get_memory_usage() - mem_start
+    r.passed = len(h) == 64
+    r.details = f"{r.input_size_bytes / 1024:.0f}KB → {r.duration_ms}ms"
+    return r
 
-    # Benchmark 4: Package analysis
-    if test_file and test_file.is_file() and tools.ar:
-        r = BenchmarkResult(name="Paket analizi")
-        mem_start = _get_memory_usage()
-        t0 = time.monotonic()
-        from core.package_analyzer import analyze_package
-        try:
-            meta = analyze_package(test_file, tools)
-            r.passed = bool(meta.name)
-            r.details = f"{meta.name} {meta.version}"
-        except Exception as exc:  # noqa: BLE001
-            r.passed = False
-            r.details = str(exc)[:50]
-        r.duration_ms = int((time.monotonic() - t0) * 1000)
-        r.memory_peak_kb = _get_memory_usage() - mem_start
-        report.results.append(r)
 
-    # Benchmark 5: Security checks
-    if test_file and test_file.is_file():
-        r = BenchmarkResult(name="Güvenlik kontrolleri (tümü)")
-        mem_start = _get_memory_usage()
-        t0 = time.monotonic()
-        from core.security import (
-            check_compression_bomb,
-            check_path_traversal,
-            sha256_hash,
-            validate_file_size,
-        )
-        validate_file_size(test_file, 2048, 500)
-        sha256_hash(test_file)
-        check_path_traversal(["usr/bin/app", "etc/config.conf"])
-        check_compression_bomb(test_file, tools)
-        r.duration_ms = int((time.monotonic() - t0) * 1000)
-        r.memory_peak_kb = _get_memory_usage() - mem_start
+def _bench_mime(test_file: Path | None, tools) -> BenchmarkResult | None:
+    """Benc 3: MIME dogrulama hizi."""
+    if not (test_file and test_file.is_file()):
+        return None
+    r = BenchmarkResult(name="MIME type doğrulama")
+    mem_start = _get_memory_usage()
+    t0 = time.monotonic()
+    from core.security import validate_mime_type
+    try:
+        mime = validate_mime_type(test_file, tools)
         r.passed = True
-        r.details = f"{r.duration_ms}ms toplam"
-        report.results.append(r)
+        r.details = mime
+    except ValueError:
+        r.passed = False
+        r.details = "Geçersiz MIME"
+    r.duration_ms = int((time.monotonic() - t0) * 1000)
+    r.memory_peak_kb = _get_memory_usage() - mem_start
+    return r
 
-    # Benchmark 6: xdelta3 delta creation (if available)
-    if not quick and shutil.which("xdelta3") and test_file and test_file.is_file():
-        r = BenchmarkResult(name="xdelta3 delta oluşturma")
-        with tempfile.TemporaryDirectory() as tmpdir:
-            old_file = Path(tmpdir) / "old.bin"
-            new_file = Path(tmpdir) / "new.bin"
-            delta_file = Path(tmpdir) / "delta.xdelta"
 
-            # Create similar files (small diff)
-            old_data = test_file.read_bytes()
-            new_data = old_data[:-100] + b"\x00" * 100
+def _bench_analysis(test_file: Path | None, tools) -> BenchmarkResult | None:
+    """Benc 4: paket analizi hizi (ar araci gerekir)."""
+    if not (test_file and test_file.is_file() and tools.ar):
+        return None
+    r = BenchmarkResult(name="Paket analizi")
+    mem_start = _get_memory_usage()
+    t0 = time.monotonic()
+    from core.package_analyzer import analyze_package
+    try:
+        meta = analyze_package(test_file, tools)
+        r.passed = bool(meta.name)
+        r.details = f"{meta.name} {meta.version}"
+    except Exception as exc:  # noqa: BLE001
+        r.passed = False
+        r.details = str(exc)[:50]
+    r.duration_ms = int((time.monotonic() - t0) * 1000)
+    r.memory_peak_kb = _get_memory_usage() - mem_start
+    return r
 
-            old_file.write_bytes(old_data)
-            new_file.write_bytes(new_data)
 
-            mem_start = _get_memory_usage()
-            t0 = time.monotonic()
-            from core.delta_updater import create_delta
-            ok = create_delta(old_file, new_file, delta_file)
-            r.duration_ms = int((time.monotonic() - t0) * 1000)
-            r.memory_peak_kb = _get_memory_usage() - mem_start
-            r.input_size_bytes = len(new_data)
-            r.output_size_bytes = delta_file.stat().st_size if delta_file.exists() else 0
-            r.passed = ok
-            if ok:
-                ratio = (1 - r.output_size_bytes / r.input_size_bytes) * 100 if r.input_size_bytes > 0 else 0
-                r.details = f"{r.output_size_bytes / 1024:.0f}KB delta, {ratio:.0f}% tasarruf"
-        report.results.append(r)
+def _bench_security(test_file: Path | None, tools) -> BenchmarkResult | None:
+    """Benc 5: guvenlik kontrolleri toplami."""
+    if not (test_file and test_file.is_file()):
+        return None
+    r = BenchmarkResult(name="Güvenlik kontrolleri (tümü)")
+    mem_start = _get_memory_usage()
+    t0 = time.monotonic()
+    from core.security import (
+        check_compression_bomb,
+        check_path_traversal,
+        sha256_hash,
+        validate_file_size,
+    )
+    validate_file_size(test_file, 2048, 500)
+    sha256_hash(test_file)
+    check_path_traversal(["usr/bin/app", "etc/config.conf"])
+    check_compression_bomb(test_file, tools)
+    r.duration_ms = int((time.monotonic() - t0) * 1000)
+    r.memory_peak_kb = _get_memory_usage() - mem_start
+    r.passed = True
+    r.details = f"{r.duration_ms}ms toplam"
+    return r
 
-    # Benchmark 7: Provenance generation
+
+def _bench_xdelta(
+    test_file: Path | None, quick: bool,
+) -> BenchmarkResult | None:
+    """Benc 6: xdelta3 delta olusturma (arac varsa, quick degilse)."""
+    if quick or not shutil.which("xdelta3") or not (test_file and test_file.is_file()):
+        return None
+    r = BenchmarkResult(name="xdelta3 delta oluşturma")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        old_file = Path(tmpdir) / "old.bin"
+        new_file = Path(tmpdir) / "new.bin"
+        delta_file = Path(tmpdir) / "delta.xdelta"
+
+        old_data = test_file.read_bytes()
+        new_data = old_data[:-100] + b"\x00" * 100
+
+        old_file.write_bytes(old_data)
+        new_file.write_bytes(new_data)
+
+        mem_start = _get_memory_usage()
+        t0 = time.monotonic()
+        from core.delta_updater import create_delta
+        ok = create_delta(old_file, new_file, delta_file)
+        r.duration_ms = int((time.monotonic() - t0) * 1000)
+        r.memory_peak_kb = _get_memory_usage() - mem_start
+        r.input_size_bytes = len(new_data)
+        r.output_size_bytes = delta_file.stat().st_size if delta_file.exists() else 0
+        r.passed = ok
+        if ok:
+            ratio = (1 - r.output_size_bytes / r.input_size_bytes) * 100 if r.input_size_bytes > 0 else 0
+            r.details = f"{r.output_size_bytes / 1024:.0f}KB delta, {ratio:.0f}% tasarruf"
+    return r
+
+
+def _bench_provenance() -> BenchmarkResult:
+    """Benc 7: provenance uretimi."""
     r = BenchmarkResult(name="Provenance oluşturma")
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     from core.provenance import create_provenance
-    # "/tmp/test.deb" is only a metadata string passed to the
-    # provenance generator for timing; no file is created at that path.
     prov = create_provenance(source_file="/tmp/test.deb", package_name="test")  # nosec B108
     r.duration_ms = int((time.monotonic() - t0) * 1000)
     r.memory_peak_kb = _get_memory_usage() - mem_start
     r.passed = bool(prov.provenance_hash)
     r.details = f"Hash: {prov.provenance_hash[:16]}…"
-    report.results.append(r)
+    return r
+
+
+def run_benchmarks(
+    test_file: Path | None = None,
+    quick: bool = False,
+) -> BenchmarkReport:
+    """Run all benchmarks and return results.
+
+    Not: zamanlanan bolumlerdeki 'from core.X import ...' importlari
+    BILINCLIDIR - ilk cagrinin ice aktarma maliyeti olcumun parcasidir.
+    """
+    report = BenchmarkReport()
+    tools = discover_tools()
+    start_time = time.monotonic()
+
+    for result in (
+        _bench_create_deb(),
+        _bench_sha256(test_file),
+        _bench_mime(test_file, tools),
+        _bench_analysis(test_file, tools),
+        _bench_security(test_file, tools),
+        _bench_xdelta(test_file, quick),
+        _bench_provenance(),
+    ):
+        if result is not None:
+            report.results.append(result)
 
     report.total_duration_ms = int((time.monotonic() - start_time) * 1000)
     return report

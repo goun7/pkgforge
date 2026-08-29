@@ -343,6 +343,25 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-9 Faz 18b: dört dev daha bölündü (29 Ağu)
+- run_benchmarks 140→29 + 7 _bench_* (zamanlanmış import'lar yardımcıların
+  içinde BİLİNÇLİ korunur); 49 benç testi geçti.
+- verify_reproducible 132→~50: _extract_pkgbuild/_rebuild_package/
+  _compare_rebuild (xdelta3 diff korundu); 121 repro/build testi.
+- generate_sbom 123→~30: _fill_sbom_metadata/_collect_tar_files/
+  _summarize_file_counts/_fill_runtime_deps; 76 SBOM testi.
+- install_auto_update 111→30: _find_systemctl/_auto_update_units/
+  _write_and_enable_units — Faz 14 tek-diyalog akışı aynen korunur;
+  78 delta/auto-update testi.
+- Dersler: heredoc'lu py kaynak kesiminde \n çift katman kaçışı → chr(10)
+  veya tools.edit; edit kısmi eşleşince eski gövde kalır → AST [start,end)
+  sınırlarıyla değiştir + ruff doğrulaması şart.
+- Tam regresyon: ruff+mypy 77 dosya temiz, pytest rc=0 (2468 nokta).
+- Kalan ≥100: 6 aday (_make_http_handler 138 = sınıf fabrikası, iç
+  metodlar ≤31 → kabul edilebilir; _do_convert 106,
+  generate_pkgbuild_from_source 112, download_package 102,
+  check_abi_compatibility 103, build_file_dep_graph 100).
+
 ## Oturum-8 Faz 20c: sekiz sayfaya act reçetesi + WebDAV dalları (29 Ağu)
 - Fleet/Tools/Reports/Export/Compare/Browse/Plugins/Security: helper'lar
   async act flush, emit'ler await act'e, sync it()'ler async. Uyarı

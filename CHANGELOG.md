@@ -59,6 +59,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **report**: Faz 21a kapanış değerlendirmesi — ruff 0, mypy 77 dosya
   0 hata, pytest rc=0 (~2460+ test), vitest 580/580, tsc 0, kapsam %93.1;
   act diagnostics 551→224; _temp_dir guard + WebDAV push/pull dalları.
+- **refactor(core)**: Faz 18b dev fonksiyonlar — run_benchmarks 140→29
+  (7 benç yardımcısı), verify_reproducible 132→~50 (extract/rebuild/compare),
+  generate_sbom 123→~30 (4 yardımcı), install_auto_update 111→30
+  (_find_systemctl/_auto_update_units/_write_and_enable_units). Kalan ≥100:
+  6 (Handler fabrikası yanlış pozitif dahil).
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +
