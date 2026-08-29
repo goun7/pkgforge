@@ -325,6 +325,14 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 15b: Settings UX — onaylı silme + dirty-state (29 Ağu)
+- Profil silme ConfirmDialog ile onaylı hale geldi (Vazgeç iptal eder, RPC
+  çağrılmaz; onay butonu role=button ile ayrıştırılır — başlık da "Sil").
+- Kaydet yanında 'Kaydedilmemiş değişiklikler var' göstergesi; saved kopyası
+  load/save/reset/import noktalarında senkron.
+- Test: Settings 13/13 (3 yeni: dialog aç/Vazgeç, onay→delete RPC, dirty
+  gösterge döngüsü). Debug dersi: i18n etiketi tahminle değil grep'le doğrula.
+
 ## Oturum-8 Faz 15: doktor GUI'sine polkit teşhisi (29 Ağu)
 - DoctorPanel: 'Yetki (polkit) kurulumu' satırı — ok=false'da uyarı rengiyle
   detail + eylem kutusu (sudo ./scripts/install.sh önerisi, tr/en).

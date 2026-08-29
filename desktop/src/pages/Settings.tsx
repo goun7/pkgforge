@@ -9,6 +9,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 /** Setting keys mirror the PyQt6 settings_dialog for full parity. */
 interface SettingsShape {
@@ -97,6 +98,13 @@ export function Settings() {
   const [appVersion, setAppVersion] = useState<string | null>(null);
   // Faz 10 (5.1): vurgu rengi (localStorage tabanli, UI-only).
   const [accent, setAccent] = useState<Accent>(() => getAccentLocal());
+  // Faz 15: kaydedilmemis degisiklik gostergesi — yuklenen goruntunun
+  // kopyasini tutar; save/reset/import basariyla esitlenir.
+  const [saved, setSaved] = useState<SettingsShape>(DEFAULTS);
+  const dirty = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify(saved),
+    [settings, saved],
+  );
 
   // Faz 9 (2.8): uygulama surumunu footer icin getir.
   useEffect(() => {
@@ -118,6 +126,7 @@ export function Settings() {
         Partial<SettingsShape> & { sync_url?: string; sync_username?: string }
       >("settings.get");
       setSettings({ ...DEFAULTS, ...raw });
+      setSaved({ ...DEFAULTS, ...raw });
       setSyncUrl(typeof raw.sync_url === "string" ? raw.sync_url : "");
       setSyncUser(typeof raw.sync_username === "string" ? raw.sync_username : "");
     } catch (e) {
@@ -175,6 +184,7 @@ export function Settings() {
     try {
       await call("settings.set", DEFAULTS);
       setSettings(DEFAULTS);
+      setSaved(DEFAULTS);
       applyTheme(DEFAULTS.theme);
       toast("success", t("setResetDone"));
     } catch (err) {
@@ -203,7 +213,9 @@ export function Settings() {
     try {
       const parsed = JSON.parse(await file.text()) as Partial<SettingsShape>;
       await call("settings.set", parsed);
-      setSettings({ ...DEFAULTS, ...parsed });
+      const merged = { ...DEFAULTS, ...parsed };
+      setSettings(merged);
+      setSaved(merged);
       toast("success", t("setImportDone"));
     } catch {
       toast("error", t("setImportFail"));
@@ -214,6 +226,7 @@ export function Settings() {
     setSaving(true);
     try {
       await call("settings.set", settings);
+      setSaved(settings);
       toast("success", t("setSaved"));
       // Apply theme immediately (system tercihini de cozer).
       applyTheme(settings.theme);
@@ -257,7 +270,13 @@ export function Settings() {
     }
   };
 
-  const handleDeleteProfile = async (name: string) => {
+  // Faz 15: profil silme artik onayli — yikici eylem tek tikla olmuyor.
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const handleDeleteProfile = (name: string) => setConfirmDelete(name);
+  const confirmDeleteProfile = async () => {
+    const name = confirmDelete;
+    setConfirmDelete(null);
+    if (!name) return;
     setProfileBusy(true);
     try {
       await call("profile.delete", { name });
@@ -740,7 +759,10 @@ export function Settings() {
           </>
         )}
 
-        <div className="flex justify-end pb-4">
+        <div className="flex items-center justify-end gap-2 pb-4">
+          {dirty && (
+            <span className="text-xs text-[var(--warning)]">{t("setUnsaved")}</span>
+          )}
           <Button onClick={() => void handleSave()} disabled={saving}>
             <Save size={15} /> {saving ? t("setSaving") : t("updatesSave")}
           </Button>
@@ -752,6 +774,17 @@ export function Settings() {
             PkgForge {t("aboutVersion")} {appVersion}
           </p>
         )}
+
+        {/* Faz 15: profil silme onayi */}
+        <ConfirmDialog
+          open={confirmDelete !== null}
+          title={t("profilesDelete")}
+          message={`“${confirmDelete ?? ""}” ${t("setProfileDeleteConfirmSuffix")}`}
+          confirmLabel={t("profilesDelete")}
+          busy={profileBusy}
+          onConfirm={() => void confirmDeleteProfile()}
+          onCancel={() => setConfirmDelete(null)}
+        />
       </div>
     </div>
   );

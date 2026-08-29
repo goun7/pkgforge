@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const invokeMock = vi.fn();
@@ -232,6 +232,100 @@ describe("Settings page", () => {
         "rpc_call",
         expect.objectContaining({ method: "dbus.start" }),
       ),
+    );
+  });
+});
+
+describe("Settings — Faz 15 (onaylı profil silme + kirli göstergesi)", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+  });
+
+  const profilesPayload = (_cmd: string, payload: { method: string }) =>
+    Promise.resolve({
+      jsonrpc: "2.0",
+      id: 1,
+      result:
+        payload.method === "profile.list"
+          ? [
+              { name: "default", active: true },
+              { name: "deneme", active: false },
+            ]
+          : { started: true },
+    });
+
+  it("profil silme onay dialogu açılır; Vazgeç RPC çağırmaz", async () => {
+    invokeMock.mockImplementation(profilesPayload);
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Profiller")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Profiller")); // profiller sekmesi
+    await vi.waitFor(() => expect(screen.getByText("deneme")).toBeInTheDocument());
+    // Satırdaki Sil (tek, "deneme" satırında).
+    fireEvent.click(screen.getByText("Sil"));
+    // Onay penceresi açılır — henüz profile.delete çağrılmadı.
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(/kalıcı olarak silinecek/),
+    ).toBeInTheDocument();
+    expect(
+      invokeMock.mock.calls.some((c) => c[1]?.method === "profile.delete"),
+    ).toBe(false);
+    fireEvent.click(within(dialog).getByText("Vazgeç"));
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(
+      invokeMock.mock.calls.some((c) => c[1]?.method === "profile.delete"),
+    ).toBe(false);
+  });
+
+  it("onaydan sonra profile.delete çağrılır", async () => {
+    invokeMock.mockImplementation(profilesPayload);
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Profiller")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Profiller"));
+    await vi.waitFor(() => expect(screen.getByText("deneme")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Sil"));
+    const dialog = screen.getByRole("dialog");
+    // Onay: dialog icindeki gercek buton (baslik h2 de "Sil" iceriyor).
+    fireEvent.click(within(dialog).getByRole("button", { name: "Sil" }));
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "profile.delete" }),
+      ),
+    );
+    expect(
+      invokeMock.mock.calls.some(
+        (c) => c[1]?.method === "profile.delete" && c[1]?.params?.name === "deneme",
+      ),
+    ).toBe(true);
+  });
+
+  it("değişiklik yapılmadan kaydet göstergesi çıkmaz; değişince çıkar, kaydedince gider", async () => {
+    invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
+      Promise.resolve({
+        jsonrpc: "2.0",
+        id: 1,
+        result:
+          payload.method === "settings.get"
+            ? { language: "tr", theme: "dark" }
+            : payload.method === "profile.list"
+              ? [{ name: "default", active: true }]
+              : { started: true },
+      }),
+    );
+    renderSettings();
+    await vi.waitFor(() => expect(screen.getByText("Kaydet")).toBeInTheDocument());
+    expect(screen.queryByText("Kaydedilmemiş değişiklikler var")).not.toBeInTheDocument();
+    // Tema secenegini degistir
+    const themeSelect = screen.getAllByRole("combobox")[1] as HTMLSelectElement;
+    fireEvent.change(themeSelect, { target: { value: "light" } });
+    expect(screen.getByText("Kaydedilmemiş değişiklikler var")).toBeInTheDocument();
+    // Kaydet -> gosterigi kaldir
+    fireEvent.click(screen.getByText("Kaydet"));
+    await vi.waitFor(() =>
+      expect(screen.queryByText("Kaydedilmemiş değişiklikler var")).not.toBeInTheDocument(),
     );
   });
 });
