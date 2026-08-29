@@ -325,6 +325,15 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-6 desktop test-kapsam maratonu (28 Ağu, devam edildi)
+- Amaç: desktop/src sayfaları/bileşenlerinde test edilmemiş dalları
+  (koşullu render, handler, boş/hata durumları) kapsayan yeni it() blokları.
+- 12 mevcut test dosyası genişletildi (+2516 satır): CommandPalette, DepGraph,
+  DoctorPanel, DropZone, FeatureTour, Toast, lang, theme, Browse, Compare,
+  Fleet, Tools. 2 yeni dosya: Topbar.test.tsx, App.test.tsx (src/__tests__/).
+- Doğrulama: pnpm exec vitest run → 43 dosya / 524 test HEPSİ GEÇTİ (rc=0);
+  tsc --noEmit → 0 hata. Bu commit ile kapatıldı.
+
 ## Oturum-5 gelir/bagis katmani
 - `.github/FUNDING.yml` (GitHub Sponsors + Polar.sh + Kreosus) eklendi.
 - About dialoguna "Destek Ol" butonu + `config.DONATE_URL`/`REPO_URL`.
