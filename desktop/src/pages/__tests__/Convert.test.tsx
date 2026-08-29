@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // --- Mock the Tauri API surface used by Convert / rpc ---
@@ -656,15 +656,30 @@ describe("Convert page", () => {
     );
   });
 
-  it("removes a single batch item, clears the queue and refreshes the list", async () => {
+  it("removes a single batch item; queue clear is confirmed then refreshes", async () => {
     renderConvert();
     await openBatchTab();
+    // Tek oge kaldirma onaysiz (geri alilabilir degil ama kuyruk-local).
     fireEvent.click(screen.getByRole("button", { name: "kaldır b.deb" }));
     await vi.waitFor(() => expect(callsTo("queue.remove")).toHaveLength(1));
     expect(callsTo("queue.remove")[0][1]).toEqual(
       expect.objectContaining({ params: { id: "/tmp/b.deb" } }),
     );
+    // Faz 16: Temizle artik onay acar — Vazgeç RPC cagirmaz.
     fireEvent.click(screen.getByText("Temizle"));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(/dönüşüm görevleri kuyruktan silinecek/),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByText("Vazgeç"));
+    await vi.waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(callsTo("queue.clear")).toHaveLength(0);
+    // Onaydan sonra queue.clear cagrilir ve liste yenilenir.
+    fireEvent.click(screen.getByText("Temizle"));
+    const dialog2 = screen.getByRole("dialog");
+    fireEvent.click(within(dialog2).getByRole("button", { name: "Onayla" }));
     await vi.waitFor(() => expect(callsTo("queue.clear")).toHaveLength(1));
     const listsBefore = callsTo("queue.list").length;
     fireEvent.click(screen.getByText("Yenile"));

@@ -408,6 +408,9 @@ export function Convert() {
     }
   };
 
+  // Faz 16: kuyruk temizleme artik onayli — bekleyen N oge tek tikla gitmez.
+  const [confirmBatchClear, setConfirmBatchClear] = useState(false);
+  const handleBatchClearRequest = () => setConfirmBatchClear(true);
   const handleBatchClear = async () => {
     try {
       await call("queue.clear", {});
@@ -641,7 +644,7 @@ export function Convert() {
               <Button variant="secondary" size="sm" onClick={() => void loadBatch()}>
                 {tBatch("batchRefresh")}
               </Button>
-              <Button variant="danger" size="sm" onClick={() => void handleBatchClear()} disabled={batchRunning}>
+              <Button variant="danger" size="sm" onClick={handleBatchClearRequest} disabled={batchRunning}>
                 <Trash2 size={13} /> {tBatch("batchClear")}
               </Button>
             </div>
@@ -768,6 +771,21 @@ export function Convert() {
           void handleCancel();
         }}
         onCancel={() => setConfirmCancel(false)}
+      />
+
+      {/* Faz 16: kuyruk temizleme onayi. */}
+      <ConfirmDialog
+        open={confirmBatchClear}
+        title={t("confirmQueueClearTitle")}
+        message={t("confirmQueueClearMsg")}
+        confirmLabel={t("confirmConfirm")}
+        cancelLabel={t("confirmCancel")}
+        danger
+        onConfirm={() => {
+          setConfirmBatchClear(false);
+          void handleBatchClear();
+        }}
+        onCancel={() => setConfirmBatchClear(false)}
       />
     </div>
   );

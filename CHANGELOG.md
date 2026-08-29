@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **fix(desktop)**: Settings: profil silme artık onaylı (ConfirmDialog — tek
   tıkla yıkıcı silme kalktı); Kaydet'in yanında "Kaydedilmemiş değişiklikler
   var" göstergesi (dirty-state; save/reset/import sonrası temizlenir).
+- **fix(desktop)**: Convert: "Kuyruğu Temizle" artık onaylı — bekleyen tüm
+  dönüşüm görevleri tek tıkla silinmiyor (Vazgeç = RPC yok; onay = queue.clear).
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni

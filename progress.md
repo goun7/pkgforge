@@ -325,6 +325,13 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 16: Convert kuyruk temizleme onayı (29 Ağu)
+- 'Temizle' (queue.clear) ConfirmDialog ile onaylı: Vazgeç RPC çağırmaz,
+  Onayla queue.clear + listeyi yeniler. i18n: confirmQueueClearTitle/Msg (tr/en).
+- Tek öğe kaldırma (queue.remove) bilinçli olarak onaysız — kuyruk-local.
+- Test: Convert 44/44 (temizle testi yeni sözleşmeye göre: dialog aç→Vazgeç
+  0 RPC→onay→queue.clear→Yenile).
+
 ## Oturum-8 Faz 15b: Settings UX — onaylı silme + dirty-state (29 Ağu)
 - Profil silme ConfirmDialog ile onaylı hale geldi (Vazgeç iptal eder, RPC
   çağrılmaz; onay butonu role=button ile ayrıştırılır — başlık da "Sil").

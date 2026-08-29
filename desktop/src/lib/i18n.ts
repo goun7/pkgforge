@@ -287,6 +287,8 @@ export const dict = {
     // --- Faz 7: Onay dialoglari ---
     confirmClearTitle: "Geçmişi temizle",
     confirmClearMsg: "Tüm geçmiş kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    confirmQueueClearTitle: "Kuyruğu temizle",
+    confirmQueueClearMsg: "Bekleyen tüm dönüşüm görevleri kuyruktan silinecek. Devam edilsin mi?",
     confirmUninstallTitle: "Paketi kaldır",
     confirmUninstallMsg: "kaldırılacak. Devam edilsin mi?",
     confirmConfirm: "Onayla",
@@ -932,6 +934,8 @@ export const dict = {
     // --- Faz 7: Confirm dialogs ---
     confirmClearTitle: "Clear history",
     confirmClearMsg: "All history records will be permanently deleted. This action cannot be undone.",
+    confirmQueueClearTitle: "Clear queue",
+    confirmQueueClearMsg: "All pending conversion jobs will be removed from the queue. Continue?",
     confirmUninstallTitle: "Uninstall package",
     confirmUninstallMsg: "will be removed. Continue?",
     confirmConfirm: "Confirm",
