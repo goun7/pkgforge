@@ -343,6 +343,19 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-9 Faz 18c: RPM dönüştürücü _do_convert (29 Ağu)
+- RpmConverterSubprocess._do_convert 106→~35: _rpm_extract (rpm2cpio |
+  bsdtar, shlex.quote), _rpm_security_gate (fail-closed symlink/tehlikeli
+  dosya), _rpm_makepkg_build (PKGBUILD+sandbox+makepkg, satır akışı),
+  _find_pkg_artifact. 236 rpm/convert/subprocess testi geçti.
+- DERS: ast.walk İLK _do_convert'i buldu — DEB sınıfındaydı (48) ve yanlış
+  gövde yazıldı; commit öncesi yakalandı → git checkout restore + sınıf
+  adıyla (RpmConverterSubprocess) hedefleme.
+- Kalan adaylar: generate_pkgbuild_from_source 112 (şablon üreteci —
+  kaçış-yoğun, bölünmez kabul edildi), download_package 102,
+  check_abi_compatibility 103, build_file_dep_graph 100.
+- Tam regresyon: ruff+mypy temiz, pytest rc=0.
+
 ## Oturum-9 Faz 18b: dört dev daha bölündü (29 Ağu)
 - run_benchmarks 140→29 + 7 _bench_* (zamanlanmış import'lar yardımcıların
   içinde BİLİNÇLİ korunur); 49 benç testi geçti.

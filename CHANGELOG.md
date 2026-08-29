@@ -64,6 +64,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   generate_sbom 123→~30 (4 yardımcı), install_auto_update 111→30
   (_find_systemctl/_auto_update_units/_write_and_enable_units). Kalan ≥100:
   6 (Handler fabrikası yanlış pozitif dahil).
+- **refactor(core)**: Faz 18c: RpmConverterSubprocess._do_convert 106→~35
+  (_rpm_extract/_rpm_security_gate/_rpm_makepkg_build/_find_pkg_artifact).
+  Yanlış-sınıf düzenlemesi git-restore ile kurtarıldı. Kalan ≥100: 5
+  (4'ü yeni tur adayı, _make_http_handler sınıf fabrikası — kabul).
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +

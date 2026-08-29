@@ -267,6 +267,109 @@ class RpmConverterSubprocess:
     def _emit(self, msg: str):
         self.output_line.emit(msg)
 
+    def _rpm_extract(self, rpm_path: Path, pkg_dir: Path) -> tuple[bool, str]:
+        """RPM icerigini rpm2cpio | bsdtar ile cikarir.
+
+        Guvenlik notu: komut shlex.quote ile kurulur; boru bilincli
+        olarak /bin/bash -c uzerinden kurulur.
+        """
+        self._emit("▶ RPM içeriği çıkarılıyor...")
+        import shlex
+        cmd = (
+            f"{shlex.quote(self._tools.rpm2cpio)} {shlex.quote(str(rpm_path))} "
+            f"| {shlex.quote(self._tools.bsdtar)} -xf -"
+        )
+        proc = subprocess.Popen(
+            ["/bin/bash", "-c", cmd],
+            cwd=str(pkg_dir),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        proc.communicate(timeout=60)
+        if proc.returncode != 0:
+            return False, f"RPM çıkarma başarısız (kod: {proc.returncode})"
+        self._emit("✓ RPM içeriği çıkarıldı")
+        return True, ""
+
+    def _rpm_security_gate(self, pkg_dir: Path) -> tuple[bool, str]:
+        """Symlink saldirisi + tehlikeli dosya kontrolleri (fail-closed).
+
+        Uyarilar akisa basilir; hatalar donusumu keser.
+        """
+        from core.security import check_dangerous_files, check_symlink_attacks
+        escaping = check_symlink_attacks(pkg_dir)
+        if escaping:
+            return False, f"Güvenlik: symlink saldırısı: {escaping[:3]}"
+
+        errors, warnings = check_dangerous_files(pkg_dir)
+        for w in warnings[:5]:
+            self._emit(f"⚠ {w}")
+        if errors:
+            return False, f"Güvenlik: tehlikeli dosya: {errors[:3]}"
+        return True, ""
+
+    def _rpm_makepkg_build(self, meta, output_dir: Path) -> tuple[bool, str]:
+        """PKGBUILD uret ve sandbox icinde makepkg ile paketi kur.
+
+        makepkg ciktisi satir satir akisa yansitilir.
+        """
+        build_dir = output_dir / "build"
+        build_dir.mkdir(parents=True, exist_ok=True)
+        src_dir = build_dir / "src"
+        pkg_dir = output_dir / "pkg_root"
+        if pkg_dir.exists():
+            pkg_dir.rename(src_dir)
+        else:
+            src_dir.mkdir(parents=True, exist_ok=True)
+
+        self._emit("▶ PKGBUILD oluşturuluyor...")
+        pkgbuild = self._generate_pkgbuild(meta, src_dir)
+        (build_dir / "PKGBUILD").write_text(pkgbuild, encoding="utf-8")
+
+        self._emit("▶ makepkg çalıştırılıyor...")
+        pkg_out = build_dir / "pkgout"
+        pkg_out.mkdir(parents=True, exist_ok=True)
+
+        import os
+        env = {**os.environ, "PKGDEST": str(pkg_out)}
+        from core.security import build_sandbox_cmd
+        raw_cmd = [self._tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"]
+        prog, args = build_sandbox_cmd(raw_cmd, build_dir, self._tools)
+
+        build_proc = subprocess.Popen(
+            [prog] + args,
+            cwd=str(build_dir),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env=env,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        for line in (build_proc.stdout or []):
+            stripped = line.strip()
+            if stripped:
+                self._emit(f"  {stripped}")
+        build_proc.wait(timeout=600)
+
+        if build_proc.returncode != 0:
+            return False, f"makepkg başarısız (kod: {build_proc.returncode})"
+        return True, ""
+
+    @staticmethod
+    def _find_pkg_artifact(pkg_dir: Path, output_dir: Path) -> Path | None:
+        """PKGDEST ve cikis dizininde .pkg.tar urunu arar."""
+        pkg_file = None
+        for d in [pkg_dir, output_dir]:
+            if d.is_dir():
+                for entry in d.iterdir():
+                    if entry.is_file() and ".pkg.tar" in entry.name and not entry.name.endswith((".sig", ".json")):
+                        pkg_file = entry
+                        break
+            if pkg_file:
+                break
+        return pkg_file
+
     def _do_convert(self, rpm_path: Path, output_dir: Path, meta=None):
         try:
             from core.package_analyzer import analyze_package
@@ -275,97 +378,25 @@ class RpmConverterSubprocess:
 
             self._emit(f"✓ Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
 
-            # Extract RPM
             pkg_dir = output_dir / "pkg_root"
             pkg_dir.mkdir(parents=True, exist_ok=True)
 
-            self._emit("▶ RPM içeriği çıkarılıyor...")
-            import shlex
-            cmd = (
-                f"{shlex.quote(self._tools.rpm2cpio)} {shlex.quote(str(rpm_path))} "
-                f"| {shlex.quote(self._tools.bsdtar)} -xf -"
-            )
-            proc = subprocess.Popen(
-                ["/bin/bash", "-c", cmd],
-                cwd=str(pkg_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            proc.communicate(timeout=60)
-            if proc.returncode != 0:
-                self.finished.emit(False, f"RPM çıkarma başarısız (kod: {proc.returncode})", None)
+            ok, msg = self._rpm_extract(rpm_path, pkg_dir)
+            if not ok:
+                self.finished.emit(False, msg, None)
                 return
 
-            self._emit("✓ RPM içeriği çıkarıldı")
-
-            # Security checks
-            from core.security import check_dangerous_files, check_symlink_attacks
-            escaping = check_symlink_attacks(pkg_dir)
-            if escaping:
-                self.finished.emit(False, f"Güvenlik: symlink saldırısı: {escaping[:3]}", None)
+            ok, msg = self._rpm_security_gate(pkg_dir)
+            if not ok:
+                self.finished.emit(False, msg, None)
                 return
 
-            errors, warnings = check_dangerous_files(pkg_dir)
-            for w in warnings[:5]:
-                self._emit(f"⚠ {w}")
-            if errors:
-                self.finished.emit(False, f"Güvenlik: tehlikeli dosya: {errors[:3]}", None)
+            ok, msg = self._rpm_makepkg_build(meta, output_dir)
+            if not ok:
+                self.finished.emit(False, msg, None)
                 return
 
-            # Generate PKGBUILD and build
-            build_dir = output_dir / "build"
-            build_dir.mkdir(parents=True, exist_ok=True)
-            src_dir = build_dir / "src"
-            if pkg_dir.exists():
-                pkg_dir.rename(src_dir)
-            else:
-                src_dir.mkdir(parents=True, exist_ok=True)
-
-            self._emit("▶ PKGBUILD oluşturuluyor...")
-            pkgbuild = self._generate_pkgbuild(meta, src_dir)
-            (build_dir / "PKGBUILD").write_text(pkgbuild, encoding="utf-8")
-
-            self._emit("▶ makepkg çalıştırılıyor...")
-            pkg_out = build_dir / "pkgout"
-            pkg_out.mkdir(parents=True, exist_ok=True)
-
-            import os
-            env = {**os.environ, "PKGDEST": str(pkg_out)}
-            from core.security import build_sandbox_cmd
-            raw_cmd = [self._tools.makepkg, "-f", "--skipchecksums", "--skipinteg", "--noconfirm"]
-            prog, args = build_sandbox_cmd(raw_cmd, build_dir, self._tools)
-
-            build_proc = subprocess.Popen(
-                [prog] + args,
-                cwd=str(build_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                env=env,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
-            for line in (build_proc.stdout or []):
-                stripped = line.strip()
-                if stripped:
-                    self._emit(f"  {stripped}")
-            build_proc.wait(timeout=600)
-
-            if build_proc.returncode != 0:
-                self.finished.emit(False, f"makepkg başarısız (kod: {build_proc.returncode})", None)
-                return
-
-            # Find output
-            pkg_file = None
-            for d in [pkg_out, output_dir]:
-                if d.is_dir():
-                    for entry in d.iterdir():
-                        if entry.is_file() and ".pkg.tar" in entry.name and not entry.name.endswith((".sig", ".json")):
-                            pkg_file = entry
-                            break
-                if pkg_file:
-                    break
-
+            pkg_file = self._find_pkg_artifact(output_dir / "build" / "pkgout", output_dir)
             if pkg_file:
                 self.finished.emit(True, "RPM dönüşümü başarılı", pkg_file)
             else:
