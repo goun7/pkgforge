@@ -25,12 +25,16 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { Convert } from "../Convert";
 import { ToastProvider } from "../../components/ui/Toast";
 
-function renderConvert() {
-  return render(
+async function renderConvert() {
+  const r = render(
     <ToastProvider>
       <Convert />
     </ToastProvider>,
   );
+  // Ilk yukleme etkilerinin (mock promise cozulumleri) act icinde
+  // bosaltilmasi — act() uyarisiz temiz render.
+  await act(async () => {});
+  return r;
 }
 
 function emit(event: string, payload: unknown) {
@@ -66,16 +70,16 @@ function mockRpc(handlers: Record<string, unknown>) {
 
 /** Bir dosya birak, pipeline.start cagrisini ve calisan durumu bekle. */
 async function startRunning(path = "/tmp/akan.deb") {
-  act(() => emit("tauri://drag-drop", { paths: [path] }));
+  await act(async () => emit("tauri://drag-drop", { paths: [path] }));
   await vi.waitFor(() => expect(callsTo("pipeline.start")).toHaveLength(1));
   await vi.waitFor(() => expect(screen.getByText("çalışıyor…")).toBeInTheDocument());
 }
 
 /** Calisan donusumu basariyla bitir ve sonuc bandini bekle. */
 async function finishSuccess(pkg = "/out/sonuc.pkg.tar.zst") {
-  act(() =>
-    emit("event/finished", { success: true, message: "donusum bitti", output_pkg: pkg }),
-  );
+  await act(async () => {
+    emit("event/finished", { success: true, message: "donusum bitti", output_pkg: pkg });
+  });
   await vi.waitFor(() =>
     expect(screen.getByText("Dönüşüm tamamlandı")).toBeInTheDocument(),
   );
@@ -126,14 +130,14 @@ describe("Convert page", () => {
     invokeMock.mockResolvedValue({ started: true });
   });
 
-  it("renders the drop zone and empty queue", () => {
-    renderConvert();
+  it("renders the drop zone and empty queue", async () => {
+    await renderConvert();
     expect(screen.getByRole("button", { name: "Paket bırakma alanı" })).toBeInTheDocument();
     expect(screen.getByText("Kuyruk (0)")).toBeInTheDocument();
   });
 
-  it("subscribes to pipeline events on mount", () => {
-    renderConvert();
+  it("subscribes to pipeline events on mount", async () => {
+    await renderConvert();
     expect(listeners.has("event/step_changed")).toBe(true);
     expect(listeners.has("event/progress")).toBe(true);
     expect(listeners.has("event/log")).toBe(true);
@@ -141,9 +145,9 @@ describe("Convert page", () => {
   });
 
   it("starts the pipeline when a path is dropped", async () => {
-    renderConvert();
+    await renderConvert();
     // Simulate a native drag-drop with a real path.
-    emit("tauri://drag-drop", { paths: ["/tmp/pkg_1.0_amd64.deb"] });
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/pkg_1.0_amd64.deb"] }));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -154,16 +158,16 @@ describe("Convert page", () => {
   });
 
   it("marks the running item failed when finished reports failure", async () => {
-    renderConvert();
-    emit("tauri://drag-drop", { paths: ["/tmp/bad.deb"] });
+    await renderConvert();
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/bad.deb"] }));
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalled());
-    emit("event/finished", { success: false, message: "analiz hatası" });
+    await act(async () => emit("event/finished", { success: false, message: "analiz hatası" }));
     await vi.waitFor(() => expect(screen.getByText("Başarısız")).toBeInTheDocument());
   });
 
   it("shows the compatibility dialog and approves install", async () => {
-    renderConvert();
-    emit("tauri://drag-drop", { paths: ["/tmp/warn.deb"] });
+    await renderConvert();
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/warn.deb"] }));
     await vi.waitFor(() => expect(invokeMock).toHaveBeenCalled());
     emit("event/compatibility_ready", {
       report: {
@@ -186,7 +190,7 @@ describe("Convert page", () => {
 
   it("renders the batch tab and loads the queue on switch", async () => {
     invokeMock.mockResolvedValue([]);
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByText("Toplu"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -199,13 +203,13 @@ describe("Convert page", () => {
 
   // --- Faz 9 (5.6): tam ekran drop overlay ---
   it("shows the drop overlay on drag-enter and hides it on drag-leave", async () => {
-    renderConvert();
+    await renderConvert();
     expect(screen.queryByText("Paketleri buraya bırakın")).not.toBeInTheDocument();
-    act(() => emit("tauri://drag-enter", {}));
+    await act(async () => emit("tauri://drag-enter", {}));
     await vi.waitFor(() =>
       expect(screen.getByText("Paketleri buraya bırakın")).toBeInTheDocument(),
     );
-    act(() => emit("tauri://drag-leave", {}));
+    await act(async () => emit("tauri://drag-leave", {}));
     await vi.waitFor(() =>
       expect(screen.queryByText("Paketleri buraya bırakın")).not.toBeInTheDocument(),
     );
@@ -214,8 +218,10 @@ describe("Convert page", () => {
   // --- Dosya sec (browse dialog) ---
   it("adds files picked from the browse dialog and starts the pipeline", async () => {
     vi.mocked(open).mockResolvedValueOnce(["/tmp/secim.deb"]);
-    renderConvert();
-    fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
+    await renderConvert();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
+    });
     await vi.waitFor(() => expect(callsTo("pipeline.start")).toHaveLength(1));
     expect(callsTo("pipeline.start")[0][1]).toEqual(
       expect.objectContaining({ params: { path: "/tmp/secim.deb" } }),
@@ -225,7 +231,7 @@ describe("Convert page", () => {
 
   it("keeps the queue empty when the browse dialog is dismissed", async () => {
     vi.mocked(open).mockResolvedValueOnce(null as unknown as string[]);
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
     await vi.waitFor(() => expect(vi.mocked(open)).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 20));
@@ -234,18 +240,18 @@ describe("Convert page", () => {
   });
 
   it("does not queue a path that is already queued", async () => {
-    renderConvert();
-    act(() => emit("tauri://drag-drop", { paths: ["/tmp/ayni.deb"] }));
+    await renderConvert();
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/ayni.deb"] }));
     await vi.waitFor(() => expect(callsTo("pipeline.start")).toHaveLength(1));
-    act(() => emit("tauri://drag-drop", { paths: ["/tmp/ayni.deb"] }));
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/ayni.deb"] }));
     await new Promise((r) => setTimeout(r, 20));
     expect(callsTo("pipeline.start")).toHaveLength(1);
     expect(screen.getByText("Kuyruk (1)")).toBeInTheDocument();
   });
 
   it("removes a pending item from the queue", async () => {
-    renderConvert();
-    act(() => emit("tauri://drag-drop", { paths: ["/tmp/ilk.deb", "/tmp/ikinci.deb"] }));
+    await renderConvert();
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/ilk.deb", "/tmp/ikinci.deb"] }));
     await vi.waitFor(() => expect(callsTo("pipeline.start")).toHaveLength(1));
     await vi.waitFor(() => expect(screen.getByText("Kuyruk (2)")).toBeInTheDocument());
     // Calisan ogu icin kaldir butonu yok, bekleyen icin var.
@@ -257,15 +263,15 @@ describe("Convert page", () => {
 
   it("marks the queue item failed when pipeline.start returns an RPC error", async () => {
     invokeMock.mockResolvedValue(rpcErr(-1, "sidecar hazir degil"));
-    renderConvert();
-    act(() => emit("tauri://drag-drop", { paths: ["/tmp/hata.deb"] }));
+    await renderConvert();
+    await act(async () => emit("tauri://drag-drop", { paths: ["/tmp/hata.deb"] }));
     await vi.waitFor(() => expect(screen.getByText("Başarısız")).toBeInTheDocument());
     expect(screen.getByText(/sidecar hazir degil/)).toBeInTheDocument();
   });
 
   // --- Iptal onay akisi (Faz 8 2.6) ---
   it("opens the cancel confirm dialog and backs out without cancelling", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     fireEvent.click(screen.getByRole("button", { name: "İptal" }));
     expect(await screen.findByText("Dönüşümü iptal et")).toBeInTheDocument();
@@ -280,7 +286,7 @@ describe("Convert page", () => {
   });
 
   it("confirming the cancel dialog calls pipeline.cancel", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     fireEvent.click(screen.getByRole("button", { name: "İptal" }));
     fireEvent.click(await screen.findByText("Onayla"));
@@ -291,7 +297,7 @@ describe("Convert page", () => {
   });
 
   it("shows an error toast when pipeline.cancel fails", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     invokeMock.mockResolvedValue(rpcErr(-32000, "iptal edilemedi"));
     fireEvent.click(screen.getByRole("button", { name: "İptal" }));
@@ -301,7 +307,7 @@ describe("Convert page", () => {
 
   // --- Donustur akisi: basari bandi ve sonrasindaki islemler ---
   it("renders the result band with action buttons after a successful conversion", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     expect(screen.getByText("/out/sonuc.pkg.tar.zst")).toBeInTheDocument();
@@ -315,7 +321,7 @@ describe("Convert page", () => {
   it("opens the output folder and copies the path to the clipboard", async () => {
     const writeText = mockClipboard(() => Promise.resolve());
     try {
-      renderConvert();
+      await renderConvert();
       await startRunning();
       await finishSuccess();
       fireEvent.click(screen.getByRole("button", { name: "Klasörü Aç" }));
@@ -338,7 +344,7 @@ describe("Convert page", () => {
   it("toasts when the clipboard write fails", async () => {
     mockClipboard(() => Promise.reject(new Error("pano yok")));
     try {
-      renderConvert();
+      await renderConvert();
       await startRunning();
       await finishSuccess();
       fireEvent.click(screen.getByRole("button", { name: "Yolu Kopyala" }));
@@ -351,7 +357,7 @@ describe("Convert page", () => {
   });
 
   it("starts the OCI export and toasts", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     fireEvent.click(screen.getByRole("button", { name: "OCI" }));
@@ -363,7 +369,7 @@ describe("Convert page", () => {
   });
 
   it("surfaces RPC errors from post-conversion actions as toasts", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     invokeMock.mockImplementation((_cmd: string, req: RpcReq) =>
@@ -386,7 +392,7 @@ describe("Convert page", () => {
   });
 
   it("builds and renders the dependency graph on graph_done", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     fireEvent.click(screen.getByRole("button", { name: "Bağımlılık grafiği" }));
@@ -394,7 +400,7 @@ describe("Convert page", () => {
     expect(callsTo("graph.build")[0][1]).toEqual(
       expect.objectContaining({ params: { pkg_path: "/out/sonuc.pkg.tar.zst" } }),
     );
-    act(() => emit("event/graph_done", { ok: true, result: GRAPH_DATA }));
+    await act(async () => emit("event/graph_done", { ok: true, result: GRAPH_DATA }));
     await vi.waitFor(() => expect(screen.getByText("Toplam: 2")).toBeInTheDocument());
     expect(screen.getByRole("img")).toBeInTheDocument();
     expect(screen.getByText("ana")).toBeInTheDocument();
@@ -402,24 +408,24 @@ describe("Convert page", () => {
   });
 
   it("toasts when graph_done reports failure", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     fireEvent.click(screen.getByRole("button", { name: "Bağımlılık grafiği" }));
     await vi.waitFor(() => expect(callsTo("graph.build")).toHaveLength(1));
-    act(() => emit("event/graph_done", { ok: false, error: "cizilemedi" }));
+    await act(async () => emit("event/graph_done", { ok: false, error: "cizilemedi" }));
     await vi.waitFor(() => expect(screen.getByText("cizilemedi")).toBeInTheDocument());
     // Hata metni yoksa varsayilan convGraphFail mesaji gosterilir.
     fireEvent.click(screen.getByRole("button", { name: "Bağımlılık grafiği" }));
     await vi.waitFor(() => expect(callsTo("graph.build")).toHaveLength(2));
-    act(() => emit("event/graph_done", { ok: false }));
+    await act(async () => emit("event/graph_done", { ok: false }));
     await vi.waitFor(() =>
       expect(screen.getByText("Grafik oluşturulamadı")).toBeInTheDocument(),
     );
   });
 
   it("installs the output package and toasts the backend message", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     fireEvent.click(screen.getByRole("button", { name: "Kur" }));
@@ -427,45 +433,45 @@ describe("Convert page", () => {
     expect(callsTo("system.install_pkg")[0][1]).toEqual(
       expect.objectContaining({ params: { pkg_path: "/out/sonuc.pkg.tar.zst" } }),
     );
-    act(() =>
-      emit("event/install_done", { ok: true, result: { ok: true, message: "paket kuruldu" } }),
-    );
+    await act(async () => {
+      emit("event/install_done", { ok: true, result: { ok: true, message: "paket kuruldu" } });
+    });
     await vi.waitFor(() => expect(screen.getByText("paket kuruldu")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Kur" })).toBeEnabled();
   });
 
   it("toasts the backend message when the install result is not ok", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     fireEvent.click(screen.getByRole("button", { name: "Kur" }));
     await vi.waitFor(() => expect(callsTo("system.install_pkg")).toHaveLength(1));
-    act(() =>
-      emit("event/install_done", { ok: true, result: { ok: false, message: "imza dogrulanamadi" } }),
-    );
+    await act(async () => {
+      emit("event/install_done", { ok: true, result: { ok: false, message: "imza dogrulanamadi" } });
+    });
     await vi.waitFor(() =>
       expect(screen.getByText("imza dogrulanamadi")).toBeInTheDocument(),
     );
   });
 
   it("toasts a default message when install_done carries no detail", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     fireEvent.click(screen.getByRole("button", { name: "Kur" }));
     await vi.waitFor(() => expect(callsTo("system.install_pkg")).toHaveLength(1));
-    act(() => emit("event/install_done", { ok: false }));
+    await act(async () => emit("event/install_done", { ok: false }));
     await vi.waitFor(() =>
       expect(screen.getByText("Kurulum başarısız")).toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole("button", { name: "Kur" }));
     await vi.waitFor(() => expect(callsTo("system.install_pkg")).toHaveLength(2));
-    act(() => emit("event/install_done", { ok: false, error: "baglanti koptu" }));
+    await act(async () => emit("event/install_done", { ok: false, error: "baglanti koptu" }));
     await vi.waitFor(() => expect(screen.getByText("baglanti koptu")).toBeInTheDocument());
   });
 
   it("re-enables install and toasts when system.install_pkg fails", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     await finishSuccess();
     invokeMock.mockResolvedValue(rpcErr(-5, "kurulum baslatilamadi"));
@@ -478,7 +484,7 @@ describe("Convert page", () => {
 
   // --- Ilerleme / adim gostergesi / ETA ---
   it("shows the preparing label, indeterminate marker and live percent while running", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     // Henuz aktif adim yokken "Hazirlaniyor" gosterilir.
     await vi.waitFor(() =>
@@ -486,20 +492,20 @@ describe("Convert page", () => {
     );
     // "Donusum" etiketi bir kez gostergede vardir; adim aktiflesince ikiye cikar.
     expect(screen.getAllByText("Dönüşüm")).toHaveLength(1);
-    act(() => emit("event/step_changed", { step: 3, status: "running" }));
+    await act(async () => emit("event/step_changed", { step: 3, status: "running" }));
     await vi.waitFor(() => expect(screen.getAllByText("Dönüşüm")).toHaveLength(2));
     // Ilerleme sifirken belirsiz sure isareti gosterilir.
     expect(screen.getByText("…")).toBeInTheDocument();
-    act(() => emit("event/progress", { value: 42 }));
+    await act(async () => emit("event/progress", { value: 42 }));
     await vi.waitFor(() => expect(screen.getByText("42%")).toBeInTheDocument());
     expect(screen.queryByText("…")).not.toBeInTheDocument();
   });
 
   it("shows elapsed time and an ETA once the conversion has progress", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
-    act(() => emit("event/step_changed", { step: 3, status: "running" }));
-    act(() => emit("event/progress", { value: 50 }));
+    await act(async () => emit("event/step_changed", { step: 3, status: "running" }));
+    await act(async () => emit("event/progress", { value: 50 }));
     await vi.waitFor(
       () => expect(screen.getAllByText(/ETA ~\d+ sn/).length).toBeGreaterThan(0),
       { timeout: 4000 },
@@ -509,7 +515,7 @@ describe("Convert page", () => {
 
   // --- Kaynaktan sihirbaz (URL ekle) ---
   it("rejects an empty repo URL in the from-source wizard", async () => {
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByText("Kaynaktan"));
     expect(screen.getByText("Kaynaktan PKGBUILD Sihirbazı")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Oluştur"));
@@ -520,7 +526,7 @@ describe("Convert page", () => {
   });
 
   it("generates a PKGBUILD from a repo URL", async () => {
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByText("Kaynaktan"));
     fireEvent.change(screen.getByPlaceholderText("https://github.com/user/repo.git"), {
       target: { value: "https://github.com/foo/bar.git" },
@@ -532,15 +538,15 @@ describe("Convert page", () => {
     );
     // Mesgul rozeti once genel etiketi gosterir, sonra adim adim ilerler.
     expect(screen.getByText("Çalışıyor…")).toBeInTheDocument();
-    act(() => emit("event/source_progress", { step: "clone" }));
+    await act(async () => emit("event/source_progress", { step: "clone" }));
     await vi.waitFor(() =>
       expect(screen.getByText("Depo klonlanıyor…")).toBeInTheDocument(),
     );
-    act(() => emit("event/source_progress", { step: "detect" }));
+    await act(async () => emit("event/source_progress", { step: "detect" }));
     await vi.waitFor(() =>
       expect(screen.getByText("Build sistemi tespit ediliyor…")).toBeInTheDocument(),
     );
-    act(() => emit("event/source_progress", { step: "generate" }));
+    await act(async () => emit("event/source_progress", { step: "generate" }));
     await vi.waitFor(() =>
       expect(screen.getByText("PKGBUILD üretiliyor…")).toBeInTheDocument(),
     );
@@ -563,20 +569,20 @@ describe("Convert page", () => {
   });
 
   it("toasts when source generation fails", async () => {
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByText("Kaynaktan"));
     const input = screen.getByPlaceholderText("https://github.com/user/repo.git");
     fireEvent.change(input, { target: { value: "https://github.com/x/y.git" } });
     fireEvent.click(screen.getByText("Oluştur"));
     await vi.waitFor(() => expect(callsTo("source.generate")).toHaveLength(1));
-    act(() => emit("event/source_done", { ok: false }));
+    await act(async () => emit("event/source_done", { ok: false }));
     await vi.waitFor(() =>
       expect(screen.getByText("PKGBUILD oluşturulamadı")).toBeInTheDocument(),
     );
     // Hata mesajli varyant da iletilir.
     fireEvent.click(screen.getByText("Oluştur"));
     await vi.waitFor(() => expect(callsTo("source.generate")).toHaveLength(2));
-    act(() => emit("event/source_done", { ok: false, error: "klon basarisiz" }));
+    await act(async () => emit("event/source_done", { ok: false, error: "klon basarisiz" }));
     await vi.waitFor(() =>
       expect(screen.getByText("klon basarisiz")).toBeInTheDocument(),
     );
@@ -584,7 +590,7 @@ describe("Convert page", () => {
 
   it("toasts and re-enables the wizard when source.generate errors", async () => {
     invokeMock.mockResolvedValue(rpcErr(-7, "depo klonlanamadi"));
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByText("Kaynaktan"));
     fireEvent.change(screen.getByPlaceholderText("https://github.com/user/repo.git"), {
       target: { value: "https://github.com/x/y.git" },
@@ -599,7 +605,7 @@ describe("Convert page", () => {
 
   // --- Toplu sekme (B6 + Faz 9/10) ---
   it("lists batch items with status, priority, message and per-item actions", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     expect(screen.getByText("sira bekliyor")).toBeInTheDocument();
     expect(screen.getByText("donusturulemedi")).toBeInTheDocument();
@@ -614,7 +620,7 @@ describe("Convert page", () => {
   });
 
   it("cancels a running batch item via queue.cancel", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     fireEvent.click(screen.getByRole("button", { name: "İptal Et a.deb" }));
     await vi.waitFor(() => expect(callsTo("queue.cancel")).toHaveLength(1));
@@ -626,7 +632,7 @@ describe("Convert page", () => {
   });
 
   it("toasts when queue.cancel fails", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     invokeMock.mockImplementation((_cmd: string, req: RpcReq) =>
       Promise.resolve(
@@ -642,7 +648,7 @@ describe("Convert page", () => {
   });
 
   it("raises and lowers batch item priority", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     fireEvent.click(screen.getByRole("button", { name: "Önceliği artır b.deb" }));
     await vi.waitFor(() => expect(callsTo("queue.priority")).toHaveLength(1));
@@ -657,7 +663,7 @@ describe("Convert page", () => {
   });
 
   it("removes a single batch item; queue clear is confirmed then refreshes", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     // Tek oge kaldirma onaysiz (geri alilabilir degil ama kuyruk-local).
     fireEvent.click(screen.getByRole("button", { name: "kaldır b.deb" }));
@@ -689,7 +695,7 @@ describe("Convert page", () => {
   });
 
   it("filters the batch list and shows the empty state when nothing matches", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     const filter = screen.getByPlaceholderText("Filtrele…");
     fireEvent.change(filter, { target: { value: "c.de" } });
@@ -706,7 +712,7 @@ describe("Convert page", () => {
   });
 
   it("starts the batch queue with the configured parallelism", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     mockRpc({ "queue.list": rpcOk(BATCH_ITEMS), "queue.start": rpcOk({ started: true }) });
     fireEvent.click(screen.getByText("Toplu Başlat"));
@@ -718,7 +724,7 @@ describe("Convert page", () => {
   });
 
   it("reports why the batch did not start", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     mockRpc({
       "queue.list": rpcOk(BATCH_ITEMS),
@@ -742,7 +748,7 @@ describe("Convert page", () => {
   });
 
   it("honours the parallel input, forces serial install when opted in, resets on queue_done", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     mockRpc({ "queue.list": rpcOk(BATCH_ITEMS), "queue.start": rpcOk({ started: true }) });
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "3" } });
@@ -754,7 +760,7 @@ describe("Convert page", () => {
     );
     // Kuyruk bitti olayi calisma rozetini indirir ve listeyi tazeler.
     const listsBefore = callsTo("queue.list").length;
-    act(() => emit("event/queue_done", {}));
+    await act(async () => emit("event/queue_done", {}));
     await vi.waitFor(() =>
       expect(callsTo("queue.list").length).toBeGreaterThan(listsBefore),
     );
@@ -772,7 +778,7 @@ describe("Convert page", () => {
   });
 
   it("adds browsed files to the batch queue via queue.add", async () => {
-    renderConvert();
+    await renderConvert();
     await openBatchTab();
     vi.mocked(open).mockResolvedValueOnce(["/tmp/yeni.deb"]);
     fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
@@ -788,7 +794,7 @@ describe("Convert page", () => {
         req.method === "queue.list" ? rpcErr(-32000, "kuyruk okunamiyor") : rpcOk({}),
       ),
     );
-    renderConvert();
+    await renderConvert();
     fireEvent.click(screen.getByText("Toplu"));
     await vi.waitFor(() =>
       expect(screen.getByText(/kuyruk okunamiyor/)).toBeInTheDocument(),
@@ -797,7 +803,7 @@ describe("Convert page", () => {
 
   // --- Uyumluluk raporu: kapatma dali ---
   it("dismisses the compatibility report via pipeline.dismiss", async () => {
-    renderConvert();
+    await renderConvert();
     await startRunning();
     act(() =>
       emit("event/compatibility_ready", {

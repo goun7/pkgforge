@@ -101,12 +101,14 @@ async function typePackageName(name: string) {
   fireEvent.change(input, { target: { value: name } });
 }
 
-function renderUpdates() {
-  return render(
+async function renderUpdates() {
+  const r = render(
     <ToastProvider>
       <Updates />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 describe("Updates page", () => {
@@ -116,7 +118,7 @@ describe("Updates page", () => {
   });
 
   it("loads delta status on mount", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -126,7 +128,7 @@ describe("Updates page", () => {
   });
 
   it("loads schedule state on mount", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -136,13 +138,13 @@ describe("Updates page", () => {
   });
 
   it("shows the scheduled tasks card", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     expect(screen.getByText("Zamanlanmış Görevler")).toBeInTheDocument();
   });
 
   it("toggles the schedule on", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     // The schedule card's own enable button (second "Etkinleştir" on the page).
     const enableButtons = screen.getAllByText("Etkinleştir");
@@ -156,20 +158,20 @@ describe("Updates page", () => {
   });
 
   it("has a cross-check input", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByPlaceholderText(/paket adı/i)).toBeInTheDocument());
   });
 
-  it("shows skeletons on both cards while initial data is pending", () => {
+  it("shows skeletons on both cards while initial data is pending", async () => {
     // Keep both loads in flight so the loading branches stay visible.
     invokeMock.mockImplementation(() => new Promise((r) => setTimeout(r, 50)));
-    const { container } = renderUpdates();
+    const { container } = await renderUpdates();
     expect(container.querySelectorAll(".animate-pulse").length).toBe(2);
   });
 
   it("renders an active delta with next run and locks the enable button", async () => {
     mockRpc({ "delta.status": rpcOk(DELTA_ACTIVE) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Zamanlayıcı kurulu")).toBeInTheDocument());
     expect(screen.getByText("Aktif")).toBeInTheDocument();
     expect(screen.getByText("Sonraki çalışma: 2025-08-30 10:00")).toBeInTheDocument();
@@ -180,7 +182,7 @@ describe("Updates page", () => {
   });
 
   it("renders an inactive delta without next run and locks disable", async () => {
-    renderUpdates(); // DELTA: not installed, not active, empty next_run
+    await renderUpdates(); // DELTA: not installed, not active, empty next_run
     await vi.waitFor(() =>
       expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(),
     );
@@ -190,7 +192,7 @@ describe("Updates page", () => {
   });
 
   it("refresh button reloads the delta status", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(),
     );
@@ -201,7 +203,7 @@ describe("Updates page", () => {
 
   it("enable delta shows the backend privilege message and refreshes", async () => {
     mockRpc({ "delta.enable": rpcOk({ requires_privilege: true, message: "pkexec gerekli" }) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(),
     );
@@ -213,7 +215,7 @@ describe("Updates page", () => {
 
   it("enable delta falls back to the default privilege toast without a message", async () => {
     mockRpc({ "delta.enable": rpcOk({ requires_privilege: true }) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(),
     );
@@ -225,7 +227,7 @@ describe("Updates page", () => {
 
   it("enable delta without privilege need only refreshes the status", async () => {
     mockRpc({ "delta.enable": rpcOk({}) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(),
     );
@@ -239,7 +241,7 @@ describe("Updates page", () => {
       "delta.status": rpcOk(DELTA_INSTALLED),
       "delta.disable": rpcOk({ requires_privilege: true }),
     });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Zamanlayıcı kurulu")).toBeInTheDocument());
     // Faz 16: delta kartindaki 'Kapat' artik onay acar (ilk 'Kapat' = delta karti;
     // ikincisi zamanlanmis gorevler kartindaki).
@@ -255,7 +257,7 @@ describe("Updates page", () => {
 
   it("disable delta without privilege only refreshes the status", async () => {
     mockRpc({ "delta.status": rpcOk(DELTA_INSTALLED), "delta.disable": rpcOk({}) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Zamanlayıcı kurulu")).toBeInTheDocument());
     fireEvent.click(screen.getAllByText("Kapat")[0]);
     const dialog = screen.getByRole("dialog");
@@ -266,7 +268,7 @@ describe("Updates page", () => {
 
   it("shows an error toast when delta.enable fails", async () => {
     mockRpc({ "delta.enable": rpcErr(-32601, "delta etkinlestirilemedi") });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() =>
       expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(),
     );
@@ -276,7 +278,7 @@ describe("Updates page", () => {
 
   it("delta status error leaves the delta card empty and shows a toast", async () => {
     mockRpc({ "delta.status": rpcErr(-32000, "delta durumu okunamadi") });
-    renderUpdates();
+    await renderUpdates();
     expect(await screen.findByText("-32000: delta durumu okunamadi")).toBeInTheDocument();
     expect(screen.queryByText("Zamanlayıcı kurulu değil")).not.toBeInTheDocument();
     expect(screen.queryByText("Zamanlayıcı kurulu")).not.toBeInTheDocument();
@@ -284,7 +286,7 @@ describe("Updates page", () => {
 
   it("renders an enabled schedule with next/last run and the saved interval", async () => {
     mockRpc({ "schedule.get": rpcOk(SCHEDULE_ON) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Etkin")).toBeInTheDocument());
     expect(screen.getByText("Sonraki: 2025-08-30 09:00")).toBeInTheDocument();
     expect(screen.getByText("Son çalışma: 2025-08-29 09:00")).toBeInTheDocument();
@@ -294,7 +296,7 @@ describe("Updates page", () => {
   });
 
   it("saves a valid interval", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "12" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
@@ -307,7 +309,7 @@ describe("Updates page", () => {
   });
 
   it("rejects an interval below one hour without calling the backend", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "0.5" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
@@ -316,7 +318,7 @@ describe("Updates page", () => {
   });
 
   it("rejects a non-numeric interval without calling the backend", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "abc" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
@@ -326,7 +328,7 @@ describe("Updates page", () => {
 
   it("disables an enabled schedule", async () => {
     mockRpc({ "schedule.get": rpcOk(SCHEDULE_ON) });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Etkin")).toBeInTheDocument());
     fireEvent.click(screen.getAllByRole("button", { name: "Kapat" })[1]);
     await vi.waitFor(() =>
@@ -341,7 +343,7 @@ describe("Updates page", () => {
   });
 
   it("run now triggers schedule.run and shows a success toast", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Şimdi çalıştır" }));
     await vi.waitFor(() =>
@@ -356,7 +358,7 @@ describe("Updates page", () => {
 
   it("shows an error toast when schedule.run fails", async () => {
     mockRpc({ "schedule.run": rpcErr(-1, "görev çalıştırılamadı") });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Şimdi çalıştır" }));
     expect(await screen.findByText("-1: görev çalıştırılamadı")).toBeInTheDocument();
@@ -365,7 +367,7 @@ describe("Updates page", () => {
 
   it("shows an error toast when the schedule toggle fails", async () => {
     mockRpc({ "schedule.set": rpcErr(-2, "zamanlama değiştirilemedi") });
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Devre dışı")).toBeInTheDocument());
     const enableButtons = screen.getAllByRole("button", { name: "Etkinleştir" });
     fireEvent.click(enableButtons[enableButtons.length - 1]);
@@ -374,7 +376,7 @@ describe("Updates page", () => {
 
   it("schedule load error keeps the schedule card as a skeleton", async () => {
     mockRpc({ "schedule.get": rpcErr(-3, "zamanlama okunamadı") });
-    const { container } = renderUpdates();
+    const { container } = await renderUpdates();
     expect(await screen.findByText("-3: zamanlama okunamadı")).toBeInTheDocument();
     expect(screen.getByText("Zamanlayıcı kurulu değil")).toBeInTheDocument(); // delta loaded
     expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
@@ -382,7 +384,7 @@ describe("Updates page", () => {
   });
 
   it("empty package name warns and skips the cross-check call", async () => {
-    renderUpdates();
+    await renderUpdates();
     await vi.waitFor(() => expect(screen.getByPlaceholderText(/paket adı/i)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Karşılaştır" }));
     expect(await screen.findByText("Bir paket adı girin")).toBeInTheDocument();
@@ -391,7 +393,7 @@ describe("Updates page", () => {
 
   it("compare renders the version table after a successful cross_check_done event", async () => {
     const getHandler = captureCrossCheckDone();
-    const { container } = renderUpdates();
+    const { container } = await renderUpdates();
     await typePackageName("firefox");
     fireEvent.click(screen.getByRole("button", { name: "Karşılaştır" }));
     await vi.waitFor(() =>
@@ -425,7 +427,7 @@ describe("Updates page", () => {
 
   it("compare shows the fallback toast when the event carries no result", async () => {
     const getHandler = captureCrossCheckDone();
-    renderUpdates();
+    await renderUpdates();
     await typePackageName("firefox");
     fireEvent.click(screen.getByRole("button", { name: "Karşılaştır" }));
     await vi.waitFor(() => expect(callsTo("system.cross_check")).toHaveLength(1));
@@ -441,7 +443,7 @@ describe("Updates page", () => {
 
   it("compare surfaces the event error message when one is provided", async () => {
     const getHandler = captureCrossCheckDone();
-    renderUpdates();
+    await renderUpdates();
     await typePackageName("firefox");
     fireEvent.click(screen.getByRole("button", { name: "Karşılaştır" }));
     await vi.waitFor(() => expect(callsTo("system.cross_check")).toHaveLength(1));
@@ -455,7 +457,7 @@ describe("Updates page", () => {
   it("compare call rejection re-enables the button and shows an error toast", async () => {
     captureCrossCheckDone();
     mockRpc({ "system.cross_check": new Error("sidecar koptu") });
-    renderUpdates();
+    await renderUpdates();
     await typePackageName("firefox");
     fireEvent.click(screen.getByRole("button", { name: "Karşılaştır" }));
     expect(await screen.findByText("sidecar koptu")).toBeInTheDocument();
@@ -467,7 +469,7 @@ describe("Updates page", () => {
 
   it("compare renders dashes for all missing versions and no reason line", async () => {
     const getHandler = captureCrossCheckDone();
-    const { container } = renderUpdates();
+    const { container } = await renderUpdates();
     await typePackageName("vim");
     fireEvent.click(screen.getByRole("button", { name: "Karşılaştır" }));
     await vi.waitFor(() => expect(callsTo("system.cross_check")).toHaveLength(1));

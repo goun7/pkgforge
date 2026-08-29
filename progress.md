@@ -325,6 +325,13 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 20b: act() hijyeni (29 Ağu)
+- Convert.test 205→47, Updates.test 102→14 uyarı; 578/578 korundu.
+  Genel sayı 551→282. Yöntem: render helper async + act flush,
+  emit'ler await act'e, sync it()'ler async; IS_REACT_ACT_ENVIRONMENT
+  bayrağı setup'ta. Kalan ~280: Fleet/Tools/Reports/Export + çok-tick
+  promise zincirleri (sonraki turda aynı reçete).
+
 ## Oturum-8 Faz 20: dev fonksiyon refaktörü (29 Ağu)
 - _run_pipeline 206→43: 4 sahne metodu; temp-daraltma mypy guard'ı
   (_stage_conversion'da açık None kontrolü).
