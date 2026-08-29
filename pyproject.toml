@@ -48,7 +48,10 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 "share/applications" = ["data/pkgforge.desktop"]
 "share/icons/hicolor/scalable/apps" = ["data/pkgforge.svg"]
 "share/metainfo" = ["data/org.pkgforge.app.metainfo.xml"]
-"share/polkit-1/actions" = ["data/org.pkgforge.app.policy"]
+"share/polkit-1/actions" = [
+    "data/org.pkgforge.app.policy",
+    "packaging/polkit/org.pkgforge.helper.policy",
+]
 "share/pkgforge/scripts" = [
     "scripts/install_helper.sh",
     "scripts/pkgforge-privileged.sh",

@@ -77,13 +77,33 @@ mkdir -p /usr/share/icons/hicolor/scalable/apps
 cp "$PROJECT_DIR/data/pkgforge.svg" /usr/share/icons/hicolor/scalable/apps/pkgforge.svg
 chmod 644 /usr/share/icons/hicolor/scalable/apps/pkgforge.svg
 
-# 5. Polkit policy (privilege gate for pacman -U installs)
+# 5. Polkit policies.
+# Faz 14: helper policy (org.pkgforge.helper.policy) EKSIK kurulumda pkexec
+# her cagrida genel auth_admin fallback'ine dusuyordu = "sudo bombardimani".
+# HER IKI policy kurulur: app.policy (dogrudan pacman fallback) + helper.policy
+# (konsolide helper; auth_admin_keep ile 5 dk icinde tek parola).
+mkdir -p /usr/share/polkit-1/actions
 if [ -f "$PROJECT_DIR/data/org.pkgforge.app.policy" ]; then
     echo "🔐 Installing polkit policy: /usr/share/polkit-1/actions/org.pkgforge.app.policy"
-    mkdir -p /usr/share/polkit-1/actions
     cp "$PROJECT_DIR/data/org.pkgforge.app.policy" /usr/share/polkit-1/actions/org.pkgforge.app.policy
     chmod 644 /usr/share/polkit-1/actions/org.pkgforge.app.policy
 fi
+if [ -f "$PROJECT_DIR/packaging/polkit/org.pkgforge.helper.policy" ]; then
+    echo "🔐 Installing polkit policy: /usr/share/polkit-1/actions/org.pkgforge.helper.policy"
+    cp "$PROJECT_DIR/packaging/polkit/org.pkgforge.helper.policy" /usr/share/polkit-1/actions/org.pkgforge.helper.policy
+    chmod 644 /usr/share/polkit-1/actions/org.pkgforge.helper.policy
+fi
+
+# 5b. Privileged helper scripts — pkexec bunlari root sahipli 0755 olarak
+# arar; kaynak agacindaki sahipli betikler polkit tarafindan reddedilir.
+echo "🔐 Installing privileged helpers: /usr/share/pkgforge/scripts/"
+mkdir -p /usr/share/pkgforge/scripts
+for h in install_helper.sh pkgforge-privileged.sh; do
+    if [ -f "$PROJECT_DIR/scripts/$h" ]; then
+        cp "$PROJECT_DIR/scripts/$h" "/usr/share/pkgforge/scripts/$h"
+        chmod 755 "/usr/share/pkgforge/scripts/$h"
+    fi
+done
 
 # 6. Shell completion installation
 if [ -d "$PROJECT_DIR/data/completions" ]; then

@@ -44,8 +44,15 @@ def test_install_success_flow(monkeypatch):
     monkeypatch.setattr(SC, "safe_run", fake_run)
     ok, msg = SC.install_cleanup_service(max_age_days=5)
     assert ok is True and "kuruldu" in msg
-    scripts = [inp for argv, inp in writes if inp]
-    assert any("MAX_AGE_DAYS=5" in s for s in scripts)
+    # Faz 14: içerik artık tek write-batch manifest'inde (bytes) taşınır.
+    manifests = [inp for argv, inp in writes
+                 if inp is not None and isinstance(inp, (bytes, bytearray))
+                 and "write-batch" in argv]
+    assert len(manifests) == 1, "tek write-batch manifest beklenir"
+    assert b"MAX_AGE_DAYS=5" in manifests[0]
+    # Diğer tüm pkexec çağrıları systemd fiilleri (daemon-reload/enable/start).
+    others = [argv for argv, _ in writes if "write-batch" not in argv]
+    assert any("daemon-reload" in argv for argv in others)
 
 
 def test_install_pkexec_reject(monkeypatch):
@@ -55,6 +62,23 @@ def test_install_pkexec_reject(monkeypatch):
                         lambda argv, timeout=None, input=None, **kw: _ns(1))
     ok, msg = SC.install_cleanup_service()
     assert ok is False and "yazılamadı" in msg
+
+
+def test_install_single_write_dialog(monkeypatch):
+    """Faz 14: snapshot kurulumu TAM OLARAK TEK pkexec write diyalogu açar."""
+    monkeypatch.setattr(SC, "detect_backend", lambda: "btrfs")
+    monkeypatch.setattr(SC.os.path, "isfile", lambda p: True)
+    write_calls = 0
+
+    def fake_run(argv, timeout=None, input=None, **kw):
+        nonlocal write_calls
+        if "write-batch" in argv:
+            write_calls += 1
+        return _ns(0)
+    monkeypatch.setattr(SC, "safe_run", fake_run)
+    ok, _msg = SC.install_cleanup_service()
+    assert ok is True
+    assert write_calls == 1, f"tek diyalog beklenir, {write_calls} var"
 
 
 def test_remove_success_and_no_systemctl(monkeypatch):

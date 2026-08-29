@@ -596,7 +596,14 @@ def handle_system_open_path(params):
 
 
 def handle_system_install_pkg(params):
-    """Donusturulmus .pkg.tar.zst paketini pkexec + pacman -U ile kurar."""
+    """Donusturulmus .pkg.tar.zst paketini pkexec + pacman -U ile kurar.
+
+    Faz 14: rota, konsolide privileged helper'in install-pkg alt-komutuna
+    gider — byolenek [pkexec, pacman, ...] zinciri yerine TEK policy action
+    (org.pkgforge.install) yetkilendirilir ve helper argüman doğrulaması
+    (uzanti/mutlak yol/çapraz-yol) devrede kalır.
+    """
+    from core.privileged import privileged_argv
     from core.security import safe_run
 
     pkg = Path(params.get("pkg_path", ""))
@@ -609,8 +616,8 @@ def handle_system_install_pkg(params):
         raise RuntimeError("pkexec veya pacman bulunamadı")
 
     def _op():
-        res = safe_run([tools.pkexec, tools.pacman, "-U", "--noconfirm", "--", str(pkg)],
-                       timeout=600)
+        argv = privileged_argv(tools.pkexec, "install-pkg", str(pkg))
+        res = safe_run(argv, timeout=600)
         if res.returncode == 0:
             return {"ok": True, "message": f"{pkg.name} kuruldu"}
         return {"ok": False, "message": f"Kurulum başarısız (kod {res.returncode})"}

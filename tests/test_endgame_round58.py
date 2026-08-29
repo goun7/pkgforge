@@ -365,26 +365,27 @@ def test_install_cleanup_write_fail_and_exception(monkeypatch):
     monkeypatch.setattr(SCU, "detect_backend", lambda: "btrfs")
     monkeypatch.setattr(SCU.os.path, "isfile", lambda p: True)
 
+    # Faz 14: dosyalar artik TEK write-batch'te — ret kodu tek mesajdan
+    # yuzeye cikar; eski ayri "Service/Timer dosyası yazılamadı" yok.
     sonuclar = iter([
-        NS(returncode=0, stdout=b"", stderr=b""),   # script
-        NS(returncode=0, stdout=b"", stderr=b""),   # chmod
-        NS(returncode=1, stdout=b"", stderr=b""),   # service -> 196-197
+        NS(returncode=1, stdout=b"", stderr=b""),   # write-batch -> ret
     ])
     monkeypatch.setattr(SCU, "safe_run",
                         lambda cmd, input=None, timeout=0: next(sonuclar))
     ok, msg = SCU.install_cleanup_service(max_age_days=7)
-    assert ok is False and "Service dosyası yazılamadı" in msg       # 197
+    assert ok is False and "yazılamadı" in msg
 
     sonuclar2 = iter([
-        NS(returncode=0, stdout=b"", stderr=b""),   # script
-        NS(returncode=0, stdout=b"", stderr=b""),   # chmod
-        NS(returncode=0, stdout=b"", stderr=b""),   # service
-        NS(returncode=1, stdout=b"", stderr=b""),   # timer -> 204-205
+        NS(returncode=0, stdout=b"", stderr=b""),   # write-batch OK
+        NS(returncode=0, stdout=b"", stderr=b""),   # daemon-reload
+        NS(returncode=1, stdout=b"", stderr=b""),   # enable -> best-effort
+        NS(returncode=0, stdout=b"", stderr=b""),   # start
     ])
     monkeypatch.setattr(SCU, "safe_run",
                         lambda cmd, input=None, timeout=0: next(sonuclar2))
-    ok2, msg2 = SCU.install_cleanup_service(max_age_days=7)
-    assert ok2 is False and "Timer dosyası yazılamadı" in msg2       # 205
+    ok2, _msg2 = SCU.install_cleanup_service(max_age_days=7)
+    # enable/start ret kodlari best-effort: kurulum basari sayilir.
+    assert ok2 is True
 
     def patlak(cmd, input=None, timeout=0):
         raise OSError("pkexec yok")
@@ -461,16 +462,14 @@ def test_delta_install_timer_fail_and_exception(monkeypatch):
     monkeypatch.setattr(os.path, "isfile", lambda p: True)
 
     import core.security as SEC
+    # Faz 14: tek write-batch — ret kodu "Dosyalar yazılamadı (kod N)".
     sonuclar = iter([
-        NS(returncode=0, stdout=b"", stderr=b""),   # script yaz
-        NS(returncode=0, stdout=b"", stderr=b""),   # chmod
-        NS(returncode=0, stdout=b"", stderr=b""),   # service yaz
-        NS(returncode=1, stdout=b"", stderr=b""),   # timer -> 272-273
+        NS(returncode=1, stdout=b"", stderr=b""),   # write-batch -> ret
     ])
     monkeypatch.setattr(SEC, "safe_run",
                         lambda cmd, input=None, timeout=0: next(sonuclar))
     ok, msg = DU.install_auto_update(interval_hours=6)
-    assert ok is False and "Timer dosyası yazılamadı" in msg         # 273
+    assert ok is False and "yazılamadı" in msg                       # 273
 
     def patlak(cmd, input=None, timeout=0):
         raise OSError("pkexec reddi")
@@ -491,7 +490,8 @@ def test_delta_enable_start_fail(monkeypatch):
                         in str(self))
 
     def sahte_run(cmd, input=None, timeout=0):
-        if cmd[1] == "start":
+        cmd = list(cmd)
+        if "start" in cmd[2:]:
             return NS(returncode=1, stdout=b"", stderr=b"baslatmadi")
         return NS(returncode=0, stdout=b"", stderr=b"")
 

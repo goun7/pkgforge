@@ -16,11 +16,7 @@ import logging
 import os
 from pathlib import Path
 
-from core.privileged import (
-    privileged_chmod_argv,
-    privileged_remove_argv,
-    privileged_write_argv,
-)
+from core.privileged import privileged_remove_argv
 from core.security import safe_run
 from core.snapshot_manager import detect_backend
 
@@ -175,39 +171,31 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
     service_path = Path(f"/etc/systemd/system/{SERVICE_NAME}.service")
     timer_path = Path(f"/etc/systemd/system/{TIMER_NAME}.timer")
 
-    # Write files using pkexec
+    # Faz 14: TUM dosyalar TEK pkexec diyaloğunda (write-batch); eski
+    # akış 4-5 ayrı diyalog açıyordu.
     try:
-        # Script
-        res = safe_run(
-            privileged_write_argv("pkexec", str(script_path)),
-            input=script_content, timeout=10,
+        from core.privileged import (
+            build_write_batch_manifest,
+            privileged_systemctl_argv,
+            privileged_write_batch_argv,
         )
+
+        manifest = build_write_batch_manifest([
+            ("755", str(script_path), script_content),
+            ("644", str(service_path), service_content),
+            ("644", str(timer_path), timer_content),
+        ])
+        res = safe_run(privileged_write_batch_argv("pkexec"),
+                       input=manifest, timeout=30)
         if res.returncode != 0:
-            return False, "Script dosyası yazılamadı (pkexec reddedildi?)"
+            return False, f"Dosyalar yazılamadı (kod {res.returncode})"
 
-        safe_run(privileged_chmod_argv("pkexec", "755", str(script_path)),
-                    timeout=5)
-
-        # Service
-        res = safe_run(
-            privileged_write_argv("pkexec", str(service_path)),
-            input=service_content, timeout=10,
-        )
-        if res.returncode != 0:
-            return False, "Service dosyası yazılamadı"
-
-        # Timer
-        res = safe_run(
-            privileged_write_argv("pkexec", str(timer_path)),
-            input=timer_content, timeout=10,
-        )
-        if res.returncode != 0:
-            return False, "Timer dosyası yazılamadı"
-
-        # Enable and start timer
-        safe_run([systemctl, "daemon-reload"], timeout=10)
-        safe_run([systemctl, "enable", f"{TIMER_NAME}.timer"], timeout=10)
-        safe_run([systemctl, "start", f"{TIMER_NAME}.timer"], timeout=10)
+        # Enable/start: helper uzerinden yetkili systemctl.
+        safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
+        safe_run(privileged_systemctl_argv("pkexec", "enable",
+                                           f"{TIMER_NAME}.timer"), timeout=15)
+        safe_run(privileged_systemctl_argv("pkexec", "start",
+                                           f"{TIMER_NAME}.timer"), timeout=15)
 
         msg = (
             f"✅ Snapshot cleanup servisi kuruldu!\n\n"
@@ -216,8 +204,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
             f"  Servis: {SERVICE_NAME}.service\n"
             f"  Timer: {TIMER_NAME}.timer\n\n"
             f"  Durumu kontrol: systemctl status {TIMER_NAME}.timer\n"
-            f"  Durdur: sudo systemctl stop {TIMER_NAME}.timer\n"
-            f"  Kaldır: pkgforge snapshot-cleanup --remove"
+            f"  Kaldır: Raporlar → Temizlik → Kaldır (veya pkgforge snapshot-cleanup --remove)"
         )
         return True, msg
 
@@ -241,8 +228,13 @@ def remove_cleanup_service() -> tuple[bool, str]:
         return False, "systemctl bulunamadı"
 
     try:
-        safe_run([systemctl, "stop", f"{TIMER_NAME}.timer"], timeout=10)
-        safe_run([systemctl, "disable", f"{TIMER_NAME}.timer"], timeout=10)
+        from core.privileged import privileged_systemctl_argv
+
+        # Faz 14: systemctl fiilleri helper uzerinden yetkili.
+        safe_run(privileged_systemctl_argv("pkexec", "stop",
+                                           f"{TIMER_NAME}.timer"), timeout=15)
+        safe_run(privileged_systemctl_argv("pkexec", "disable",
+                                           f"{TIMER_NAME}.timer"), timeout=15)
 
         # Remove files
         for path in [
@@ -254,7 +246,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
             if p.exists():
                 safe_run(privileged_remove_argv("pkexec", str(p)), timeout=10)
 
-        safe_run([systemctl, "daemon-reload"], timeout=10)
+        safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
 
         return True, "✅ Snapshot cleanup servisi kaldırıldı."
 

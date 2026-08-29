@@ -7,6 +7,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Fixed
+- **fix(ux)**: sudo/pkexec bombardımanı — delta/snapshot kurulumları tek işlemde
+  4-5 ayrı parola diyalogu açıyordu. Yeni `write-batch` helper alt-komutu tüm
+  dosyaları TEK pkexec diyaloğunda yazar; systemctl fiilleri (enable/start/
+  stop/daemon-reload) artık helper üzerinden yetkili gider (eskiden yetkisiz
+  çağrılıp sessizce başarısız oluyordu). Tam analiz: docs/SUDO_DENETIMI_FAZ14.md.
+- **fix(packaging)**: gerçek polkit policy'si (`org.pkgforge.helper.policy`,
+  auth_admin_keep) hiçbir yere kurulmuyordu — pkexec her çağrıda genel
+  auth_admin fallback'ine düşüyordu. Artık wheel data-files + install.sh
+  kuruyor; helper betikleri /usr/share/pkgforge/scripts'e root-0755 gider.
+- **fix(delta)**: timer aralığı yok sayılıyordu (12 saat seçilse bile sabit
+  6h OnCalendar). 24'ün bölenleri OnCalendar adımı, diğerleri OnUnitActiveSec.
+- **fix(api)**: kurulum rotası doğrudan `pkexec pacman` yerine konsolide
+  helper `install-pkg`'ye geçti (tek policy action + argüman doğrulaması).
+- **test**: tek-diyalog sözleşmesi testlerle kilitlendi (write-batch çağrı
+  sayısı = 1 assert'i; timer aralık yansıması; ret-kod yüzeyi).
+
+### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
   erken unmount'ta sızıyordu; `rpc.ts`'de yeni `eventBinder()` ile 10 sayfa
   güvenli desene migrate edildi (33 çağrı noktası). Handler catch'lerinde

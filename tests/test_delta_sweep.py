@@ -184,34 +184,32 @@ def test_install_requires_systemctl(monkeypatch):
 
 
 def test_install_happy_path(monkeypatch):
-    yazilanlar = []
-    monkeypatch.setattr("core.privileged.privileged_write_argv",
-                        lambda tool, path: ["pkexec-tee", path])
-    monkeypatch.setattr("core.privileged.privileged_chmod_argv",
-                        lambda tool, mode, path: ["pkexec-chmod", path])
+    """Faz 14: kurulum artik TEK write-batch cagrisiyla yapilir; eskiden 3
+    ayri pkexec diyalogu vardi (sudo bombardimaninin ana kaynagi)."""
+    monkeypatch.setattr("os.path.isfile", lambda p: True)
+    batches = []
 
     def fake(cmd, timeout=0, input=None):
-        if cmd[0] == "pkexec-tee":
-            yazilanlar.append(cmd[1])
-            return _rc(0)
+        if "write-batch" in cmd:
+            batches.append(cmd)
         return _rc(0)
     monkeypatch.setattr("core.security.safe_run", fake)
 
     ok, msg = DU.install_auto_update(interval_hours=12)
-    assert ok is True and len(yazilanlar) == 3
+    assert ok is True and len(batches) == 1, "tek write-batch beklenir"
     assert "12 saatte" in msg or "Timer" in msg
 
 
 def test_install_script_write_failure(monkeypatch):
-    monkeypatch.setattr("core.privileged.privileged_write_argv",
-                        lambda tool, path: ["pkexec-tee", path])
+    monkeypatch.setattr("os.path.isfile", lambda p: True)
     monkeypatch.setattr("core.security.safe_run",
                         lambda cmd, timeout=0, input=None: _rc(1))
     ok, msg = DU.install_auto_update()
-    assert ok is False and "Script" in msg
+    assert ok is False and "yazılamadı" in msg
 
 
 def test_remove_happy_and_exception(monkeypatch):
+    monkeypatch.setattr("os.path.isfile", lambda p: True)
     monkeypatch.setattr("core.privileged.privileged_remove_argv",
                         lambda tool, path: ["rm", path])
     # Yalniz bu modulun Path'i: /etc birimleri "yok" sayilir

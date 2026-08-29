@@ -11,6 +11,7 @@ usage() {
     echo "Kullanim: pkgforge-privileged.sh <komut> [arg...]" >&2
     echo "  install-pkg <paket>      pacman -U ile kur" >&2
     echo "  write-file <yol>         stdin'i dosyaya yaz (atomik)" >&2
+    echo "  write-batch <manifest>  manifest'teki dosyaları TEK yetkide yazar" >&2
     echo "  chmod <mod> <yol>        dosya modunu degistir" >&2
     echo "  remove-file <yol>        dosyayi sil" >&2
     echo "  systemctl <fiil> [unit]  enable|disable|start|stop|daemon-reload" >&2
@@ -68,6 +69,28 @@ case "$CMD" in
         tmp="$DEST.tmp"
         cat > "$tmp"
         mv "$tmp" "$DEST"
+        ;;
+    write-batch)
+        # Faz 14: coklu dosya yazmayi TEK pkexec diyalogunda topla.
+        # Manifest stdin'den gelir; her satir: "<mod>:<yol>:" sonra icerik,
+        # NUL ayiriciyla (icerikte newline guvenli; bos satir dahi yazilir).
+        [ $# -eq 0 ] || usage
+        n=0
+        while IFS= read -r -d '' header; do
+            MOD="$header"
+            IFS= read -r -d '' DEST || { echo "HATA: Eksik hedef yolu" >&2; exit 11; }
+            IFS= read -r -d '' CONTENT || true
+            _check_path "$DEST"
+            _check_not_symlink "$DEST"
+            _check_not_symlink "$(dirname "$DEST")"
+            mkdir -p "$(dirname "$DEST")"
+            tmp="$DEST.tmp"
+            printf '%s' "$CONTENT" > "$tmp"
+            chmod "$MOD" "$tmp" 2>/dev/null || true
+            mv "$tmp" "$DEST"
+            n=$((n+1))
+        done
+        echo "write-batch: $n dosya yazildi"
         ;;
     chmod)
         [ $# -eq 2 ] || usage

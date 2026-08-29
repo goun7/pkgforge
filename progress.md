@@ -325,6 +325,18 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 14: sudo/pkexec bombardımanı kökten çözüldü (29 Ağu)
+- Belirti: ekranda art arda parola diyalogları. Kök nedenler (kanıtlı):
+  1) gerçek helper policy hiçbir yere kurulmuyordu (her çağrı genel
+     auth_admin fallback'i), 2) tek işlemde 4-5 ayrı pkexec çağrısı,
+  3) systemctl fiilleri yetkisiz çağrılıp sessizce başarısız,
+  4) timer aralığı yok sayılıyordu (sabit 6h).
+- Düzeltmeler: write-batch (tek diyalogda çoklu yazma) + yetkili systemctl
+  zinciri + policy/helper kurulumu (pyproject + install.sh) + timer aralık
+  çözümlemesi + api install rotasının helper'a alınması.
+- Testler: delta/snapshot 29/29, api+helper 23/23; yeni tek-diyalog
+  sözleşme testleri. Tam analiz: docs/SUDO_DENETIMI_FAZ14.md.
+
 ## Oturum-7 Faz 13: kapsam ölçümü + doküman sayı-senkronu (29 Ağu)
 - Masaüstü v8 kapsam: %72.63 (Faz 11) -> **%88.37 ifade / %89.53 satır**
   (test-kapsam maratonunun etkisi; en düşük: Settings %62.98).

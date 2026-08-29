@@ -106,3 +106,70 @@ def test_helper_install_pkg_rejects_bad_extension(tmp_path):
     fake.write_text("x")
     r = _run_helper(["install-pkg", str(fake)])
     assert r.returncode == 4
+
+
+# --- Faz 14: write-batch (tek pkexec diyaloğunda çoklu yazma) -----------------
+
+def test_write_batch_manifest_roundtrip_and_argv():
+    from core.privileged import (
+        build_write_batch_manifest,
+        privileged_write_batch_argv,
+    )
+    m = build_write_batch_manifest([
+        ("755", "/usr/local/bin/a.sh", "#!/bin/bash\necho A"),
+        ("644", "/etc/systemd/system/b.service", "[Unit]"),
+    ])
+    # Üçlü NUL-ayırıcılı: 6 alan + sonda kapanış NUL'u
+    assert m.count(b"\x00") == 6
+    argv = privileged_write_batch_argv("pkexec")
+    assert argv[2:] == ["write-batch"]
+
+
+def test_helper_write_batch_writes_all_files(tmp_path):
+    """Gerçek write-batch mantığı (parse/atomik yazma/chmod/sayaç) hermetik
+    sınanır: betiğin bir kopyasında izinli prefix tmp_path'e yönlendirilir —
+    test sistemi /usr/local/bin'e yazamaz (sandbox/CI paritesi)."""
+    import os
+
+    from core.privileged import build_write_batch_manifest
+
+    # tmp kopya + prefix yönlendirme
+    src = HELPER.read_text()
+    assert 'ALLOWED_WRITE_PREFIXES=' in src
+    patched = src.replace(
+        'ALLOWED_WRITE_PREFIXES=("/etc/systemd/system/" "/usr/local/bin/" "/usr/share/pkgforge/")',
+        f'ALLOWED_WRITE_PREFIXES=("{tmp_path}/")',
+    )
+    assert patched != src, "prefix satırı bulunamadı"
+    helper2 = tmp_path / "helper-test.sh"
+    helper2.write_text(patched)
+
+    hedef1 = tmp_path / "wb-a.sh"
+    hedef2 = tmp_path / "wb-b.service"
+    manifest = build_write_batch_manifest([
+        ("755", str(hedef1), "#!/bin/bash\necho A"),
+        ("644", str(hedef2), "[Unit]\nB"),
+    ])
+    r = subprocess.run(
+        ["bash", str(helper2), "write-batch"], input=manifest,
+        capture_output=True, check=False, timeout=15)
+    assert r.returncode == 0, r.stderr
+    assert b"2 dosya yazildi" in r.stdout
+    assert hedef1.read_text().endswith("echo A")
+    assert hedef2.read_text() == "[Unit]\nB"
+    # modlar uygulandi mi
+    assert (os.stat(hedef1).st_mode & 0o777) == 0o755
+    assert (os.stat(hedef2).st_mode & 0o777) == 0o644
+
+
+def test_helper_write_batch_rejects_bad_path(tmp_path):
+    from core.privileged import build_write_batch_manifest
+
+    manifest = build_write_batch_manifest([
+        ("644", "/root/evil", "x"),
+    ])
+    r = subprocess.run(
+        ["bash", str(HELPER), "write-batch"], input=manifest,
+        capture_output=True, check=False, timeout=15)
+    assert r.returncode == 6
+    assert b"izin verilen dizinlerde degil" in r.stderr

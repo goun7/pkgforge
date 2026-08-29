@@ -265,12 +265,18 @@ StandardOutput=journal
 StandardError=journal
 """
 
-    # Timer unit
+    # Timer unit — Faz 14: interval_hours artik takvime gercek yansir.
+    # 24'un bölenleri OnCalendar saat adimiyla; digerleri OnUnitActiveSec.
+    hours = max(int(interval_hours), 1)
+    if 24 % hours == 0:
+        sched = f"OnCalendar=*-*-* 00/{hours}:00:00"
+    else:
+        sched = f"OnUnitActiveSec={hours}h\nOnBootSec=10min"
     timer_content = f"""[Unit]
 Description=PkgForge Auto-Update Timer (every {interval_hours}h)
 
 [Timer]
-OnCalendar=*-*-* 00/6:00:00
+{sched}
 RandomizedDelaySec=1800
 Persistent=true
 
@@ -282,33 +288,35 @@ WantedBy=timers.target
     timer_path = Path(f"/etc/systemd/system/{_TIMER_NAME}.timer")
 
     try:
-        from core.privileged import privileged_chmod_argv, privileged_write_argv
+        # Faz 14: TUM dosyalar TEK pkexec diyaloğunda yazılır (write-batch);
+        # eski akış 4 ayrı diyalog açıyordu ve diyaloglar saniyeler içinde
+        # art arda yağdığında "sudo bombardımanı" deneyimi oluşuyordu.
+        from core.privileged import (
+            build_write_batch_manifest,
+            privileged_systemctl_argv,
+            privileged_write_batch_argv,
+        )
         from core.security import safe_run as _safe_run
 
-        # Script
-        res = _safe_run(privileged_write_argv("pkexec", str(script_path)),
-                        input=script_content, timeout=10)
+        manifest = build_write_batch_manifest([
+            ("755", str(script_path), script_content),
+            ("644", str(service_path), service_content),
+            ("644", str(timer_path), timer_content),
+        ])
+        res = _safe_run(privileged_write_batch_argv("pkexec"),
+                        input=manifest, timeout=30)
         if res.returncode != 0:
-            return False, "Script dosyası yazılamadı"
-        _safe_run(privileged_chmod_argv("pkexec", "755", str(script_path)),
-                    timeout=5)
+            return False, f"Dosyalar yazılamadı (kod {res.returncode})"
 
-        # Service
-        res = _safe_run(privileged_write_argv("pkexec", str(service_path)),
-                        input=service_content, timeout=10)
+        # Enable: systemctl fiilleri de helper üzerinden yetkili yapılır.
+        # (Eski akış bunları yetkisiz çağırıyordu → sessiz başarısızlık.)
+        _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
+        res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
+                                                 f"{_TIMER_NAME}.timer"), timeout=15)
         if res.returncode != 0:
-            return False, "Service dosyası yazılamadı"
-
-        # Timer
-        res = _safe_run(privileged_write_argv("pkexec", str(timer_path)),
-                        input=timer_content, timeout=10)
-        if res.returncode != 0:
-            return False, "Timer dosyası yazılamadı"
-
-        # Enable
-        _safe_run([systemctl, "daemon-reload"], timeout=10)
-        _safe_run([systemctl, "enable", f"{_TIMER_NAME}.timer"], timeout=10)
-        _safe_run([systemctl, "start", f"{_TIMER_NAME}.timer"], timeout=10)
+            return False, "Timer etkinleştirilemedi (yetki reddedildi?)"
+        _safe_run(privileged_systemctl_argv("pkexec", "start",
+                                            f"{_TIMER_NAME}.timer"), timeout=15)
 
         msg = (
             f"✅ Auto-update servisi kuruldu!\n\n"
@@ -316,8 +324,7 @@ WantedBy=timers.target
             f"  Servis: {_SERVICE_NAME}.service\n"
             f"  Timer: {_TIMER_NAME}.timer\n\n"
             f"  Durum: systemctl status {_TIMER_NAME}.timer\n"
-            f"  Durdur: sudo systemctl stop {_TIMER_NAME}.timer\n"
-            f"  Kaldır: pkgforge auto-update --remove"
+            f"  Kaldır: pkgforge auto-update --remove (GUI'den Updates sayfası da olur)"
         )
         return True, msg
 
@@ -338,11 +345,18 @@ def remove_auto_update() -> tuple[bool, str]:
         return False, "systemctl bulunamadı"
 
     try:
-        from core.privileged import privileged_remove_argv
+        from core.privileged import (
+            privileged_remove_argv,
+            privileged_systemctl_argv,
+        )
         from core.security import safe_run as _safe_run
 
-        _safe_run([systemctl, "stop", f"{_TIMER_NAME}.timer"], timeout=10)
-        _safe_run([systemctl, "disable", f"{_TIMER_NAME}.timer"], timeout=10)
+        # Faz 14: systemctl fiilleri helper uzerinden yetkili — eski akışta
+        # yetkisiz çağrılar sessizce başarısız oluyordu.
+        _safe_run(privileged_systemctl_argv("pkexec", "stop",
+                                            f"{_TIMER_NAME}.timer"), timeout=15)
+        _safe_run(privileged_systemctl_argv("pkexec", "disable",
+                                            f"{_TIMER_NAME}.timer"), timeout=15)
 
         for p in [
             f"/etc/systemd/system/{_SERVICE_NAME}.service",
@@ -352,7 +366,7 @@ def remove_auto_update() -> tuple[bool, str]:
             if Path(p).exists():
                 _safe_run(privileged_remove_argv("pkexec", p), timeout=10)
 
-        _safe_run([systemctl, "daemon-reload"], timeout=10)
+        _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
         return True, "✅ Auto-update servisi kaldırıldı."
 
     except Exception as exc:  # noqa: BLE001
@@ -408,6 +422,7 @@ def enable_auto_update() -> tuple[bool, str]:
     Returns:
         (success, message)
     """
+    from core.privileged import privileged_systemctl_argv
     from core.security import safe_run as _safe_run
     systemctl = shutil.which("systemctl")
     if not systemctl:
@@ -417,11 +432,15 @@ def enable_auto_update() -> tuple[bool, str]:
     if not timer_path.exists():
         return False, f"Timer dosyası bulunamadı: {timer_path}"
 
-    res = _safe_run([systemctl, "enable", f"{_TIMER_NAME}.timer"], timeout=10)
+    # Faz 14: systemctl fiilleri helper uzerinden yetkili (tek diyalog;
+    # auth_admin_keep ile 5 dk icinde tekrar sormaz).
+    res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
+                                              f"{_TIMER_NAME}.timer"), timeout=15)
     if res.returncode != 0:
         return False, f"Timer etkinleştirilemedi: {res.stderr[:200]}"
 
-    res = _safe_run([systemctl, "start", f"{_TIMER_NAME}.timer"], timeout=10)
+    res = _safe_run(privileged_systemctl_argv("pkexec", "start",
+                                              f"{_TIMER_NAME}.timer"), timeout=15)
     if res.returncode != 0:
         return False, f"Timer başlatılamadı: {res.stderr[:200]}"
 
@@ -434,13 +453,17 @@ def disable_auto_update() -> tuple[bool, str]:
     Returns:
         (success, message)
     """
+    from core.privileged import privileged_systemctl_argv
     from core.security import safe_run as _safe_run
     systemctl = shutil.which("systemctl")
     if not systemctl:
         return False, "systemctl bulunamadı — systemd kurulu değil"
 
-    _safe_run([systemctl, "stop", f"{_TIMER_NAME}.timer"], timeout=10)
-    res = _safe_run([systemctl, "disable", f"{_TIMER_NAME}.timer"], timeout=10)
+    # Faz 14: yetkili systemctl fiilleri (helper uzerinden).
+    _safe_run(privileged_systemctl_argv("pkexec", "stop",
+                                        f"{_TIMER_NAME}.timer"), timeout=15)
+    res = _safe_run(privileged_systemctl_argv("pkexec", "disable",
+                                              f"{_TIMER_NAME}.timer"), timeout=15)
 
     if res.returncode == 0:
         return True, f"Otomatik güncelleme devre dışı bırakıldı ({_TIMER_NAME}.timer)"

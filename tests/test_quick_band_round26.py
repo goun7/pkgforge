@@ -139,16 +139,18 @@ def test_find_local_previous_default_dir_missing(monkeypatch, tmp_path):
 
 
 def test_install_auto_update_service_write_fail(monkeypatch):
-    monkeypatch.setattr("shutil.which", lambda n: "/usr/bin/systemctl")
-    def hedefli_run(cmd, timeout=0, **k):
+    monkeypatch.setattr("os.path.isfile", lambda p: True)
+
+    def hedefli_run(cmd, timeout=0, input=None, **k):
         birlesik = " ".join(str(c) for c in cmd)
-        if ".service" in birlesik:
+        if "write-batch" in birlesik:
             return NS(returncode=1, stderr="redd")
         return NS(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr("core.security.safe_run", hedefli_run)
     ok, msg = DU.install_auto_update(interval_hours=6)
-    assert ok is False and "Service dosyası yazılamadı" in msg
+    # Faz 14: tek write-batch — ret kodu tek mesajdan yuzeye cikar.
+    assert ok is False and "yazılamadı" in msg
 
 
 def test_enable_auto_update_enable_failure(monkeypatch):

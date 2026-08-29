@@ -74,6 +74,25 @@ def privileged_write_argv(pkexec: str, path: str) -> list[str]:
     return privileged_argv(pkexec, "write-file", path)
 
 
+def build_write_batch_manifest(items: list[tuple[str, str, str]]) -> bytes:
+    """Faz 14: write-batch manifest serileştiricisi.
+
+    Her öge ``(mod, hedef_yol, içerik)``. Biçim: NUL-ayırıcılı üçlü;
+    bash tarafı aynı sırayla okur, içerikte newline güvenlidir.
+    """
+    out = bytearray()
+    for mod, path, content in items:
+        out += mod.encode("ascii") + b"\x00"
+        out += path.encode("utf-8") + b"\x00"
+        out += content.encode("utf-8") + b"\x00"
+    return bytes(out)
+
+
+def privileged_write_batch_argv(pkexec: str) -> list[str]:
+    """Tek pkexec diyaloğunda çoklu dosya yazımı (write-batch)."""
+    return privileged_argv(pkexec, "write-batch")
+
+
 def privileged_chmod_argv(pkexec: str, mode: str, path: str) -> list[str]:
     return privileged_argv(pkexec, "chmod", mode, path)
 
