@@ -325,6 +325,17 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 19b: Installed/Sidebar/Dialog kapatıldı (29 Ağu)
+- Installed +8 test: sıralama (asc/desc), yoğunluk (Rahat↔Kompakt), CSV
+  ihracı (blob URL + click), 60 kayıtta sayfalama + 'daha fazla', temizle
+  onayı→history.clear→Geri Al→history.restore, rollback+yetki, filtre boş
+  durum, yenile.
+- Sidebar +6 test: kompakt daralt/genişlet + localStorage, kompaktta
+  son-sayfalar gizli, bölüm daraltma (Keşfet), recent tıklama, localStorage
+  hata dalı, geçersiz recent id eleme.
+- Sonuç: Sidebar %100, Dialog %93.33, Installed %88.61, genel %92.86
+  (571/571). Kalan tek düşük sayfa: Settings %68.44 (bulut/WebDAV bölgesi).
+
 ## Oturum-8 Faz 19a: kapsam — düşük bileşenler kapatıldı (29 Ağu)
 - 5 yeni kapsam testi dosyası: LogViewer (temizle/kopyala/indir/1000-satır
   kırpma), SidecarGuard (koptu→uyarı, düzeldi→başarı, down-ref dedupe),

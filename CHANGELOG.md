@@ -44,6 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **test(desktop)**: kapsam %88.7 → %90.1: LogViewer %43.75→%84.37,
   SidecarGuard %53.84→%100, TopbarActions/PathPicker dalları, Dialog odak
   tuzağı + backdrop/başlıksız/odak-geri-dönüş (10/10). 552→557 test.
+- **test(desktop)**: kapsam %90.1 → %92.86: Installed %54.47→%88.61
+  (sıralama/CSV/sayfalama/temizle+geri-al/rollback), Sidebar %68.75→%100
+  (kompakt mod/bölüm daraltma/localStorage hata dalı), Dialog %55.55→%93.33.
+  557→571 test.
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
