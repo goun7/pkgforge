@@ -34,3 +34,4 @@ utest/*
 !utest/fixtures/
 utest/fixtures/*
 !utest/fixtures/*.rpm
+.cov_extract.txt
