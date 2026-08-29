@@ -295,6 +295,67 @@ def _build_from_pkginfo(pkg_path: Path, graph: DepGraph) -> DepGraph:
     return graph
 
 
+def _extract_for_graph(pkg_path: Path, tmp: Path) -> bool:
+    """Paketi tmp icine cikarir; format desteklenmiyorsa False doner."""
+    # .pkg.tar.zst once denenir; aksi halde ham tar olarak denenir.
+    res = safe_run(
+        ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
+    )
+    return res.returncode == 0
+
+
+def _graph_elf_candidates(tmp: Path) -> list[Path]:
+    """Bilinen metin/arsiv uzantilarini ve gizli dosyalari haric tutar."""
+    skip_exts = {
+        ".py", ".txt", ".conf", ".json", ".xml", ".png", ".jpg", ".svg",
+        ".md", ".rst", ".html", ".css", ".js", ".ts", ".yaml", ".yml",
+        ".toml", ".ini", ".cfg", ".sh", ".bash", ".desktop", ".service",
+        ".1", ".5", ".8", ".man", ".gz", ".xz", ".zst", ".bz2",
+    }
+    candidates: list[Path] = []
+    for c in sorted(tmp.rglob("*")):
+        if not c.is_file():
+            continue
+        if c.suffix.lower() in skip_exts:
+            continue
+        if c.name.startswith(".") or c.name.startswith("_"):
+            continue
+        candidates.append(c)
+    return candidates
+
+
+def _ldd_graph_edges(
+    candidate: Path, ldd: str, tmp: Path, graph: DepGraph,
+) -> None:
+    """Tek ikilinin ldd ciktisini graf kenarlarina cevirir.
+
+    'not found' kutuphaneleri de kenar olarak eklenir (is_installed=False)
+    boylece eksik bagimlilik graf uzerinde gorunur kalir.
+    """
+    try:
+        ldd_res = safe_run(
+            [ldd, str(candidate)], timeout=5,
+        )
+        if ldd_res.returncode not in (0, 1):  # ldd returns 1 for some binaries
+            return
+        rel_path = str(candidate.relative_to(tmp))
+        for line in ldd_res.stdout.splitlines():
+            line = line.strip()
+            if "=>" not in line:
+                continue
+            parts = line.split("=>")
+            if len(parts) != 2:
+                continue
+            lib_name = parts[0].strip()
+            lib_path = parts[1].strip().split("(")[0].strip()
+            if not lib_name or lib_name in ("linux-vdso.so.1", "ld-linux-x86-64.so.2"):
+                continue
+            graph.add_edge(rel_path, lib_name)
+            graph.nodes[lib_name].is_installed = bool(lib_path) and lib_path != "not found"
+    except (subprocess.TimeoutExpired, OSError):
+        return
+
+
 def build_file_dep_graph(pkg_path: Path) -> DepGraph:
     """Build a shared library dependency graph from a package file.
 
@@ -309,7 +370,7 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
     """
     graph = DepGraph()
     # Derive the package name via the authoritative extractor, which handles
-    # .deb (underscore), .rpm (dot-separated arch), and .pkg.tar.* (hyphen)
+    # .deb (underscore), .rpm (dot-separated arch), and .pkg.tar.* (hyphens)
     # naming. Using stem.split(".")[0] would break on dotted versions
     # (hello-1.0.0-1-x86_64 -> "hello-1") and miss RPM dot-arch entirely.
     graph.root = extract_package_name(pkg_path.name)
@@ -321,75 +382,21 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
     with tempfile.TemporaryDirectory(prefix="pkgforge_graph_") as tmpdir:
         tmp = Path(tmpdir)
 
-        # Try extracting — try .pkg.tar.zst first, then raw tar
-        extract_ok = False
-        if ".pkg.tar" in pkg_path.name:
-            res = safe_run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
-            )
-            extract_ok = res.returncode == 0
-        else:
-            res = safe_run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=30,
-            )
-            extract_ok = res.returncode == 0
-
-        if not extract_ok:
+        if not _extract_for_graph(pkg_path, tmp):
             graph.warnings.append("Paket çıkarılamadı — format desteklenmiyor")
             return graph
 
-        # Find ELF binaries properly
         ldd = shutil.which("ldd")
         if not ldd:
             graph.warnings.append("ldd bulunamadı — paylaşılan kütüphane analizi yapılamıyor")
             return graph
 
         elf_count = 0
-        for candidate in sorted(tmp.rglob("*")):
-            if not candidate.is_file():
-                continue
-            # Skip known non-binary extensions
-            skip_exts = {
-                ".py", ".txt", ".conf", ".json", ".xml", ".png", ".jpg", ".svg",
-                ".md", ".rst", ".html", ".css", ".js", ".ts", ".yaml", ".yml",
-                ".toml", ".ini", ".cfg", ".sh", ".bash", ".desktop", ".service",
-                ".1", ".5", ".8", ".man", ".gz", ".xz", ".zst", ".bz2",
-            }
-            if candidate.suffix.lower() in skip_exts:
-                continue
-            # Skip directories and hidden files
-            if candidate.name.startswith(".") or candidate.name.startswith("_"):
-                continue
-
+        for candidate in _graph_elf_candidates(tmp):
             if not _is_elf_binary(candidate):
                 continue
-
             elf_count += 1
-            try:
-                ldd_res = safe_run(
-                    [ldd, str(candidate)], timeout=5,
-                )
-                if ldd_res.returncode in (0, 1):  # ldd returns 1 for some binaries
-                    rel_path = str(candidate.relative_to(tmp))
-                    for line in ldd_res.stdout.splitlines():
-                        line = line.strip()
-                        if "=>" not in line:
-                            continue
-                        parts = line.split("=>")
-                        if len(parts) != 2:
-                            continue
-                        lib_name = parts[0].strip()
-                        lib_path = parts[1].strip().split("(")[0].strip()
-                        if not lib_name or lib_name in ("linux-vdso.so.1", "ld-linux-x86-64.so.2"):
-                            continue
-                        if lib_path and lib_path != "not found":
-                            graph.add_edge(rel_path, lib_name)
-                            graph.nodes[lib_name].is_installed = True
-                        else:
-                            graph.add_edge(rel_path, lib_name)
-                            graph.nodes[lib_name].is_installed = False
-            except (subprocess.TimeoutExpired, OSError):
-                continue
+            _ldd_graph_edges(candidate, ldd, tmp, graph)
 
         if elf_count == 0:
             graph.warnings.append("Pakette ELF dosyası bulunamadı — paylaşılan kütüphane grafiği boş")

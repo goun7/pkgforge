@@ -45,3 +45,6 @@ desktop/.pages.log
 .py18c.log
 .py18d.log
 .py18e.log
+.py18f.log
+desktop/.vit18.log
+desktop/.cov21.log

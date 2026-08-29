@@ -341,6 +341,93 @@ def _run_namcap(pkg_path: Path) -> list[NamcapResult]:
     return results
 
 
+def _extract_pkg_for_abi(pkg_path: Path, tmp: Path) -> bool:
+    """Paketi tmp icine cikarir (DEB: ar+data.tar, PKG: dogrudan tar).
+
+    Bilinmeyen uzantida False doner (tarama atlanir, hata degil).
+    """
+    if ".deb" in pkg_path.name:
+        # DEB: extract data.tar
+        try:
+            import shlex
+            cmd = f"ar x {shlex.quote(str(pkg_path))} data.tar.*"
+            safe_run(
+                ["/bin/bash", "-c", cmd],
+                cwd=str(tmp), timeout=TIMEOUT_MEDIUM,
+            )
+            # Find and extract data.tar
+            for dtar in tmp.glob("data.tar.*"):
+                safe_run(
+                    ["tar", "xf", str(dtar), "-C", str(tmp)], timeout=TIMEOUT_MEDIUM,
+                )
+                dtar.unlink()
+                break
+        except (subprocess.TimeoutExpired, OSError):
+            return False
+    elif ".pkg.tar" in pkg_path.name:
+        safe_run(
+            ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=TIMEOUT_MEDIUM,
+        )
+    else:
+        return False
+    return True
+
+
+def _collect_elf_binaries(tmp: Path) -> list[Path]:
+    """Tek gecisle ELF ikililerini toplar (bilinen metin/asset uzantilari atlanir).
+
+    Tek gecis bilinclidir: ayni dizin agacini iki kez gezmemek icin
+    kesif ve isim listesi ayni dongude birlesir.
+    """
+    skip_exts = {
+        ".py", ".txt", ".conf", ".json", ".xml", ".png", ".jpg", ".svg",
+        ".md", ".rst", ".html", ".css", ".js", ".ts", ".yaml", ".yml",
+        ".toml", ".ini", ".cfg", ".sh", ".bash", ".desktop", ".service",
+    }
+    elf_files: list[Path] = []
+    for candidate in sorted(tmp.rglob("*")):
+        if not candidate.is_file():
+            continue
+        if candidate.suffix.lower() in skip_exts:
+            continue
+        if candidate.name.startswith(".") or candidate.name.startswith("_"):
+            continue
+        if _is_elf_binary(candidate):
+            elf_files.append(candidate)
+    return elf_files
+
+
+def _ldd_missing_libs(elf_files: list[Path], tmp: Path) -> list[tuple[str, str]]:
+    """Her ikilide ldd calistirir; (rel path, eksik kutuphane) ciftlerini dondurur.
+
+    Bilincli risk pencesi: yalniz sistem ldd'i (shutil.which) cagrilir —
+    paket iceriginden hicbir yurutme yapilmaz.
+    """
+    ldd = shutil.which("ldd")
+    if not (ldd and elf_files):
+        return []
+    ldd_results: dict[str, list[str]] = {}
+    for elf in elf_files:
+        try:
+            ldd_res = safe_run(
+                [ldd, str(elf)], timeout=TIMEOUT_FAST,
+            )
+            missing = [
+                line.strip().split()[0]
+                for line in ldd_res.stdout.splitlines()
+                if "not found" in line
+            ]
+            if missing:
+                ldd_results[str(elf.relative_to(tmp))] = missing
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            log.debug("ldd taramasi atlandi (%s): %s", elf, exc)
+    pairs: list[tuple[str, str]] = []
+    for rel_path, libs in ldd_results.items():
+        for lib in libs:
+            pairs.append((rel_path, lib))
+    return pairs
+
+
 def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
     """Check ABI compatibility of all ELF binaries in a package.
 
@@ -358,73 +445,15 @@ def check_abi_compatibility(pkg_path: Path) -> ABIScanReport:
     with tempfile.TemporaryDirectory(prefix="pkgforge_abi_") as tmpdir:
         tmp = Path(tmpdir)
 
-        # Extract package
-        if ".deb" in pkg_path.name:
-            # DEB: extract data.tar
-            try:
-                import shlex
-                cmd = f"ar x {shlex.quote(str(pkg_path))} data.tar.*"
-                safe_run(
-                    ["/bin/bash", "-c", cmd],
-                    cwd=str(tmp), timeout=TIMEOUT_MEDIUM,
-                )
-                # Find and extract data.tar
-                for dtar in tmp.glob("data.tar.*"):
-                    safe_run(
-                        ["tar", "xf", str(dtar), "-C", str(tmp)], timeout=TIMEOUT_MEDIUM,
-                    )
-                    dtar.unlink()
-                    break
-            except (subprocess.TimeoutExpired, OSError):
-                return report
-        elif ".pkg.tar" in pkg_path.name:
-            safe_run(
-                ["tar", "xf", str(pkg_path), "-C", str(tmp)], timeout=TIMEOUT_MEDIUM,
-            )
-        else:
+        if not _extract_pkg_for_abi(pkg_path, tmp):
             return report
 
         # Step 1: Collect all ELF binaries (single pass)
-        skip_exts = {
-            ".py", ".txt", ".conf", ".json", ".xml", ".png", ".jpg", ".svg",
-            ".md", ".rst", ".html", ".css", ".js", ".ts", ".yaml", ".yml",
-            ".toml", ".ini", ".cfg", ".sh", ".bash", ".desktop", ".service",
-        }
-        elf_files: list[Path] = []
-        for candidate in sorted(tmp.rglob("*")):
-            if not candidate.is_file():
-                continue
-            if candidate.suffix.lower() in skip_exts:
-                continue
-            if candidate.name.startswith(".") or candidate.name.startswith("_"):
-                continue
-            if _is_elf_binary(candidate):
-                elf_files.append(candidate)
-
+        elf_files = _collect_elf_binaries(tmp)
         report.binary_count = len(elf_files)
 
         # Step 2: Batch ldd — single subprocess per binary but all collected first
-        ldd = shutil.which("ldd")
-        if ldd and elf_files:
-            # Run ldd on all binaries and parse results
-            ldd_results: dict[str, list[str]] = {}
-            for elf in elf_files:
-                try:
-                    ldd_res = safe_run(
-                        [ldd, str(elf)], timeout=TIMEOUT_FAST,
-                    )
-                    missing = [
-                        line.strip().split()[0]
-                        for line in ldd_res.stdout.splitlines()
-                        if "not found" in line
-                    ]
-                    if missing:
-                        ldd_results[str(elf.relative_to(tmp))] = missing
-                except (subprocess.TimeoutExpired, OSError) as exc:
-                    log.debug("ldd taramasi atlandi (%s): %s", elf, exc)
-            for rel_path, libs in ldd_results.items():
-                for lib in libs:
-                    report.missing_libs.append((rel_path, lib))
+        report.missing_libs = _ldd_missing_libs(elf_files, tmp)
 
         # Step 3: Check symbol versions for each ELF
         readelf = _get_readelf()

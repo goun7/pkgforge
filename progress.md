@@ -343,6 +343,22 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-9 Faz 18e: uzun-fonksiyon envanteri KAPANDI (29 Ağu)
+- check_abi_compatibility 103→~55: _extract_pkg_for_abi (DEB ar+data.tar /
+  PKG tar), _collect_elf_binaries (tek geçiş, metin/asset atlama),
+  _ldd_missing_libs (yalnız sistem ldd'i). 63 ABI testi.
+- build_file_dep_graph 100→~55: _extract_for_graph, _graph_elf_candidates,
+  _ldd_graph_edges ('not found' kenarları is_installed=False olarak korunur).
+  77 dep_graph testi.
+- Tüm ≥100'lük fonksiyonlar bölündü. Kalan 2 BİLİNÇLİ kabul:
+  * generate_pkgbuild_from_source 112 — şablon üreteci; kaçış-yoğun
+    gövdeyi bölmek f-string bozulması riski getirir (3 kez yaşandı),
+    okunabilirlik zaten dispatch + şablon.
+  * _make_http_handler 138 — Handler SINIF fabrikası; iç metodlar ≤31,
+    satır sayısı sınıf tanımının kendisinden geliyor.
+- Son tam regresyon: ruff+mypy 77 dosya temiz, pytest rc=0, vitest
+  580/580, tsc 0.
+
 ## Oturum-9 Faz 18d: download_package (29 Ağu)
 - download_package 102→~80: _validate_download_url (HTTPS-zorunlu),
   _download_filename (traversal-güvenli taban ad), _verify_download_sha256

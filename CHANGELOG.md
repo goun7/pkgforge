@@ -72,6 +72,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   (_validate_download_url/_download_filename/_verify_download_sha256;
   HTTPS-zorunlu ve SHA teyit semantiği aynen). Kalan ≥100: 4 kabul
   (şablon üreteci + sınıf fabrikası) + 2 hafif aday.
+- **refactor(core)**: Faz 18e: check_abi_compatibility 103→~55
+  (_extract_pkg_for_abi/_collect_elf_binaries/_ldd_missing_libs) ve
+  build_file_dep_graph 100→~55 (_extract_for_graph/_graph_elf_candidates/
+  _ldd_graph_edges). ≥100 satır envanteri KAPANDI — kalan 2 kabul
+  edilmiş (PKGBUILD şablon üreteci 112; Handler sınıf fabrikası 138,
+  iç metodlar ≤31).
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +
