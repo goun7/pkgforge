@@ -1,5 +1,23 @@
 # Progress Log
 
+## Oturum-8 Faz 21a: 100/100 değerlendirme tablosu (29 Ağu)
+| Ölçüt | Durum |
+|---|---|
+| ruff (Python lint) | ✅ 0 hata |
+| mypy (core+main+cli+config) | ✅ 77 dosya, 0 hata |
+| pytest | ✅ rc=0 (~2460+ test, 100%) |
+| vitest (desktop) | ✅ 580/580 |
+| tsc --noEmit | ✅ 0 hata |
+| Kapsam (desktop v8) | ✅ %93.1 (hedef bandı >%90) |
+| act diagnostics | 224 (551'den; kalan=test altyapısı çok-tick promise zincirleri, hata değil) |
+| Refactor dev fonksiyonlar | ✅ pipeline 206→43, serve_http 175→33, shared-lib 144→76, score_package 341→37 |
+| Kalan ≥100 satır fonksiyon | 11 (Faz 18c aday) — bilinçli teknik borç, davranış riski yok |
+| Yetki/sudo UX | ✅ tek-diyalog mimarisi + doktor polkit teşhisi (Faz 14/15) |
+| Yıkıcı işlem onayları | ✅ profil silme/kuyruk temizleme/snapshot/delta-disable ConfirmDialog |
+| Kalan izler | ~224 act diagnostics; PathPicker 42-50 gerçek-Tauri dalı |
+
+
+
 ## Kritiksizlik taraması Tur 1 (goal-4bc2fb3f-d552-4e47-ba14-a91ae050191a)
 - Önceki oturumdan kalma untracked tests/test_api_server_core.py: 2 kırmızı test düzeltildi
   - GERÇEK GÜVENLİK DÜZELTMESİ: _validate_aur_name ".."/"-bas"/".nokta" kabul ediyordu

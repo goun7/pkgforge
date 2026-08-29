@@ -56,6 +56,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   Export/Compare/Browse/Plugins/Security) aynı act reçetesi; WebDAV
   push/pull dalları Settings'te kapatıldı (sync.push/sync.pull + boş
   URL disabled). Uyarı 551→224; kapsam %93.1 (Settings %71.1); 580/580.
+- **report**: Faz 21a kapanış değerlendirmesi — ruff 0, mypy 77 dosya
+  0 hata, pytest rc=0 (~2460+ test), vitest 580/580, tsc 0, kapsam %93.1;
+  act diagnostics 551→224; _temp_dir guard + WebDAV push/pull dalları.
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +

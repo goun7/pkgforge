@@ -41,3 +41,4 @@ utest/fixtures/*
 .compat.log
 desktop/.cov21.log
 desktop/.pages.log
+.fin_py.log
