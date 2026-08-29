@@ -343,6 +343,16 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-9 Faz 18d: download_package (29 Ağu)
+- download_package 102→~80: _validate_download_url (HTTPS-zorunlu),
+  _download_filename (traversal-güvenli taban ad), _verify_download_sha256
+  (uyuşmazlıkta dosya silinir). 96 downloader testi geçti.
+- Kalan ≥100 envanteri: generate_pkgbuild_from_source 112 (şablon
+  üreteci — kabul), _make_http_handler 138 (sınıf fabrikası, iç metodlar
+  ≤31 — kabul), check_abi_compatibility 103, build_file_dep_graph 100
+  (sonraki tur adayları).
+- Tam regresyon: ruff+mypy temiz, pytest rc=0.
+
 ## Oturum-9 Faz 18c: RPM dönüştürücü _do_convert (29 Ağu)
 - RpmConverterSubprocess._do_convert 106→~35: _rpm_extract (rpm2cpio |
   bsdtar, shlex.quote), _rpm_security_gate (fail-closed symlink/tehlikeli

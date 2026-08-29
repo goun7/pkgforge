@@ -68,6 +68,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   (_rpm_extract/_rpm_security_gate/_rpm_makepkg_build/_find_pkg_artifact).
   Yanlış-sınıf düzenlemesi git-restore ile kurtarıldı. Kalan ≥100: 5
   (4'ü yeni tur adayı, _make_http_handler sınıf fabrikası — kabul).
+- **refactor(core)**: Faz 18d: download_package 102→~80
+  (_validate_download_url/_download_filename/_verify_download_sha256;
+  HTTPS-zorunlu ve SHA teyit semantiği aynen). Kalan ≥100: 4 kabul
+  (şablon üreteci + sınıf fabrikası) + 2 hafif aday.
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +

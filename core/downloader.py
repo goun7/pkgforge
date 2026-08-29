@@ -62,6 +62,47 @@ def _open_url(
     return opener.open(req, timeout=timeout)  # nosec B310
 
 
+def _validate_download_url(url: str, require_https: bool) -> urllib.parse.ParseResult:
+    """URL semasini dogrular; HTTPS zorunluysa plain http reddedilir.
+
+    Guvenlik: paketler kok olarak kurulacagi icin MITM degisimi engellenmeli;
+    gelismis kullanicilar allow_insecure_http ayariyla devre disi birakabilir.
+    """
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Geçersiz URL şeması: {parsed.scheme}. Yalnızca http ve https desteklenir.")
+    if require_https and parsed.scheme != "https":
+        raise ValueError(
+            "Güvenlik: yalnızca HTTPS bağlantıları kabul edilir. "
+            "http'yi etkinleştirmek için ayarlardan 'allow_insecure_http' seçeneğini açın."
+        )
+    return parsed
+
+
+def _download_filename(url: str, parsed: urllib.parse.ParseResult) -> str:
+    """URL yolundan taban-ad cikarir (traversal imkansiz; varsayilani guvenli)."""
+    filename = Path(parsed.path).name
+    if not filename or "." not in filename:
+        filename = "downloaded_package.deb" if "deb" in url.lower() else "downloaded_package.rpm"
+    return filename
+
+
+def _verify_download_sha256(dest_file: Path, expected_sha256: str) -> None:
+    """Bilinen SHA-256 ile indirmeyi teyit eder; uyusmazlikta dosyayi siler.
+
+    Karsilastirma buyuk/kucuk harf duyarsizdir (F5.9).
+    """
+    from core.security import sha256_hash
+    actual = sha256_hash(dest_file)
+    if actual.lower() != expected_sha256.strip().lower():
+        dest_file.unlink(missing_ok=True)
+        raise ValueError(
+            f"SHA-256 doğrulaması başarısız: beklenen {expected_sha256.strip()[:16]}…, "
+            f"gerçek {actual[:16]}…"
+        )
+    log.info("SHA-256 doğrulandı: %s", actual[:16])
+
+
 def download_package(
     url: str,
     dest_dir: Path | None = None,
@@ -88,19 +129,8 @@ def download_package(
     Returns:
         Path to the downloaded file.
     """
-    parsed = urllib.parse.urlparse(url)
-    if parsed.scheme not in ("http", "https"):
-        raise ValueError(f"Geçersiz URL şeması: {parsed.scheme}. Yalnızca http ve https desteklenir.")
-    if require_https and parsed.scheme != "https":
-        raise ValueError(
-            "Güvenlik: yalnızca HTTPS bağlantıları kabul edilir. "
-            "http'yi etkinleştirmek için ayarlardan 'allow_insecure_http' seçeneğini açın."
-        )
-
-    # Extract filename from path (basename only — never a traversal path)
-    filename = Path(parsed.path).name
-    if not filename or "." not in filename:
-        filename = "downloaded_package.deb" if "deb" in url.lower() else "downloaded_package.rpm"
+    parsed = _validate_download_url(url, require_https)
+    filename = _download_filename(url, parsed)
 
     if dest_dir is None:
         dest_dir = create_temp_dir()
@@ -152,15 +182,7 @@ def download_package(
 
     # Optional integrity verification against a known SHA-256
     if expected_sha256:
-        from core.security import sha256_hash
-        actual = sha256_hash(dest_file)
-        if actual.lower() != expected_sha256.strip().lower():
-            dest_file.unlink(missing_ok=True)
-            raise ValueError(
-                f"SHA-256 doğrulaması başarısız: beklenen {expected_sha256.strip()[:16]}…, "
-                f"gerçek {actual[:16]}…"
-            )
-        log.info("SHA-256 doğrulandı: %s", actual[:16])
+        _verify_download_sha256(dest_file, expected_sha256)
 
     log.info("İndirme tamamlandı: %s (%d bayt)", dest_file.name, downloaded_bytes)
     return dest_file
