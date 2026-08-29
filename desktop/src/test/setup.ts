@@ -1,6 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
 
+// React 19 + RTL: act ortamidir. Render/life-cycle guncellemeleri act
+// sarmalama uyarilariyla degil, dogal akista raporlanir.
+(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+
 // Faz 9 (4.x): bu jsdom kurulumu localStorage/sessionStorage saglamiyor;
 // kalici state'in test edilebilmesi icin bellek-ici surumleriyle degistirilir.
 function createMemoryStorage(): Storage {

@@ -325,7 +325,15 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
-## Oturum-8 Faz 19c: Settings bulut/dbus/profil dalları (29 Ağu)
+## Oturum-8 Faz 20: dev fonksiyon refaktörü (29 Ağu)
+- _run_pipeline 206→43: 4 sahne metodu; temp-daraltma mypy guard'ı
+  (_stage_conversion'da açık None kontrolü).
+- serve_http 175→33: bağlama güvenlik ön koşulları (_http_validate_bind)
+  + Handler fabrikası (_make_http_handler); SSE/rate-limit/kapsam aynen.
+- _check_shared_libraries 144→76: 3 yardımcı; (dosyalar,durum) kontratı
+  'arac'/'liste'/'' ayrımını korur (atlandı/listelenemedi/PASS-ELF-yok).
+- Ders: edit partially matched → eski gövde kalabilir; büyük kesimlerde
+  AST/semantik çapa + full-gate regresyon şart.
 - Settings +7 test: profil oluşturma/silme hata yolları, radio ile
   profile.switch, İçe Aktar→sync.import, Sunucuyu Kaydet→sync.config,
   dbus Başlat, dbus.status reddinde 'okunamadı' durumu.

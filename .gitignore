@@ -35,3 +35,7 @@ utest/*
 utest/fixtures/*
 !utest/fixtures/*.rpm
 .cov_extract.txt
+
+# gecici test loglari
+.full_py.log
+.compat.log

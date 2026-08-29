@@ -48,6 +48,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   (sıralama/CSV/sayfalama/temizle+geri-al/rollback), Sidebar %68.75→%100
   (kompakt mod/bölüm daraltma/localStorage hata dalı), Dialog %55.55→%93.33.
   557→571 test.
+- **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
+  _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
+  _stage_conversion); serve_http 175→33 (_http_validate_bind +
+  _make_http_handler fabrikası); _check_shared_libraries 144→76
+  (_list_package_elf_files + _analyze_elf_dependencies + _shared_lib_result,
+  ldd yasağı korunur).
 - **test(desktop)**: kapsam %92.86 → %93.06: Settings %68.44→%70.22
   (profil hata yolları/radio geçişi/sync.import/sync.config/dbus başlat ve
   yok durumu). 571→578 test.

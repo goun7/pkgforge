@@ -319,49 +319,132 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
 
 # ── Shared library check ────────────────────────────────────────
 
+def _list_package_elf_files(
+    pkg_path: Path, tools: ToolPaths,
+) -> tuple[list[str] | None, str]:
+    """Paket icindeki ELF aday dosyalari.
+
+    (dosyalar, durum) doner: durum "arac" (araclar eksik), "liste"
+    (icerik listelenemedi) ya da "" (basarili; dosyalar bos olabilir).
+    """
+    reader = tools.readelf or tools.objdump
+    if not tools.bsdtar or not reader:
+        return None, "arac"
+    result = safe_run([tools.bsdtar, "-tf", str(pkg_path)], timeout=30)
+    if result.returncode != 0:
+        return None, "liste"
+    elf_patterns = re.compile(r"\.(so(\.\d+)*|bin)$|/bin/|/sbin/|/lib/|/lib64/")
+    files = [
+        f for f in result.stdout.splitlines()
+        if elf_patterns.search(f) and not f.endswith("/")
+    ]
+    return files, ""
+
+
+def _analyze_elf_dependencies(
+    elf_to_check: list[Path], tmpdir: Path, tools: ToolPaths,
+) -> tuple[list[str], list[str], int]:
+    """Statik DT_NEEDED + glibc analizi; ldd CALISTIRILMAZ (PT_INTERP riski).
+
+    (missing_libs, glibc_issues, checked_count) doner.
+    """
+    missing_libs: list[str] = []
+    glibc_issues: list[str] = []
+    checked_count = 0
+
+    system_libs = _system_lib_sonames()
+    shipped_libs = {
+        p.name
+        for p in tmpdir.rglob("*")
+        if p.is_file() and (p.name.endswith(".so") or ".so." in p.name)
+    }
+
+    for elf_path in elf_to_check[:15]:
+        checked_count += 1
+        try:
+            if tools.readelf:
+                res = safe_run([tools.readelf, "-d", str(elf_path)], timeout=10)
+                sonames = parse_needed_sonames(res.stdout)
+            else:
+                res = safe_run([tools.objdump, "-p", str(elf_path)], timeout=10)
+                sonames = parse_objdump_sonames(res.stdout)
+        except Exception as exc:  # noqa: BLE001
+            log.debug("NEEDED okunamadi (%s): %s", elf_path.name, exc)
+            continue
+
+        for soname in sonames:
+            if soname in system_libs or soname in shipped_libs:
+                continue
+            if soname not in missing_libs:
+                missing_libs.append(soname)
+
+        req_glibc = _elf_max_glibc(elf_path, tools)
+        if req_glibc:
+            sys_glibc = _get_system_glibc(tools)
+            if sys_glibc and _version_gt(req_glibc, sys_glibc):
+                issue = f"{elf_path.name}: GLIBC_{req_glibc} gerekli (sistemde: {sys_glibc})"
+                if issue not in glibc_issues:
+                    glibc_issues.append(issue)
+
+    return missing_libs, glibc_issues, checked_count
+
+
+def _shared_lib_result(
+    missing_libs: list[str], glibc_issues: list[str], checked_count: int,
+) -> CheckResult:
+    """Analiz sonucunu CheckResult'a cevirir (oncelik: glibc > eksik > temiz)."""
+    if glibc_issues:
+        return CheckResult(
+            name="Shared Library Kontrolu",
+            severity=CheckSeverity.ERROR,
+            message=f"glibc uyumsuzlugu tespit edildi ({len(glibc_issues)} sorun)",
+            details=glibc_issues + [f"Eksik: {lib}" for lib in missing_libs],
+        )
+    if missing_libs:
+        return CheckResult(
+            name="Shared Library Kontrolu",
+            severity=CheckSeverity.WARNING,
+            message=f"{len(missing_libs)} eksik kutuphane tespit edildi",
+            details=[f"Eksik: {lib}" for lib in missing_libs],
+        )
+    return CheckResult(
+        name="Shared Library Kontrolu",
+        severity=CheckSeverity.PASS,
+        message=f"{checked_count} ELF dosyasi analiz edildi, tum kutuphaneler mevcut",
+    )
+
+
 def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
     """Deep shared library check using static analysis only.
 
-    Security: we deliberately do **not** run ``ldd`` on extracted binaries —
-    ldd *executes* the target's PT_INTERP loader, so a malicious package could
+    Security: we deliberately do **not** run ldd on extracted binaries —
+    ldd *executes* the target PT_INTERP loader, so a malicious package could
     run arbitrary code during a compatibility scan. Instead we read DT_NEEDED
-    entries statically with ``readelf -d`` / ``objdump -p`` (same approach as
-    the dependency resolver) and compare against the ``ldconfig -p`` cache.
+    entries statically with readelf -d / objdump -p (same approach as
+    the dependency resolver) and compare against the ldconfig -p cache.
     """
     import shutil
     import tempfile
 
-    reader = tools.readelf or tools.objdump
-    if not tools.bsdtar or not reader:
+    elf_files, durum = _list_package_elf_files(pkg_path, tools)
+    if durum == "arac":
         return CheckResult(
-            name="Shared Library Kontrolü",
+            name="Shared Library Kontrolu",
             severity=CheckSeverity.WARNING,
-            message="readelf/objdump veya bsdtar bulunamadı, kontrol atlandı",
+            message="readelf/objdump veya bsdtar bulunamadi, kontrol atlandi",
         )
-
-    # List files in the package
-    result = safe_run(
-        [tools.bsdtar, "-tf", str(pkg_path)],
-        timeout=30,
-    )
-    if result.returncode != 0:
+    if durum == "liste":
         return CheckResult(
-            name="Shared Library Kontrolü",
+            name="Shared Library Kontrolu",
             severity=CheckSeverity.WARNING,
-            message="Paket içeriği listelenemedi",
+            message="Paket icerigi listelenemedi",
         )
-
-    elf_patterns = re.compile(r"\.(so(\.\d+)*|bin)$|/bin/|/sbin/|/lib/|/lib64/")
-    elf_files = [
-        f for f in result.stdout.splitlines()
-        if elf_patterns.search(f) and not f.endswith("/")
-    ]
-
+    assert elf_files is not None
     if not elf_files:
         return CheckResult(
-            name="Shared Library Kontrolü",
+            name="Shared Library Kontrolu",
             severity=CheckSeverity.PASS,
-            message="Pakette ELF dosyası tespit edilmedi",
+            message="Pakette ELF dosyasi tespit edilmedi",
         )
 
     # Extract ELF files to temp dir for static analysis
@@ -377,18 +460,18 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
             timeout=60,
         )
 
-        # Find actual ELF files using 'file' command (does not execute them).
+        # Find actual ELF files using the file command (does not execute them).
         # Archive member names are untrusted: reject absolute paths and any
-        # containing '..' so a crafted member cannot point readelf at a host
+        # containing .. so a crafted member cannot point readelf at a host
         # file outside the extraction dir.
         elf_to_check: list[Path] = []
         for elf_rel in elf_files[:30]:  # Limit to 30 files
             if elf_rel.startswith("/") or ".." in elf_rel:
-                log.warning("Şüpheli arşiv üyesi atlandı: %s", elf_rel)
+                log.warning("Supheli arsiv uyesi atlandi: %s", elf_rel)
                 continue
             elf_abs = (tmpdir / elf_rel).resolve()
             if not str(elf_abs).startswith(str(tmpdir.resolve()) + os.sep):
-                log.warning("Dizin dışı ELF yolu atlandı: %s", elf_rel)
+                log.warning("Dizin disi ELF yolu atlandi: %s", elf_rel)
                 continue
             if elf_abs.is_file():
                 file_result = safe_run(
@@ -399,70 +482,14 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
                 if "application/x-executable" in mime or "application/x-sharedlib" in mime:
                     elf_to_check.append(elf_abs)
 
-        # Known system libraries from the ldconfig cache (no execution)
-        system_libs = _system_lib_sonames()
-        # Libraries shipped by the package itself also satisfy deps
-        shipped_libs = {
-            p.name
-            for p in tmpdir.rglob("*")
-            if p.is_file() and (p.name.endswith(".so") or ".so." in p.name)
-        }
-
-        # Statically read DT_NEEDED from each ELF binary
-        for elf_path in elf_to_check[:15]:  # Limit analysis scope
-            checked_count += 1
-            try:
-                if tools.readelf:
-                    res = safe_run([tools.readelf, "-d", str(elf_path)], timeout=10)
-                    sonames = parse_needed_sonames(res.stdout)
-                else:
-                    res = safe_run([tools.objdump, "-p", str(elf_path)], timeout=10)
-                    sonames = parse_objdump_sonames(res.stdout)
-            except Exception as exc:  # noqa: BLE001
-                log.debug("NEEDED okunamadı (%s): %s", elf_path.name, exc)
-                continue
-
-            for soname in sonames:
-                if soname in system_libs or soname in shipped_libs:
-                    continue
-                if soname not in missing_libs:
-                    missing_libs.append(soname)
-
-            # glibc version requirement (static .gnu.version parsing via readelf)
-            req_glibc = _elf_max_glibc(elf_path, tools)
-            if req_glibc:
-                sys_glibc = _get_system_glibc(tools)
-                if sys_glibc and _version_gt(req_glibc, sys_glibc):
-                    issue = f"{elf_path.name}: GLIBC_{req_glibc} gerekli (sistemde: {sys_glibc})"
-                    if issue not in glibc_issues:
-                        glibc_issues.append(issue)
-
+        missing_libs, glibc_issues, checked_count = _analyze_elf_dependencies(
+            elf_to_check, tmpdir, tools)
     except Exception as exc:  # noqa: BLE001
-        log.warning("Shared library analizi hatası: %s", exc)
+        log.warning("Shared library analizi hatasi: %s", exc)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    # Build result
-    if glibc_issues:
-        return CheckResult(
-            name="Shared Library Kontrolü",
-            severity=CheckSeverity.ERROR,
-            message=f"glibc uyumsuzluğu tespit edildi ({len(glibc_issues)} sorun)",
-            details=glibc_issues + [f"Eksik: {lib}" for lib in missing_libs],
-        )
-    elif missing_libs:
-        return CheckResult(
-            name="Shared Library Kontrolü",
-            severity=CheckSeverity.WARNING,
-            message=f"{len(missing_libs)} eksik kütüphane tespit edildi",
-            details=[f"Eksik: {lib}" for lib in missing_libs],
-        )
-    else:
-        return CheckResult(
-            name="Shared Library Kontrolü",
-            severity=CheckSeverity.PASS,
-            message=f"{checked_count} ELF dosyası analiz edildi, tüm kütüphaneler mevcut",
-        )
+    return _shared_lib_result(missing_libs, glibc_issues, checked_count)
 
 
 def _system_lib_sonames() -> set[str]:

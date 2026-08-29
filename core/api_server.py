@@ -1789,21 +1789,11 @@ def build_openapi_schema() -> dict:
     }
 
 
-def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
-               read_token: str = "", insecure_http_lan: bool = False,
-               trusted_proxy: bool = False) -> None:
-    """Run the JSON-RPC API over HTTP for LAN remote management (B7/F4.2).
+def _http_validate_bind(host: str, token: str, insecure_http_lan: bool) -> None:
+    """F5.2b: LAN baglama guvenlik on kosullari (serve_http baslangici).
 
-    POST / accepts a single JSON-RPC 2.0 request and returns the response.
-    Requests must carry "Authorization: Bearer <token>" (operator scope) or
-    the optional *read_token* (read-only method subset). Binding to a
-    non-loopback address without an operator token is refused at startup.
-    Push events are suppressed in this mode (no stdio channel).
+    Loopback olmayan adres: token zorunlu; acik HTTP bilincli onay ister.
     """
-    global _http_mode
-    import hmac
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
     loopback = host in ("127.0.0.1", "localhost", "::1")
     if not loopback and not token:
         raise ValueError(
@@ -1818,10 +1808,11 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
             "(TLS yok; acik HTTP LAN erisimi icin riski bilincli onaylayin "
             " ya da onde TLS sonlandiran bir reverse proxy kullanin)")
 
-    _http_mode = True
-    _ensure_qapp()
-    _ensure_scheduler()
-    restore_queue()
+
+def _make_http_handler(token: str, read_token: str, trusted_proxy: bool):
+    """serve_http icin istek isleyici sinifini uret (kimlik kapsami kapali)."""
+    import hmac
+    from http.server import BaseHTTPRequestHandler
 
     class Handler(BaseHTTPRequestHandler):
         def _reply(self, code: int, obj: dict) -> None:
@@ -1955,6 +1946,31 @@ def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
         def log_message(self, fmt, *args) -> None:
             pass  # silence per-request logging
 
+    return Handler
+
+
+def serve_http(port: int = 8765, token: str = "", host: str = "127.0.0.1",
+               read_token: str = "", insecure_http_lan: bool = False,
+               trusted_proxy: bool = False) -> None:
+    """Run the JSON-RPC API over HTTP for LAN remote management (B7/F4.2).
+
+    POST / accepts a single JSON-RPC 2.0 request and returns the response.
+    Requests must carry "Authorization: Bearer <token>" (operator scope) or
+    the optional *read_token* (read-only method subset). Binding to a
+    non-loopback address without an operator token is refused at startup.
+    Push events are suppressed in this mode (no stdio channel).
+    """
+    global _http_mode
+    from http.server import ThreadingHTTPServer
+
+    _http_validate_bind(host, token, insecure_http_lan)
+
+    _http_mode = True
+    _ensure_qapp()
+    _ensure_scheduler()
+    restore_queue()
+
+    Handler = _make_http_handler(token, read_token, trusted_proxy)
     server = ThreadingHTTPServer((host, port), Handler)
     sys.stderr.write(f"[http] JSON-RPC dinleniyor: http://{host}:{port}/\n")
     sys.stderr.flush()

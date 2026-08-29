@@ -341,33 +341,11 @@ class ConversionPipeline(QObject):
             log.warning("Geçmiş kaydı tutulamadı: %s", exc)
 
 
-    def _run_pipeline(self, file_path: Path) -> None:
-        """Internal pipeline execution."""
-        # Check required tools
-        missing = self._tools.missing_required
-        if missing:
-            self._result.message = f"Gerekli araçlar bulunamadı: {', '.join(missing)}"
-            self._log("error", self._result.message)
-            return
+    def _stage_security(self, file_path: Path, is_deb: bool) -> None:
+        """Adım 1: güvenlik denetimleri (MIME, boyut, SHA-256, imza, bomba).
 
-        optional_missing = self._tools.missing_optional
-        if optional_missing:
-            self._log("warning", f"İsteğe bağlı araçlar eksik: {', '.join(optional_missing)}")
-
-        # ── Universal intake: classify the input and route by type ──
-        ir = self._classify_input(file_path)
-        if ir.file_type not in (intake.FileType.DEB, intake.FileType.RPM):
-            self._temp_dir = create_temp_dir()
-            self._log("info", f"Geçici dizin: {self._temp_dir}")
-            self._run_intake_route(file_path, ir)
-            return
-        is_deb = ir.file_type == intake.FileType.DEB
-
-        # Create temp directory
-        self._temp_dir = create_temp_dir()
-        self._log("info", f"Geçici dizin: {self._temp_dir}")
-
-        # ── Step 1: Security checks ──────────────────────────────
+        Hata durumunda adımı 'error' yapıp mesajı yazar; akış kesilir.
+        """
         if self._cancelled:
             return
         self._set_step(PipelineStep.SECURITY, "running")
@@ -415,7 +393,8 @@ class ConversionPipeline(QObject):
 
         self._set_step(PipelineStep.SECURITY, "done")
 
-        # ── Step 1.5: Malware scan (optional, non-fatal) ────────
+    def _stage_malware(self, file_path: Path) -> None:
+        """Adım 1.5: ClamAV taraması (isteğe bağlı, ölümcül değil)."""
         if self._cancelled:
             return
         from i18n import load_setting
@@ -456,9 +435,13 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.MALWARE_SCAN, "skipped")
             self._log("info", "Malware taraması ayarlardan kapalı — atlandı")
 
-        # ── Step 2: Package analysis ─────────────────────────────
+    def _stage_analysis(self, file_path: Path) -> PackageMetadata | None:
+        """Adım 2: paket analizi + mimari/traversal kontrolleri.
+
+        Hata durumunda None döner; akış kesilir.
+        """
         if self._cancelled:
-            return
+            return None
         self._set_step(PipelineStep.ANALYSIS, "running")
         self.progress.emit(30)
 
@@ -469,7 +452,7 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.ANALYSIS, "error")
             self._result.message = f"Paket analizi başarısız: {exc}"
             self._log("error", str(exc))
-            return
+            return None
 
         self._log("info", f"Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
 
@@ -480,7 +463,7 @@ class ConversionPipeline(QObject):
                 f"Bu sistem yalnızca x86_64 ve any destekler."
             )
             self._log("error", self._result.message)
-            return
+            return None
 
         if meta.already_installed:
             self._log("info", f"Zaten kurulu: {meta.name} {meta.installed_version}")
@@ -492,7 +475,7 @@ class ConversionPipeline(QObject):
                 self._set_step(PipelineStep.ANALYSIS, "error")
                 self._result.message = f"Path traversal saldırısı tespit edildi: {traversal[:3]}"
                 self._log("error", self._result.message)
-                return
+                return None
 
         self.progress.emit(35)
 
@@ -516,10 +499,19 @@ class ConversionPipeline(QObject):
                 self._log("warning", f"AUR kontrolü yapılamadı: {exc}")
 
         self._set_step(PipelineStep.ANALYSIS, "done")
+        return meta
 
-        # ── Step 3: Conversion ───────────────────────────────────
+    def _stage_conversion(
+        self, file_path: Path, is_deb: bool, meta: PackageMetadata,
+    ) -> Path | None:
+        """Adım 3: paketi dönüştür; başarısızlıkta None döner."""
         if self._cancelled:
-            return
+            return None
+        if self._temp_dir is None:
+            self._result.message = "Dönüşüm dizini hazırlanamadı"
+            self._log("error", self._result.message)
+            self._set_step(PipelineStep.CONVERSION, "error")
+            return None
         self._set_step(PipelineStep.CONVERSION, "running")
         self.progress.emit(40)
 
@@ -534,17 +526,60 @@ class ConversionPipeline(QObject):
         if not self._async_success:
             self._set_step(PipelineStep.CONVERSION, "error")
             self._result.message = self._async_message or "Dönüşüm başarısız"
-            return
+            return None
 
         converted_pkg = self._async_pkg_path
         if converted_pkg is None:
             self._set_step(PipelineStep.CONVERSION, "error")
             self._result.message = "Dönüştürülmüş paket bulunamadı"
-            return
+            return None
 
         self._result.converted_pkg = converted_pkg
         self.progress.emit(65)
         self._set_step(PipelineStep.CONVERSION, "done")
+        return converted_pkg
+
+    def _run_pipeline(self, file_path: Path) -> None:
+        """Internal pipeline execution."""
+        # Check required tools
+        missing = self._tools.missing_required
+        if missing:
+            self._result.message = f"Gerekli araçlar bulunamadı: {', '.join(missing)}"
+            self._log("error", self._result.message)
+            return
+
+        optional_missing = self._tools.missing_optional
+        if optional_missing:
+            self._log("warning", f"İsteğe bağlı araçlar eksik: {', '.join(optional_missing)}")
+
+        # ── Universal intake: classify the input and route by type ──
+        ir = self._classify_input(file_path)
+        if ir.file_type not in (intake.FileType.DEB, intake.FileType.RPM):
+            self._temp_dir = create_temp_dir()
+            self._log("info", f"Geçici dizin: {self._temp_dir}")
+            self._run_intake_route(file_path, ir)
+            return
+        is_deb = ir.file_type == intake.FileType.DEB
+
+        # Create temp directory
+        self._temp_dir = create_temp_dir()
+        self._log("info", f"Geçici dizin: {self._temp_dir}")
+
+        self._stage_security(file_path, is_deb)
+        if self._result.message or self._cancelled:
+            return
+
+        self._stage_malware(file_path)
+        if self._result.message or self._cancelled:
+            return
+
+        meta = self._stage_analysis(file_path)
+        if meta is None:
+            return
+
+        converted_pkg = self._stage_conversion(file_path, is_deb, meta)
+        if converted_pkg is None:
+            return
 
         self._finalize_pkg(converted_pkg, meta)
 
