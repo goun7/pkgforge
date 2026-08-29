@@ -118,34 +118,12 @@ def _name_from_filename(pkg_path: Path) -> str:
     return name
 
 
-def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
-    """Score a converted package on multiple quality dimensions.
+# ── Faz 18: kategori yardımcıları — score_package 341 satırdan
+# ince orkestratöre bölündü; her kategori kendi fonksiyonunda test edilebilir.
 
-    Checks:
-    1. Security (25 pts): ABI compatibility, ClamAV, path traversal
-    2. Compatibility (25 pts): Dependencies resolved, architecture match
-    3. Metadata (25 pts): Name, version, description, license
-    4. Size (25 pts): Reasonable size, no excessive files
 
-    Args:
-        pkg_path: Path to .pkg.tar.zst file.
-        tools: Detected system tools.
-
-    Returns:
-        QualityReport with detailed scoring.
-    """
-    report = QualityReport()
-
-    # Read .PKGINFO once up front: it carries the authoritative pkgname and is
-    # reused by the compatibility/metadata checks below. Deriving the name from
-    # the filename via stem.split(".")[0] mis-parses dotted versions
-    # (lictest-1.0.0-1-any -> "lictest-1"), so prefer pkgname and fall back to
-    # stripping the .pkg.tar.* suffix chain + version-rel-arch.
-    pkginfo = _read_pkginfo(pkg_path)
-    report.package_name = pkginfo.get("pkgname", "") or _name_from_filename(pkg_path)
-
-    # ── Security checks (25 pts) ────────────────────────────────
-
+def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) -> None:
+    """Güvenlik denetimleri (25 puan): ABI, ClamAV, path traversal."""
     # ABI compatibility (10 pts)
     try:
         from core.abi_scanner import check_abi_compatibility
@@ -227,10 +205,10 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             detail="Kontrol başarısız",
         ))
 
-    # ── Compatibility checks (25 pts) ───────────────────────────
 
+def _compatibility_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
+    """Uyumluluk denetimleri (25 puan): bağımlılıklar, mimari."""
     # Dependencies resolved (15 pts)
-    # (pkginfo already read up front above)
     try:
         from core.dep_resolver import resolve_dependencies
         deps = [v for k, v in pkginfo.items() if k == "depend"]
@@ -279,8 +257,9 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             detail="Kontrol başarısız",
         ))
 
-    # ── Metadata checks (25 pts) ────────────────────────────────
 
+def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
+    """Üstveri denetimleri (25 puan): ad, sürüm, açıklama, lisans, url."""
     # Package name (5 pts)
     name_ok = bool(report.package_name and len(report.package_name) > 1)
     report.checks.append(QualityCheck(
@@ -357,8 +336,9 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             detail="Okunamadı",
         ))
 
-    # ── Size checks (25 pts) ────────────────────────────────────
 
+def _size_checks(pkg_path: Path, report: QualityReport) -> None:
+    """Boyut denetimleri (25 puan): paket boyutu, dosya sayısı, sıkıştırma."""
     # Package size (10 pts)
     pkg_size_mb = pkg_path.stat().st_size / (1024 * 1024)
     if pkg_size_mb < 100:
@@ -441,21 +421,55 @@ def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
             detail="Kontrol başarısız",
         ))
 
+
+def _grade(total: int, maximum: int) -> str:
+    """Toplam puandan harf notu üret."""
+    pct = total / maximum * 100 if maximum else 0
+    if pct >= 90:
+        return "A"
+    if pct >= 80:
+        return "B"
+    if pct >= 70:
+        return "C"
+    if pct >= 60:
+        return "D"
+    return "F"
+
+
+def score_package(pkg_path: Path, tools: ToolPaths) -> QualityReport:
+    """Score a converted package on multiple quality dimensions.
+
+    Checks:
+    1. Security (25 pts): ABI compatibility, ClamAV, path traversal
+    2. Compatibility (25 pts): Dependencies resolved, architecture match
+    3. Metadata (25 pts): Name, version, description, license
+    4. Size (25 pts): Reasonable size, no excessive files
+
+    Args:
+        pkg_path: Path to .pkg.tar.zst file.
+        tools: Detected system tools.
+
+    Returns:
+        QualityReport with detailed scoring.
+    """
+    report = QualityReport()
+
+    # Read .PKGINFO once up front: it carries the authoritative pkgname and is
+    # reused by the compatibility/metadata checks below. Deriving the name from
+    # the filename via stem.split(".")[0] mis-parses dotted versions
+    # (lictest-1.0.0-1-any -> "lictest-1"), so prefer pkgname and fall back to
+    # stripping the .pkg.tar.* suffix chain + version-rel-arch.
+    pkginfo = _read_pkginfo(pkg_path)
+    report.package_name = pkginfo.get("pkgname", "") or _name_from_filename(pkg_path)
+
+    _security_checks(pkg_path, tools, report)
+    _compatibility_checks(pkginfo, report)
+    _metadata_checks(pkginfo, report)
+    _size_checks(pkg_path, report)
+
     # Calculate total
     report.total_score = sum(c.score for c in report.checks)
     report.max_score = sum(c.max_score for c in report.checks)
-
-    # Grade
-    pct = report.total_score / report.max_score * 100 if report.max_score else 0
-    if pct >= 90:
-        report.grade = "A"
-    elif pct >= 80:
-        report.grade = "B"
-    elif pct >= 70:
-        report.grade = "C"
-    elif pct >= 60:
-        report.grade = "D"
-    else:
-        report.grade = "F"
+    report.grade = _grade(report.total_score, report.max_score)
 
     return report

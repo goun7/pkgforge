@@ -36,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **fix(desktop)**: Reports: snapshot temizlik servisi "Kaldır" işlemi (systemctl
   stop/disable + sistem dosyası silme) onaylı; Updates: delta zamanlayıcı
   "Kapat" işlemi onaylı (systemctl disable + dosya silme). i18n tr/en.
+- **refactor(core)**: `score_package` 341 → 37 satır orkestratör; güvenlik/
+  uyumluluk/üstveri/boyut denetimleri kategori fonksiyonlarına ayrıldı
+  (davranış birebir; quality testleri 51/51, ruff+mypy temiz).
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni

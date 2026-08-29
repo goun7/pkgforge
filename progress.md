@@ -325,6 +325,13 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 18a: score_package refaktörü (29 Ağu)
+- 341 satırlık tek fonksiyon → 37 satır orkestratör + 4 kategori yardımcısı
+  (_security/_compatibility/_metadata/_size_checks) + _grade.
+- Davranış birebir korundu; quality testleri 51/51, ruff/mypy temiz.
+- Ders: write aracı template literal'de \n'i gerçek newline'a çevirir —
+  string içeren tam dosya yazımından sonra ruff/AST ile sözdizimi doğrula.
+
 ## Oturum-8 Faz 16b: Reports/Updates yıkıcı sistem işlemleri onaylı (29 Ağu)
 - Reports 'Kaldır' (system.snapshot_remove): ConfirmDialog — systemctl stop/
   disable + dosya silme; Vazgeç RPC çağırmaz.
