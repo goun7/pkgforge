@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **feat(doctor)**: `pkgforge doctor` artık polkit teşhisi basıyor — policy
   kurulu mu, helper sisteme mi kurulu, kaynak ağacından mı çalışılıyor;
   "bolca sudo isteği" belirtisi görünür kök nedenine bağlanıyor.
+- **feat(desktop)**: Doktor kartında Yetki (polkit) satırı: policy eksikse
+  uyarı rengiyle teşhis detayı + tek-parola çözüm önerisi (install.sh) kutusu;
+  kopyalanan tanı Markdown'ına `polkit.ok` bölümü düşer (tr/en).
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni

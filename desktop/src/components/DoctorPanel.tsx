@@ -35,6 +35,7 @@ interface DoctorReport {
   version: string;
   ok: boolean;
   tools: DoctorTools;
+  polkit?: DoctorProbe; // Faz 15: sudo/pkexec deneyimi teşhisi (eski yanıtlerde yok)
   keyring: DoctorProbe;
   storage: DoctorStorage;
   dbus: DoctorProbe;
@@ -68,6 +69,12 @@ export function DoctorPanel() {
     ];
     if (report.tools.missing_required.length) lines.push("- missing_required: " + report.tools.missing_required.join(", "));
     if (report.tools.missing_optional.length) lines.push("- missing_optional: " + report.tools.missing_optional.join(", "));
+    if (report.polkit) {
+      lines.push("- polkit.ok: " + String(report.polkit.ok));
+      if (!report.polkit.ok && report.polkit.detail) {
+        lines.push("  - " + String(report.polkit.detail));
+      }
+    }
     lines.push("- keyring.ok: " + String(report.keyring.ok));
     lines.push("- storage.ok: " + String(report.storage.ok) + (report.storage.profile ? " (profile: " + report.storage.profile + ")" : ""));
     lines.push("- dbus.ok: " + String(report.dbus.ok));
@@ -155,6 +162,17 @@ export function DoctorPanel() {
                   )}
                 </div>
               </li>
+              {report.polkit && (
+                <li className="flex items-start gap-2">
+                  <StatusIcon ok={report.polkit.ok} />
+                  <div>
+                    <span className="font-medium">{t("doctorPolkit")}</span>
+                    {!report.polkit.ok && report.polkit.detail != null && (
+                      <p className="text-xs text-[var(--warning)]">{detailStr(report.polkit.detail)}</p>
+                    )}
+                  </div>
+                </li>
+              )}
               <li className="flex items-start gap-2">
                 <StatusIcon ok={report.keyring.ok} />
                 <div>
@@ -198,6 +216,12 @@ export function DoctorPanel() {
               <div className="flex items-start gap-2 rounded-md border border-[var(--warning)]/40 bg-[var(--warning)]/10 p-2 text-xs text-[var(--text-secondary)]">
                 <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[var(--warning)]" />
                 <span>sudo pacman -S --needed {report.tools.missing_required.join(" ")}</span>
+              </div>
+            )}
+            {report.polkit && !report.polkit.ok && (
+              <div className="flex items-start gap-2 rounded-md border border-[var(--warning)]/40 bg-[var(--warning)]/10 p-2 text-xs text-[var(--text-secondary)]">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[var(--warning)]" />
+                <span>{t("doctorPolkitFix")}</span>
               </div>
             )}
           </div>

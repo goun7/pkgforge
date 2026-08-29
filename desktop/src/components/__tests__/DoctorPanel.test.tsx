@@ -263,3 +263,77 @@ describe("DoctorPanel (Faz 10 1.1)", () => {
     expect(await screen.findByText("Kopyalanamadı")).toBeInTheDocument();
   });
 });
+
+describe("DoctorPanel — polkit teşhisi (Faz 15)", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: healthyReport, error: null });
+    clipboardWriteText.mockReset();
+    clipboardWriteText.mockResolvedValue(undefined);
+    installClipboardStub();
+  });
+
+  it("polkit bölümü eksikse (eski yanıt) satır render edilmez", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /Teşhis Çalıştır/ }));
+    await screen.findByText(/2.0.0/);
+    expect(screen.queryByText(/polkit/)).not.toBeInTheDocument();
+  });
+
+  it("polkit sağlıklıysa satır yeşilende görünür, uyarı kutusu çıkmaz", async () => {
+    invokeMock.mockResolvedValue({
+      jsonrpc: "2.0", id: 1,
+      result: { ...healthyReport, polkit: { ok: true } },
+      error: null,
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /Teşhis Çalıştır/ }));
+    expect(await screen.findByText(/Yetki \(polkit\) kurulumu/)).toBeInTheDocument();
+    expect(screen.queryByText(/install.sh/)).not.toBeInTheDocument();
+  });
+
+  it("polkit bozuksa detay + eylem önerisi (install.sh) görünür", async () => {
+    invokeMock.mockResolvedValue({
+      jsonrpc: "2.0", id: 1,
+      result: {
+        ...healthyReport,
+        polkit: {
+          ok: false,
+          detail: "org.pkgforge.helper.policy kurulu değil — pkexec her çağrıda parola ister.",
+        },
+      },
+      error: null,
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: /Teşhis Çalıştır/ }));
+    expect(
+      await screen.findByText(/pkexec her çağrıda parola ister/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/sudo \.\/scripts\/install\.sh/)).toBeInTheDocument();
+  });
+
+  it("kopyalanan tanıya polkit satırı düşer", async () => {
+    invokeMock.mockResolvedValue({
+      jsonrpc: "2.0", id: 1,
+      result: {
+        ...healthyReport,
+        polkit: { ok: false, detail: "policy yok" },
+      },
+      error: null,
+    });
+    // fireEvent: userEvent.setup() navigator.clipboard stub'imizi degistirirdi.
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: /Teşhis Çalıştır/ }));
+    const copyBtn = await screen.findByRole("button", { name: /Tanıyı kopyala/ });
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+    await vi.waitFor(() => expect(clipboardWriteText).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    const copied = clipboardWriteText.mock.calls[0][0] as string;
+    expect(copied).toContain("polkit.ok: false");
+    expect(copied).toContain("policy yok");
+  });
+});

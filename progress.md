@@ -325,6 +325,14 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 15: doktor GUI'sine polkit teşhisi (29 Ağu)
+- DoctorPanel: 'Yetki (polkit) kurulumu' satırı — ok=false'da uyarı rengiyle
+  detail + eylem kutusu (sudo ./scripts/install.sh önerisi, tr/en).
+- Kopyalanan tanı Markdown'ına polkit.ok + detail bölümü düşer.
+- Geriye dönük uyum: eski yanıtlerde polkit yoksa satır render edilmez.
+- Testler: DoctorPanel 15/15 (4 yeni polkit testi); Python doctor/router/
+  capabilities 19/19.
+
 ## Oturum-8 Faz 14b: doctor polkit teşhisi (29 Ağu)
 - doctor'a _check_polkit: policy_installed / helper_installed /
   running_from_source + eylem önerili 'detail'.
