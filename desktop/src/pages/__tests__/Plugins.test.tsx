@@ -13,12 +13,14 @@ import { listen } from "@tauri-apps/api/event";
 import { Plugins } from "../Plugins";
 import { ToastProvider } from "../../components/ui/Toast";
 
-function renderPlugins() {
-  return render(
+async function renderPlugins() {
+  const r = render(
     <ToastProvider>
       <Plugins />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 describe("Plugins page", () => {
@@ -28,13 +30,13 @@ describe("Plugins page", () => {
   });
 
   it("renders installed and available tabs", async () => {
-    renderPlugins();
+    await renderPlugins();
     await vi.waitFor(() => expect(screen.getByText(/Kurulu/)).toBeInTheDocument());
     expect(screen.getByText(/Kullanılabilir/)).toBeInTheDocument();
   });
 
   it("loads installed plugins on mount", async () => {
-    renderPlugins();
+    await renderPlugins();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -44,7 +46,7 @@ describe("Plugins page", () => {
   });
 
   it("shows empty message when no installed plugins", async () => {
-    renderPlugins();
+    await renderPlugins();
     await vi.waitFor(() =>
       expect(screen.getByText(/yerel plugin yok/i)).toBeInTheDocument(),
     );
@@ -110,7 +112,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("renders installed plugin rows with update and remove buttons", async () => {
     mockRpc({ "plugin.list": INSTALLED });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText("plasmoid-x");
     expect(screen.getByText("120 B")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Güncelle plasmoid-x" })).toBeInTheDocument();
@@ -120,19 +122,19 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("shows error toast when plugin.list fails", async () => {
     mockRpc({}, { "plugin.list": { code: -32000, message: "liste bozuk" } });
-    renderPlugins();
+    await renderPlugins();
     expect(await screen.findByText(/liste bozuk/)).toBeInTheDocument();
   });
 
-  it("shows skeletons while installed plugins load", () => {
+  it("shows skeletons while installed plugins load", async () => {
     invokeMock.mockImplementation(() => new Promise(() => {}));
-    const { container } = renderPlugins();
+    const { container } = await renderPlugins();
     expect(container.querySelectorAll(".animate-pulse").length).toBe(2);
   });
 
   it("loads and lists available plugins when switching tab", async () => {
     mockRpc({ "plugin.list": INSTALLED, "plugin.available": AVAILABLE });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText("plasmoid-x");
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     await screen.findByText("pkg-browser");
@@ -146,7 +148,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
       if (payload.method === "plugin.available") return new Promise(() => {});
       return Promise.resolve({ jsonrpc: "2.0", id: 1, result: [], error: null });
     });
-    const { container } = renderPlugins();
+    const { container } = await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     await vi.waitFor(() =>
@@ -156,7 +158,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("shows empty state with refresh button on available tab", async () => {
     mockRpc({});
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     expect(await screen.findByText(/Plugin bulunamadı/)).toBeInTheDocument();
@@ -165,7 +167,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("refresh button re-fetches available plugins", async () => {
     mockRpc({});
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     await screen.findByText(/Plugin bulunamadı/);
@@ -175,7 +177,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("shows error toast when plugin.available fails", async () => {
     mockRpc({}, { "plugin.available": { code: -32001, message: "pazar erisilemez" } });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     expect(await screen.findByText(/pazar erisilemez/)).toBeInTheDocument();
@@ -183,7 +185,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("switches back to installed tab", async () => {
     mockRpc({ "plugin.list": INSTALLED, "plugin.available": AVAILABLE });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText("plasmoid-x");
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     await screen.findByText("pkg-browser");
@@ -194,7 +196,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("does not refetch available plugins once loaded", async () => {
     mockRpc({ "plugin.list": INSTALLED, "plugin.available": AVAILABLE });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText("plasmoid-x");
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     await screen.findByText("pkg-browser");
@@ -207,7 +209,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("install button calls plugin.install and disables while busy", async () => {
     mockRpc({ "plugin.available": AVAILABLE });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     const installBtn = await screen.findByRole("button", { name: "Kur" });
@@ -229,7 +231,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
       { "plugin.available": AVAILABLE },
       { "plugin.install": { code: -32002, message: "kurulum hatasi" } },
     );
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     fireEvent.click(screen.getByRole("button", { name: "Kullanılabilir" }));
     const installBtn = await screen.findByRole("button", { name: "Kur" });
@@ -240,7 +242,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("update button calls plugin.update", async () => {
     mockRpc({ "plugin.list": INSTALLED });
-    renderPlugins();
+    await renderPlugins();
     fireEvent.click(await screen.findByRole("button", { name: "Güncelle plasmoid-x" }));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -258,14 +260,14 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
       { "plugin.list": INSTALLED },
       { "plugin.update": { code: -32003, message: "guncelleme hatasi" } },
     );
-    renderPlugins();
+    await renderPlugins();
     fireEvent.click(await screen.findByRole("button", { name: "Güncelle plasmoid-x" }));
     expect(await screen.findByText(/guncelleme hatasi/)).toBeInTheDocument();
   });
 
   it("remove button calls plugin.uninstall, toasts success and reloads list", async () => {
     mockRpc({ "plugin.list": INSTALLED });
-    renderPlugins();
+    await renderPlugins();
     fireEvent.click(await screen.findByRole("button", { name: "Kaldır plasmoid-x" }));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -287,7 +289,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
       { "plugin.list": INSTALLED },
       { "plugin.uninstall": { code: -32004, message: "kaldirma hatasi" } },
     );
-    renderPlugins();
+    await renderPlugins();
     fireEvent.click(await screen.findByRole("button", { name: "Kaldır plasmoid-x" }));
     expect(await screen.findByText(/kaldirma hatasi/)).toBeInTheDocument();
     expect(callsFor("plugin.list").length).toBe(1);
@@ -295,7 +297,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
 
   it("audit button loads and renders results with status badges", async () => {
     mockRpc({ "plugin.list": INSTALLED, "plugin.audit": AUDITS });
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText("plasmoid-x");
     fireEvent.click(screen.getByRole("button", { name: "Denetle" }));
     expect(await screen.findByText("Denetim Sonuçları")).toBeInTheDocument();
@@ -311,7 +313,7 @@ describe("Plugins page - listele/kur/kaldir/guncelle/denetle dallari", () => {
       { "plugin.list": INSTALLED },
       { "plugin.audit": { code: -32005, message: "denetim hatasi" } },
     );
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText("plasmoid-x");
     fireEvent.click(screen.getByRole("button", { name: "Denetle" }));
     expect(await screen.findByText(/denetim hatasi/)).toBeInTheDocument();
@@ -325,7 +327,7 @@ describe("Plugins page - event/plugin_done dallari", () => {
 
   async function firePluginDone(payload: PluginDonePayload) {
     const getHandler = capturePluginDoneHandler();
-    renderPlugins();
+    await renderPlugins();
     await screen.findByText(/Yerel plugin yok/i);
     const handler = await vi.waitFor(() => {
       const h = getHandler();

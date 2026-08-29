@@ -19,12 +19,14 @@ vi.mock("@tauri-apps/api/core", () => ({
 import { Browse } from "../Browse";
 import { ToastProvider } from "../../components/ui/Toast";
 
-function renderBrowse() {
-  return render(
+async function renderBrowse() {
+  const r = render(
     <ToastProvider>
       <Browse />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 function searchInput() {
@@ -73,14 +75,14 @@ describe("Browse page", () => {
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
   });
 
-  it("renders the search input and button", () => {
-    renderBrowse();
+  it("renders the search input and button", async () => {
+    await renderBrowse();
     expect(screen.getByPlaceholderText(/AUR'da ara/i)).toBeInTheDocument();
     expect(screen.getByText("Ara")).toBeInTheDocument();
   });
 
   it("calls aur.search when searching", async () => {
-    renderBrowse();
+    await renderBrowse();
     fireEvent.change(screen.getByPlaceholderText(/AUR'da ara/i), { target: { value: "firefox" } });
     fireEvent.click(screen.getByText("Ara"));
     await vi.waitFor(() =>
@@ -92,32 +94,32 @@ describe("Browse page", () => {
   });
 
   it("does not search with empty query", async () => {
-    renderBrowse();
+    await renderBrowse();
     fireEvent.click(screen.getByText("Ara"));
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("restores the persisted query from sessionStorage", () => {
+  it("restores the persisted query from sessionStorage", async () => {
     sessionStorage.setItem("pkgforge.browse.query", "vlc");
-    renderBrowse();
+    await renderBrowse();
     expect(searchInput()).toHaveValue("vlc");
   });
 
-  it("falls back to an empty query when sessionStorage is unavailable", () => {
+  it("falls back to an empty query when sessionStorage is unavailable", async () => {
     const getItem = vi.spyOn(sessionStorage, "getItem").mockImplementation(() => {
       throw new Error("depolama yok");
     });
     const setItem = vi.spyOn(sessionStorage, "setItem").mockImplementation(() => {
       throw new Error("depolama yok");
     });
-    renderBrowse();
+    await renderBrowse();
     expect(searchInput()).toHaveValue("");
     getItem.mockRestore();
     setItem.mockRestore();
   });
 
   it("shows skeletons and disables the search button while searching", async () => {
-    renderBrowse();
+    await renderBrowse();
     fireEvent.change(searchInput(), { target: { value: "firefox" } });
     fireEvent.click(screen.getByText("Ara"));
     expect(screen.getByText("Ara").closest("button")).toBeDisabled();
@@ -136,7 +138,7 @@ describe("Browse page", () => {
   });
 
   it("searches on Enter but ignores other keys", async () => {
-    renderBrowse();
+    await renderBrowse();
     fireEvent.change(searchInput(), { target: { value: "firefox" } });
     fireEvent.keyDown(searchInput(), { key: "a" });
     expect(invokeMock).not.toHaveBeenCalled();
@@ -149,9 +151,9 @@ describe("Browse page", () => {
     );
   });
 
-  it("renders search results when aur_search_done arrives", () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [firefox, langpack] });
+  it("renders search results when aur_search_done arrives", async () => {
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [firefox, langpack] }));
     expect(screen.getByText("firefox-bin")).toBeInTheDocument();
     expect(screen.getByText("v130.0-1")).toBeInTheDocument();
     expect(screen.getByText("Standalone web browser")).toBeInTheDocument();
@@ -166,19 +168,19 @@ describe("Browse page", () => {
     expect(screen.queryByText("Daha fazla yükle")).not.toBeInTheDocument();
   });
 
-  it("shows the empty state when the search returns no results", () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [] });
+  it("shows the empty state when the search returns no results", async () => {
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [] }));
     expect(screen.getByText("Sonuç bulunamadı.")).toBeInTheDocument();
   });
 
   it("toasts when the search done event reports failure", async () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: false, error: "AUR rate limit" });
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: false, error: "AUR rate limit" }));
     await screen.findByText("AUR rate limit");
     // Sonuc yuku yoksa (ok olsa bile) fallback mesaj kullanilir.
-    emit("event/aur_search_done", { ok: true });
-    emit("event/aur_search_done", { ok: false });
+    await act(async () => emit("event/aur_search_done", { ok: true }));
+    await act(async () => emit("event/aur_search_done", { ok: false }));
     await vi.waitFor(() =>
       expect(screen.getAllByText("Arama başarısız")).toHaveLength(2),
     );
@@ -186,7 +188,7 @@ describe("Browse page", () => {
   });
 
   it("offers load more at the limit and raises the limit by 25", async () => {
-    renderBrowse();
+    await renderBrowse();
     fireEvent.change(searchInput(), { target: { value: "firefox" } });
     const many = Array.from({ length: 25 }, (_, i) => ({
       name: `pkg-${i}`,
@@ -196,7 +198,7 @@ describe("Browse page", () => {
       out_of_date: false,
       url_path: `/packages/pkg-${i}`,
     }));
-    emit("event/aur_search_done", { ok: true, result: many });
+    await act(async () => emit("event/aur_search_done", { ok: true, result: many }));
     fireEvent.click(screen.getByText("Daha fazla yükle"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -210,7 +212,7 @@ describe("Browse page", () => {
   });
 
   it("clears searching and toasts when the aur.search RPC fails", async () => {
-    renderBrowse();
+    await renderBrowse();
     fireEvent.change(searchInput(), { target: { value: "firefox" } });
     invokeMock.mockResolvedValue(rpcErr(-32000, "aur offline"));
     fireEvent.click(screen.getByText("Ara"));
@@ -220,8 +222,8 @@ describe("Browse page", () => {
   });
 
   it("fetches package info and shows the info panel", async () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [firefox] });
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [firefox] }));
     fireEvent.click(screen.getByRole("button", { name: "Bilgi firefox-bin" }));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -245,8 +247,8 @@ describe("Browse page", () => {
     expect(screen.getByText("Paket detayi burada")).toBeInTheDocument();
   });
 
-  it("shows a danger badge for not_found info and omits empty fields", () => {
-    renderBrowse();
+  it("shows a danger badge for not_found info and omits empty fields", async () => {
+    await renderBrowse();
     emit("event/aur_info_done", {
       ok: true,
       result: { status: "not_found", aur_version: "", out_of_date: false, last_modified: "", detail: "" },
@@ -257,24 +259,24 @@ describe("Browse page", () => {
   });
 
   it("toasts when the info done event reports failure", async () => {
-    renderBrowse();
-    emit("event/aur_info_done", { ok: false, error: "info boom" });
+    await renderBrowse();
+    await act(async () => emit("event/aur_info_done", { ok: false, error: "info boom" }));
     await screen.findByText("info boom");
-    emit("event/aur_info_done", { ok: false });
+    await act(async () => emit("event/aur_info_done", { ok: false }));
     await screen.findByText("Bilgi alınamadı");
   });
 
   it("toasts when the aur.info RPC fails", async () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [firefox] });
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [firefox] }));
     invokeMock.mockResolvedValue(rpcErr(-2, "info yok"));
     fireEvent.click(screen.getByRole("button", { name: "Bilgi firefox-bin" }));
     await screen.findByText("-2: info yok");
   });
 
   it("runs the build flow: progress steps, disabled buttons, success toast", async () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [firefox, langpack] });
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [firefox, langpack] }));
     fireEvent.click(screen.getAllByText("Derle")[0]);
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -287,9 +289,9 @@ describe("Browse page", () => {
     for (const label of screen.getAllByText("Derle")) {
       expect(label.closest("button")).toBeDisabled();
     }
-    emit("event/aur_build_progress", { name: "firefox-bin", step: "clone" });
+    await act(async () => emit("event/aur_build_progress", { name: "firefox-bin", step: "clone" }));
     expect(screen.getByText("firefox-bin klonlanıyor…")).toBeInTheDocument();
-    emit("event/aur_build_progress", { name: "firefox-bin", step: "build" });
+    await act(async () => emit("event/aur_build_progress", { name: "firefox-bin", step: "build" }));
     expect(screen.getByText("firefox-bin derleniyor (makepkg)…")).toBeInTheDocument();
     emit("event/aur_build_done", {
       ok: true,
@@ -307,20 +309,20 @@ describe("Browse page", () => {
   });
 
   it("toasts and clears the banner when the build done event fails", async () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [firefox] });
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [firefox] }));
     fireEvent.click(screen.getByText("Derle"));
-    emit("event/aur_build_done", { ok: false, error: "makepkg: hata" });
+    await act(async () => emit("event/aur_build_done", { ok: false, error: "makepkg: hata" }));
     await screen.findByText("makepkg: hata");
     expect(screen.queryByText(/başlatılıyor…/)).not.toBeInTheDocument();
     // Acik hata mesaji yoksa fallback kullanilir.
-    emit("event/aur_build_done", { ok: false });
+    await act(async () => emit("event/aur_build_done", { ok: false }));
     await screen.findByText("Derleme başarısız");
   });
 
   it("clears building state and toasts when the aur.build RPC fails", async () => {
-    renderBrowse();
-    emit("event/aur_search_done", { ok: true, result: [firefox] });
+    await renderBrowse();
+    await act(async () => emit("event/aur_search_done", { ok: true, result: [firefox] }));
     invokeMock.mockResolvedValue(rpcErr(-3, "build yok"));
     fireEvent.click(screen.getByText("Derle"));
     await screen.findByText("-3: build yok");

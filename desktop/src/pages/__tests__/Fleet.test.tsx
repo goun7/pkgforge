@@ -85,12 +85,14 @@ function captureSyncDone(): () => SyncDoneHandler | null {
   return () => handler;
 }
 
-function renderFleet() {
-  return render(
+async function renderFleet() {
+  const r = render(
     <ToastProvider>
       <Fleet />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 describe("Fleet page (Fleet konsolu)", () => {
@@ -100,7 +102,7 @@ describe("Fleet page (Fleet konsolu)", () => {
   });
 
   it("loads fleet.status on mount", async () => {
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -110,7 +112,7 @@ describe("Fleet page (Fleet konsolu)", () => {
   });
 
   it("renders backend names and policy after load", async () => {
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() =>
       expect(screen.getByText("webdav")).toBeInTheDocument(),
     );
@@ -120,7 +122,7 @@ describe("Fleet page (Fleet konsolu)", () => {
   });
 
   it("shows profiles and history count", async () => {
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() =>
       expect(screen.getByText(/default, is/)).toBeInTheDocument(),
     );
@@ -128,7 +130,7 @@ describe("Fleet page (Fleet konsolu)", () => {
   });
 
   it("calls sync.push when Push clicked", async () => {
-    renderFleet();
+    await renderFleet();
     fireEvent.click(screen.getByText("Push"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -139,7 +141,7 @@ describe("Fleet page (Fleet konsolu)", () => {
   });
 
   it("calls sync.export when Yedek Export clicked", async () => {
-    renderFleet();
+    await renderFleet();
     fireEvent.click(screen.getByText("Yedek Export"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -151,7 +153,7 @@ describe("Fleet page (Fleet konsolu)", () => {
 
   it("shows an error toast and keeps status cards hidden when fleet.status fails", async () => {
     mockRpc({ "fleet.status": rpcErr(-32000, "sidecar yanıt vermedi") });
-    renderFleet();
+    await renderFleet();
     expect(await screen.findByText("-32000: sidecar yanıt vermedi")).toBeInTheDocument();
     // status null kaldi: backend/ozet kartlari render edilmez
     expect(screen.queryByText("Senkron Backend'leri")).not.toBeInTheDocument();
@@ -160,21 +162,21 @@ describe("Fleet page (Fleet konsolu)", () => {
   });
 
   it("reloads fleet.status when Yenile clicked", async () => {
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(screen.getByText("webdav")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Yenile" }));
     await vi.waitFor(() => expect(callsTo("fleet.status").length).toBe(2));
   });
 
   it("calls sync.pull when Pull clicked", async () => {
-    renderFleet();
+    await renderFleet();
     fireEvent.click(screen.getByText("Pull"));
     await vi.waitFor(() => expect(callsTo("sync.pull").length).toBe(1));
   });
 
   it("shows an error toast and frees the button when sync.push fails", async () => {
     mockRpc({ "sync.push": rpcErr(-1, "push başarısız") });
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(screen.getByText("webdav")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Push" }));
     expect(await screen.findByText("-1: push başarısız")).toBeInTheDocument();
@@ -183,21 +185,21 @@ describe("Fleet page (Fleet konsolu)", () => {
 
   it("shows an error toast when sync.pull fails", async () => {
     mockRpc({ "sync.pull": rpcErr(-2, "pull başarısız") });
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(screen.getByText("webdav")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Pull" }));
     expect(await screen.findByText("-2: pull başarısız")).toBeInTheDocument();
   });
 
   it("shows a success toast after sync.export succeeds", async () => {
-    renderFleet();
+    await renderFleet();
     fireEvent.click(screen.getByText("Yedek Export"));
     expect(await screen.findByText("Yedek export tamamlandı")).toBeInTheDocument();
   });
 
   it("shows an error toast when sync.export fails", async () => {
     mockRpc({ "sync.export": rpcErr(-3, "export yazılamadı") });
-    renderFleet();
+    await renderFleet();
     fireEvent.click(screen.getByText("Yedek Export"));
     expect(await screen.findByText("-3: export yazılamadı")).toBeInTheDocument();
     expect(screen.queryByText("Yedek export tamamlandı")).not.toBeInTheDocument();
@@ -205,7 +207,7 @@ describe("Fleet page (Fleet konsolu)", () => {
 
   it("sync_done ok event clears busy and shows success toast", async () => {
     const getHandler = captureSyncDone();
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(screen.getByText("webdav")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Push" }));
     await vi.waitFor(() => expect(callsTo("sync.push").length).toBe(1));
@@ -219,7 +221,7 @@ describe("Fleet page (Fleet konsolu)", () => {
 
   it("sync_done failure event shows the backend error", async () => {
     const getHandler = captureSyncDone();
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(getHandler()).not.toBeNull());
     act(() => {
       getHandler()?.({ payload: { ok: false, error: "disk dolu" } });
@@ -230,7 +232,7 @@ describe("Fleet page (Fleet konsolu)", () => {
 
   it("sync_done failure without error text falls back to fleetSyncFail", async () => {
     const getHandler = captureSyncDone();
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(getHandler()).not.toBeNull());
     act(() => {
       getHandler()?.({ payload: { ok: false } });
@@ -240,7 +242,7 @@ describe("Fleet page (Fleet konsolu)", () => {
 
   it("renders fallback badges for unknown backend and empty summary fields", async () => {
     mockRpc({ "fleet.status": rpcOk(FLEET_STATUS_DEGRADED) });
-    renderFleet();
+    await renderFleet();
     await vi.waitFor(() => expect(screen.getByText("ghost")).toBeInTheDocument());
     // backends["ghost"] yok -> {configured:false, available:false} fallback
     expect(screen.getByText("YOK")).toBeInTheDocument();

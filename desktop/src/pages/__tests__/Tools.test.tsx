@@ -14,12 +14,14 @@ import { ToastProvider } from "../../components/ui/Toast";
 import { listen } from "@tauri-apps/api/event";
 import { act } from "react";
 
-function renderTools() {
-  return render(
+async function renderTools() {
+  const r = render(
     <ToastProvider>
       <Tools />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 // --- RPC response helper'leri ---
@@ -69,8 +71,8 @@ describe("Tools page (Feature Tezgahi)", () => {
     invokeMock.mockReset();
   });
 
-  it("renders the three tool cards", () => {
-    renderTools();
+  it("renders the three tool cards", async () => {
+    await renderTools();
     expect(screen.getByText("RPM → DEB")).toBeInTheDocument();
     expect(screen.getByText("ABI Uyumluluk Denetimi")).toBeInTheDocument();
     expect(screen.getByText("Denetim İzi (Audit)")).toBeInTheDocument();
@@ -78,7 +80,7 @@ describe("Tools page (Feature Tezgahi)", () => {
 
   it("calls tools.rpm_to_deb when path set and clicked", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: { started: true } });
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getByPlaceholderText("/yol/paket.rpm"), {
       target: { value: "/tmp/p.rpm" },
     });
@@ -93,7 +95,7 @@ describe("Tools page (Feature Tezgahi)", () => {
 
   it("calls tools.abi_check when path set and clicked", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: { started: true } });
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst")[0], {
       target: { value: "/tmp/p.pkg.tar.zst" },
     });
@@ -116,7 +118,7 @@ describe("Tools page (Feature Tezgahi)", () => {
       records: [],
     };
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: audit });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Denetim İzini Yükle"));
     await vi.waitFor(() =>
       expect(screen.getByText(/Toplam 2/)).toBeInTheDocument(),
@@ -124,9 +126,9 @@ describe("Tools page (Feature Tezgahi)", () => {
     expect(screen.getByText("installed: 2")).toBeInTheDocument();
   });
 
-  it("shows toast error for empty rpm path", () => {
+  it("shows toast error for empty rpm path", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: {} });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Dönüştür"));
     expect(invokeMock).not.toHaveBeenCalledWith(
       "rpc_call",
@@ -141,8 +143,8 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: {} });
   });
 
-  it("renders the four Faz 2 cards", () => {
-    renderTools();
+  it("renders the four Faz 2 cards", async () => {
+    await renderTools();
     expect(screen.getByText("İmaj Taraması (CVE/Malware)")).toBeInTheDocument();
     expect(screen.getByText("Attestation (SLSA)")).toBeInTheDocument();
     expect(screen.getByText("AUR Yayınla")).toBeInTheDocument();
@@ -150,7 +152,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
   });
 
   it("loads snapshot status on mount", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -160,7 +162,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
   });
 
   it("calls tools.scan_image when path set and clicked", async () => {
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getByPlaceholderText("/yol/imaj.tar"), {
       target: { value: "/tmp/img.tar" },
     });
@@ -174,7 +176,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
   });
 
   it("calls tools.attest when path set and clicked", async () => {
-    renderTools();
+    await renderTools();
     const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
     fireEvent.change(inputs[1], { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Attestasyon Üret"));
@@ -187,7 +189,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
   });
 
   it("calls tools.publish when path set and clicked", async () => {
-    renderTools();
+    await renderTools();
     const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
     fireEvent.change(inputs[2], { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("AUR Paketi Hazırla"));
@@ -200,7 +202,7 @@ describe("Tools page Faz 2 (scan/attest/publish/snapshot)", () => {
   });
 
   it("calls tools.snapshot_install when clicked", async () => {
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Servisi Kur"));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
@@ -219,7 +221,7 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("rpm_to_deb_done success renders result badge, message and deb path", async () => {
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getByPlaceholderText("/yol/paket.rpm"), {
       target: { value: "/tmp/p.rpm" },
     });
@@ -243,7 +245,7 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("rpm_to_deb_done failed result shows HATA badge without deb path", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/rpm_to_deb_done")).toBe(true), { timeout: 5000 });
     emit("event/rpm_to_deb_done", {
       ok: true,
@@ -255,21 +257,21 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("rpm_to_deb_done error payload shows error toast (custom then fallback)", async () => {
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getByPlaceholderText("/yol/paket.rpm"), {
       target: { value: "/tmp/p.rpm" },
     });
     fireEvent.click(screen.getByText("Dönüştür"));
     await vi.waitFor(() => expect(listening("event/rpm_to_deb_done")).toBe(true), { timeout: 5000 });
-    emit("event/rpm_to_deb_done", { ok: false, error: "disk dolu" });
+    await act(async () => emit("event/rpm_to_deb_done", { ok: false, error: "disk dolu" }));
     expect(await screen.findByText("disk dolu", {}, { timeout: 5000 })).toBeInTheDocument();
-    emit("event/rpm_to_deb_done", { ok: false });
+    await act(async () => emit("event/rpm_to_deb_done", { ok: false }));
     expect(await screen.findByText("RPM dönüşümü başarısız", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText("Dönüştür").closest("button")).toBeEnabled();
   });
 
   it("abi_check_done passed report renders UYUMLU badge and summary", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/abi_check_done")).toBe(true), { timeout: 5000 });
     emit("event/abi_check_done", {
       ok: true,
@@ -284,7 +286,7 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("abi_check_done failing report shows issue count badge", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/abi_check_done")).toBe(true), { timeout: 5000 });
     emit("event/abi_check_done", {
       ok: true,
@@ -299,14 +301,14 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("abi_check_done error payload shows fallback toast", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/abi_check_done")).toBe(true), { timeout: 5000 });
-    emit("event/abi_check_done", { ok: false });
+    await act(async () => emit("event/abi_check_done", { ok: false }));
     expect(await screen.findByText("ABI taraması başarısız", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("scan_image_done clean image renders TEMIZ badge and detail", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/scan_image_done")).toBe(true), { timeout: 5000 });
     emit("event/scan_image_done", {
       ok: true,
@@ -320,7 +322,7 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("scan_image_done findings render count badge and finding lines", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/scan_image_done")).toBe(true), { timeout: 5000 });
     emit("event/scan_image_done", {
       ok: true,
@@ -339,14 +341,14 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("scan_image_done error payload shows custom toast", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/scan_image_done")).toBe(true), { timeout: 5000 });
-    emit("event/scan_image_done", { ok: false, error: "imaj okunamadi" });
+    await act(async () => emit("event/scan_image_done", { ok: false, error: "imaj okunamadi" }));
     expect(await screen.findByText("imaj okunamadi", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("attest_done success renders OLUŞTURULDU badge and subject path", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/attest_done")).toBe(true), { timeout: 5000 });
     emit("event/attest_done", {
       ok: true,
@@ -357,7 +359,7 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("attest_done failed result shows HATA badge and error text", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/attest_done")).toBe(true), { timeout: 5000 });
     emit("event/attest_done", {
       ok: true,
@@ -368,14 +370,14 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("attest_done error payload shows fallback toast", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/attest_done")).toBe(true), { timeout: 5000 });
-    emit("event/attest_done", { ok: false });
+    await act(async () => emit("event/attest_done", { ok: false }));
     expect(await screen.findByText("Attestasyon başarısız", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("publish_done success renders HAZIR badge and PKGBUILD path", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/publish_done")).toBe(true), { timeout: 5000 });
     emit("event/publish_done", {
       ok: true,
@@ -387,7 +389,7 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("publish_done failed result shows HATA badge without PKGBUILD", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/publish_done")).toBe(true), { timeout: 5000 });
     emit("event/publish_done", {
       ok: true,
@@ -399,34 +401,34 @@ describe("Tools page push-event done handlers", () => {
   });
 
   it("publish_done error payload shows custom toast", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/publish_done")).toBe(true), { timeout: 5000 });
-    emit("event/publish_done", { ok: false, error: "aur erisilemedi" });
+    await act(async () => emit("event/publish_done", { ok: false, error: "aur erisilemedi" }));
     expect(await screen.findByText("aur erisilemedi", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("snapshot_done success toasts the message and reloads status", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(methodCalls("tools.snapshot_status")).toBe(1), { timeout: 5000 });
     await vi.waitFor(() => expect(listening("event/snapshot_done")).toBe(true), { timeout: 5000 });
-    emit("event/snapshot_done", { ok: true, result: { ok: true, message: "Temizlik tamamlandi" } });
+    await act(async () => emit("event/snapshot_done", { ok: true, result: { ok: true, message: "Temizlik tamamlandi" } }));
     expect(await screen.findByText("Temizlik tamamlandi", {}, { timeout: 5000 })).toBeInTheDocument();
     await vi.waitFor(() => expect(methodCalls("tools.snapshot_status")).toBe(2), { timeout: 5000 });
   });
 
   it("snapshot_done failed result toasts its message", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/snapshot_done")).toBe(true), { timeout: 5000 });
-    emit("event/snapshot_done", { ok: true, result: { ok: false, message: "servis calismiyor" } });
+    await act(async () => emit("event/snapshot_done", { ok: true, result: { ok: false, message: "servis calismiyor" } }));
     expect(await screen.findByText("servis calismiyor", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("snapshot_done error payload falls back to generic toast", async () => {
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(listening("event/snapshot_done")).toBe(true), { timeout: 5000 });
-    emit("event/snapshot_done", { ok: false, error: "beklenmeyen hata" });
+    await act(async () => emit("event/snapshot_done", { ok: false, error: "beklenmeyen hata" }));
     expect(await screen.findByText("beklenmeyen hata", {}, { timeout: 5000 })).toBeInTheDocument();
-    emit("event/snapshot_done", { ok: false });
+    await act(async () => emit("event/snapshot_done", { ok: false }));
     expect(await screen.findByText("Snapshot işlemi başarısız", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 });
@@ -442,7 +444,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.rpm_to_deb": rpcErr(-32000, "rpm okunamadi"),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getByPlaceholderText("/yol/paket.rpm"), {
       target: { value: "/tmp/p.rpm" },
     });
@@ -456,7 +458,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.abi_check": rpcErr(-32001, "abi taranamadi"),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst")[0], {
       target: { value: "/tmp/p.pkg.tar.zst" },
     });
@@ -470,7 +472,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.audit": rpcErr(-1, "audit yuklenemedi"),
     });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Denetim İzini Yükle"));
     expect(await screen.findByText("-1: audit yuklenemedi", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText("Denetim İzini Yükle").closest("button")).toBeEnabled();
@@ -481,7 +483,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.scan_image": rpcErr(-32002, "imaj taranamadi"),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(screen.getByPlaceholderText("/yol/imaj.tar"), {
       target: { value: "/tmp/img.tar" },
     });
@@ -495,7 +497,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.attest": rpcErr(-32003, "attest uretilemedi"),
     });
-    renderTools();
+    await renderTools();
     const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
     fireEvent.change(inputs[1], { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Attestasyon Üret"));
@@ -508,7 +510,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.publish": rpcErr(-32004, "yayin hazirlanamadi"),
     });
-    renderTools();
+    await renderTools();
     const inputs = screen.getAllByPlaceholderText("/yol/paket.pkg.tar.zst");
     fireEvent.change(inputs[2], { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("AUR Paketi Hazırla"));
@@ -518,7 +520,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("empty abi path toasts and skips the RPC call", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Tara"));
     expect(await screen.findByText("Paket yolu gerekli", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(methodCalls("tools.abi_check")).toBe(0);
@@ -526,7 +528,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("empty scan path toasts the translated message and skips the RPC call", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("İmajı Tara"));
     expect(await screen.findByText("İmaj yolu gerekli", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(methodCalls("tools.scan_image")).toBe(0);
@@ -534,7 +536,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("empty attest path toasts and skips the RPC call", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Attestasyon Üret"));
     expect(await screen.findByText("Paket yolu gerekli", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(methodCalls("tools.attest")).toBe(0);
@@ -542,7 +544,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("empty publish path toasts and skips the RPC call", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("AUR Paketi Hazırla"));
     expect(await screen.findByText("Paket yolu gerekli", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(methodCalls("tools.publish")).toBe(0);
@@ -554,7 +556,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
         installed: true, active: true, next_run: "2026-02-01 03:00", last_run: "",
       }),
     });
-    renderTools();
+    await renderTools();
     expect(
       await screen.findByText(
         (c) => c.includes("Servis kurulu — Aktif | Sıradaki: 2026-02-01 03:00"),
@@ -568,7 +570,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
     mockRpc({
       "tools.snapshot_status": rpcOk({ installed: true, active: false, next_run: "", last_run: "" }),
     });
-    renderTools();
+    await renderTools();
     expect(
       await screen.findByText("Servis kurulu — Durdurulmuş", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
@@ -576,7 +578,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("shows not-installed snapshot status", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     expect(
       await screen.findByText("Snapshot temizlik servisi kurulu değil", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
@@ -584,7 +586,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("silently ignores a failing snapshot status load", async () => {
     invokeMock.mockRejectedValue(new Error("sidecar kopuk"));
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(methodCalls("tools.snapshot_status")).toBe(1), { timeout: 5000 });
     expect(screen.queryByText(/Servis kurulu/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Snapshot temizlik servisi/)).not.toBeInTheDocument();
@@ -592,7 +594,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("refresh button reloads snapshot status", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     await vi.waitFor(() => expect(methodCalls("tools.snapshot_status")).toBe(1), { timeout: 5000 });
     fireEvent.click(screen.getByText("Yenile"));
     await vi.waitFor(() => expect(methodCalls("tools.snapshot_status")).toBe(2), { timeout: 5000 });
@@ -601,7 +603,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
 
   it("remove service button calls tools.snapshot_remove", async () => {
     mockRpc({ "tools.snapshot_status": rpcOk(SNAP_NONE) });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Servisi Kaldır"));
     await vi.waitFor(() => expect(methodCalls("tools.snapshot_remove")).toBe(1), { timeout: 5000 });
     await act(async () => {});
@@ -612,7 +614,7 @@ describe("Tools page handler error paths and snapshot status branches", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "tools.snapshot_install": rpcErr(-2, "servis kurulamadi"),
     });
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Servisi Kur"));
     expect(await screen.findByText("-2: servis kurulamadi", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText("Servisi Kur").closest("button")).toBeEnabled();
@@ -633,7 +635,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
   }
 
   it("renders the rehearsal card with description and run button", async () => {
-    renderTools();
+    await renderTools();
     expect(screen.getByText("Kurulum Provası")).toBeInTheDocument();
     expect(
       screen.getByText("Paketi sisteme dokunmadan tek kullanımlık bir konteynerde kurmayı dener."),
@@ -643,7 +645,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
   });
 
   it("empty rehearsal path toasts and skips the RPC call", async () => {
-    renderTools();
+    await renderTools();
     fireEvent.click(screen.getByText("Prova Et"));
     expect(
       await screen.findByText("Prova için bir paket yolu girin", {}, { timeout: 5000 }),
@@ -659,7 +661,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
         file_count: 3, files: ["/usr/bin/a", "/usr/lib/b.so", "/usr/share/c"],
       }),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     await vi.waitFor(() =>
@@ -684,7 +686,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "install.rehearse": rpcOk({ ok: true, available: true }),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     expect(await screen.findByText("0 kurulacak dosya", {}, { timeout: 5000 })).toBeInTheDocument();
@@ -698,7 +700,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
         ok: false, available: false, reason: "konteyner runtime yok", hint: "distrobox kurun",
       }),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     expect(
@@ -711,7 +713,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "install.rehearse": rpcOk({ ok: false, available: false }),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     expect(
@@ -724,7 +726,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "install.rehearse": rpcOk({ ok: false, available: true, reason: "bagimlilik cozulemedi" }),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     expect(
@@ -737,7 +739,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "install.rehearse": rpcOk({ ok: false, available: true }),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     expect(await screen.findByText("Prova başarısız", {}, { timeout: 5000 })).toBeInTheDocument();
@@ -748,7 +750,7 @@ describe("Tools page Kurulum Provasi (install.rehearse)", () => {
       "tools.snapshot_status": rpcOk(SNAP_NONE),
       "install.rehearse": rpcErr(-32601, "konteyner baslatilamadi"),
     });
-    renderTools();
+    await renderTools();
     fireEvent.change(rehearseInput(), { target: { value: "/tmp/p.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Prova Et"));
     expect(

@@ -52,6 +52,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   helper'ları async act flush; 36+ emit çağrısı await act'e çevrildi; sync
   testler async yapıldı. act uyarı 551→282 (kalanlar çok-tick promise
   zincirleri — test diagnostics'i, hata değil). 578/578, tsc 0.
+- **test(desktop)**: Faz 20c: sekiz sayfa testine (Fleet/Tools/Reports/
+  Export/Compare/Browse/Plugins/Security) aynı act reçetesi; WebDAV
+  push/pull dalları Settings'te kapatıldı (sync.push/sync.pull + boş
+  URL disabled). Uyarı 551→224; kapsam %93.1 (Settings %71.1); 580/580.
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +

@@ -39,3 +39,5 @@ utest/fixtures/*
 # gecici test loglari
 .full_py.log
 .compat.log
+desktop/.cov21.log
+desktop/.pages.log

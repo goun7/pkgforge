@@ -13,12 +13,14 @@ import { listen } from "@tauri-apps/api/event";
 import { Compare } from "../Compare";
 import { ToastProvider } from "../../components/ui/Toast";
 
-function renderCompare() {
-  return render(
+async function renderCompare() {
+  const r = render(
     <ToastProvider>
       <Compare />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 // --- Ortak yardimcilar / fiksturler ---
@@ -112,20 +114,20 @@ describe("Compare page", () => {
     vi.mocked(listen).mockClear();
   });
 
-  it("renders two package path inputs", () => {
-    renderCompare();
+  it("renders two package path inputs", async () => {
+    await renderCompare();
     expect(screen.getByPlaceholderText(/eski paket/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/yeni paket/i)).toBeInTheDocument();
   });
 
-  it("has a compare button", () => {
-    renderCompare();
+  it("has a compare button", async () => {
+    await renderCompare();
     expect(screen.getByText("Karşılaştır")).toBeInTheDocument();
   });
 
   it("calls compare.diff when both paths set", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: { started: true } });
-    renderCompare();
+    await renderCompare();
     fireEvent.change(screen.getByPlaceholderText(/eski paket/i), { target: { value: "/tmp/a.pkg.tar.zst" } });
     fireEvent.change(screen.getByPlaceholderText(/yeni paket/i), { target: { value: "/tmp/b.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Karşılaştır"));
@@ -137,15 +139,15 @@ describe("Compare page", () => {
     );
   });
 
-  it("shows the empty state before any comparison", () => {
-    renderCompare();
+  it("shows the empty state before any comparison", async () => {
+    await renderCompare();
     expect(screen.getByText("Henüz karşılaştırma yok")).toBeInTheDocument();
     expect(screen.getByText(/İki paket seçip/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Karşılaştır" })).toBeEnabled();
   });
 
   it("requires both paths before calling compare.diff", async () => {
-    renderCompare();
+    await renderCompare();
     const button = screen.getByRole("button", { name: "Karşılaştır" });
     // Ikisi de bos: kisa devre, RPC yok.
     fireEvent.click(button);
@@ -170,7 +172,7 @@ describe("Compare page", () => {
 
   it("toasts the RPC error and re-enables when compare.diff fails", async () => {
     invokeMock.mockResolvedValue(rpcErr(-32000, "sbom okunamadi"));
-    renderCompare();
+    await renderCompare();
     await startCompare();
     await vi.waitFor(() =>
       expect(screen.getByText(/-32000: sbom okunamadi/)).toBeInTheDocument(),
@@ -183,7 +185,7 @@ describe("Compare page", () => {
   it("disables the button and hides the empty state while comparing", async () => {
     let resolveInvoke!: (v: unknown) => void;
     invokeMock.mockReturnValue(new Promise((r) => { resolveInvoke = r; }));
-    renderCompare();
+    await renderCompare();
     fireEvent.change(screen.getByPlaceholderText(/eski paket/i), {
       target: { value: "/tmp/eski.pkg.tar.zst" },
     });
@@ -208,7 +210,7 @@ describe("Compare page", () => {
 
   it("renders the full diff report on compare_done success", async () => {
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderCompare();
+    await renderCompare();
     await startCompare();
     emitCompareDone({ ok: true, result: FULL_DIFF });
     await vi.waitFor(() =>
@@ -247,7 +249,7 @@ describe("Compare page", () => {
 
   it("shows the no-difference badge when packages are identical", async () => {
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderCompare();
+    await renderCompare();
     await startCompare();
     emitCompareDone({ ok: true, result: SAME_DIFF });
     await vi.waitFor(() =>
@@ -272,7 +274,7 @@ describe("Compare page", () => {
 
   it("renders added-only and removed-only file sections separately", async () => {
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderCompare();
+    await renderCompare();
     await startCompare();
     // Yalnizca eklenen dosyalar: silinen sutunu render edilmez.
     emitCompareDone({ ok: true, result: ADDED_ONLY });
@@ -288,7 +290,7 @@ describe("Compare page", () => {
 
   it("toasts the backend error when compare_done reports failure", async () => {
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderCompare();
+    await renderCompare();
     await startCompare();
     emitCompareDone({ ok: false, error: "sbom bozuk" });
     await vi.waitFor(() => expect(screen.getByText("sbom bozuk")).toBeInTheDocument());
@@ -298,7 +300,7 @@ describe("Compare page", () => {
 
   it("falls back to the generic failure toast when the event carries no detail", async () => {
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderCompare();
+    await renderCompare();
     await startCompare();
     // ok=false ve error yok: cmpFailToast fallback.
     emitCompareDone({ ok: false });

@@ -16,12 +16,14 @@ import { listen } from "@tauri-apps/api/event";
 import { Security } from "../Security";
 import { ToastProvider } from "../../components/ui/Toast";
 
-function renderSecurity() {
-  return render(
+async function renderSecurity() {
+  const r = render(
     <ToastProvider>
       <Security />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 describe("Security page", () => {
@@ -29,8 +31,8 @@ describe("Security page", () => {
     invokeMock.mockReset();
   });
 
-  it("renders all six tabs", () => {
-    renderSecurity();
+  it("renders all six tabs", async () => {
+    await renderSecurity();
     // Ozet karti da ayni etiketleri tasidigi icin getAllByText kullanilir.
     expect(screen.getAllByText("İmza").length).toBeGreaterThan(0);
     expect(screen.getAllByText("SBOM").length).toBeGreaterThan(0);
@@ -42,7 +44,7 @@ describe("Security page", () => {
 
   it("calls security.cve_scan when CVE tab used with a path", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: { started: true } });
-    renderSecurity();
+    await renderSecurity();
     fireEvent.change(screen.getByPlaceholderText(/paket yolu/i), { target: { value: "/tmp/x.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("CVE Tara")); // open the tab
     fireEvent.click(screen.getByText("Taramayı Başlat")); // trigger the scan
@@ -54,8 +56,8 @@ describe("Security page", () => {
     );
   });
 
-  it("has a package path input", () => {
-    renderSecurity();
+  it("has a package path input", async () => {
+    await renderSecurity();
     expect(screen.getByPlaceholderText(/paket yolu/i)).toBeInTheDocument();
   });
 
@@ -65,7 +67,7 @@ describe("Security page", () => {
       id: 1,
       result: { signed: true, valid: true, key_id: "ABC", key_fingerprint: "fp", signer: "me", timestamp: "t", detail: "" },
     });
-    renderSecurity();
+    await renderSecurity();
     const input = screen.getByPlaceholderText(/paket yolu/i);
     fireEvent.change(input, { target: { value: "/tmp/x.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Doğrula"));
@@ -83,7 +85,7 @@ describe("Security page", () => {
       id: 1,
       result: { signed: true, valid: true, key_id: "ABC123", key_fingerprint: "fp", signer: "tester", timestamp: "t", detail: "" },
     });
-    renderSecurity();
+    await renderSecurity();
     fireEvent.change(screen.getByPlaceholderText(/paket yolu/i), { target: { value: "/tmp/x.pkg.tar.zst" } });
     fireEvent.click(screen.getByText("Doğrula"));
     await vi.waitFor(() => expect(screen.getByText(/ABC123/)).toBeInTheDocument());
@@ -239,8 +241,8 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
     secEventCb = null;
   });
 
-  it("tab degisimi: her tabin kendi paneli acilir", () => {
-    renderSecurity();
+  it("tab degisimi: her tabin kendi paneli acilir", async () => {
+    await renderSecurity();
     clickButton("SBOM");
     expect(screen.getByText("SBOM Oluştur")).toBeInTheDocument();
     expect(screen.queryByText("Doğrula")).not.toBeInTheDocument();
@@ -258,8 +260,8 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
     expect(screen.getByText("Anahtarları Yükle")).toBeInTheDocument();
   });
 
-  it("ozet kartindaki duruma tiklayinca ilgili tab acilir", () => {
-    renderSecurity();
+  it("ozet kartindaki duruma tiklayinca ilgili tab acilir", async () => {
+    await renderSecurity();
     clickButton("SBOM durumu: —");
     expect(screen.getByText("SBOM Oluştur")).toBeInTheDocument();
     clickButton("CVE durumu: —");
@@ -267,7 +269,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   });
 
   it("yol olmadan dogrulama: toast gosterilir, RPC cagrilamaz", async () => {
-    renderSecurity();
+    await renderSecurity();
     // Yol bosken "Tum Kontrolleri Calistir" devre disidir.
     expect(screen.getByRole("button", { name: "Tüm Kontrolleri Çalıştır" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Doğrula" }));
@@ -276,7 +278,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   });
 
   it("yol olmadan sbom/kalite/provenance/cve islemleri engellenir", async () => {
-    renderSecurity();
+    await renderSecurity();
     clickButton("SBOM");
     fireEvent.click(screen.getByText("SBOM Oluştur"));
     clickButton("Kalite");
@@ -291,7 +293,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("verify RPC hatasi: hata mesaji toast'ta gosterilir", async () => {
     invokeMock.mockResolvedValue(rpcErr(-32000, "imza okunamadı"));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     fireEvent.click(screen.getByRole("button", { name: "Doğrula" }));
     expect(await screen.findByText("-32000: imza okunamadı")).toBeInTheDocument();
@@ -301,7 +303,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
     invokeMock.mockResolvedValue(
       rpcOk({ ...SIG_VALID, valid: false, detail: "anahtar süresi dolmuş" }),
     );
-    renderSecurity();
+    await renderSecurity();
     setPath();
     fireEvent.click(screen.getByRole("button", { name: "Doğrula" }));
     expect(await screen.findByText("Geçersiz imza")).toBeInTheDocument();
@@ -322,7 +324,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
         detail: "imza kaydı bulunamadı",
       }),
     );
-    renderSecurity();
+    await renderSecurity();
     setPath();
     fireEvent.click(screen.getByRole("button", { name: "Doğrula" }));
     // Rozet + ozet karti ayni metni tasir.
@@ -333,7 +335,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("imza anahtarlari listelenir (uid'li ve uid'siz)", async () => {
     invokeMock.mockResolvedValue(rpcOk(KEYS));
-    renderSecurity();
+    await renderSecurity();
     fireEvent.click(screen.getByRole("button", { name: "Anahtarları Yükle" }));
     expect(await screen.findByText("KEY1")).toBeInTheDocument();
     expect(screen.getByText("KEY2")).toBeInTheDocument();
@@ -344,14 +346,14 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("anahtar yaniti null ise bos durum mesaji gosterilir", async () => {
     invokeMock.mockResolvedValue(rpcOk(null));
-    renderSecurity();
+    await renderSecurity();
     fireEvent.click(screen.getByRole("button", { name: "Anahtarları Yükle" }));
     expect(await screen.findByText("Henüz anahtar yok")).toBeInTheDocument();
   });
 
   it("anahtar yukleme hatasi toast gosterir", async () => {
     invokeMock.mockResolvedValue(rpcErr(-1, "keyring erisilemez"));
-    renderSecurity();
+    await renderSecurity();
     fireEvent.click(screen.getByRole("button", { name: "Anahtarları Yükle" }));
     expect(await screen.findByText("-1: keyring erisilemez")).toBeInTheDocument();
   });
@@ -359,7 +361,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("SBOM basarili: event sonucu istatistikler ve dosya tablosu render edilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    const { container } = renderSecurity();
+    const { container } = await renderSecurity();
     setPath();
     clickButton("SBOM");
     fireEvent.click(screen.getByText("SBOM Oluştur"));
@@ -378,7 +380,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("SBOM event hata tasiyorsa o mesaj toast gosterilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("SBOM");
     fireEvent.click(screen.getByText("SBOM Oluştur"));
@@ -391,7 +393,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("SBOM event hatasiz başarısızsa fallback mesaj gosterilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("SBOM");
     fireEvent.click(screen.getByText("SBOM Oluştur"));
@@ -403,7 +405,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("SBOM RPC cagrisi reddedilirse catch devreye girer ve loading kapanir", async () => {
     armSecurityEvent();
     invokeMock.mockRejectedValue(new Error("sidecar koptu"));
-    const { container } = renderSecurity();
+    const { container } = await renderSecurity();
     setPath();
     clickButton("SBOM");
     fireEvent.click(screen.getByText("SBOM Oluştur"));
@@ -414,7 +416,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("Kalite basarili: skor, not rozeti ve check listesi render edilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("Kalite");
     fireEvent.click(screen.getByText("Kalite Analizi"));
@@ -432,7 +434,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("Kalite event hatasiz başarısızsa fallback mesaj gosterilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("Kalite");
     fireEvent.click(screen.getByText("Kalite Analizi"));
@@ -443,7 +445,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("Provenance bulundu: kaynak/cikti alanlari listelenir", async () => {
     invokeMock.mockResolvedValue(rpcOk(PROV));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("Provenance");
     fireEvent.click(screen.getByText("Provenance Sorgula"));
@@ -455,7 +457,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("Provenance yoksa bilgi toasti gosterilir, panel bos kalir", async () => {
     invokeMock.mockResolvedValue(rpcOk(null));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("Provenance");
     fireEvent.click(screen.getByText("Provenance Sorgula"));
@@ -468,7 +470,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("Provenance RPC hatasi toast gosterir", async () => {
     invokeMock.mockResolvedValue(rpcErr(-2, "provenance okunamadı"));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("Provenance");
     fireEvent.click(screen.getByText("Provenance Sorgula"));
@@ -477,7 +479,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("Sigstore: cosign kurulu ise durum rozeti ve surum gosterilir", async () => {
     invokeMock.mockResolvedValue(rpcOk(SIGSTORE_OK));
-    renderSecurity();
+    await renderSecurity();
     clickButton("Sigstore");
     fireEvent.click(screen.getByText("Sigstore Durumu"));
     expect(await screen.findByText("cosign kurulu")).toBeInTheDocument();
@@ -487,7 +489,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("Sigstore: cosign yoksa uyari rozeti gosterilir, surum gizlenir", async () => {
     invokeMock.mockResolvedValue(rpcOk(SIGSTORE_NONE));
-    renderSecurity();
+    await renderSecurity();
     clickButton("Sigstore");
     fireEvent.click(screen.getByText("Sigstore Durumu"));
     expect(await screen.findByText("cosign yok")).toBeInTheDocument();
@@ -497,7 +499,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
 
   it("Sigstore RPC hatasi toast gosterir", async () => {
     invokeMock.mockResolvedValue(rpcErr(-3, "cosign sorgulanamadı"));
-    renderSecurity();
+    await renderSecurity();
     clickButton("Sigstore");
     fireEvent.click(screen.getByText("Sigstore Durumu"));
     expect(await screen.findByText("-3: cosign sorgulanamadı")).toBeInTheDocument();
@@ -506,7 +508,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("CVE temiz: acik yok, offline rozeti yok", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("CVE Tara");
     fireEvent.click(screen.getByText("Taramayı Başlat"));
@@ -521,7 +523,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("CVE acik buldu: liste, ciddiyet rozetleri ve offline isareti gosterilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("CVE Tara");
     fireEvent.click(screen.getByText("Taramayı Başlat"));
@@ -542,7 +544,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("CVE event hata mesaji tasiyorsa toast gosterilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("CVE Tara");
     fireEvent.click(screen.getByText("Taramayı Başlat"));
@@ -554,7 +556,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
   it("CVE event hatasiz başarısızsa fallback mesaj gosterilir", async () => {
     armSecurityEvent();
     invokeMock.mockResolvedValue(rpcOk({ started: true }));
-    renderSecurity();
+    await renderSecurity();
     setPath();
     clickButton("CVE Tara");
     fireEvent.click(screen.getByText("Taramayı Başlat"));
@@ -577,7 +579,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
           return Promise.resolve(rpcOk({ started: true }));
       }
     });
-    renderSecurity();
+    await renderSecurity();
     setPath();
     fireEvent.click(screen.getByRole("button", { name: "Tüm Kontrolleri Çalıştır" }));
     await flushMicrotasks(); // verify/sigstore/provenance cozulur, sbom siraya girer
@@ -612,7 +614,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
           return Promise.resolve(rpcOk({ started: true }));
       }
     });
-    renderSecurity();
+    await renderSecurity();
     setPath();
     fireEvent.click(screen.getByRole("button", { name: "Tüm Kontrolleri Çalıştır" }));
     await flushMicrotasks(); // hatalar atlanir, sbom null ile gecilir, quality siraya girer
@@ -644,7 +646,7 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
         }
         return Promise.resolve(rpcOk(null));
       });
-      renderSecurity();
+      await renderSecurity();
       setPath();
       fireEvent.click(screen.getByRole("button", { name: "Tüm Kontrolleri Çalıştır" }));
       // Uc event kontrolunun her biri 180sn zaman asimiyla sirayla null doner.
@@ -666,10 +668,10 @@ describe("Security page — tab panelleri ve branch kapsami", () => {
     }
   });
 
-  it("yukleme sirasinda butonlar devre disidir ve spinner gosterilir", () => {
+  it("yukleme sirasinda butonlar devre disidir ve spinner gosterilir", async () => {
     // Hic cozulmeyen promise: loading true kalir.
     invokeMock.mockImplementation(() => new Promise(() => {}));
-    const { container } = renderSecurity();
+    const { container } = await renderSecurity();
     setPath();
     fireEvent.click(screen.getByRole("button", { name: "Doğrula" }));
     expect(screen.getByRole("button", { name: "Doğrula" })).toBeDisabled();

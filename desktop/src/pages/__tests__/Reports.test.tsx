@@ -16,12 +16,14 @@ import { ToastProvider } from "../../components/ui/Toast";
 import { cacheInvalidate } from "../../lib/cache";
 import { listen } from "@tauri-apps/api/event";
 
-function renderReports() {
-  return render(
+async function renderReports() {
+  const r = render(
     <ToastProvider>
       <Reports />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 const HEALTH = {
@@ -119,7 +121,7 @@ async function renderHealthy(extra: Record<string, unknown> = {}) {
     "system.snapshot_status": rpcOk({ installed: false }),
     ...extra,
   });
-  const view = renderReports();
+  const view = await renderReports();
   await screen.findByText("80%");
   return view;
 }
@@ -140,7 +142,7 @@ describe("Reports page", () => {
 
   it("loads health stats on mount", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: HEALTH });
-    renderReports();
+    await renderReports();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -151,19 +153,19 @@ describe("Reports page", () => {
 
   it("shows success rate", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: HEALTH });
-    renderReports();
+    await renderReports();
     await vi.waitFor(() => expect(screen.getByText(/80/)).toBeInTheDocument());
   });
 
   it("has a benchmark run button", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: HEALTH });
-    renderReports();
+    await renderReports();
     await vi.waitFor(() => expect(screen.getByText("Benchmark Çalıştır")).toBeInTheDocument());
   });
 
   it("has a rollback verify button", async () => {
     invokeMock.mockResolvedValue({ jsonrpc: "2.0", id: 1, result: HEALTH });
-    renderReports();
+    await renderReports();
     await vi.waitFor(() => expect(screen.getByText("Rollback Doğrula")).toBeInTheDocument());
   });
 
@@ -226,7 +228,7 @@ describe("Reports page", () => {
       "system.health": rpcOk(HEALTH_EMPTY),
       "system.snapshot_status": rpcOk({ installed: false }),
     });
-    renderReports();
+    await renderReports();
     expect(await screen.findByText("Henüz kayıtlı dönüşüm yok")).toBeInTheDocument();
     expect(screen.getByText(/İlk dönüşümünüzü yaptığınızda/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Markdown indir" })).toBeEnabled();
@@ -237,7 +239,7 @@ describe("Reports page", () => {
       "system.health": rpcErr(-32000, "sidecar bağlı değil"),
       "system.snapshot_status": rpcErr(-32000, "sidecar bağlı değil"),
     });
-    renderReports();
+    await renderReports();
     expect(await screen.findByText("Bir şeyler ters gitti")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Markdown indir" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Kopyala" })).toBeDisabled();
@@ -247,7 +249,7 @@ describe("Reports page", () => {
 
   it("recovers through the retry button after a failed load", async () => {
     mockRpc({ "system.health": rpcErr(-32000, "geçici hata") });
-    renderReports();
+    await renderReports();
     await screen.findByText("Bir şeyler ters gitti");
     mockRpc({
       "system.health": rpcOk(HEALTH),
@@ -258,9 +260,9 @@ describe("Reports page", () => {
     expect(await screen.findByText("80%")).toBeInTheDocument();
   });
 
-  it("shows a skeleton and disables exports while health is still loading", () => {
+  it("shows a skeleton and disables exports while health is still loading", async () => {
     invokeMock.mockImplementation(() => new Promise(() => {}));
-    const { container } = renderReports();
+    const { container } = await renderReports();
     expect(screen.getByRole("button", { name: "Markdown indir" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Kopyala" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "JSON İndir" })).toBeDisabled();
@@ -278,7 +280,7 @@ describe("Reports page", () => {
   it("serves health from the cache on remount within the TTL", async () => {
     const first = await renderHealthy();
     first.unmount();
-    renderReports();
+    await renderReports();
     await screen.findByText("80%");
     expect(methodCalls("system.health")).toBe(1);
   });
@@ -337,7 +339,7 @@ describe("Reports page", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Benchmark Çalıştır" }));
     await vi.waitFor(() => expect(listening("event/bench_done")).toBe(true));
-    emit("event/bench_done", { ok: false, error: "disk dolu" });
+    await act(async () => emit("event/bench_done", { ok: false, error: "disk dolu" }));
     expect(await screen.findByText("disk dolu")).toBeInTheDocument();
   });
 
@@ -346,7 +348,7 @@ describe("Reports page", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Benchmark Çalıştır" }));
     await vi.waitFor(() => expect(listening("event/bench_done")).toBe(true));
-    emit("event/bench_done", { ok: false });
+    await act(async () => emit("event/bench_done", { ok: false }));
     expect(await screen.findByText("Benchmark başarısız")).toBeInTheDocument();
   });
 
@@ -422,7 +424,7 @@ describe("Reports page", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Rollback Doğrula" }));
     await vi.waitFor(() => expect(listening("event/system_done")).toBe(true));
-    emit("event/system_done", { ok: false });
+    await act(async () => emit("event/system_done", { ok: false }));
     expect(await screen.findByText("Rollback doğrulama başarısız")).toBeInTheDocument();
   });
 
@@ -458,7 +460,7 @@ describe("Reports page", () => {
       if (args?.method === "system.health") return rpcOk(HEALTH);
       return rpcOk(null);
     });
-    renderReports();
+    await renderReports();
     await screen.findByText("80%");
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Kur" }));
@@ -472,7 +474,7 @@ describe("Reports page", () => {
     expect(screen.getByRole("button", { name: "Kur" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Kaldır" })).toBeDisabled();
     resolveInstall?.(rpcOk({ started: true }));
-    emit("event/snapshot_done", { ok: true, result: { ok: true, message: "Snapshot kuruldu" } });
+    await act(async () => emit("event/snapshot_done", { ok: true, result: { ok: true, message: "Snapshot kuruldu" } }));
     expect(await screen.findByText("Snapshot kuruldu")).toBeInTheDocument();
     await vi.waitFor(() => expect(screen.getByRole("button", { name: "Kur" })).toBeEnabled());
     // Event sonrasi durum yeniden sorgulanir.
@@ -498,7 +500,7 @@ describe("Reports page", () => {
         expect.objectContaining({ method: "system.snapshot_remove" }),
       ),
     );
-    emit("event/snapshot_done", { ok: false, error: "yetki reddedildi" });
+    await act(async () => emit("event/snapshot_done", { ok: false, error: "yetki reddedildi" }));
     expect(await screen.findByText("yetki reddedildi")).toBeInTheDocument();
   });
 
@@ -517,7 +519,7 @@ describe("Reports page", () => {
     const dialog = screen.getByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: "Kaldır" }));
     await vi.waitFor(() => expect(listening("event/snapshot_done")).toBe(true));
-    emit("event/snapshot_done", { ok: false });
+    await act(async () => emit("event/snapshot_done", { ok: false }));
     expect(await screen.findByText("Snapshot işlemi başarısız")).toBeInTheDocument();
   });
 

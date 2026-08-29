@@ -155,6 +155,40 @@ describe("Settings — Faz 19c kapsam dalları (bulut + dbus + profil)", () => {
     );
   });
 
+  it("WebDAV URL girilince Buluta Gönder/Çek aktifleşir ve sync.push çağrılır", async () => {
+    renderSettings();
+    await openCloudTab();
+    const urlInput = await screen.findByPlaceholderText("https://sunucu/dav/");
+    // URL boş → push disabled.
+    const pushBtn = await screen.findByRole("button", { name: "Buluta Gönder" });
+    expect(pushBtn).toBeDisabled();
+    // URL gir → aktif.
+    fireEvent.change(urlInput, { target: { value: "https://dav.example.com/" } });
+    expect(pushBtn).not.toBeDisabled();
+    fireEvent.click(pushBtn);
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "sync.push" }),
+      ),
+    );
+  });
+
+  it("Buluttan Çek: sync.pull çağrılır", async () => {
+    renderSettings();
+    await openCloudTab();
+    const urlInput = await screen.findByPlaceholderText("https://sunucu/dav/");
+    fireEvent.change(urlInput, { target: { value: "https://dav.example.com/" } });
+    const pullBtn = screen.getByRole("button", { name: "Buluttan Çek" });
+    fireEvent.click(pullBtn);
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({ method: "sync.pull" }),
+      ),
+    );
+  });
+
   it("dbus.status hata verirse servis kartı 'yok' metniyle ayakta kalır", async () => {
     invokeMock.mockImplementation((_cmd: string, payload: { method: string }) =>
       payload.method === "dbus.status"

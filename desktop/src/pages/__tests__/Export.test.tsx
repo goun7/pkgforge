@@ -20,12 +20,14 @@ import type { FlatpakApp } from "../../lib/types";
 
 type ListenCb = (e: { payload: unknown }) => void;
 
-function renderExport() {
-  return render(
+async function renderExport() {
+  const r = render(
     <ToastProvider>
       <Export />
     </ToastProvider>,
   );
+  await act(async () => {});
+  return r;
 }
 
 /** JSON-RPC basari yaniti. */
@@ -91,14 +93,14 @@ describe("Export page", () => {
   });
 
   it("renders the three export cards", async () => {
-    renderExport();
+    await renderExport();
     await vi.waitFor(() => expect(screen.getByText(/AppImage/)).toBeInTheDocument());
-    expect(screen.getByText(/Flatpak/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Flatpak/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/OCI/)).toBeInTheDocument();
   });
 
   it("loads flatpak app list on mount", async () => {
-    renderExport();
+    await renderExport();
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -108,7 +110,7 @@ describe("Export page", () => {
   });
 
   it("shows empty flatpak message when no apps", async () => {
-    renderExport();
+    await renderExport();
     await vi.waitFor(() =>
       expect(screen.getByText(/Flatpak uygulaması bulunamadı/i)).toBeInTheDocument(),
     );
@@ -117,7 +119,7 @@ describe("Export page", () => {
   // --- AppImage -> DEB ---
 
   it("AppImage: yol bosken donusturmeyi baslatmaz, uyari toast'i gosterir", async () => {
-    renderExport();
+    await renderExport();
     const convert = (await screen.findAllByRole("button", { name: "Dönüştür" }))[0];
     fireEvent.click(convert);
     expect(await screen.findByText("Bir AppImage dosyası seçin")).toBeInTheDocument();
@@ -125,7 +127,7 @@ describe("Export page", () => {
   });
 
   it("AppImage: donusumu baslatir, export_done basarisinda sonucu ve deb yolunu gosterir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("AppImage yolu…"), {
       target: { value: "/tmp/app.AppImage" },
     });
@@ -156,7 +158,7 @@ describe("Export page", () => {
   });
 
   it("AppImage: result.ok=false ise Basarisiz rozeti ve Yeniden dene dugmesi gosterilir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("AppImage yolu…"), {
       target: { value: "/tmp/app.AppImage" },
     });
@@ -175,7 +177,7 @@ describe("Export page", () => {
   });
 
   it("AppImage: export_done sonucsuz gelirse event'teki hata mesaji toast'ta gosterilir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("AppImage yolu…"), {
       target: { value: "/tmp/app.AppImage" },
     });
@@ -189,7 +191,7 @@ describe("Export page", () => {
   });
 
   it("AppImage: export_done hata mesajsiz gelirse varsayilan basarisizlik metni gosterilir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("AppImage yolu…"), {
       target: { value: "/tmp/app.AppImage" },
     });
@@ -205,7 +207,7 @@ describe("Export page", () => {
     invokeMock
       .mockResolvedValueOnce(rpcOk([])) // mount: flatpak_list
       .mockResolvedValueOnce(rpcErr(-32000, "appimage bozuk"));
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("AppImage yolu…"), {
       target: { value: "/tmp/app.AppImage" },
     });
@@ -219,7 +221,7 @@ describe("Export page", () => {
 
   it("Flatpak: uygulama listesi render edilir, secim yoksa Dönüştür devre disidir", async () => {
     invokeMock.mockResolvedValue(rpcOk([GIMP, INKSCAPE_NO_NAME]));
-    renderExport();
+    await renderExport();
     expect(await screen.findByText("GIMP")).toBeInTheDocument();
     // bos name -> app_id'e dusen dal
     expect(await screen.findByText("org.inkscape.Inkscape")).toBeInTheDocument();
@@ -233,7 +235,7 @@ describe("Export page", () => {
 
   it("Flatpak: secili uygulama donusturulur ve basari rozeti gosterilir", async () => {
     invokeMock.mockResolvedValue(rpcOk([GIMP]));
-    renderExport();
+    await renderExport();
     fireEvent.click(await screen.findByText("GIMP"));
     const done = captureExportDone();
     const convert = screen.getAllByRole("button", { name: "Dönüştür" })[1];
@@ -257,7 +259,7 @@ describe("Export page", () => {
     invokeMock
       .mockResolvedValueOnce(rpcOk([GIMP]))
       .mockResolvedValueOnce(rpcErr(-32001, "flatpak donusturulemedi"));
-    renderExport();
+    await renderExport();
     fireEvent.click(await screen.findByText("GIMP"));
     const convert = screen.getAllByRole("button", { name: "Dönüştür" })[1];
     await vi.waitFor(() => expect(convert).not.toBeDisabled());
@@ -268,7 +270,7 @@ describe("Export page", () => {
 
   it("Flatpak: Yenile dugmesi onbellege ragmen listeyi zorla yeniden yukler", async () => {
     invokeMock.mockResolvedValue(rpcOk([GIMP]));
-    renderExport();
+    await renderExport();
     await screen.findByText("GIMP");
     fireEvent.click(screen.getByRole("button", { name: "Yenile" }));
     await vi.waitFor(() =>
@@ -278,17 +280,17 @@ describe("Export page", () => {
 
   it("Flatpak: ikinci mount onbellegi kullanir, flatpak_list yeniden cagrilir olmaz", async () => {
     invokeMock.mockResolvedValue(rpcOk([GIMP]));
-    const first = renderExport();
+    const first = await renderExport();
     await screen.findByText("GIMP");
     first.unmount();
-    renderExport();
+    await renderExport();
     await screen.findByText("GIMP");
     expect(invokedMethods().filter((m) => m === "export.flatpak_list")).toHaveLength(1);
   });
 
   it("Flatpak: liste yuklenemezse hata toast'i ve bos durum mesaji gosterilir", async () => {
     invokeMock.mockResolvedValue(rpcErr(-1, "flatpak listelenemedi"));
-    renderExport();
+    await renderExport();
     expect(await screen.findByText("-1: flatpak listelenemedi")).toBeInTheDocument();
     expect(await screen.findByText("Flatpak uygulaması bulunamadı.")).toBeInTheDocument();
   });
@@ -296,14 +298,14 @@ describe("Export page", () => {
   // --- OCI container ---
 
   it("OCI: paket yolu bosken imaj olusturmaz, uyari toast'i gosterir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.click(await screen.findByRole("button", { name: "İmaj Oluştur" }));
     expect(await screen.findByText("Bir .pkg.tar.zst paketi seçin")).toBeInTheDocument();
     expect(invokedMethods()).not.toContain("export.oci");
   });
 
   it("OCI: etiketle imaj olusturur, basarida cikti yolunu gosterir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("Paket yolu (.pkg.tar.zst)…"), {
       target: { value: "/tmp/foo.pkg.tar.zst" },
     });
@@ -333,7 +335,7 @@ describe("Export page", () => {
   });
 
   it("OCI: etiket bos birakilirsa tag undefined gonderilir", async () => {
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("Paket yolu (.pkg.tar.zst)…"), {
       target: { value: "/tmp/foo.pkg.tar.zst" },
     });
@@ -356,7 +358,7 @@ describe("Export page", () => {
     invokeMock
       .mockResolvedValueOnce(rpcOk([])) // mount: flatpak_list
       .mockResolvedValueOnce(rpcErr(-32002, "oci olusturulamadi"));
-    renderExport();
+    await renderExport();
     fireEvent.change(screen.getByPlaceholderText("Paket yolu (.pkg.tar.zst)…"), {
       target: { value: "/tmp/foo.pkg.tar.zst" },
     });

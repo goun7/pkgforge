@@ -325,6 +325,17 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 20c: sekiz sayfaya act reçetesi + WebDAV dalları (29 Ağu)
+- Fleet/Tools/Reports/Export/Compare/Browse/Plugins/Security: helper'lar
+  async act flush, emit'ler await act'e, sync it()'ler async. Uyarı
+  282→224. Export 'renders the three cards' artık getAllBy (flush sonrası
+  çift Flatpak metni). Browse sessionStorage testi async.
+- Settings +2 test: sync.push/sync.pull + boş URL'de disabled dalı.
+- Sonuç: 580/580, tsc 0, kapsam %93.1 (Settings %71.1, Sidebar %100,
+  Dialog %93.3, Installed %88.6).
+- Kalan (sonraki tur): ~224 act diagnostics'in kökte azaltılması
+  (çoğu-tick promise zincirleri), PathPicker 42-50 (yalnız gerçek Tauri).
+
 ## Oturum-8 Faz 20b: act() hijyeni (29 Ağu)
 - Convert.test 205→47, Updates.test 102→14 uyarı; 578/578 korundu.
   Genel sayı 551→282. Yöntem: render helper async + act flush,
