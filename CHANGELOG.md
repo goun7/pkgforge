@@ -78,6 +78,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   _ldd_graph_edges). ≥100 satır envanteri KAPANDI — kalan 2 kabul
   edilmiş (PKGBUILD şablon üreteci 112; Handler sınıf fabrikası 138,
   iç metodlar ≤31).
+- **test(desktop)**: Faz 22 kapanış cilası: Settings yedek-yolu onChange +
+  sync.export, WebDAV user/pass yazımı (+2 test). Convert browse-diyalog
+  testine flaky koruması (explicit flush + 5s waitFor). 580→582 test,
+  kapsam %93.1→%93.22.
 - **refactor(core)**: Faz 20 dev fonksiyonlar bölündü — davranış birebir:
   _run_pipeline 206→43 satır (_stage_security/_stage_malware/_stage_analysis/
   _stage_conversion); serve_http 175→33 (_http_validate_bind +

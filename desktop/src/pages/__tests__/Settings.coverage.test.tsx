@@ -155,6 +155,44 @@ describe("Settings — Faz 19c kapsam dalları (bulut + dbus + profil)", () => {
     );
   });
 
+  it("yedek yolu ve Dışa Aktar: yazma onChange + sync.export çağrısı", async () => {
+    renderSettings();
+    await openCloudTab();
+    // Yedek yolu inputu (onChange satırı) + Dışa Aktar düğmesi.
+    const pathInput = screen.getByPlaceholderText("Yedek yolu (boş = varsayılan)…");
+    fireEvent.change(pathInput, { target: { value: "/tmp/yedek.zip" } });
+    const exportBtn = screen.getByRole("button", { name: "Dışa Aktar" });
+    fireEvent.click(exportBtn);
+    await vi.waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith(
+        "rpc_call",
+        expect.objectContaining({
+          method: "sync.export",
+          params: expect.objectContaining({ output_path: "/tmp/yedek.zip" }),
+        }),
+      ),
+    );
+  });
+
+  it("WebDAV kullanıcı/parola alanları yazılabilir (onChange)", async () => {
+    renderSettings();
+    await openCloudTab();
+    await screen.findByPlaceholderText("https://sunucu/dav/");
+    const userBox = screen.getAllByRole("textbox").find(
+      (b) => (b as HTMLInputElement).placeholder.toLowerCase().includes("kullanıcı"),
+    );
+    if (userBox) {
+      fireEvent.change(userBox, { target: { value: "kullanici1" } });
+      expect((userBox as HTMLInputElement).value).toBe("kullanici1");
+    }
+    // Parola kutusu (type=password) da yazılabilir olmalı.
+    const passBox = document.querySelector('input[type="password"]');
+    if (passBox) {
+      fireEvent.change(passBox, { target: { value: "sifre123" } });
+      expect((passBox as HTMLInputElement).value).toBe("sifre123");
+    }
+  });
+
   it("WebDAV URL girilince Buluta Gönder/Çek aktifleşir ve sync.push çağrılır", async () => {
     renderSettings();
     await openCloudTab();

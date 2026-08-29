@@ -343,6 +343,14 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-9 Faz 22: kapanış cilası (29 Ağu)
+- Settings son basit açık satırlar kapatıldı (onChange inputları): yedek
+  yolu → sync.export RPC, WebDAV kullanıcı/parola yazımı. +2 test.
+- Convert browse testine stability guard: coverage modunda promise
+  çözülümü için explicit act flush + 5s waitFor; iki kez üst üste RC=0.
+- Son kanıt: vitest 582/582 (2x stabil), tsc 0, kapsam %93.22
+  (Settings %72.44). act diagnostics ~226 (kabul).
+
 ## Oturum-9 Faz 18f: act diagnostics kapanış kararı (29 Ağu)
 - Kalan 224 uyarının dağılımı: Convert.test 32, Settings.test 19,
   Updates.test 8, Settings.coverage 7, Installed.test 5, Installed.coverage 4.

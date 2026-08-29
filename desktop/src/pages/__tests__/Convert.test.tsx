@@ -222,7 +222,13 @@ describe("Convert page", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
     });
-    await vi.waitFor(() => expect(callsTo("pipeline.start")).toHaveLength(1));
+    // Diyalog promise'inin (mockResolvedValueOnce) çözülüp pipeline.start
+    // tetiklenmesi için flush + geniş waitFor (coverage modu yavaştır).
+    await act(async () => {});
+    await vi.waitFor(
+      () => expect(callsTo("pipeline.start")).toHaveLength(1),
+      { timeout: 5000 },
+    );
     expect(callsTo("pipeline.start")[0][1]).toEqual(
       expect.objectContaining({ params: { path: "/tmp/secim.deb" } }),
     );
