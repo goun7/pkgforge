@@ -11,6 +11,7 @@ import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/EmptyState";
 import { useToast } from "../components/ui/Toast";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
 
@@ -140,7 +141,10 @@ export function Reports() {
     }
   };
 
-  const handleSnapRemove = async () => {
+  // Faz 16: snapshot temizlik servisini kaldirma onayli — systemctl + dosya siler.
+  const [confirmSnapRemove, setConfirmSnapRemove] = useState(false);
+  const handleSnapRemove = () => setConfirmSnapRemove(true);
+  const doSnapRemove = async () => {
     setSnapBusy(true);
     try {
       await call("system.snapshot_remove");
@@ -360,7 +364,7 @@ export function Reports() {
                 {snapBusy ? <Loader2 size={14} className="animate-spin" /> : null}
                 {t("repSnapInstall")}
               </Button>
-              <Button variant="danger" size="sm" onClick={() => void handleSnapRemove()} disabled={snapBusy}>
+              <Button variant="danger" size="sm" onClick={handleSnapRemove} disabled={snapBusy}>
                 {t("repSnapRemove")}
               </Button>
             </div>
@@ -419,6 +423,20 @@ export function Reports() {
 
       {/* Faz 9 (2.2): yillik ozet dialog */}
       <WrappedDialog open={wrappedOpen} onClose={() => setWrappedOpen(false)} />
+
+      {/* Faz 16: snapshot temizlik kaldırma onayı */}
+      <ConfirmDialog
+        open={confirmSnapRemove}
+        title={t("repSnapRemoveConfirmTitle")}
+        message={t("repSnapRemoveConfirmMsg")}
+        confirmLabel={t("repSnapRemove")}
+        busy={snapBusy}
+        onConfirm={() => {
+          setConfirmSnapRemove(false);
+          void doSnapRemove();
+        }}
+        onCancel={() => setConfirmSnapRemove(false)}
+      />
     </div>
   );
 }

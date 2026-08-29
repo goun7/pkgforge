@@ -325,6 +325,15 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 16b: Reports/Updates yıkıcı sistem işlemleri onaylı (29 Ağu)
+- Reports 'Kaldır' (system.snapshot_remove): ConfirmDialog — systemctl stop/
+  disable + dosya silme; Vazgeç RPC çağırmaz.
+- Updates 'Kapat' (delta.disable): ConfirmDialog; ayrıca isim çakışması
+  çözüldü: sayfada iki 'Kapat' (delta kartı + zamanlanmış görevler) —
+  testler index 0 (delta) + within(dialog) ile ayrıştırır.
+- Testler: Reports+Updates 63/63; tek öğe kur/etkinleştir onaysız (kurulum
+  yıkıcı değil).
+
 ## Oturum-8 Faz 16: Convert kuyruk temizleme onayı (29 Ağu)
 - 'Temizle' (queue.clear) ConfirmDialog ile onaylı: Vazgeç RPC çağırmaz,
   Onayla queue.clear + listeyi yeniler. i18n: confirmQueueClearTitle/Msg (tr/en).

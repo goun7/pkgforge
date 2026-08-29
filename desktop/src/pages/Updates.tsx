@@ -9,6 +9,7 @@ import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useToast } from "../components/ui/Toast";
 import { InfoTip } from "../components/ui/InfoTip";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useLang } from "../lib/lang";
 import { tFor } from "../lib/i18n";
 
@@ -23,6 +24,9 @@ export function Updates() {
   const [cross, setCross] = useState<CrossCheckReport | null>(null);
   const [schedule, setSchedule] = useState<ScheduleState | null>(null);
   const [intervalInput, setIntervalInput] = useState("24");
+
+  // Faz 16: delta timer'ı kaldırma onaylı — systemctl disable + dosya siler.
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   const loadDelta = useCallback(async () => {
     setLoading(true);
@@ -171,7 +175,7 @@ export function Updates() {
                 <Button size="sm" onClick={() => void handleEnable()} disabled={delta.active}>
                   {t("updatesEnable")}
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => void handleDisable()} disabled={!delta.installed}>
+                <Button variant="secondary" size="sm" onClick={() => setConfirmDisable(true)} disabled={!delta.installed}>
                   {t("updatesDisable")}
                 </Button>
               </div>
@@ -290,6 +294,19 @@ export function Updates() {
           )}
         </CardContent>
       </Card>
+
+      {/* Faz 16: delta timer kaldırma onayı */}
+      <ConfirmDialog
+        open={confirmDisable}
+        title={t("updDisableConfirmTitle")}
+        message={t("updDisableConfirmMsg")}
+        confirmLabel={t("updatesDisable")}
+        onConfirm={() => {
+          setConfirmDisable(false);
+          void handleDisable();
+        }}
+        onCancel={() => setConfirmDisable(false)}
+      />
     </div>
   );
 }

@@ -479,10 +479,19 @@ describe("Reports page", () => {
     expect(methodCalls("system.snapshot_status")).toBeGreaterThanOrEqual(2);
   });
 
-  it("removes the snapshot and surfaces a snapshot_done failure", async () => {
+  it("removes the snapshot (confirmed) and surfaces a snapshot_done failure", async () => {
     await renderHealthy();
     const user = userEvent.setup();
+    // Faz 16: Kaldır artik onay acar — onaysız RPC gitmez.
     await user.click(screen.getByRole("button", { name: "Kaldır" }));
+    expect(
+      invokeMock.mock.calls.some((c) => c[1]?.method === "system.snapshot_remove"),
+    ).toBe(false);
+    const dialog = screen.getByRole("dialog");
+    expect(
+      screen.getByText(/sistem dosyaları silinecek/),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Kaldır" }));
     await vi.waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith(
         "rpc_call",
@@ -505,6 +514,8 @@ describe("Reports page", () => {
     await renderHealthy();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Kaldır" }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Kaldır" }));
     await vi.waitFor(() => expect(listening("event/snapshot_done")).toBe(true));
     emit("event/snapshot_done", { ok: false });
     expect(await screen.findByText("Snapshot işlemi başarısız")).toBeInTheDocument();

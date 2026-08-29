@@ -33,6 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   var" göstergesi (dirty-state; save/reset/import sonrası temizlenir).
 - **fix(desktop)**: Convert: "Kuyruğu Temizle" artık onaylı — bekleyen tüm
   dönüşüm görevleri tek tıkla silinmiyor (Vazgeç = RPC yok; onay = queue.clear).
+- **fix(desktop)**: Reports: snapshot temizlik servisi "Kaldır" işlemi (systemctl
+  stop/disable + sistem dosyası silme) onaylı; Updates: delta zamanlayıcı
+  "Kapat" işlemi onaylı (systemctl disable + dosya silme). i18n tr/en.
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni

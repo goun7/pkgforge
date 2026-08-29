@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const invokeMock = vi.fn();
@@ -234,14 +234,19 @@ describe("Updates page", () => {
     expect(screen.queryByText(/yetkili işlem/)).not.toBeInTheDocument();
   });
 
-  it("disable delta falls back to the default privilege toast without a message", async () => {
+  it("disable delta (confirmed) falls back to the default privilege toast without a message", async () => {
     mockRpc({
       "delta.status": rpcOk(DELTA_INSTALLED),
       "delta.disable": rpcOk({ requires_privilege: true }),
     });
     renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Zamanlayıcı kurulu")).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole("button", { name: "Kapat" })[0]);
+    // Faz 16: delta kartindaki 'Kapat' artik onay acar (ilk 'Kapat' = delta karti;
+    // ikincisi zamanlanmis gorevler kartindaki).
+    fireEvent.click(screen.getAllByText("Kapat")[0]);
+    expect(callsTo("delta.disable")).toHaveLength(0);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByText("Kapat"));
     await vi.waitFor(() => expect(callsTo("delta.disable")).toHaveLength(1));
     expect(
       await screen.findByText("Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)"),
@@ -252,7 +257,9 @@ describe("Updates page", () => {
     mockRpc({ "delta.status": rpcOk(DELTA_INSTALLED), "delta.disable": rpcOk({}) });
     renderUpdates();
     await vi.waitFor(() => expect(screen.getByText("Zamanlayıcı kurulu")).toBeInTheDocument());
-    fireEvent.click(screen.getAllByRole("button", { name: "Kapat" })[0]);
+    fireEvent.click(screen.getAllByText("Kapat")[0]);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByText("Kapat"));
     await vi.waitFor(() => expect(callsTo("delta.status")).toHaveLength(2));
     expect(screen.queryByText(/yetkili işlem/)).not.toBeInTheDocument();
   });
