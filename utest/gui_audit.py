@@ -21,7 +21,7 @@ window = MainWindow()
 window.resize(1100, 760)
 window.show()
 
-issues = []
+issues: list[str] = []
 
 
 def audit_widget(w, depth=0, path=""):

@@ -36,7 +36,7 @@ def pipe(qapp, monkeypatch):
 
 def _make_tar(path: Path, entries: dict, fmt: str = "gz") -> Path:
     mode = {"gz": "w:gz", "xz": "w:xz"}[fmt]
-    with tarfile.open(path, mode) as tf:
+    with tarfile.open(str(path), mode) as tf:  # type: ignore[call-overload]
         for name, data in entries.items():
             info = tarfile.TarInfo(name=name)
             info.size = len(data)

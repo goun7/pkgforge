@@ -94,8 +94,10 @@ def test_live_roundtrip_over_session_bus() -> None:
     svc = PkgForgeService(bus_name=bus_name)
     svc.start()
     try:
-        from jeepney import DBusAddress, new_method_call
-        from jeepney.io.blocking import open_dbus_connection
+        from jeepney import DBusAddress, new_method_call  # type: ignore[import-untyped]
+        from jeepney.io.blocking import (  # type: ignore[import-untyped]
+            open_dbus_connection,  # type: ignore[import-untyped]
+        )
 
         client = open_dbus_connection()
         call = new_method_call(

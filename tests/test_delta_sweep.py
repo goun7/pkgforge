@@ -253,7 +253,7 @@ def test_status_installed_active_next_run(monkeypatch):
     assert d["next_run"] == "yarin"
 
 
-class _YokBirimlerPath(type(Path())):
+class _YokBirimlerPath(type(Path())):  # type: ignore[misc]
     _yoklar: frozenset[str] = frozenset({
         "/etc/systemd/system/pkgforge-auto-update.service",
         "/etc/systemd/system/pkgforge-auto-update.timer"})
@@ -262,7 +262,7 @@ class _YokBirimlerPath(type(Path())):
         return str(self) not in self._yoklar
 
 
-class _SadeceTimerPath(type(Path())):
+class _SadeceTimerPath(type(Path())):  # type: ignore[misc]
     def exists(self):
         return str(self) == "/etc/systemd/system/pkgforge-auto-update.timer"
 

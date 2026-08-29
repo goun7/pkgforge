@@ -31,9 +31,9 @@ def test_donate_url_constants():
 
 
 def test_funding_yml_valid():
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
-    data = yaml.safe_load((KOK / ".github" / "FUNDING.yml").read_text())
+    data = yaml.safe_load((KOK / ".github" / "FUNDING.yml").read_text())  # type: ignore[attr-defined]
     assert data["github"] == ["goun7"]
     assert any("polar.sh" in u for u in data["custom"])
 

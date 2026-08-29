@@ -45,7 +45,7 @@ def test_metainfo_launchable_points_at_desktop_id():
 
 def test_flatpak_manifest_app_id_matches():
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
     except ImportError:
         import pytest
 

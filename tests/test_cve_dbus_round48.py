@@ -7,7 +7,7 @@ import threading
 from types import SimpleNamespace as NS
 
 import pytest
-from jeepney import HeaderFields, MessageType
+from jeepney import HeaderFields, MessageType  # type: ignore[import-untyped]
 
 import core.cve_scanner as CS
 import core.dbus_service as DS

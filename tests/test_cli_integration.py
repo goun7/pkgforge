@@ -88,7 +88,10 @@ class TestCLIConvert(unittest.TestCase):
                 )
             except subprocess.TimeoutExpired as exc:
                 son_hata = exc
-        raise son_hata
+        if son_hata is not None:
+            raise son_hata
+        else:
+            raise RuntimeError("CLI command failed after retries")
 
     def test_convert_test_deb(self):
         """Should convert the test DEB file."""

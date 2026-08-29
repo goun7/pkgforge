@@ -25,10 +25,10 @@ def _load_setting(key, default=None):
     if key == "dry_run":
         return True  # install step becomes a no-op success
     return _real_load_setting(key, default)
-_i18n.load_setting = _load_setting
+_i18n.load_setting = _load_setting  # type: ignore[attr-defined]
 
 import core.pipeline as pipeline_mod
-pipeline_mod.load_setting = _load_setting  # pipeline imports it lazily inside _do_install
+pipeline_mod.load_setting = _load_setting  # type: ignore[attr-defined]
 from core.pipeline import ConversionPipeline
 from core.compatibility_checker import (
     CheckResult, CheckSeverity, CompatibilityReport,
@@ -100,6 +100,6 @@ r = state["finished"]
 if r is None:
     print("FAIL: pipeline never finished")
     sys.exit(1)
-ok = (state["gate_reached"] and state["pkg_existed_at_decision"] and r.success)
+ok = (state["gate_reached"] and state["pkg_existed_at_decision"] and r.success)  # type: ignore[attr-defined]
 print("PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)
