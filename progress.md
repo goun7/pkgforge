@@ -325,6 +325,15 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 14b: doctor polkit teşhisi (29 Ağu)
+- doctor'a _check_polkit: policy_installed / helper_installed /
+  running_from_source + eylem önerili 'detail'.
+- CANLI DOĞRULAMA (bu makine): ok=False, "policy kurulu değil + kaynak
+  ağacından çalışıyor → pkexec her çağrıda parola ister" — kullanıcının
+  bildirdiği belirtinin birebir makine-teşhisi.
+- doctor.json artık 'polkit' bölümü içeriyor; genel 'ok' yalnız tools'a bağlı
+  (polkit bilgilendirici).
+
 ## Oturum-8 Faz 14: sudo/pkexec bombardımanı kökten çözüldü (29 Ağu)
 - Belirti: ekranda art arda parola diyalogları. Kök nedenler (kanıtlı):
   1) gerçek helper policy hiçbir yere kurulmuyordu (her çağrı genel

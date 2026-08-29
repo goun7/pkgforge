@@ -34,6 +34,46 @@ def _check_tools() -> dict[str, Any]:
     }
 
 
+def _check_polkit() -> dict[str, Any]:
+    """Faz 14: sudo/pkexec deneyimi teşhisi.
+
+    Policy kurulu değilse pkexec HER çağrıda parola ister (genel fallback);
+    kaynak ağacından çalıştırma da polkit'i her seferinde doğrulamaya zorlar.
+    Bu prob, 'bolca sudo isteği' belirtisini görünür kök nedenine bağlar.
+    """
+    from pathlib import Path
+
+    from core.privileged import PRIVILEGED_HELPER
+
+    actions = Path("/usr/share/polkit-1/actions")
+    helper_policy = actions / "org.pkgforge.helper.policy"
+    policy_installed = helper_policy.is_file()
+    helper_in_system = Path(
+        "/usr/share/pkgforge/scripts/pkgforge-privileged.sh").is_file()
+    running_from_source = not str(PRIVILEGED_HELPER).startswith(
+        "/usr/share/pkgforge/")
+
+    detail = ""
+    if not policy_installed:
+        detail = ("org.pkgforge.helper.policy kurulu değil — pkexec her "
+                  "çağrıda parola ister. Kurulum: sudo ./scripts/install.sh")
+    elif running_from_source:
+        detail = ("Kaynak ağacından çalışıyorsunuz — polkit, kullanıcıya ait "
+                  "helper betiğini her seferinde doğrular. Sistem kurulumu "
+                  "tek-parola deneyimini sağlar.")
+    elif not helper_in_system:
+        detail = ("Yetkili helper /usr/share/pkgforge/scripts/ altında değil "
+                  "— install.sh ile kurun.")
+
+    return {
+        "ok": policy_installed and helper_in_system and not running_from_source,
+        "policy_installed": policy_installed,
+        "helper_installed": helper_in_system,
+        "running_from_source": running_from_source,
+        "detail": detail,
+    }
+
+
 def _check_keyring() -> dict[str, Any]:
     try:
         from core.secrets_store import available
@@ -87,6 +127,7 @@ def run_doctor() -> dict[str, Any]:
     report: dict[str, Any] = {
         "version": APP_VERSION,
         "tools": _check_tools(),
+        "polkit": _check_polkit(),
         "keyring": _check_keyring(),
         "storage": _check_storage(),
         "dbus": _check_dbus(),

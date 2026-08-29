@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   helper `install-pkg`'ye geçti (tek policy action + argüman doğrulaması).
 - **test**: tek-diyalog sözleşmesi testlerle kilitlendi (write-batch çağrı
   sayısı = 1 assert'i; timer aralık yansıması; ret-kod yüzeyi).
+- **feat(doctor)**: `pkgforge doctor` artık polkit teşhisi basıyor — policy
+  kurulu mu, helper sisteme mi kurulu, kaynak ağacından mı çalışılıyor;
+  "bolca sudo isteği" belirtisi görünür kök nedenine bağlanıyor.
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
