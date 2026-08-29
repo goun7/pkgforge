@@ -53,8 +53,14 @@ içinde türetildi.
 - PKG-003/004/005, BUG-002/003: hepsi kapalı (CI akışı, systemd birimi,
   bytes decode, _ensure_qt_app kaldırılmış).
 
+## Ölçüm: Masaüstü Kapsamı Güncellendi
+Önceki oturumun test-kapsam maratonu (200+ yeni test) Faz 11 ölçümünden sonra
+geldi; yeni ölçüm: **v8 ifade kapsamı %88.37** (satır %89.53), en düşük sayfa
+Settings (%62.98). README rozetleri gerçek sayılara çekildi: 2409 toplanan
+pytest testi / 528 vitest testi.
+
 ## Doğrulama
-- `pytest tests/ -q` → rc=0 (tüm paket; 2400+ test).
+- `pytest tests/ -q` → rc=0 (tüm paket; **2409 toplanan** test).
 - `ruff check .` / `mypy core/...` / `bandit -r core/ -ll` → temiz.
 - `pnpm exec vitest run` → **44 dosya / 528 test hepsi geçti** (4 yeni
   eventBinder testi dahil); `tsc --noEmit` → 0 hata.

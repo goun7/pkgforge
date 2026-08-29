@@ -325,6 +325,12 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-7 Faz 13: kapsam ölçümü + doküman sayı-senkronu (29 Ağu)
+- Masaüstü v8 kapsam: %72.63 (Faz 11) -> **%88.37 ifade / %89.53 satır**
+  (test-kapsam maratonunun etkisi; en düşük: Settings %62.98).
+- README rozetleri: tests 2408->2409 collected; desktop 166->528 vitest.
+- pytest toplam: **2409 toplanan** (2 yeni hata-yolu testi).
+
 ## Oturum-7 Faz 12: hata/bug + sızıntı taraması (29 Ağu)
 - Statik kapılar doğrulandı: ruff 0 / mypy 0 (77 dosya) / bandit 0HM / pytest rc=0.
 - Tarama: Python Popen/sleep/pass desenleri + TS catch/then/key/timer taraması.
