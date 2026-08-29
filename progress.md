@@ -343,6 +343,19 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-9 Faz 18f: act diagnostics kapanış kararı (29 Ağu)
+- Kalan 224 uyarının dağılımı: Convert.test 32, Settings.test 19,
+  Updates.test 8, Settings.coverage 7, Installed.test 5, Installed.coverage 4.
+- Kaynak: buton tıklamalarından kopup mikrotask'te çözülen async RPC'ler.
+  "busy/disabled" geçiş-ortası durum doğrulamaları bilinçli olarak promise
+  çözülmeden assert ettiği için blanket act-sarmalama DAVRANIŞ testlerini
+  bozar. 551→224 azaltıldı (0 test hasarı); kalan React testing
+  diagnostics'i — hata değil — kabul edildi.
+- Maraton durumu: ≥100 satır envanteri KAPALI (2 bilinçli kabul), tüm
+  kapılar yeşil (ruff/mypy/pytest rc=0; vitest 580/580; tsc 0; kapsam %93.1),
+  act uyarıları 551→224 bandında. UI/UX onay akışları, polkit mimarisi
+  ve kapsam hedefi (>90) tutturuldu.
+
 ## Oturum-9 Faz 18e: uzun-fonksiyon envanteri KAPANDI (29 Ağu)
 - check_abi_compatibility 103→~55: _extract_pkg_for_abi (DEB ar+data.tar /
   PKG tar), _collect_elf_binaries (tek geçiş, metin/asset atlama),
