@@ -325,6 +325,14 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-8 Faz 19c: Settings bulut/dbus/profil dalları (29 Ağu)
+- Settings +7 test: profil oluşturma/silme hata yolları, radio ile
+  profile.switch, İçe Aktar→sync.import, Sunucuyu Kaydet→sync.config,
+  dbus Başlat, dbus.status reddinde 'okunamadı' durumu.
+- TSC dersleri: PageId union'ı — recent dizileri PageId[] yazılmalı;
+  bilinçli bozuk id as unknown as PageId[].
+- Genel kapsam %93.06 (578/578, tsc 0). Settings: %62.98 → %70.22.
+
 ## Oturum-8 Faz 19b: Installed/Sidebar/Dialog kapatıldı (29 Ağu)
 - Installed +8 test: sıralama (asc/desc), yoğunluk (Rahat↔Kompakt), CSV
   ihracı (blob URL + click), 60 kayıtta sayfalama + 'daha fazla', temizle

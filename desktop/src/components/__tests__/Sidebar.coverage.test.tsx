@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { Sidebar } from "../Sidebar";
+import { Sidebar, type PageId } from "../Sidebar";
 
 const COLLAPSE = "Kenar çubuğunu daralt";
 const EXPAND = "Kenar çubuğunu genişlet";
@@ -26,7 +26,7 @@ describe("Sidebar — Faz 19b kapsam dalları", () => {
   });
 
   it("kompakt modda 'son sayfalar' bölümü gizlenir", () => {
-    const recent = ["settings"];
+    const recent: PageId[] = ["settings"];
     render(
       <Sidebar active="convert" onNavigate={vi.fn()} recent={recent} />,
     );
@@ -50,7 +50,7 @@ describe("Sidebar — Faz 19b kapsam dalları", () => {
 
   it("son sayfalar öğesi tıklanınca onNavigate id ile çağrılır", () => {
     const onNavigate = vi.fn();
-    const recent = ["reports"];
+    const recent: PageId[] = ["reports"];
     render(
       <Sidebar active="convert" onNavigate={onNavigate} recent={recent} />,
     );
@@ -88,7 +88,8 @@ describe("Sidebar — Faz 19b kapsam dalları", () => {
   });
 
   it("geçersiz recent id'ler sessizce elenir", () => {
-    const recent = ["convert", "bozulmus-id", "tools"];
+    // Bilinçli geçersiz id: bileşen bunu sessizce elemeli (union dışı).
+    const recent = ["convert", "bozulmus-id", "tools"] as unknown as PageId[];
     render(
       <Sidebar
         active="convert"

@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, within, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const invokeMock = vi.fn();

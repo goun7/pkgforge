@@ -48,6 +48,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   (sıralama/CSV/sayfalama/temizle+geri-al/rollback), Sidebar %68.75→%100
   (kompakt mod/bölüm daraltma/localStorage hata dalı), Dialog %55.55→%93.33.
   557→571 test.
+- **test(desktop)**: kapsam %92.86 → %93.06: Settings %68.44→%70.22
+  (profil hata yolları/radio geçişi/sync.import/sync.config/dbus başlat ve
+  yok durumu). 571→578 test.
 
 ### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
