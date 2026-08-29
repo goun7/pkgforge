@@ -3,7 +3,7 @@ import { cacheGet, cacheSet } from "../lib/cache";
 import { Activity, Gauge, Camera, ShieldCheck, Loader2, RefreshCw, PartyPopper, HardDriveDownload, FileDown, Copy } from "lucide-react";
 import { DoctorPanel } from "../components/DoctorPanel";
 import { WrappedDialog } from "../components/WrappedDialog";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type { HealthStats, BenchmarkReport, SnapshotStatus, RollbackVerifyResult } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -71,8 +71,8 @@ export function Reports() {
 
   // snapshot kur/kaldir sonucu pkexec yetki diyaloğundan sonra event/snapshot_done ile gelir
   useEffect(() => {
-    let un: (() => void) | undefined;
-    void onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
       "event/snapshot_done",
       (p) => {
         setSnapBusy(false);
@@ -84,8 +84,8 @@ export function Reports() {
         }
         void loadSnap();
       },
-    ).then((u) => { un = u; });
-    return () => { if (un) un(); };
+    ));
+    return () => binder.dispose();
   }, [toast, loadSnap]);
 
   const handleBenchmark = async () => {
@@ -103,6 +103,7 @@ export function Reports() {
     try {
       await call("system.benchmark", { quick: true });
     } catch (e) {
+      un();
       setBenching(false);
       toast("error", (e as Error).message);
     }
@@ -123,6 +124,7 @@ export function Reports() {
     try {
       await call("system.verify_rollback");
     } catch (e) {
+      un();
       setVerifying(false);
       toast("error", (e as Error).message);
     }

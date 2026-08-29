@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2, PackageOpen, X } from "lucide-react";
-import { call } from "../lib/rpc";
+import { call, eventBinder } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
 import { useLang } from "../lib/lang";
 import type {
@@ -193,7 +193,9 @@ export function Convert() {
       }),
     ];
     return () => {
-      void Promise.all(unsubs).then((fns) => fns.forEach((f) => f()));
+      // Faz 12: erken unmount'ta çözülmemiş listen() promise'leri de
+      // çözülür çözülmez kendi unlisten'lerini çağırsın (sızıntı yarışı).
+      unsubs.forEach((p) => void p.then((fn) => fn(), () => {}));
     };
   }, [toast, startNext]);
 
@@ -228,7 +230,9 @@ export function Convert() {
       listen("tauri://drag-leave", () => setDragging(false)),
     ];
     return () => {
-      void Promise.all(unsubs).then((fns) => fns.forEach((f) => f()));
+      // Faz 12: erken unmount'ta çözülmemiş listen() promise'leri de
+      // çözülür çözülmez kendi unlisten'lerini çağırsın (sızıntı yarışı).
+      unsubs.forEach((p) => void p.then((fn) => fn(), () => {}));
     };
   }, [addPaths]);
 
@@ -348,12 +352,12 @@ export function Convert() {
 
   // batch finished event
   useEffect(() => {
-    let un: (() => void) | undefined;
-    void listen("event/queue_done", () => {
+    const binder = eventBinder();
+    binder.bind(() => listen("event/queue_done", () => {
       setBatchRunning(false);
       void loadBatch();
-    }).then((u) => { un = u; });
-    return () => { if (un) un(); };
+    }));
+    return () => binder.dispose();
   }, [loadBatch]);
 
   const handleBatchAdd = async (paths: string[]) => {

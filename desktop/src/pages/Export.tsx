@@ -75,7 +75,7 @@ export function Export() {
   const subscribeExportDone = async (
     setBusy: (b: boolean) => void,
     setResult: (r: ExportResult) => void,
-  ) => {
+  ): Promise<() => void> => {
     const un = await onEvent<{ ok: boolean; result?: ExportResult; error?: string }>(
       "event/export_done",
       (p) => {
@@ -90,6 +90,7 @@ export function Export() {
         void un();
       },
     );
+    return un;
   };
 
   const handleAppimage = async () => {
@@ -99,10 +100,11 @@ export function Export() {
     }
     setAppimageBusy(true);
     setAppimageResult(null);
-    await subscribeExportDone(setAppimageBusy, setAppimageResult);
+    const un = await subscribeExportDone(setAppimageBusy, setAppimageResult);
     try {
       await call("export.appimage_to_deb", { appimage_path: appimagePath });
     } catch (e) {
+      un();
       setAppimageBusy(false);
       toast("error", (e as Error).message);
     }
@@ -115,10 +117,11 @@ export function Export() {
     }
     setFlatpakBusy(true);
     setFlatpakResult(null);
-    await subscribeExportDone(setFlatpakBusy, setFlatpakResult);
+    const un = await subscribeExportDone(setFlatpakBusy, setFlatpakResult);
     try {
       await call("export.flatpak_to_deb", { app_id: selectedApp });
     } catch (e) {
+      un();
       setFlatpakBusy(false);
       toast("error", (e as Error).message);
     }
@@ -131,10 +134,11 @@ export function Export() {
     }
     setOciBusy(true);
     setOciResult(null);
-    await subscribeExportDone(setOciBusy, setOciResult);
+    const un = await subscribeExportDone(setOciBusy, setOciResult);
     try {
       await call("export.oci", { pkg_path: ociPath, tag: ociTag || undefined });
     } catch (e) {
+      un();
       setOciBusy(false);
       toast("error", (e as Error).message);
     }

@@ -3,7 +3,7 @@ import {
   Loader2, ShieldCheck, ScrollText, PackageSearch, Radar, FileCheck2,
   UploadCloud, Trash2, RefreshCw, Container,
 } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type {
   RpmToDebResult, AbiReport, AuditReport, ScanImageResult, AttestResult,
   PublishResult, SnapshotStatus,
@@ -63,48 +63,48 @@ export function Tools() {
   const [rehearseResult, setRehearseResult] = useState<RehearseResult | null>(null);
 
   useEffect(() => {
-    const unsubs: (() => void)[] = [];
-    void onEvent<{ ok: boolean; result?: RpmToDebResult; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; result?: RpmToDebResult; error?: string }>(
       "event/rpm_to_deb_done",
       (p) => {
         setRpmBusy(false);
         if (p.ok && p.result) setRpmResult(p.result);
         else toast("error", p.error ?? t("toolsRpmFail"));
       },
-    ).then((u) => { unsubs.push(u); });
-    void onEvent<{ ok: boolean; result?: AbiReport; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: AbiReport; error?: string }>(
       "event/abi_check_done",
       (p) => {
         setAbiBusy(false);
         if (p.ok && p.result) setAbiReport(p.result);
         else toast("error", p.error ?? t("toolsAbiFail"));
       },
-    ).then((u) => { unsubs.push(u); });
-    void onEvent<{ ok: boolean; result?: ScanImageResult; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: ScanImageResult; error?: string }>(
       "event/scan_image_done",
       (p) => {
         setScanBusy(false);
         if (p.ok && p.result) setScanResult(p.result);
         else toast("error", p.error ?? t("toolsImgScanFail"));
       },
-    ).then((u) => { unsubs.push(u); });
-    void onEvent<{ ok: boolean; result?: AttestResult; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: AttestResult; error?: string }>(
       "event/attest_done",
       (p) => {
         setAttestBusy(false);
         if (p.ok && p.result) setAttestResult(p.result);
         else toast("error", p.error ?? t("toolsAttestFail"));
       },
-    ).then((u) => { unsubs.push(u); });
-    void onEvent<{ ok: boolean; result?: PublishResult; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: PublishResult; error?: string }>(
       "event/publish_done",
       (p) => {
         setPublishBusy(false);
         if (p.ok && p.result) setPublishResult(p.result);
         else toast("error", p.error ?? t("toolsPublishFail"));
       },
-    ).then((u) => { unsubs.push(u); });
-    void onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: { ok: boolean; message: string }; error?: string }>(
       "event/snapshot_done",
       (p) => {
         setSnapBusy(false);
@@ -116,8 +116,8 @@ export function Tools() {
         }
         void loadSnapshot();
       },
-    ).then((u) => { unsubs.push(u); });
-    return () => { unsubs.forEach((u) => u()); };
+    ));
+    return () => binder.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 

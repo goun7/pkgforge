@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ShieldCheck, FileSearch, Award, ScrollText, KeyRound, Loader2, Bug } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type { SignatureInfo, SbomDocument, QualityReport, Provenance, SigstoreStatus, CveScanResult } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -89,6 +89,7 @@ export function Security() {
     try {
       await call("security.sbom", { pkg_path: pkgPath });
     } catch (e) {
+      un();
       setLoading(false);
       toast("error", (e as Error).message);
     }
@@ -109,6 +110,7 @@ export function Security() {
     try {
       await call("security.quality", { pkg_path: pkgPath });
     } catch (e) {
+      un();
       setLoading(false);
       toast("error", (e as Error).message);
     }
@@ -155,6 +157,7 @@ export function Security() {
     try {
       await call("security.cve_scan", { pkg_path: pkgPath });
     } catch (e) {
+      un();
       setLoading(false);
       toast("error", (e as Error).message);
     }
@@ -165,24 +168,20 @@ export function Security() {
    *  sirali cagrilirlar (handleRunAll). */
   const runEventCheck = <T,>(method: string): Promise<T | null> =>
     new Promise((resolve) => {
-      let un: (() => void) | undefined;
-      const timer = setTimeout(() => {
-        if (un) un();
-        resolve(null);
-      }, 180000);
-      void onEvent<{ ok: boolean; result?: T; error?: string }>(
-        "event/security_done",
-        (p) => {
-          clearTimeout(timer);
-          if (un) un();
-          resolve(p.ok && p.result ? p.result : null);
-        },
-      ).then((u) => { un = u; });
-      call(method, { pkg_path: pkgPath }).catch(() => {
+      // eventBinder: unmount değil ama aynı yarış sınıfı — timer/call(),
+      // listen() çözülmeden tetiklenirse late abonelik kendini kaldırmalı.
+      const binder = eventBinder();
+      const done = (v: T | null) => {
         clearTimeout(timer);
-        if (un) un();
-        resolve(null);
-      });
+        binder.dispose();
+        resolve(v);
+      };
+      const timer = setTimeout(() => done(null), 180000);
+      binder.bind(() => onEvent<{ ok: boolean; result?: T; error?: string }>(
+        "event/security_done",
+        (p) => done(p.ok && p.result ? p.result : null),
+      ));
+      call(method, { pkg_path: pkgPath }).catch(() => done(null));
     });
 
   /** Paket uzerindeki tum guvenlik kontrollerini sirayla calistirir. */

@@ -120,3 +120,36 @@ export async function onEvent<T>(
     return () => {};
   }
 }
+
+/** Faz 12: unmount yarışına dayanıklı abonelik bağlayıcısı.
+ *
+ * Eski desen (`onEvent(...).then((u) => unsubs.push(u))`) erken unmount'ta
+ * sızdırıyordu: useEffect cleanup'u listen() promise'i çözülmeden çalışırsa
+ * push hiç yapılmaz ve abonelik geri alınamaz. eventBinder() çözülmemiş
+ * promise'leri de takip eder; dispose'dan sonra çözülen abonelik anında
+ * kaldırılır.
+ */
+export function eventBinder() {
+  let disposed = false;
+  const live: UnlistenFn[] = [];
+  return {
+    /** Abonelik promise'i bağla (onEvent ya da doğrudan listen). */
+    bind(subscribe: () => Promise<UnlistenFn>): void {
+      // onEvent zaten asla reject etmez; ham listen hatasında sessiz no-op.
+      void subscribe().then(
+        (un) => {
+          if (disposed) un();
+          else live.push(un);
+        },
+        () => {},
+      );
+    },
+    /** Bağlı tüm abonelikleri kaldır (useEffect cleanup'unda çağır). */
+    dispose(): void {
+      if (disposed) return;
+      disposed = true;
+      live.forEach((un) => un());
+      live.length = 0;
+    },
+  };
+}

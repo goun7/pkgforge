@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { GitCompare, Loader2, ArrowRight } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type { SbomDiff } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -26,16 +26,16 @@ export function Compare() {
   const [diff, setDiff] = useState<SbomDiff | null>(null);
 
   useEffect(() => {
-    let un: (() => void) | undefined;
-    void onEvent<{ ok: boolean; result?: SbomDiff; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; result?: SbomDiff; error?: string }>(
       "event/compare_done",
       (p) => {
         setBusy(false);
         if (p.ok && p.result) setDiff(p.result);
         else toast("error", p.error ?? t("cmpFailToast"));
       },
-    ).then((u) => { un = u; });
-    return () => { if (un) un(); };
+    ));
+    return () => binder.dispose();
   }, [toast]);
 
   const handleCompare = async () => {

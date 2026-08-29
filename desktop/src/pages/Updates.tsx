@@ -127,6 +127,7 @@ export function Updates() {
     try {
       await call("system.cross_check", { package_name: pkgName });
     } catch (e) {
+      un();
       setChecking(false);
       toast("error", (e as Error).message);
     }

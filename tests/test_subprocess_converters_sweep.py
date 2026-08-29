@@ -170,6 +170,7 @@ def test_deb_extract_data_tar_listing_and_missing(monkeypatch, tmp_path):
     def sahte_popen(cmd, **kw):
         if "ar" in str(cmd[0]) and cmd[1] == "p":
             return NS(stdout=io.BytesIO(b"akis"), stderr=b"",
+                      wait=lambda timeout=None: None,
                       communicate=lambda timeout=None: (b"", b""),
                       returncode=0, pid=2)
         return NS(stdout=io.BytesIO(), stderr=b"",
@@ -185,6 +186,37 @@ def test_deb_extract_data_tar_listing_and_missing(monkeypatch, tmp_path):
     monkeypatch.setattr(SC, "safe_run",
                         lambda cmd, timeout=0: NS(returncode=0, stdout="sadece-control\n"))
     with pytest.raises(RuntimeError, match="data.tar"):
+        conv._extract_data_tar(tmp_path / "a.deb", tmp_path)
+
+
+def test_deb_extract_data_tar_ar_and_tar_failures(monkeypatch, tmp_path):
+    """ar/tar başarısızlık yolları RuntimeError'a düşmeli (Faz 12)."""
+    conv = SC.NativeDebConverterSubprocess(_araclar())
+
+    def _sahte(rc_ar, rc_tar):
+        def sahte(cmd, **kw):
+            if "ar" in str(cmd[0]) and cmd[1] == "p":
+                return NS(stdout=io.BytesIO(b""), stderr=io.BytesIO(b"ar hatasi"),
+                          wait=lambda timeout=None: None,
+                          communicate=lambda timeout=None: (b"", b""),
+                          returncode=rc_ar, pid=2)
+            return NS(stdout=io.BytesIO(), stderr=b"",
+                      wait=lambda timeout=None: None,
+                      communicate=lambda timeout=None: (b"", b"tar hatasi"),
+                      returncode=rc_tar, pid=3)
+        return sahte
+
+    monkeypatch.setattr(SC, "safe_run",
+                        lambda cmd, timeout=0: NS(returncode=0,
+                                                  stdout="data.tar.xz\n"))
+    monkeypatch.setattr(SC, "subprocess",
+                        NS(Popen=_sahte(3, 0), PIPE=-1))
+    with pytest.raises(RuntimeError, match="ar başarısız"):
+        conv._extract_data_tar(tmp_path / "a.deb", tmp_path)
+
+    monkeypatch.setattr(SC, "subprocess",
+                        NS(Popen=_sahte(0, 4), PIPE=-1))
+    with pytest.raises(RuntimeError, match="İçerik çıkarılamadı"):
         conv._extract_data_tar(tmp_path / "a.deb", tmp_path)
 
 

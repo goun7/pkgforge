@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Server, UploadCloud, Download, PackageOpen, RefreshCw,
 } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type { FleetStatus } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { AsyncButton } from "../components/ui/AsyncButton";
@@ -38,16 +38,16 @@ export function Fleet() {
   }, []);
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
-    void onEvent<{ ok: boolean; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; error?: string }>(
       "event/sync_done",
       (p) => {
         setSyncBusy(false);
         if (p.ok) toast("success", t("fleetSyncDone"));
         else toast("error", p.error ?? t("fleetSyncFail"));
       },
-    ).then((u) => { unsub = u; });
-    return () => { if (unsub) unsub(); };
+    ));
+    return () => binder.dispose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 

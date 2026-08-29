@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Globe, Search, Loader2, Hammer, Info, ThumbsUp } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type { AurSearchResult, AurInfo } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -41,8 +41,8 @@ export function Browse() {
   const [infoName, setInfoName] = useState("");
 
   useEffect(() => {
-    const unsubs: (() => void)[] = [];
-    void onEvent<{ ok: boolean; result?: AurSearchResult[]; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; result?: AurSearchResult[]; error?: string }>(
       "event/aur_search_done",
       (p) => {
         setSearching(false);
@@ -50,19 +50,19 @@ export function Browse() {
         if (p.ok && p.result) setResults(p.result);
         else toast("error", p.error ?? t("browseSearchFail"));
       },
-    ).then((u) => unsubs.push(u));
-    void onEvent<{ ok: boolean; result?: AurInfo; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: AurInfo; error?: string }>(
       "event/aur_info_done",
       (p) => {
         if (p.ok && p.result) setInfo(p.result);
         else toast("error", p.error ?? t("browseInfoFail"));
       },
-    ).then((u) => unsubs.push(u));
-    void onEvent<{ name: string; step: string }>(
+    ));
+    binder.bind(() => onEvent<{ name: string; step: string }>(
       "event/aur_build_progress",
       (p) => setBuildStep(p.step),
-    ).then((u) => unsubs.push(u));
-    void onEvent<{ ok: boolean; result?: { name: string; pkg_path: string; installed: boolean }; error?: string }>(
+    ));
+    binder.bind(() => onEvent<{ ok: boolean; result?: { name: string; pkg_path: string; installed: boolean }; error?: string }>(
       "event/aur_build_done",
       (p) => {
         setBuilding("");
@@ -73,9 +73,11 @@ export function Browse() {
           toast("error", p.error ?? t("browseBuildFail"));
         }
       },
-    ).then((u) => unsubs.push(u));
-    return () => { unsubs.forEach((u) => u()); };
-  }, [toast, t]);
+    ));
+    return () => binder.dispose();
+    // Faz 12: `t` her render'da yeni kimlik üretir; deps'e `lang` koyduk ki
+    // abonelik her aramada (setSearching re-render'i) kopup yeniden kurulmasın.
+  }, [toast, lang]);
 
   // Faz 8 (6.3): limit state ile "daha fazla" destegi.
   const doSearch = async (lim: number) => {

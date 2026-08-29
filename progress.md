@@ -325,6 +325,18 @@
 - Paket bütünlüğü: wheel derlendi, boş venv'de kurulup import edildi.
 - Dosyalar: SECURITY_REVIEW.md, QUALITY_100.md.
 
+## Oturum-7 Faz 12: hata/bug + sızıntı taraması (29 Ağu)
+- Statik kapılar doğrulandı: ruff 0 / mypy 0 (77 dosya) / bandit 0HM / pytest rc=0.
+- Tarama: Python Popen/sleep/pass desenleri + TS catch/then/key/timer taraması.
+- Düzeltmeler (docs/KALITE_DENETIMI_FAZ12.md):
+  1) subprocess_converters ar/tar stderr ölümkilidi + returncode kontrolü
+     (native_deb paritesi) + 2 hata-yolu testi.
+  2) rpc.ts eventBinder(): unmount yarışına dayanıklı abonelik; 10 sayfa
+     migrate (33 nokta) + 4 birim test.
+  3) 9 handler catch'inde sızan tek-seferlik abonelikler kapatıldı.
+  4) Browse effect churn (kararsız t deps) düzeltildi.
+- Doğrulama: vitest 44 dosya/528 test yeşil, tsc 0 hata, pytest rc=0.
+
 ## Oturum-6 desktop test-kapsam maratonu (28 Ağu, devam edildi)
 - Amaç: desktop/src sayfaları/bileşenlerinde test edilmemiş dalları
   (koşullu render, handler, boş/hata durumları) kapsayan yeni it() blokları.

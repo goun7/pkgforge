@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
+  erken unmount'ta sızıyordu; `rpc.ts`'de yeni `eventBinder()` ile 10 sayfa
+  güvenli desene migrate edildi (33 çağrı noktası). Handler catch'lerinde
+  bırakılan 9 tek-seferlik abonelik de kapatıldı.
+- **fix(desktop)**: Browse abonelik effect'i her render'da kopup yeniden
+  kuruluyordu (kararsız `t` bağımlılığı) — deps `[toast, lang]`.
+- **fix(core)**: `subprocess_converters` ar/tar borusunda ar stderr okunmuyor-
+  du → 64KB boru dolunca ölümkilit; ar/tar returncode kontrolü de yoktu
+  (sessiz bozuk çıkarım). native_deb_converter parite deseni uygulandı.
+- **test(desktop)**: `rpc.test.ts` eventBinder birim testleri (4); Python
+  ar/tar hata-yolu testleri (2).
+
 ## [2.0.0] - 2026-08-27
 
 ### Added

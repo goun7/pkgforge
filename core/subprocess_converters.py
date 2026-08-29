@@ -133,6 +133,8 @@ class NativeDebConverterSubprocess:
         if not data_tar:
             raise RuntimeError(".deb içinde data.tar bulunamadı")
 
+        # ar stderr'sini paralel oku: boru tam dolarsa ar bloklanmasin
+        # (native_deb_converter'daki ayni desenle parite).
         ar_proc = subprocess.Popen(
             [self._tools.ar, "p", str(deb_path), data_tar],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -142,9 +144,21 @@ class NativeDebConverterSubprocess:
             tar_cmd, stdin=ar_proc.stdout,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
+        # Kendi ar.stdout kopyamizi kapat ki tar EOF gorsun.
         if ar_proc.stdout:
             ar_proc.stdout.close()
-        tar_proc.communicate(timeout=60)
+        ar_stderr = ar_proc.stderr.read() if ar_proc.stderr else b""
+        ar_proc.wait(timeout=30)
+        _stdout, stderr = tar_proc.communicate(timeout=60)
+        if ar_proc.returncode != 0:
+            raise RuntimeError(
+                f"ar başarısız (kod: {ar_proc.returncode}): "
+                f"{ar_stderr.decode('utf-8', errors='replace')}"
+            )
+        if tar_proc.returncode != 0:
+            raise RuntimeError(
+                f"İçerik çıkarılamadı: {stderr.decode('utf-8', errors='replace')}"
+            )
 
     def _generate_pkgbuild(self, meta, resolved_deps):
         """Generate PKGBUILD content."""

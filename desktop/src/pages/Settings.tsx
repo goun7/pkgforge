@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CloudDownload, CloudUpload, HardDriveDownload, HardDriveUpload, Plus, Save, Trash2 } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
 import { setLang } from "../lib/lang";
 import { applyTheme, applyAccent, getAccentLocal, type Accent } from "../lib/theme";
@@ -271,8 +271,8 @@ export function Settings() {
   };
 
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void onEvent<{ ok: boolean; error?: string; result?: { path?: string } }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; error?: string; result?: { path?: string } }>(
       "event/sync_done",
       (payload) => {
         if (payload.ok) {
@@ -281,10 +281,8 @@ export function Settings() {
           toast("error", payload.error ?? t("setCloudFail"));
         }
       },
-    ).then((fn) => {
-      unlisten = fn as () => void;
-    });
-    return () => unlisten?.();
+    ));
+    return () => binder.dispose();
   }, [toast]);
 
   const runSyncCall = async (method: string, params: Record<string, unknown>, done: string) => {
@@ -300,8 +298,8 @@ export function Settings() {
   };
 
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    void onEvent<{ ok: boolean; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; error?: string }>(
       "event/dbus_done",
       (payload) => {
         if (payload.ok) {
@@ -311,10 +309,8 @@ export function Settings() {
         }
         void loadDbusStatus();
       },
-    ).then((fn) => {
-      unlisten = fn as () => void;
-    });
-    return () => unlisten?.();
+    ));
+    return () => binder.dispose();
   }, [toast, loadDbusStatus]);
 
   const handleDbusStart = async () => {

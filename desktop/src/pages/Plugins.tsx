@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Puzzle, Download, Trash2, RefreshCw, ShieldCheck, Loader2 } from "lucide-react";
-import { call, onEvent } from "../lib/rpc";
+import { call, eventBinder, onEvent } from "../lib/rpc";
 import type { InstalledPlugin, AvailablePlugin, PluginAudit } from "../lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -55,8 +55,8 @@ export function Plugins() {
 
   // plugin install/update finish events
   useEffect(() => {
-    let un: (() => void) | undefined;
-    void onEvent<{ ok: boolean; result?: { ok?: boolean; message?: string }; error?: string }>(
+    const binder = eventBinder();
+    binder.bind(() => onEvent<{ ok: boolean; result?: { ok?: boolean; message?: string }; error?: string }>(
       "event/plugin_done",
       (p) => {
         setBusy("");
@@ -67,8 +67,8 @@ export function Plugins() {
           toast("error", p.error ?? t("plugFail"));
         }
       },
-    ).then((u) => { un = u; });
-    return () => { if (un) un(); };
+    ));
+    return () => binder.dispose();
   }, [toast, loadInstalled]);
 
   const handleInstall = async (name: string) => {
