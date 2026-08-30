@@ -356,7 +356,10 @@ def test_wrap_binary_tarball(pipe, tmp_path, monkeypatch):
     out = pipe._wrap_binary(f, _ir(intake.FileType.BINARY_TARBALL, f), meta)
     assert out.name == "w.pkg.tar.zst"
     pkgbuild = (pipe._temp_dir / "build_bin" / "PKGBUILD").read_text()
-    assert "pkgname=app" in pkgbuild and "ln -sf" in pkgbuild
+    assert "pkgname=app" in pkgbuild
+    # A4: wrapper + .desktop now replace the old symlink approach
+    assert 'exec /opt/app/usr/bin/app "$@"' in pkgbuild
+    assert "[Desktop Entry]" in pkgbuild
 
 
 def test_wrap_binary_appimage(pipe, tmp_path, monkeypatch):

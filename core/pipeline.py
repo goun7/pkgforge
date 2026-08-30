@@ -58,7 +58,6 @@ from config import (
     create_temp_dir,
     discover_tools,
 )
-from i18n import tr
 from core import intake
 from core.compatibility_checker import (
     CheckSeverity,
@@ -75,6 +74,7 @@ from core.security import (
     verify_deb_signature,
     verify_rpm_signature,
 )
+from i18n import tr
 
 # Conditional import: PyQt6 for GUI, subprocess for CLI
 if TYPE_CHECKING:  # pragma: no cover

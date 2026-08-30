@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from config import backup_dir, history_db_path
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ class HistoryDB:
                     conn.execute("ALTER TABLE conversions ADD COLUMN http_last_modified TEXT DEFAULT ''")
                 conn.commit()
         except sqlite3.Error as exc:
-            log.error("HistoryDB ilklendirme hatası: %s", exc)
+            log.error("%s", tr("installer.history_db_init_failed", exc=exc))
 
     # ── Analytics helpers (used by usage dashboard) ─────────────
 
@@ -178,7 +179,7 @@ class HistoryDB:
                 if size_count:
                     stats["avg_output_size_mb"] = round(total_size / size_count, 1)
         except sqlite3.Error as exc:
-            log.warning("İstatistik hesaplama hatası: %s", exc)
+            log.warning("%s", tr("installer.stats_calc_failed", exc=exc))
         return stats
 
     def add_record(
@@ -207,10 +208,10 @@ class HistoryDB:
                     (package_name, original_file, package_type, sha256, status, output_pkg, details, source_url, backup_pkg, http_etag, http_last_modified),
                 )
                 conn.commit()
-                log.info("Dönüşüm kaydı eklendi: %s (%s)", package_name, status)
+                log.info("%s", tr("history.log_record_added", name=package_name, status=status))
                 return cursor.lastrowid or 0
         except sqlite3.Error as exc:
-            log.error("HistoryDB kayıt ekleme hatası: %s", exc)
+            log.error("%s", tr("history.log_record_add_failed", exc=exc))
             return 0
 
     def backup_package(self, pkg_path: Path) -> Path | None:
@@ -225,10 +226,10 @@ class HistoryDB:
                 stream_copy(pkg_path, dest)
             else:
                 shutil.copy2(pkg_path, dest)
-            log.info("Yedek oluşturuldu: %s", dest.name)
+            log.info("%s", tr("history.log_backup_created", name=dest.name))
             return dest
         except OSError as exc:
-            log.warning("Yedekleme hatası: %s", exc)
+            log.warning("%s", tr("history.log_backup_failed", exc=exc))
             return None
 
     def get_history(self, limit: int = 50) -> list[HistoryRecord]:
@@ -266,7 +267,7 @@ class HistoryDB:
                         )
                     )
         except sqlite3.Error as exc:
-            log.error("HistoryDB okuma hatası: %s", exc)
+            log.error("%s", tr("history.log_read_failed", exc=exc))
         return records
 
     def get_records_for_package(self, package_name: str) -> list[HistoryRecord]:
@@ -304,7 +305,7 @@ class HistoryDB:
                         )
                     )
         except sqlite3.Error as exc:
-            log.error("HistoryDB paket arama hatası: %s", exc)
+            log.error("%s", tr("history.log_search_failed", exc=exc))
         return records
 
     def clear_history(self) -> None:
@@ -313,9 +314,9 @@ class HistoryDB:
             with self._conn() as conn:
                 conn.execute("DELETE FROM conversions")
                 conn.commit()
-                log.info("Dönüşüm geçmişi temizlendi")
+                log.info("%s", tr("history.log_history_cleared"))
         except sqlite3.Error as exc:
-            log.error("HistoryDB temizleme hatası: %s", exc)
+            log.error("%s", tr("history.log_clear_failed", exc=exc))
 
     def restore_records(self, records: list[dict]) -> int:
         """Faz 9 (5.7): bulk re-insert records (undo of clear_history).
@@ -351,9 +352,9 @@ class HistoryDB:
                     )
                     restored += 1
                 conn.commit()
-                log.info("Geçmiş geri yüklendi: %d kayıt", restored)
+                log.info("%s", tr("history.log_records_restored", count=restored))
         except sqlite3.Error as exc:
-            log.error("HistoryDB geri yükleme hatası: %s", exc)
+            log.error("%s", tr("history.log_restore_failed", exc=exc))
         return restored
 
     def update_http_headers(self, record_id: int, etag: str, last_modified: str) -> None:
@@ -366,4 +367,4 @@ class HistoryDB:
                 )
                 conn.commit()
         except sqlite3.Error as exc:
-            log.warning("HTTP başlıkları güncellenemedi (id=%d): %s", record_id, exc)
+            log.warning("%s", tr("history.log_http_headers_failed", id=record_id, exc=exc))

@@ -90,6 +90,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._pipeline: ConversionPipeline | None = None
         self._pipeline_thread: QThread | None = None
+        # True only after the user clicked "Install Anyway" in the result
+        # dialog, so the post-install launch prompt is shown for real
+        # installs and never during non-interactive pipeline runs (tests).
+        self._install_approved = False
         self._tools = discover_tools()
         self._queue = QueueManager(self)
         # Universal intake: when the user resolves an ambiguous file (e.g. a
@@ -528,6 +532,7 @@ class MainWindow(QMainWindow):
         def on_approved() -> None:
             # Wakes the worker thread blocked in _wait_for_decision(); the
             # install itself runs on that thread, never on the UI thread.
+            self._install_approved = True
             if self._pipeline:
                 self._pipeline.approve_install()
 
@@ -589,6 +594,27 @@ class MainWindow(QMainWindow):
             self._step_progress.set_progress(100)
             self._status_bar.showMessage(f"✓ {result.message}")
             self._log_panel.append_log(result.message, "success")
+
+            # A4: offer to launch the freshly installed application.
+            # Only for installs the user explicitly approved — never during
+            # non-interactive runs (queue/CLI/tests), where a modal dialog
+            # would block the event loop forever.
+            approved = self._install_approved
+            self._install_approved = False
+            if approved and result.metadata and result.metadata.name:
+                from PyQt6.QtCore import QUrl
+                from PyQt6.QtGui import QDesktopServices
+
+                name = result.metadata.name
+                reply = QMessageBox.question(
+                    self,
+                    tr("msg.launch_title"),
+                    tr("msg.launch_question", name=name),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes,
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    QDesktopServices.openUrl(QUrl.fromLocalFile(f"/usr/bin/{name}"))
         else:
             msg = result.message or tr("pipe.failed_generic")
             self._status_bar.showMessage(f"✗ {msg}")

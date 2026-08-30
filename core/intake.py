@@ -291,9 +291,24 @@ def generate_binary_pkgbuild(
             '    done',
         ]
     if exec_relpath:
+        # /usr/bin wrapper: launch the app via /opt/<name>/<exec_relpath>
         lines += [
             '    install -d "$pkgdir/usr/bin"',
-            '    ln -sf "/opt/' + name + '/' + exec_relpath + '" "$pkgdir/usr/bin/' + name + '"',
+            '    cat > "$pkgdir/usr/bin/' + name + '" <<\'EOF\'',
+            '#!/bin/sh',
+            'exec /opt/' + name + '/' + exec_relpath + ' "$@"',
+            'EOF',
+            '    chmod +x "$pkgdir/usr/bin/' + name + '"',
+            '    # .desktop file for application menu',
+            '    install -d "$pkgdir/usr/share/applications"',
+            '    cat > "$pkgdir/usr/share/applications/' + name + '.desktop" <<\'EOF\'',
+            '[Desktop Entry]',
+            'Name=' + name,
+            'Exec=' + name,
+            'Type=Application',
+            'Terminal=false',
+            'Categories=Utility;',
+            'EOF',
         ]
     lines += ["}", ""]
     return chr(10).join(lines)

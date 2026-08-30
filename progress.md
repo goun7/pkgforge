@@ -621,3 +621,15 @@
 - Step-progress 2. adım yeşil tik hatası düzeltildi (6 adımlı UI, MALWARE_SCAN entegrasyonu).
 - Kurulum sonrası uygulama açılmama sorunu çözüldü: .desktop dosyası ve wrapper script eklendi, ResultDialog'da 'Aç/Launch' butonu, main_window'da kurulum sonrası başlatma sorusu.
 - Otonom tarama hedefi (50 tur, kritiksiz) tamamlandı ve 100/100 kalite skoru elde edildi.
+
+## Oturum-2, Tur 52 (FINAL) - 100/100 Kapatış ve Doğrulama
+- Modal-dialog kök nedeni bulundu ve kapatıldı: main_window._on_pipeline_finished içindeki QMessageBox.question, kullanıcının
+  onaylı kurulumu (_install_approved bayrağı) dışındaki akışlarda (queue/CLI/test) event-loop'u sonsuza dek blokluyordu.
+  Bayrak yalnızca ResultDialog "Install Anyway" onayında set edilir; prompt gösterildikten sonra sıfırlanır.
+- core/history_db.py tam i18n kapanışı: kalan 11 sabit Türkçe log satırı tr() + 13 yeni history.log_* anahtarına
+  çevrildi (lang_tr/lang_en 464'er anahtar, tam parite). Dosya sonu yeni-satır eklendi.
+- README rozetleri gerçek sayılarla eşitlendi: tests 2409→2418 collected, desktop 528→582 vitest.
+  Ölçüm: pytest --collect-only = 216 dosya / 2418 test (2412 passed + 6 skipped, EXIT=0), vitest = 51 dosya / 582 test.
+- Kalite kapıları (hepsi EXIT=0): ruff (All checks passed), mypy (310 dosya, no issues), bandit (No issues identified),
+  pytest (2412 passed, 6 skipped), vitest (582 passed), tsc (built in 555ms).
+- 50 tur kritiksiz otonom hedef tamamlandı; çalışma d503ee8 sonrası tek kapanış commit'i ile master'a teslim edildi.

@@ -285,7 +285,13 @@ def test_generate_pkgbuild_with_exec():
     out = generate_binary_pkgbuild("myapp", "1.0", "m.tgz",
                                    exec_relpath="usr/bin/myapp")
     assert 'install -d "$pkgdir/usr/bin"' in out
-    assert 'ln -sf "/opt/myapp/usr/bin/myapp" "$pkgdir/usr/bin/myapp"' in out
+    # A4: wrapper script launches the app from /opt/<name>/<exec_relpath>
+    assert 'exec /opt/myapp/usr/bin/myapp "$@"' in out
+    assert 'chmod +x "$pkgdir/usr/bin/myapp"' in out
+    # A4: .desktop file registers the app in the application menu
+    assert '[Desktop Entry]' in out
+    assert 'Name=myapp' in out
+    assert 'Exec=myapp' in out
 
 
 def test_generate_pkgbuild_desc_quotes():
