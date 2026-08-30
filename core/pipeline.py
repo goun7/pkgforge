@@ -58,6 +58,7 @@ from config import (
     create_temp_dir,
     discover_tools,
 )
+from i18n import tr
 from core import intake
 from core.compatibility_checker import (
     CheckSeverity,
@@ -309,7 +310,7 @@ class ConversionPipeline(QObject):
         """Execute the full pipeline synchronously (call from QThread)."""
         if forced_type is not None:
             self._forced_type = forced_type
-        self._log("info", f"Pipeline başlatıldı: {file_path.name}")
+        self._log("info", tr("log.pipeline.started", name=file_path.name))
         self._result = PipelineResult()
         self._result.original_file = file_path
 
@@ -915,7 +916,16 @@ class ConversionPipeline(QObject):
 
     def _wrap_binary(self, file_path: Path, ir: intake.IntakeResult,
                      meta: PackageMetadata) -> Path:
-        """Hazir binary icerigi (tarball/AppImage) Arch paketine sarar."""
+        """Hazir binary icerigi (tarball/AppImage) Arch paketine sarar.
+
+        Tarball/icerik PKGBUILD'in source listesine konur; package()
+        adiminda tar -xf ile dogrudan pkgdir/opt/<name> altina acilir.
+        Boylece tarball dosyasi pakete kopyalanmaz (dangling-symlink
+        ve elffile-in-questionable-dirs namcap hatalari onlenir) ve
+        /usr/bin baglantisinin hedefi paket icindeki ger dosyayi
+        isaret eder. AppImage rotasinda oncelikle --appimage-extract
+        ile acilir, sonra ayni sekilde tarball olarak paketlenir.
+        """
         assert self._temp_dir is not None
         if ir.file_type == intake.FileType.APPIMAGE:
             src = self._extract_appimage(file_path)
@@ -923,11 +933,16 @@ class ConversionPipeline(QObject):
             src = file_path
         names = intake._list_archive(src) or []
         entry = intake.find_binary_entrypoint(names)
+        if entry is not None:
+            # /usr/bin symlink hedefi paket icindeki dosyaya gitmeli;
+            # tarball listesinde bulunamayan bir yol dangling olmasin.
+            entry = entry.lstrip("/")
         build_dir = self._temp_dir / "build_bin"
         build_dir.mkdir(exist_ok=True)
         shutil.copy2(src, build_dir / src.name)
         content = intake.generate_binary_pkgbuild(
-            meta.name, meta.version, src.name, exec_relpath=entry)
+            meta.name, meta.version, src.name, exec_relpath=entry,
+            extract=True)
         (build_dir / "PKGBUILD").write_text(content, encoding="utf-8")
         self._log("info", "Binary PKGBUILD uretildi")
         return self._run_makepkg(build_dir)

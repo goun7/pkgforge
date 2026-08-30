@@ -59,6 +59,7 @@ def test_rclone_push_builds_remote_path(monkeypatch):
         seen["cmd"] = list(cmd)
 
     monkeypatch.setattr(SB, "_run", fake_run)
+    monkeypatch.setattr(SB.shutil, "which", lambda *_a, **_k: "/usr/bin/rclone")
     b = SB.get_backend("rclone-s3", remote="s3:kova/onetki/")
     out = b.push(b"veri", "bundle.zip")
     assert out["backend"] == "rclone-s3"
@@ -71,5 +72,6 @@ def test_rclone_pull_reads_tempfile(monkeypatch, tmp_path):
         Path(cmd[3]).write_bytes(b"uzaktan-gelen")
 
     monkeypatch.setattr(SB, "_run", fake_run)
+    monkeypatch.setattr(SB.shutil, "which", lambda *_a, **_k: "/usr/bin/rclone")
     b = SB.RcloneBackend("s3:kova")
     assert b.pull("bundle.zip") == b"uzaktan-gelen"

@@ -24,6 +24,7 @@ from ui.styles import Colors
 # Step keys for i18n
 _STEP_KEYS = [
     "step.security",
+    "step.malware",
     "step.analysis",
     "step.conversion",
     "step.compatibility",
@@ -73,6 +74,7 @@ class StepDot(QWidget):
             "pending": QColor("#555"),
             "running": QColor(Colors.BLUE),
             "done": QColor(Colors.TEAL),
+            "skipped": QColor("#5aa89a"),
             "warning": QColor(Colors.ORANGE),
             "error": QColor(Colors.RED),
         }
@@ -94,7 +96,7 @@ class StepDot(QWidget):
 
         painter.drawEllipse(int(cx - r), int(cy - r), r * 2, r * 2)
 
-        if self._status == "done":
+        if self._status in ("done", "skipped"):
             painter.setPen(QPen(Qt.GlobalColor.white, 2, cap=Qt.PenCapStyle.RoundCap, join=Qt.PenJoinStyle.RoundJoin))
             painter.drawLine(int(cx - 4), int(cy), int(cx - 1), int(cy + 3))
             painter.drawLine(int(cx - 1), int(cy + 3), int(cx + 4), int(cy - 3))
@@ -125,7 +127,7 @@ class StepConnector(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setFixedHeight(28)
-        self.setMinimumWidth(30)
+        self.setMinimumWidth(20)
         self._active = False
 
     @property
@@ -177,7 +179,7 @@ class StepProgress(QWidget):
             label = QLabel(tr(key))
             label.setObjectName("stepLabel")
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setFixedWidth(95)
+            label.setFixedWidth(80)
             step_col.addWidget(label)
 
             self._steps[i] = (dot, label)
@@ -206,7 +208,7 @@ class StepProgress(QWidget):
             style.unpolish(label)
             style.polish(label)
         for i, conn in enumerate(self._connectors):
-            conn.active = i < step_index or (i == step_index and status in ("done", "warning"))
+            conn.active = i < step_index or (i == step_index and status in ("done", "warning", "skipped"))
 
     def set_progress(self, value: int) -> None:
         self._progress_bar.setValue(min(100, max(0, value)))

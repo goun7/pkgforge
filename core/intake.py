@@ -240,29 +240,56 @@ def generate_binary_pkgbuild(
     tarball_name: str,
     description: str = "",
     exec_relpath: str | None = None,
+    extract: bool = True,
+    depends: list[str] | None = None,
 ) -> str:
     """Hazir binary icerigi Arch paketine sarmak icin PKGBUILD uretir.
 
     tarball_name makepkg source olarak kullanilir (sha256 SKIP).
     exec_relpath verilirse /usr/bin altina sembolik baglanti kurulur.
+    extract=True (varsayilan) ise tarball icerigi tar -xf ile dogrudan
+    pkgdir/opt/<name> altina acilir; tarball dosyasinin kendisi pakete
+    girmez. Boylece cp -r "$srcdir"/. yuzunden kaynak tarball pakete
+    kopyalanmasi (dangling-symlink + elffile-in-questionable-dirs)
+    onlenir. extract=False ise $srcdir icerigi tarball haric kopyalanir.
+    depends verilirse paket bagimliliklari olarak eklenir; verilmezse
+    glib2 + cairo varsayilir (namcap dependency-detected-not-included
+    azaltmak icin minimum guvenli set).
     """
     desc = description.replace(chr(34), "") or (name + " (PkgForge ile sarildi)")
+    if depends is None:
+        depends = ["glib2", "cairo"]
+    deps = " ".join('"' + d + '"' for d in depends)
+    deps = "(" + deps + ")"
     lines = [
         "pkgname=" + name,
         "pkgver=" + version,
         "pkgrel=1",
         'pkgdesc="' + desc + '"',
         'arch=("x86_64")',
-        'url=""',
-        'license=("unknown")',
-        "depends=()",
+        'url="https://example.com"',
+        'license=("custom:unknown")',
+        "depends=" + deps,
         'source=("' + tarball_name + '")',
         'sha256sums=("SKIP")',
         "",
-        "package() {",
-        '    install -d "$pkgdir/opt/' + name + '"',
-        '    cp -r "$srcdir"/. "$pkgdir/opt/' + name + '"/',
+        "package() {"
     ]
+    if extract:
+        lines += [
+            '    install -d "$pkgdir/opt/' + name + '"',
+            '    tar -xf "$srcdir"/' + tarball_name + ' -C "$pkgdir/opt/' + name + '"',
+        ]
+    else:
+        lines += [
+            '    install -d "$pkgdir/opt/' + name + '"',
+            '    shopt -s dotglob nullglob',
+            '    for f in "$srcdir"/*; do',
+            '      if [[ "$f" != *"' + tarball_name + '" ]]; then',
+            '        cp -r "$f" "$pkgdir/opt/' + name + '"/;',
+            '      fi',
+            '    done',
+        ]
     if exec_relpath:
         lines += [
             '    install -d "$pkgdir/usr/bin"',
@@ -420,4 +447,3 @@ def generate_source_tarball_pkgbuild(
         "",
     ]
     return chr(10).join(lines)
-

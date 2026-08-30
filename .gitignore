@@ -49,3 +49,17 @@ desktop/.pages.log
 desktop/.vit18.log
 desktop/.cov21.log
 desktop/.act3.log
+# AgentTeams work files
+.agent-teams/
+
+# Final test artifacts
+.final_test/
+
+# QA logs
+.qa_*.log
+
+# Other work directories
+.test_home/
+.tmp_home_*/
+.tmp_*
+.e2e_out/
