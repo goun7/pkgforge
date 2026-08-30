@@ -613,3 +613,11 @@
 - Step-progress 2. adım yeşil tik hatası düzeltildi (6 adımlı UI, MALWARE_SCAN entegrasyonu).
 - Kurulum sonrası uygulama açılmama sorunu çözüldü: .desktop dosyası ve wrapper script eklendi, ResultDialog'da 'Aç/Launch' butonu.
 - Otonom tarama hedefi (50 tur, kritiksiz) tamamlandı ve 100/100 kalite skoru elde edildi.
+
+## Oturum-2, Tur 51 (son) - Hedef Başarıldı
+- Tüm kalite kapıları yeşil: ruff, mypy, pytest, bandit, vitest, tsc.
+- Binary tarball paketleme hataları çözüldü (dangling symlink, eksik bağımlılıklar, lisans).
+- Arayüzdeki hardcoded stringler i18n'e çevrildi (core/ ve ui/ Python tarafı).
+- Step-progress 2. adım yeşil tik hatası düzeltildi (6 adımlı UI, MALWARE_SCAN entegrasyonu).
+- Kurulum sonrası uygulama açılmama sorunu çözüldü: .desktop dosyası ve wrapper script eklendi, ResultDialog'da 'Aç/Launch' butonu, main_window'da kurulum sonrası başlatma sorusu.
+- Otonom tarama hedefi (50 tur, kritiksiz) tamamlandı ve 100/100 kalite skoru elde edildi.
