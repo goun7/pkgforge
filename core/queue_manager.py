@@ -14,6 +14,8 @@ from typing import Any
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from i18n import tr
+
 log = logging.getLogger(__name__)
 
 
@@ -99,7 +101,7 @@ class QueueManager(QObject):
         for path in paths:
             if path.exists() and not any(i.file_path == path for i in self._items):
                 self._items.append(QueueItem(file_path=path))
-                log.info("Kuyruğa eklendi: %s", path.name)
+                log.info(tr("queue.kuyruga_eklendi_s"), path.name)
 
         self.queue_changed.emit(self._items)
 

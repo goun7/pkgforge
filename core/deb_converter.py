@@ -13,6 +13,7 @@ from pathlib import Path
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
 
 from config import ToolPaths
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ class DebConverter(QObject):
             raw_cmd, output_dir, self._tools, extra_ro_binds=[deb_path.parent]
         )
 
-        log.info("Debtap başlatılıyor (%s): %s %s", "sandbox" if prog == self._tools.bwrap else "direct", prog, " ".join(args))
+        log.info(tr("debconv.debtap_baslatiliyor_s_s_s"), "sandbox" if prog == self._tools.bwrap else "direct", prog, " ".join(args))
         self.output_line.emit(f"▶ debtap -Q -o {output_dir.name} {deb_path.name}")
         self._process.start(prog, args)
 

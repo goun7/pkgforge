@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from config import APP_NAME, APP_VERSION, ToolPaths
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -154,14 +155,14 @@ def create_provenance(
         try:
             prov.source_sha256 = sha256_hash(Path(prov.source_file))
         except Exception as exc:  # noqa: BLE001
-            log.debug("Kaynak SHA256 hesaplanamadı: %s", exc)
+            log.debug(tr("provenance.kaynak_sha256_hesaplanamadi_s"), exc)
 
     if not prov.output_sha256 and Path(prov.output_file).is_file():
         from core.security import sha256_hash
         try:
             prov.output_sha256 = sha256_hash(Path(prov.output_file))
         except Exception as exc:  # noqa: BLE001
-            log.debug("Çıktı SHA256 hesaplanamadı: %s", exc)
+            log.debug(tr("provenance.cikti_sha256_hesaplanamadi_s"), exc)
 
     prov.finalize()
     return prov
@@ -186,7 +187,7 @@ def load_provenance(path: Path | str) -> BuildProvenance | None:
         data = json.loads(p.read_text(encoding="utf-8"))
         return BuildProvenance(**{k: v for k, v in data.items() if k in BuildProvenance.__dataclass_fields__})
     except (json.JSONDecodeError, TypeError) as exc:
-        log.warning("Provenance yüklenemedi: %s", exc)
+        log.warning(tr("provenance.provenance_yuklenemedi_s"), exc)
         return None
 
 

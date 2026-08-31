@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def sign_package(
     if not sig_path.is_file():
         return False, "İmza dosyası oluşturulamadı"
 
-    log.info("Paket imzalandı: %s → %s", package_path.name, sig_path.name)
+    log.info(tr("signing.paket_imzalandi_s_s"), package_path.name, sig_path.name)
     return True, f"İmza oluşturuldu: {sig_path.name}"
 
 

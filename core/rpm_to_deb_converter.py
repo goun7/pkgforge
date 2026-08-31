@@ -19,6 +19,7 @@ from pathlib import Path
 
 from config import extract_package_name
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -125,5 +126,5 @@ def rpm_to_deb(
         if res.returncode != 0:
             return False, f"dpkg-deb başarısız: {res.stderr[:200]}", None
 
-        log.info("RPM → DEB dönüştürüldü: %s", output_path)
+        log.info(tr("rpm2deb.rpm_deb_donusturuldu_s"), output_path)
         return True, f"DEB paketi hazır: {output_path.name}", output_path

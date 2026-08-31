@@ -139,7 +139,7 @@ def _check_aur(name: str) -> tuple[bool, str]:
             aur_ver = pkg.get("Version", "")
             return True, aur_ver if aur_name else ""
     except Exception as exc:  # noqa: BLE001
-        log.debug("AUR kontrolü başarısız: %s", exc)
+        log.debug(tr("dep.aur_kontrolu_basarisiz_s"), exc)
 
     # Method 2: Try AUR helper
     helper = _aur_helper()
@@ -260,6 +260,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
 import re as _re
 
 from core.security import safe_run
+from i18n import tr
 
 _NEEDED_RE = _re.compile(r"NEEDED\)\s+Shared library:\s+\[([^\]]+)\]")
 _OBJDUMP_NEEDED_RE = _re.compile(r"^\s*NEEDED\s+(\S+)\s*$", _re.MULTILINE)
@@ -309,7 +310,7 @@ def collect_sonames(root_dir: Path, tools: ToolPaths, *, max_files: int = 200) -
                 res = safe_run([tools.objdump, "-p", str(path)], timeout=10)
                 sonames.update(parse_objdump_sonames(res.stdout))
         except Exception as exc:  # noqa: BLE001
-            log.debug("soname okunamadı (%s): %s", path.name, exc)
+            log.debug(tr("dep.soname_okunamadi_s_s"), path.name, exc)
     return sonames
 
 
@@ -327,7 +328,7 @@ def sonames_to_packages(sonames: set[str], tools: ToolPaths) -> list[str]:
         try:
             res = safe_run([pacman, "-Fq", soname], timeout=8)
         except Exception as exc:  # noqa: BLE001
-            log.debug("pacman -Fq başarısız %s: %s", soname, exc)
+            log.debug(tr("dep.pacman_fq_basarisiz_s_s"), soname, exc)
             continue
         if res.returncode != 0 or not res.stdout.strip():
             continue
@@ -346,8 +347,8 @@ def resolve_runtime_dependencies(root_dir: Path, tools: ToolPaths) -> list[str]:
         if not sonames:
             return []
         packages = sonames_to_packages(sonames, tools)
-        log.info("Bağımlılık çözümü: %d soname → %d Arch paketi", len(sonames), len(packages))
+        log.info(tr("dep.bagimlilik_cozumu_d_soname_d"), len(sonames), len(packages))
         return packages
     except Exception as exc:  # noqa: BLE001
-        log.warning("Bağımlılık çözümü başarısız: %s", exc)
+        log.warning(tr("dep.bagimlilik_cozumu_basarisiz_s"), exc)
         return []

@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -221,5 +222,5 @@ def appimage_to_deb(
         if res.returncode != 0:
             return False, f"dpkg-deb başarısız: {res.stderr}", None
 
-        log.info("AppImage → DEB dönüştürüldü: %s", output_path)
+        log.info(tr("appimage.appimage_deb_donusturuldu_s"), output_path)
         return True, f"DEB paketi hazır: {output_path.name}", output_path

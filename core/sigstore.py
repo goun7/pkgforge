@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -115,11 +116,11 @@ def sign_with_sigstore(
                 sigstore_result.log_index = line.strip()
                 break
 
-        log.info("Sigstore imzalama başarılı: %s", file_path.name)
+        log.info(tr("sigstore.sigstore_imzalama_basarili_s"), file_path.name)
         return sigstore_result
     else:
         stderr = result.stderr if isinstance(result.stderr, str) else result.stderr.decode("utf-8", errors="replace")
-        log.warning("Sigstore imzalama başarısız: %s", stderr[:200])
+        log.warning(tr("sigstore.sigstore_imzalama_basarisiz_s"), stderr[:200])
         return SigstoreResult(success=False, message=f"İmzalama başarısız: {stderr[:200]}")
 
 
@@ -173,11 +174,11 @@ def verify_with_sigstore(
 
     cmd.append(str(file_path))
 
-    log.info("Sigstore doğrulama: %s", file_path.name)
+    log.info(tr("sigstore.sigstore_dogrulama_s"), file_path.name)
     result = safe_run(cmd, timeout=60)
 
     if result.returncode == 0:
-        log.info("Sigstore doğrulama başarılı: %s", file_path.name)
+        log.info(tr("sigstore.sigstore_dogrulama_basarili_s"), file_path.name)
         return SigstoreResult(
             success=True,
             message=f"Doğrulama başarılı: {file_path.name}",
@@ -185,7 +186,7 @@ def verify_with_sigstore(
         )
     else:
         stderr = result.stderr if isinstance(result.stderr, str) else result.stderr.decode("utf-8", errors="replace")
-        log.warning("Sigstore doğrulama başarısız: %s", stderr[:200])
+        log.warning(tr("sigstore.sigstore_dogrulama_basarisiz_s"), stderr[:200])
         return SigstoreResult(success=False, message=f"Doğrulama başarısız: {stderr[:200]}")
 
 

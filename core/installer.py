@@ -14,6 +14,7 @@ from PyQt6.QtCore import QObject, QProcess, pyqtSignal
 
 from config import ToolPaths
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class Installer(QObject):
                 else:
                     self._snapshot_name = ""
             except Exception as exc:  # noqa: BLE001
-                log.debug("Snapshot temizleme başarısız: %s", exc)
+                log.debug(tr("installer.snapshot_temizleme_basarisiz_s"), exc)
                 self._snapshot_name = ""
         else:
             self._snapshot_name = ""

@@ -7,6 +7,7 @@ QThread, emitting signals for UI progress updates.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import shutil
@@ -146,6 +147,18 @@ class PipelineResult:
         self.sha256: str = ""
         self.size_warning: str = ""
         self.original_file: Path | None = None
+
+
+def _sha256_of(path: Path) -> str:
+    """Tarball'in sha256 ozetini hesaplar; yoksa SKIP dondurur."""
+    try:
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except (OSError, ValueError):
+        return "SKIP"
 
 
 class ConversionPipeline(QObject):
@@ -339,7 +352,7 @@ class ConversionPipeline(QObject):
                 details=self._result.message,
             )
         except Exception as exc:  # noqa: BLE001
-            log.warning("Geçmiş kaydı tutulamadı: %s", exc)
+            log.warning(tr("pipeline.gecmis_kaydi_tutulamadi_s"), exc)
 
 
     def _stage_security(self, file_path: Path, is_deb: bool) -> None:
@@ -496,7 +509,7 @@ class ConversionPipeline(QObject):
                 elif aur_res.status == "not_found":
                     self._log("info", "Paket AUR'da bulunamadı, özel dönüşüm yapılıyor")
             except Exception as exc:  # noqa: BLE001
-                log.warning("AUR kontrolü atlandı: %s", exc)
+                log.warning(tr("pipeline.aur_kontrolu_atlandi_s"), exc)
                 self._log("warning", f"AUR kontrolü yapılamadı: {exc}")
 
         self._set_step(PipelineStep.ANALYSIS, "done")
@@ -873,7 +886,9 @@ class ConversionPipeline(QObject):
         shutil.copy2(file_path, build_dir / file_path.name)
         content = intake.generate_source_tarball_pkgbuild(
             meta.name, version, file_path.name, top, system,
-            license_id=license_id, binary_name=binary_name)
+            license_id=license_id, binary_name=binary_name,
+            url=getattr(meta, "url", ""),
+            sha256=_sha256_of(build_dir / file_path.name))
         (build_dir / "PKGBUILD").write_text(content, encoding="utf-8")
         self._log("info", "Kaynak PKGBUILD uretildi (" + system + ")")
         return self._run_makepkg(build_dir)
@@ -942,7 +957,7 @@ class ConversionPipeline(QObject):
         shutil.copy2(src, build_dir / src.name)
         content = intake.generate_binary_pkgbuild(
             meta.name, meta.version, src.name, exec_relpath=entry,
-            extract=True)
+            extract=True, url=getattr(meta, "url", ""))
         (build_dir / "PKGBUILD").write_text(content, encoding="utf-8")
         self._log("info", "Binary PKGBUILD uretildi")
         return self._run_makepkg(build_dir)

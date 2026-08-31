@@ -71,7 +71,7 @@ jobs:
       - name: Security Scan (Bandit)
         run: |
           pip install bandit
-          bandit -r core/ -ll --skip B101,B311 || true
+          bandit -r core/ -ll --skip B101,B311
 
   # Strict coverage gate mirroring the local discipline (core+ui+i18n @ 100%).
   # Pinned to 3.12 where PyQt6 wheels are reliably available; the matrix above

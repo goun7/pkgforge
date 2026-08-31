@@ -13,6 +13,7 @@ import urllib.parse
 import urllib.request
 
 from config import APP_VERSION
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -39,10 +40,10 @@ def _query_osv(dep_name: str, timeout: int = 10) -> list[dict]:
             data = json.loads(resp.read().decode("utf-8"))
         return data.get("vulns", [])
     except urllib.error.URLError as exc:
-        log.warning("OSV sorgusu başarısız (%s): %s", dep_name, exc)
+        log.warning(tr("cve.osv_sorgusu_basarisiz_s_s"), dep_name, exc)
         raise
     except (json.JSONDecodeError, KeyError) as exc:
-        log.warning("OSV yanıtı ayrıştırılamadı (%s): %s", dep_name, exc)
+        log.warning(tr("cve.osv_yaniti_ayristirilamadi_s_s"), dep_name, exc)
         return []
 
 
@@ -71,7 +72,7 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
         return result
 
     if offline:
-        log.info("Çevrimdışı mod — CVE taraması atlandı")
+        log.info(tr("cve.cevrimdisi_mod_cve_taramasi_atlandi"))
         result["offline"] = True
         return result
 
@@ -108,7 +109,7 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
 
     result["vulns"] = vulns
     result["count"] = len(vulns)
-    log.info("CVE taraması: %d bağımlılık → %d açık", len(clean), len(vulns))
+    log.info(tr("cve.cve_taramasi_d_bagimlilik_d"), len(clean), len(vulns))
     return result
 
 

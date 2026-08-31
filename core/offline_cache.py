@@ -24,6 +24,8 @@ import os
 import time
 from pathlib import Path
 
+from i18n import tr
+
 log = logging.getLogger(__name__)
 
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "pkgforge" / "offline"
@@ -106,7 +108,7 @@ class OfflineCache:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 os.replace(tmp_path, str(path))  # Atomic rename
             except Exception as exc:
-                log.warning("Cache yazma başarısız: %s", exc)
+                log.warning(tr("offline.cache_yazma_basarisiz_s"), exc)
                 # Clean up temp file on failure
                 try:
                     os.unlink(tmp_path)

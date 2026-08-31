@@ -6,13 +6,16 @@ option, and Approve/Cancel actions.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+import shutil
+
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+from PyQt6.QtGui import QDesktopServices, QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -32,10 +35,12 @@ class ResultDialog(QDialog):
     Signals:
         install_approved()       – user chose to install.
         distrobox_requested()    – user chose distrobox fallback.
+        launch_requested(str)    – user asked to launch the installed app.
     """
 
     install_approved = pyqtSignal()
     distrobox_requested = pyqtSignal()
+    launch_requested = pyqtSignal(str)
 
     def __init__(
         self,
@@ -172,8 +177,15 @@ class ResultDialog(QDialog):
 
         if self._read_only:
             # Reopened after the pipeline finished: the converted package was
-            # already cleaned up, so there is nothing to install. Show only
-            # Close to avoid a dead Install button.
+            # already cleaned up, so there is nothing to install. Offer Close,
+            # plus Launch when the package's executable is actually on PATH —
+            # after a real install the user usually wants to try the app.
+            if self._launch_path():
+                launch_btn = QPushButton(tr("result.launch_btn"))
+                launch_btn.setObjectName("primaryBtn")
+                launch_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                launch_btn.clicked.connect(self._on_launch)
+                btn_layout.addWidget(launch_btn)
             close_btn = QPushButton(tr("btn.close"))
             close_btn.clicked.connect(self.reject)
             btn_layout.addWidget(close_btn)
@@ -207,6 +219,25 @@ class ResultDialog(QDialog):
     def _on_distrobox(self) -> None:
         self.distrobox_requested.emit()
         self.accept()
+
+    def _launch_path(self) -> str:
+        """Return the installed executable's path, or '' if not found."""
+        name = self._metadata.name if self._metadata else ""
+        if not name:
+            return ""
+        return shutil.which(name) or ""
+
+    def _on_launch(self) -> None:
+        """Open the installed app via the desktop portal."""
+        name = self._metadata.name if self._metadata else ""
+        path = self._launch_path()
+        if path and QDesktopServices.openUrl(QUrl.fromLocalFile(path)):
+            self.launch_requested.emit(path)
+            return
+        QMessageBox.warning(
+            self, tr("result.launch_failed_title"),
+            tr("result.launch_failed", name=name),
+        )
 
     def _on_export_report(self) -> None:
         """Save the compatibility report as a JSON file."""

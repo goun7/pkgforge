@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -103,12 +104,12 @@ def export_app_files(
         timeout=10,
     )
     if res.returncode != 0:
-        log.warning("Flatpak app bulunamadı: %s//%s", app_id, branch)
+        log.warning(tr("flatpak.flatpak_app_bulunamadi_s_s"), app_id, branch)
         return False
 
     app_path = Path(res.stdout.strip())
     if not app_path.is_dir():
-        log.warning("Flatpak app yolu bulunamadı: %s", app_path)
+        log.warning(tr("flatpak.flatpak_app_yolu_bulunamadi_s"), app_path)
         return False
 
     # Copy the app files to the export directory
@@ -122,7 +123,7 @@ def export_app_files(
         # Fallback: copy everything
         shutil.copytree(app_path, export_dir / "opt" / app_id, dirs_exist_ok=True)
 
-    log.info("Flatpak dosyaları dışa aktarıldı: %s → %s", app_id, export_dir)
+    log.info(tr("flatpak.flatpak_dosyalari_disa_aktarildi_s"), app_id, export_dir)
     return True
 
 
@@ -193,7 +194,7 @@ def create_deb_package(
         if res.returncode != 0:
             return False, f"dpkg-deb başarısız: {res.stderr}"
 
-        log.info("DEB paketi oluşturuldu: %s", output_path)
+        log.info(tr("flatpak.deb_paketi_olusturuldu_s"), output_path)
         return True, f"DEB paketi hazır: {output_path.name}"
 
 

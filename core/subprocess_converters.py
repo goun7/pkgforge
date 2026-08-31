@@ -20,6 +20,7 @@ from pathlib import Path
 
 from config import ToolPaths
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class Signal:
             try:
                 cb(*args)
             except Exception as exc:  # noqa: BLE001
-                log.debug("Callback çalıştırılamadı: %s", exc)
+                log.debug(tr("subconv.callback_calistirilamadi_s"), exc)
 
 
 # ── Native DEB Converter (subprocess) ──────────────────────────
@@ -117,7 +118,7 @@ class NativeDebConverterSubprocess:
             self._run_makepkg(build_dir, output_dir)
 
         except Exception as exc:  # noqa: BLE001
-            log.error("Native DEB dönüşüm hatası: %s", exc)
+            log.error(tr("subconv.native_deb_donusum_hatasi_s"), exc)
             self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
 
     def _extract_data_tar(self, deb_path: Path, dest_dir: Path):

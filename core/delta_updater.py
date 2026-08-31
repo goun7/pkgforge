@@ -16,6 +16,7 @@ from pathlib import Path
 
 from config import extract_package_name
 from core.security import safe_run, sha256_hash
+from i18n import tr
 
 # NOT: Fonksiyonlar safe_run'a çağrı anında 'from core.security import
 # safe_run as _safe_run' ile ulaşır — BİLİNÇLİ geç bağlama. Testler
@@ -42,7 +43,7 @@ def create_delta(old_file: Path, new_file: Path, delta_file: Path) -> bool:
         True if delta was created successfully.
     """
     if not is_xdelta3_available():
-        log.warning("xdelta3 bulunamadı — delta oluşturulamıyor")
+        log.warning(tr("delta.xdelta3_bulunamadi_delta_olusturulamiyor"))
         return False
 
     if not old_file.is_file() or not new_file.is_file():
@@ -54,7 +55,7 @@ def create_delta(old_file: Path, new_file: Path, delta_file: Path) -> bool:
     )
 
     if res.returncode != 0:
-        log.warning("xdelta3 delta oluşturma başarısız (kod %d): %s",
+        log.warning(tr("delta.xdelta3_delta_olusturma_basarisiz_kod"),
                     res.returncode, res.stderr[:200])
         return False
 
@@ -62,7 +63,7 @@ def create_delta(old_file: Path, new_file: Path, delta_file: Path) -> bool:
     delta_size = delta_file.stat().st_size
     ratio = (1 - delta_size / new_size) * 100 if new_size > 0 else 0
 
-    log.info("Delta oluşturuldu: %s → %s (%d bayt, %.0f%% tasarruf)",
+    log.info(tr("delta.delta_olusturuldu_s_s_d"),
              old_file.name, delta_file.name, delta_size, ratio)
     return True
 
@@ -102,7 +103,7 @@ def apply_delta(
     )
 
     if res.returncode != 0:
-        log.warning("xdelta3 delta uygulama başarısız (kod %d): %s",
+        log.warning(tr("delta.xdelta3_delta_uygulama_basarisiz_kod"),
                     res.returncode, res.stderr[:200])
         return False
 
@@ -116,7 +117,7 @@ def apply_delta(
             output_file.unlink(missing_ok=True)
             return False
 
-    log.info("Delta uygulandı: %s + %s → %s",
+    log.info(tr("delta.delta_uygulandi_s_s_s"),
              old_file.name, delta_file.name, output_file.name)
     return True
 
@@ -195,7 +196,7 @@ def download_with_delta(
             # If we got here, delta was downloaded
             if apply_delta(old_file, delta_file, dest_file,
                            expected_sha256=expected_sha256):
-                log.info("Delta indirme başarılı: %s", dest_file.name)
+                log.info(tr("delta.delta_indirme_basarili_s"), dest_file.name)
                 return dest_file, True
         except Exception as exc:  # noqa: BLE001
             log.info("Delta indirilemedi, tam dosya indiriliyor: %s (%s)", url, exc)
@@ -542,7 +543,7 @@ def notify_update_available(packages: list[str]) -> bool:
             [notify_send, "--urgency=normal", "PkgForge Güncelleme", message],
             timeout=5,
         )
-        log.info("Desktop notification gönderildi: %d paket", len(packages))
+        log.info(tr("delta.desktop_notification_gonderildi_d_paket"), len(packages))
         return True
 
     # Fallback: stdout

@@ -15,6 +15,7 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 from config import ToolPaths
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -225,7 +226,7 @@ def check_compression_bomb(
                         pass
 
     except Exception as exc:  # noqa: BLE001
-        log.debug("Decompression bomb kontrolü başarısız: %s", exc)
+        log.debug(tr("security.decompression_bomb_kontrolu_basarisiz_s"), exc)
 
     return None
 
@@ -573,7 +574,7 @@ def run_sandboxed(
         log.info("Sandbox cmd: %s %s ...", program, " ".join(args[:8]))
         return subprocess.run([program] + args, capture_output=True, text=True, timeout=timeout, check=False)
     else:
-        log.warning("bubblewrap bulunamadı, sandbox'sız çalıştırılıyor")
+        log.warning(tr("security.bubblewrap_bulunamadi_sandbox_siz_calist"))
         return subprocess.run(cmd, capture_output=True, text=True, cwd=str(work_dir), timeout=timeout, check=False)
 
 

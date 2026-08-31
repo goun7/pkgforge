@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- **feat(ui)**: ResultDialog'a "🚀 Uygulamayı Aç" (Launch) butonu — read-only
+  diyalogta çalıştırılabilir paket uygulamaları tek tıkla açılır
+  (QDesktopServices; launch_requested sinyali; başarısızlıkta uyarı + tr/en).
+- **test(i18n)**: anahtar-parite kilidi — lang_tr/lang_en anahtar kümeleri
+  ve değer doluluğu her test koşusunda doğrulanır (5 test).
+
+### Changed
+- **refactor(i18n)**: core/ içindeki 78 kullanıcı-yönelimli Türkçe log mesajı
+  (34 dosya) tr() anahtarlarına taşındı; lang_tr/lang_en 545'er anahtar.
+- **fix(ci)**: bandit adımındaki `|| true` kaldırıldı — güvenlik kapısı artık gerçek.
+- **fix(packaging)**: üretilen PKGBUILD'ler url=/license=/sha256sums= yer
+  tutucularını üstveriden alır (url="unknown", sha256="SKIP" yalnız üstveri
+  yoksa); kaynak tarball'ı gerçek sha256 ile beslenir.
+- **docs**: README coverage rozeti 100% → 99% (ölçülen gerçek değer);
+  test sayısı 2428 collected'a güncellendi; progress.md'deki Tur-47..51
+  Launch iddiaları dürüst düzeltme kayıtlarıyla netleştirildi.
+
 ### Fixed
 - **fix(ux)**: sudo/pkexec bombardımanı — delta/snapshot kurulumları tek işlemde
   4-5 ayrı parola diyalogu açıyordu. Yeni `write-batch` helper alt-komutu tüm

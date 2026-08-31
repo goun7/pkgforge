@@ -24,6 +24,7 @@ from core.security import (
     check_symlink_attacks,
     safe_run,
 )
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ class NativeDebConverter(QObject):
             self._run_makepkg(build_dir)
 
         except Exception as exc:  # noqa: BLE001
-            log.error("Native DEB dönüşüm hatası: %s", exc)
+            log.error(tr("nativedeb.native_deb_donusum_hatasi_s"), exc)
             self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
 
     def cancel(self) -> None:

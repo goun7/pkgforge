@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from config import APP_VERSION
 from core.history_db import HistoryDB, HistoryRecord
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
             )
 
     except urllib.error.URLError as exc:
-        log.warning("Upstream sorgusu başarısız (%s): %s", record.package_name, exc)
+        log.warning(tr("upstream.upstream_sorgusu_basarisiz_s_s"), record.package_name, exc)
         return UpdateCheckResult(
             package_name=record.package_name,
             source_url=record.source_url,

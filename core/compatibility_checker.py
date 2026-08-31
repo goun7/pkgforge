@@ -17,6 +17,7 @@ from pathlib import Path
 from config import ToolPaths
 from core.dep_resolver import parse_needed_sonames, parse_objdump_sonames
 from core.security import is_valid_package_name, safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ def run_compatibility_checks(
         report.checks.append(so_result)
 
     log.info(
-        "Uyumluluk raporu: %d kontrol, %d hata, %d uyarı",
+        tr("compat.uyumluluk_raporu_d_kontrol_d"),
         len(report.checks),
         len(report.errors),
         len(report.warnings),
@@ -504,7 +505,7 @@ def _system_lib_sonames() -> set[str]:
     try:
         result = safe_run([ldconfig_bin, "-p"], timeout=10)
     except Exception as exc:  # noqa: BLE001
-        log.debug("ldconfig sorgulanamadı: %s", exc)
+        log.debug(tr("compat.ldconfig_sorgulanamadi_s"), exc)
         return set()
 
     sonames: set[str] = set()
@@ -527,7 +528,7 @@ def _elf_max_glibc(elf_path: Path, tools: ToolPaths) -> str:
     try:
         res = safe_run([tools.readelf, "--version-info", str(elf_path)], timeout=10)
     except Exception as exc:  # noqa: BLE001
-        log.debug("readelf version bilgisi alınamadı: %s", exc)
+        log.debug(tr("compat.readelf_version_bilgisi_alinamadi_s"), exc)
         return ""
     versions = re.findall(r"GLIBC_(\d+\.\d+(\.\d+)?)", res.stdout)
     if not versions:
@@ -550,7 +551,7 @@ def _get_system_glibc(tools: ToolPaths) -> str:
             if match:
                 return match.group(1)
     except Exception as exc:  # noqa: BLE001
-        log.debug("ABI version regex başarısız: %s", exc)
+        log.debug(tr("compat.abi_version_regex_basarisiz_s"), exc)
     return ""
 
 

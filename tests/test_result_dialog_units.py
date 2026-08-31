@@ -216,3 +216,75 @@ def test_details_toggle_roundtrip(app):
     btn.click()   # kapanir -> ▶
     assert btn.text().startswith("▶")
     d.deleteLater()
+
+
+# --- Launch dugmesi: kurulum sonrasi uygulamayi ac (read_only yeniden acilis) ----
+
+def test_launch_button_hidden_when_executable_not_found(app, monkeypatch):
+    import ui.result_dialog as RD
+    monkeypatch.setattr(RD, "shutil", NS(which=lambda _n: None))
+    d = ResultDialog(_report(), metadata=_meta(), read_only=True)
+    metinler = [b.text() for b in d.findChildren(QPushButton)]
+    from i18n import tr
+    assert tr("result.launch_btn") not in metinler
+    d.deleteLater()
+
+
+def test_launch_button_visible_and_opens_app(app, monkeypatch):
+    import ui.result_dialog as RD
+    # which() /usr/bin/demo dondurur -> dugme gorunur ve tiklanabilir
+    monkeypatch.setattr(RD.shutil, "which", lambda _n: "/usr/bin/demo")
+    acilan = []
+    monkeypatch.setattr("PyQt6.QtGui.QDesktopServices.openUrl",
+                        lambda url: acilan.append(url) or True)
+    d = ResultDialog(_report(), metadata=_meta(), read_only=True)
+    from i18n import tr
+    kur = next(b for b in d.findChildren(QPushButton)
+               if b.text() == tr("result.launch_btn"))
+    kur.click()
+    assert len(acilan) == 1
+    assert acilan[0].toLocalFile() == "/usr/bin/demo"
+    d.deleteLater()
+
+
+def test_launch_button_signal_emitted(app, monkeypatch):
+    import ui.result_dialog as RD
+    from i18n import tr
+    monkeypatch.setattr(RD.shutil, "which", lambda _n: "/usr/bin/demo")
+    monkeypatch.setattr("PyQt6.QtGui.QDesktopServices.openUrl",
+                        lambda _url: True)
+    d = ResultDialog(_report(), metadata=_meta(), read_only=True)
+    istekler = []
+    d.launch_requested.connect(lambda p: istekler.append(p))
+    kur = next(b for b in d.findChildren(QPushButton)
+               if b.text() == tr("result.launch_btn"))
+    kur.click()
+    assert istekler == ["/usr/bin/demo"]
+    d.deleteLater()
+
+
+def test_launch_button_openurl_failure_shows_warning(app, monkeypatch):
+    import ui.result_dialog as RD
+    from i18n import tr
+    monkeypatch.setattr(RD.shutil, "which", lambda _n: "/usr/bin/demo")
+    monkeypatch.setattr("PyQt6.QtGui.QDesktopServices.openUrl",
+                        lambda _url: False)
+    uyarilar = []
+    monkeypatch.setattr(RD.QMessageBox, "warning",
+                        lambda _p, _t, _m: uyarilar.append(_m) or None)
+    d = ResultDialog(_report(), metadata=_meta(), read_only=True)
+    kur = next(b for b in d.findChildren(QPushButton)
+               if b.text() == tr("result.launch_btn"))
+    kur.click()
+    assert uyarilar
+    d.deleteLater()
+
+
+def test_launch_button_absent_in_readwrite_dialog(app, monkeypatch):
+    import ui.result_dialog as RD
+    monkeypatch.setattr(RD.shutil, "which", lambda _n: "/usr/bin/demo")
+    d = ResultDialog(_report(), metadata=_meta(), read_only=False)
+    from i18n import tr
+    metinler = [b.text() for b in d.findChildren(QPushButton)]
+    assert tr("result.launch_btn") not in metinler
+    d.deleteLater()

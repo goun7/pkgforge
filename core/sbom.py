@@ -23,6 +23,7 @@ from pathlib import Path
 
 from config import APP_NAME, APP_VERSION, ToolPaths, extract_package_name
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ def _read_pkginfo(pkg_path: Path) -> dict[str, str]:
                     key, val = line.split(" = ", 1)
                     info[key.strip()] = val.strip()
     except Exception as exc:  # noqa: BLE001
-        log.debug("PKGINFO okunamadı: %s", exc)
+        log.debug(tr("sbom.pkginfo_okunamadi_s"), exc)
     return info
 
 
@@ -177,7 +178,7 @@ def _collect_tar_files(
         timeout=30,
     )
     if res.returncode != 0:
-        log.warning("SBOM: tar listing başarısız: %s", res.stderr[:200])
+        log.warning(tr("sbom.sbom_tar_listing_basarisiz_s"), res.stderr[:200])
         return False
 
     total_size = 0
@@ -214,7 +215,7 @@ def _collect_tar_files(
                 if inner.returncode == 0 and inner.stdout:
                     sha = hashlib.sha256(inner.stdout.encode("utf-8", errors="replace")).hexdigest()
             except Exception as exc:  # noqa: BLE001
-                log.debug("SHA hesaplama başarısız: %s", exc)
+                log.debug(tr("sbom.sha_hesaplama_basarisiz_s"), exc)
 
         sbom.files.append(SBOMEntry(
             path=entry_path,
@@ -244,14 +245,14 @@ def _fill_runtime_deps(sbom: SBOMDocument, tools: ToolPaths, *, offline: bool) -
     cevrimdisi/aracsiz cagrilarda yuklenmemesi tercih edilir.
     """
     if offline:
-        log.debug("Çevrimdışı mod — bağımlılık çözümleme atlandı")
+        log.debug(tr("sbom.cevrimdisi_mod_bagimlilik_cozumleme_atla"))
         return
     try:
         from core.dep_resolver import resolve_runtime_dependencies
         deps = resolve_runtime_dependencies(Path("/"), tools)
         sbom.dependencies = deps
     except Exception as exc:  # noqa: BLE001
-        log.debug("Bağımlılık çözümleme başarısız: %s", exc)
+        log.debug(tr("sbom.bagimlilik_cozumleme_basarisiz_s"), exc)
 
 
 def generate_sbom(
@@ -287,7 +288,7 @@ def generate_sbom(
         if _collect_tar_files(sbom, pkg_path, bsdtar, include_hashes=include_hashes):
             _summarize_file_counts(sbom)
     except Exception as exc:  # noqa: BLE001
-        log.warning("SBOM oluşturma başarısız: %s", exc)
+        log.warning(tr("sbom.sbom_olusturma_basarisiz_s"), exc)
 
     _fill_runtime_deps(sbom, tools, offline=offline)
 

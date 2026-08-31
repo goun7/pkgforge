@@ -24,6 +24,7 @@ from pathlib import Path
 
 from core.privileged import privileged_systemctl_argv, privileged_write_argv
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -176,7 +177,7 @@ def _take_btrfs_snapshot(snap_name: str) -> SnapshotInfo:
     )
 
     if res.returncode == 0:
-        log.info("Btrfs snapshot oluşturuldu: %s", snap_path)
+        log.info(tr("snapshot.btrfs_snapshot_olusturuldu_s"), snap_path)
         return SnapshotInfo(
             backend="btrfs",
             snapshot_name=snap_path,
@@ -185,7 +186,7 @@ def _take_btrfs_snapshot(snap_name: str) -> SnapshotInfo:
             detail=f"Btrfs snapshot hazır: {snap_path}",
         )
     else:
-        log.warning("Btrfs snapshot başarısız: %s", res.stderr[:200])
+        log.warning(tr("snapshot.btrfs_snapshot_basarisiz_s"), res.stderr[:200])
         return SnapshotInfo(
             backend="btrfs",
             snapshot_name="",
@@ -306,7 +307,7 @@ def _list_btrfs_snapshots() -> list[dict[str, str]]:
                             "backend": "btrfs",
                         })
     except Exception as exc:  # noqa: BLE001
-        log.debug("Btrfs snapshot listesi alınamadı: %s", exc)
+        log.debug(tr("snapshot.btrfs_snapshot_listesi_alinamadi_s"), exc)
     return snapshots
 
 
@@ -339,7 +340,7 @@ def _take_zfs_snapshot(snap_name: str) -> SnapshotInfo:
     res = safe_run(["zfs", "snapshot", snap_full], timeout=60)
 
     if res.returncode == 0:
-        log.info("ZFS snapshot oluşturuldu: %s", snap_full)
+        log.info(tr("snapshot.zfs_snapshot_olusturuldu_s"), snap_full)
         return SnapshotInfo(
             backend="zfs",
             snapshot_name=snap_full,

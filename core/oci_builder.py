@@ -17,6 +17,7 @@ from pathlib import Path
 
 from config import ToolPaths, extract_package_name
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -138,7 +139,7 @@ def _build_with_buildah(
             _cleanup_container(buildah, container_name)
             safe_run([buildah, "rmi", tag], timeout=30)
 
-            log.info("OCI görüntü oluşturuldu: %s (%s)", output_file.name, tag)
+            log.info(tr("oci.oci_goruntu_olusturuldu_s_s"), output_file.name, tag)
             return True, f"OCI görüntü hazır: {output_file.name} ({tag})", output_file
 
         except Exception as exc:  # noqa: BLE001
@@ -190,7 +191,7 @@ def _build_with_podman(
             # Cleanup
             safe_run([podman, "rmi", tag], timeout=30)
 
-            log.info("OCI görüntü oluşturuldu: %s (%s)", output_file.name, tag)
+            log.info(tr("oci.oci_goruntu_olusturuldu_s_s_2"), output_file.name, tag)
             return True, f"OCI görüntü hazır: {output_file.name} ({tag})", output_file
 
         except Exception as exc:  # noqa: BLE001

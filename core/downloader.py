@@ -12,6 +12,7 @@ import urllib.request
 from pathlib import Path
 
 from config import APP_VERSION, MAX_PACKAGE_SIZE_MB, create_temp_dir
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -100,7 +101,7 @@ def _verify_download_sha256(dest_file: Path, expected_sha256: str) -> None:
             f"SHA-256 doğrulaması başarısız: beklenen {expected_sha256.strip()[:16]}…, "
             f"gerçek {actual[:16]}…"
         )
-    log.info("SHA-256 doğrulandı: %s", actual[:16])
+    log.info(tr("downloader.sha_256_dogrulandi_s"), actual[:16])
 
 
 def download_package(
@@ -177,12 +178,12 @@ def download_package(
     try:
         retry_with_backoff(_do_download, config=retry_config, operation_name=f"download({filename})")
     except Exception as exc:  # noqa: BLE001
-        log.error("İndirme başarısız (3 deneme): %s", exc)
+        log.error(tr("downloader.i_ndirme_basarisiz_3_deneme"), exc)
         raise RuntimeError(f"İndirme başarısız: {exc}")
 
     # Optional integrity verification against a known SHA-256
     if expected_sha256:
         _verify_download_sha256(dest_file, expected_sha256)
 
-    log.info("İndirme tamamlandı: %s (%d bayt)", dest_file.name, downloaded_bytes)
+    log.info(tr("downloader.i_ndirme_tamamlandi_s_d"), dest_file.name, downloaded_bytes)
     return dest_file

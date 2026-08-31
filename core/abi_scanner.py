@@ -26,6 +26,7 @@ from pathlib import Path
 
 from core.constants import TIMEOUT_FAST, TIMEOUT_MEDIUM, TIMEOUT_SLOW
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -336,7 +337,7 @@ def _run_namcap(pkg_path: Path) -> list[NamcapResult]:
             ))
 
     except (subprocess.TimeoutExpired, OSError) as exc:
-        log.debug("Namcap çalışamadı: %s", exc)
+        log.debug(tr("abi.namcap_calisamadi_s"), exc)
 
     return results
 

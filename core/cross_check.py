@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from core.aur_checker import _version_compare, check_aur
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -99,6 +100,6 @@ def _query_flatpak_version(package_name: str) -> str:
                     if package_name.lower() in name_id and version:
                         return version
     except Exception as exc:  # noqa: BLE001
-        log.warning("Flatpak sorgusu başarısız: %s", exc)
+        log.warning(tr("cross.flatpak_sorgusu_basarisiz_s"), exc)
 
     return ""

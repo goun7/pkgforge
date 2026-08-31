@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 PackageType = Literal["deb", "rpm"]
 
 from core.constants import MAX_PIPE_INPUT_MB
+from i18n import tr
 
 
 @dataclass
@@ -153,7 +154,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     # Check existing installation
     _check_installed(meta, tools)
 
-    log.info("DEB analizi tamamlandı: %s %s (%s)", meta.name, meta.version, meta.arch_mapped)
+    log.info(tr("analyzer.deb_analizi_tamamlandi_s_s"), meta.name, meta.version, meta.arch_mapped)
     return meta
 
 
@@ -284,7 +285,7 @@ def _analyze_rpm(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     # Check existing installation
     _check_installed(meta, tools)
 
-    log.info("RPM analizi tamamlandı: %s %s (%s)", meta.name, meta.version, meta.arch_mapped)
+    log.info(tr("analyzer.rpm_analizi_tamamlandi_s_s"), meta.name, meta.version, meta.arch_mapped)
     return meta
 
 
@@ -362,7 +363,7 @@ def _check_installed(meta: PackageMetadata, tools: ToolPaths) -> None:
     """
     from core.security import is_valid_package_name
     if not is_valid_package_name(meta.name):
-        log.warning("Geçersiz paket adı, kurulum kontrolü atlandı: %r", meta.name)
+        log.warning(tr("analyzer.gecersiz_paket_adi_kurulum_kontrolu"), meta.name)
         return
 
     result = safe_run([tools.pacman, "-Qi", meta.name], timeout=10)

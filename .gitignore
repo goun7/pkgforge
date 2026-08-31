@@ -63,3 +63,6 @@ desktop/.act3.log
 .tmp_home_*/
 .tmp_*
 .e2e_out/
+
+# Spec work / scratch area for planning and batch artifacts
+.spec-work/

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from config import APP_VERSION, AUR_RPC_URL, AUR_SEARCH_URL
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def check_aur(package_name: str, local_version: str = "", offline: bool = False)
         return AurResult(status="error", detail="Boş paket adı")
 
     if offline:
-        log.info("Çevrimdışı mod — AUR kontrolü atlandı: %s", package_name)
+        log.info(tr("aur_check.cevrimdisi_mod_aur_kontrolu_atlandi"), package_name)
         return AurResult(status="error", detail="Çevrimdışı mod — ağ erişimi yok")
 
     try:
@@ -83,10 +84,10 @@ def check_aur(package_name: str, local_version: str = "", offline: bool = False)
         return result
 
     except urllib.error.URLError as exc:
-        log.warning("AUR sorgusu başarısız: %s", exc)
+        log.warning(tr("aur_check.aur_sorgusu_basarisiz_s"), exc)
         return AurResult(status="error", detail=str(exc))
     except (json.JSONDecodeError, KeyError, IndexError) as exc:
-        log.warning("AUR yanıtı ayrıştırılamadı: %s", exc)
+        log.warning(tr("aur_check.aur_yaniti_ayristirilamadi_s"), exc)
         return AurResult(status="error", detail=str(exc))
 
 
@@ -104,7 +105,7 @@ def search_aur(query: str, limit: int = 25, offline: bool = False) -> list[dict]
     if not query or not query.strip():
         return []
     if offline:
-        log.info("Çevrimdışı mod — AUR araması atlandı: %s", query)
+        log.info(tr("aur_check.cevrimdisi_mod_aur_aramasi_atlandi"), query)
         return []
 
     try:
@@ -126,14 +127,14 @@ def search_aur(query: str, limit: int = 25, offline: bool = False) -> list[dict]
             })
         # Most-voted first for relevance.
         results.sort(key=lambda r: r["num_votes"], reverse=True)
-        log.info("AUR arama: %r → %d sonuç", query, len(results))
+        log.info(tr("aur_check.aur_arama_r_d_sonuc"), query, len(results))
         return results
 
     except urllib.error.URLError as exc:
-        log.warning("AUR araması başarısız: %s", exc)
+        log.warning(tr("aur_check.aur_aramasi_basarisiz_s"), exc)
         return []
     except (json.JSONDecodeError, KeyError, ValueError) as exc:
-        log.warning("AUR arama yanıtı ayrıştırılamadı: %s", exc)
+        log.warning(tr("aur_check.aur_arama_yaniti_ayristirilamadi_s"), exc)
         return []
 
 
@@ -155,7 +156,7 @@ def _version_compare(ver_a: str, ver_b: str) -> int:
                 if out:
                     return int(out)
         except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
-            log.warning("vercmp çalıştırma hatası: %s", exc)
+            log.warning(tr("aur_check.vercmp_calistirma_hatasi_s"), exc)
 
     # Fallback Python version comparison
     import re

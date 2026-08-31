@@ -242,11 +242,21 @@ def generate_binary_pkgbuild(
     exec_relpath: str | None = None,
     extract: bool = True,
     depends: list[str] | None = None,
+    url: str = "",
+    license_id: str = "unknown",
+    sha256: str = "SKIP",
 ) -> str:
     """Hazir binary icerigi Arch paketine sarmak icin PKGBUILD uretir.
 
-    tarball_name makepkg source olarak kullanilir (sha256 SKIP).
-    exec_relpath verilirse /usr/bin altina sembolik baglanti kurulur.
+    tarball_name makepkg source olarak kullanilir. sha256 verilirse
+    gercek tarball ozeti yazilir; aksi halde SKIP (yerel dosya icin
+    makepkg zaten ozeti dogrulayamaz, bu yuzden varsayilan SKIP'tir).
+    url bos degilse PKGBUILD url= alanina yazilir; bos ise upstream
+    bilinmiyorsa "unknown" dokumantasyon degeri kullanilir (namcap
+    error-no-url onlemi).
+    exec_relpath verilirse /usr/bin altina sarmalayici kurulur.
+    license_id, kaynakta bilinen lisans tanimlayicisidir; binary
+    sarimlarda lisans bilinmediginden varsayilan "unknown"dur.
     extract=True (varsayilan) ise tarball icerigi tar -xf ile dogrudan
     pkgdir/opt/<name> altina acilir; tarball dosyasinin kendisi pakete
     girmez. Boylece cp -r "$srcdir"/. yuzunden kaynak tarball pakete
@@ -267,11 +277,11 @@ def generate_binary_pkgbuild(
         "pkgrel=1",
         'pkgdesc="' + desc + '"',
         'arch=("x86_64")',
-        'url="https://example.com"',
-        'license=("custom:unknown")',
+        'url="' + (url if url else "unknown") + '"',
+        "license=('" + license_id + "')",
         "depends=" + deps,
         'source=("' + tarball_name + '")',
-        'sha256sums=("SKIP")',
+        'sha256sums=("' + (sha256 or "SKIP") + '")',
         "",
         "package() {"
     ]
@@ -425,11 +435,16 @@ def generate_source_tarball_pkgbuild(
     license_id: str = "unknown",
     description: str = "",
     binary_name: str | None = None,
+    url: str = "",
+    sha256: str = "SKIP",
 ) -> str:
     """Yerel kaynak tarballini derleyip paketleyen PKGBUILD uretir.
 
     Tarball PKGBUILD'in yanina kopyalanir; makepkg onu $srcdir'a acar ve
-    build/package adimlari top_dir icinde calisir.
+    build/package adimlari top_dir icinde calisir. url bos degilse
+    upstream proje adresi olarak yazilir (namcap error-no-url onlemi);
+    bilinmiyorsa "unknown" kullanilir. sha256 verilirse gercek tarball
+    ozeti yazilir.
     """
     makedeps, build_cmds, install_cmds = _source_build_commands(build_system, binary_name)
     makedepends_str = " ".join("'" + d + "'" for d in makedeps)
@@ -443,12 +458,12 @@ def generate_source_tarball_pkgbuild(
         "pkgrel=1",
         'pkgdesc="' + desc + '"',
         'arch=("x86_64")',
-        'url=""',
+        'url="' + (url if url else "unknown") + '"',
         "license=('" + license_id + "')",
         "depends=()",
         "makedepends=(" + makedepends_str + ")",
         'source=("' + tarball_name + '")',
-        'sha256sums=("SKIP")',
+        'sha256sums=("' + (sha256 or "SKIP") + '")',
         "",
         "build() {",
         "    " + cd,
