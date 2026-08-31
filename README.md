@@ -174,9 +174,9 @@ pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **full suite green (rc=0)** · **100% line coverage** on
-`core/`+`ui/`+`i18n/` (10 576 statements, 0 missed) · mypy: 0 errors in
-72 files · bandit CI-parity: clean · mini mutation score 3/3 KILLED.
+Current status: **full suite green (rc=0)** · **~99% line coverage** on
+`core/`+`ui/`+`i18n/` (11 950 statements, 26 missed — see docs/COVERAGE_GAPS.md) · mypy: 0 errors in
+311 files · bandit CI-parity: clean (-ll 0 Medium/0 High) · mini mutation 3/3 KILLED.
 Wheel build verified (`pkgforge==2.0.0`) and E2E smoke-tested from a
 fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
 

@@ -228,3 +228,33 @@ The software is **ready to use**; the *release* is **blocked on distribution**.
 Resolve REPO-001 (repo + AUR) and PkgForge becomes a genuinely competitive,
 feature-leading alternative to debtap. Without it, the project cannot be
 installed by anyone but the author.
+
+---
+
+## 8. Addendum — Tur-53/54 (2026-08-31)
+
+### Tur-53: Honest Audit Fix (4 workstreams)
+- **Launch button (TDD):** `ui/result_dialog.py` + `tests/test_result_dialog_units.py` (5 tests, 19/19). The d503ee8 Launch claim became TRUE.
+- **Progress corrections:** Tur-47..51 false Launch claims → "Düzeltme Kaydı" with honest dating (actual addition was Tur-53). Badge: coverage 100→99%, tests 2418→2428.
+- **CI gate:** `test.yml` bandit `|| true` removed. PKGBUILD url/license/sha256 now from real metadata.
+- **i18n parity:** 34 core files, 78 log-call conversions to tr(). lang_tr/lang_en 545 keys parity. test_i18n_parity.py (5 tests).
+
+### Tur-54: Full-Spectrum Audit (2026-08-31)
+- **Git push:** 33 commits pushed to origin/master (b76e049 → 17efc33).
+- **Coverage:** 99% (11 950 stmt, 26 missed). Detailed gap analysis in docs/COVERAGE_GAPS.md. Lowest: core/doctor.py 92%.
+- **Bandit LOW audit:** 43 LOW categorized in docs/BANDIT_LOW_AUDIT.md. 0 Medium/0 High. No action needed.
+- **Test count:** 217 files, 2428 collected (verified via collect-only).
+- **F-string i18n:** 221 f-strings inventoried across 38 files. Delegated to 2 parallel subagents (Batch A/B) — in progress.
+- **README:** Body stats corrected (10 576→11 950 stmts, 72→311 mypy files, bandit detail).
+
+### Current Gate Status (2026-08-31)
+| Gate | Result |
+|------|--------|
+| ruff | ✅ 0 errors |
+| mypy | ✅ 311 files, 0 errors |
+| bandit -ll | ✅ 0 Medium, 0 High (43 LOW documented) |
+| pytest | ✅ exit 0 (2428 collected, 2 network skips) |
+| vitest | ✅ 582/582 |
+| build | ✅ vite+tsc |
+| i18n | ✅ 545/545 parity (pre-fstring) |
+
