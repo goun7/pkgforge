@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +20,15 @@ from core.security import safe_run
 from i18n import tr
 
 log = logging.getLogger(__name__)
+
+_GNUPGHOME = os.environ.get("GNUPGHOME", "")  
+
+
+def _gpg_homedir_args() -> list[str]:
+    """Return --homedir arg if a custom GNUPGHOME is set."""
+    if _GNUPGHOME:
+        return ["--homedir", _GNUPGHOME]
+    return []
 
 
 @dataclass
@@ -62,8 +72,8 @@ def sign_package(
 
     sig_path = Path(f"{package_path}.sig")
 
-    cmd = ["gpg", "--batch", "--yes", "--detach-sign"]
-    if key_path and key_path.is_file():
+    cmd = ["gpg", "--batch", "--yes", "--detach-sign", *_gpg_homedir_args()]
+    if key_path:
         cmd += ["--default-key", str(key_path)]
     if passphrase:
         cmd += ["--pinentry-mode", "loopback", "--passphrase", passphrase]
@@ -100,7 +110,7 @@ def verify_signature(package_path: Path) -> SignatureInfo:
 
     # Verify signature
     res = safe_run(
-        ["gpg", "--verify", "--status-fd", "1", str(sig_path), str(package_path)],
+        ["gpg", "--verify", "--status-fd", "1", *_gpg_homedir_args(), str(sig_path), str(package_path)],
         timeout=30,
     )
 

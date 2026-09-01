@@ -69,4 +69,4 @@ desktop/.act3.log
 .e2e_out/
 
 # Spec work / scratch area for planning and batch artifacts
-.spec-work/
+.spec-work/.conv-final/
