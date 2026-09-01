@@ -260,8 +260,12 @@ def main() -> int:
     # health subcommand
     subparsers.add_parser("health", help=tr("cli.health_help"))
 
-    # doctor subcommand (F5.22)
-    subparsers.add_parser("doctor", help=tr("cli.doctor_help"))
+    # doctor subcommand (F5.22) — Tur-55 A2: --tools / --json alt seçenekleri
+    doctor_parser = subparsers.add_parser("doctor", help=tr("cli.doctor_help"))
+    doctor_parser.add_argument("--tools", action="store_true",
+                               help=tr("cli.doctor_tools_help"))
+    doctor_parser.add_argument("--json", action="store_true",
+                               help=tr("cli.doctor_json_help"))
 
     # wrapped subcommand (F5.24)
     wrapped_parser = subparsers.add_parser("wrapped", help=tr("cli.wrapped_help"))

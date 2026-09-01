@@ -814,5 +814,7 @@ STRINGS: dict[str, str] = {
     "subconv.makepkg_basarisiz_kod_proc": "makepkg failed (kod: {proc_returncode})",
     "subconv.rpm_cikarma_basarisiz_kod": "RPM çıkarma failed (kod: {proc_returncode})",
     "upstream.etag_degisti_prev_etag": "ETag değişti: {prev_etag}… → {etag}…",
-    "upstream.last_modified_degisti_prev": "Last-Modified değişti: {prev_last_mod} → {last_mod}"
+    "upstream.last_modified_degisti_prev": "Last-Modified değişti: {prev_last_mod} → {last_mod}",
+    "cli.doctor_tools_help": "Only show system tool checks (JSON output)",
+    "cli.doctor_json_help": "Output full doctor report as JSON",
 }

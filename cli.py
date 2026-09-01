@@ -1233,8 +1233,28 @@ def _cmd_health(args: argparse.Namespace) -> int:
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
-    """Handle `pkgforge doctor` (F5.22)."""
+    """Handle `pkgforge doctor` (F5.22) — Tur-55 A2: --tools/--json."""
+    import json as _json
+
     from core.doctor import run_doctor
+
+    if getattr(args, "json", False):
+        # Salt JSON çıktı: scriptler / dashboard entegrasyonu için.
+        print(_json.dumps(run_doctor(), ensure_ascii=False, indent=2,
+                          default=str))
+        return 0
+
+    if getattr(args, "tools", False):
+        # Salt araç denetimi: kurulum betiği öncesi kuru kontrol.
+        r = run_doctor()
+        t = r["tools"]
+        print(_json.dumps(t, ensure_ascii=False, indent=2))
+        if t["missing_required"]:
+            print(f"\n❌ Eksik zorunlu: {', '.join(t['missing_required'])}",
+                  file=sys.stderr)
+            return 2
+        print("\n✅ Tüm zorunlu araçlar mevcut.")
+        return 0
 
     def mark(ok: bool) -> str:
         return "✅" if ok else "❌"
