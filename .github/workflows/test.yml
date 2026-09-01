@@ -245,3 +245,41 @@ jobs:
             eval "$(echo -n "" | gnome-keyring-daemon --unlock --daemonize --components=secrets)"
             python -m pytest tests/test_secrets_store.py -k live -q
           '
+
+  # Tur-55 A3: E2E pipeline job — gerçek bir .deb oluşturup tüm dönüşüm
+  # pipeline'ından geçirir (security → analysis → conversion).
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system deps (.deb/.rpm tooling)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils binutils-aarch64-linux-gnu \
+            file libarchive-tools rpm zstd
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-timeout pytest-cov
+
+      - name: E2E — minimal .deb + full pipeline (security + analysis + conversion)
+        run: |
+          python -m pytest tests/test_e2e_pipeline.py tests/test_e2e_real_packages.py \
+            -v --tb=short --timeout=180 -p no:cacheprovider 2>&1 | tee /tmp/e2e.log
+          test ${PIPESTATUS[0]} -eq 0 || (echo "::error::E2E pipeline failed"; exit 1)
+
+      - name: E2E — pkgforge doctor (--tools + --json) works on CI image
+        run: |
+          python main.py doctor --tools | tee /tmp/doctor-tools.log
+          python main.py doctor --json > /tmp/doctor.json
+          python -c "import json; d=json.load(open('/tmp/doctor.json')); assert 'version' in d; print('doctor JSON ok:', d['version'])"
