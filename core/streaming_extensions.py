@@ -47,7 +47,7 @@ def stream_integrity(
     sha = hashlib.sha256()
     blake = hashlib.blake2b()
     report = IntegrityReport()
-    with open(file_path, "rb") as f:
+    with open(file_path, "rb"):
         for chunk in chunked_read(file_path, chunk_size):
             sha.update(chunk)
             blake.update(chunk)

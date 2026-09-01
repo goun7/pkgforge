@@ -33,7 +33,7 @@ class Workspace:
         if WORKSPACE_FILE.is_file():
             try:
                 data = tomllib.loads(WORKSPACE_FILE.read_text(encoding="utf-8"))
-            except Exception:
+            except (OSError, tomllib.TOMLDecodeError):
                 return
             for key in data.get("workspace", {}).get("members", []):
                 m = data.get(key)

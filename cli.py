@@ -1238,7 +1238,8 @@ def _cmd_health(args: argparse.Namespace) -> int:
 
 def _cmd_serve_api(args: argparse.Namespace) -> int:
     """Handle `pkgforge serve-api` (Tur-55 C10)."""
-    from core.api_v2 import export_openapi, run as _run_api
+    from core.api_v2 import export_openapi
+    from core.api_v2 import run as _run_api
 
     export_target = getattr(args, "export_openapi", None)
     if export_target:
