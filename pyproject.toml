@@ -12,6 +12,13 @@ license = {text = "GPL-3.0-or-later"}
 authors = [
     {name = "PkgForge Contributors"},
 ]
+urls = {
+    "Homepage" = "https://github.com/goun7/pkgforge",
+    "Repository" = "https://github.com/goun7/pkgforge",
+    "Documentation" = "https://github.com/goun7/pkgforge/blob/master/README.md",
+    "Changelog" = "https://github.com/goun7/pkgforge/blob/master/CHANGELOG.md",
+    "Bug Tracker" = "https://github.com/goun7/pkgforge/issues",
+}
 keywords = ["arch", "linux", "package", "deb", "rpm", "converter", "pkgforge"]
 classifiers = [
     "Development Status :: 4 - Beta",
