@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.snapshot_manager import delete_snapshot, detect_backend, take_snapshot
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ def verify_rollback() -> RollbackVerifyResult:
     # Step 2: Take snapshot
     snap = take_snapshot("verify-test")
     if not snap.success:
-        result.detail = f"Snapshot oluşturulamadı: {snap.detail}"
+        result.detail = tr("rollback.snapshot_olusturulamadi_snap_detail_2", snap_detail=snap.detail)
         return result
 
     result.snapshot_name = snap.snapshot_name
@@ -106,7 +107,7 @@ def verify_rollback() -> RollbackVerifyResult:
     snap_exists = any(s["name"] == snap.snapshot_name for s in snapshots)
 
     if not snap_exists:
-        result.detail = f"Snapshot oluşturuldu ama listelenemiyor: {snap.snapshot_name}"
+        result.detail = tr("rollback.snapshot_olusturuldu_ama_listelenem", snap_snapshot_name=snap.snapshot_name)
         return result
 
     result.files_checked = 100
@@ -117,17 +118,13 @@ def verify_rollback() -> RollbackVerifyResult:
     if deleted:
         result.verified = True
         result.detail = (
-            f"✅ Rollback doğrulaması başarılı\n"
-            f"   Backend: {backend}\n"
-            f"   Snapshot: {snap.snapshot_name}\n"
-            f"   Durum: Oluşturuldu → Doğrulandı → Temizlendi"
+            tr("rollback.rollback_dogrulamasi_basarili_backe", backend=backend, snap_snapshot_name=snap.snapshot_name)
         )
     else:
         # Snapshot couldn't be deleted — but it was created successfully
         result.verified = True
         result.detail = (
-            f"⚠️ Snapshot oluşturuldu ama silinemedi: {snap.snapshot_name}\n"
-            f"   Manuel temizlik gerekebilir: sudo btrfs subvolume delete {snap.snapshot_name}"
+            tr("rollback.snapshot_olusturuldu_ama_silinemedi", snap_snapshot_name=snap.snapshot_name, snap_snapshot_name_2=snap.snapshot_name)
         )
 
     return result
@@ -156,7 +153,7 @@ def verify_rollback_restore() -> RollbackVerifyResult:
     # Take snapshot
     snap = take_snapshot("restore-test")
     if not snap.success:
-        result.detail = f"Snapshot oluşturulamadı: {snap.detail}"
+        result.detail = tr("rollback.snapshot_olusturulamadi_snap_detail", snap_detail=snap.detail)
         return result
 
     result.snapshot_name = snap.snapshot_name
@@ -166,7 +163,7 @@ def verify_rollback_restore() -> RollbackVerifyResult:
     ok, msg = restore_snapshot(snap.snapshot_name)
 
     if not ok:
-        result.detail = f"Rollback başarısız: {msg}"
+        result.detail = tr("rollback.rollback_basarisiz_msg", msg=msg)
         return result
 
     # Check state after restore
@@ -179,9 +176,7 @@ def verify_rollback_restore() -> RollbackVerifyResult:
         result.detail = "✅ Rollback başarılı — dosya sistemi durumu eşleşiyor"
     else:
         result.detail = (
-            f"⚠️ Rollback sonrası dosya sistemi farklı\n"
-            f"   Önce: {result.state_before}\n"
-            f"   Sonra: {result.state_after}"
+            tr("rollback.rollback_sonrasi_dosya_sistemi", result_state_before=result.state_before, result_state_after=result.state_after)
         )
 
     return result

@@ -15,6 +15,8 @@ import logging
 import os
 import shutil
 
+from i18n import tr
+
 log = logging.getLogger(__name__)
 import tempfile
 import time
@@ -127,7 +129,7 @@ def _bench_create_deb() -> BenchmarkResult:
     r.duration_ms = int((time.monotonic() - t0) * 1000)
     r.memory_peak_kb = _get_memory_usage() - mem_start
     r.passed = ok
-    r.details = f"Oluşturulan: {deb_path.name}" if ok else "Başarısız"
+    r.details = tr("bench.olusturulan_deb_path_name", deb_path_name=deb_path.name) if ok else "Başarısız"
     return r
 
 

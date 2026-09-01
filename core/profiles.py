@@ -18,6 +18,7 @@ from config import (
     get_active_profile,
     profiles_dir,
 )
+from i18n import tr
 
 
 class ProfileError(ValueError):
@@ -63,7 +64,7 @@ def switch_profile(name: str) -> dict[str, Any]:
     """Make *name* the active profile (settings/history follow on next access)."""
     _validate_name(name)
     if name != DEFAULT_PROFILE and not (profiles_dir() / name).is_dir():
-        raise ProfileError(f"Profil bulunamadı: {name}")
+        raise ProfileError(tr("profiles.profil_bulunamadi_name_2", name=name))
     marker = active_profile_file()
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(name, encoding="utf-8")
@@ -79,6 +80,6 @@ def delete_profile(name: str) -> dict[str, Any]:
         raise ProfileError("Etkin profil silinemez; önce başka bir profile geçin")
     target = profiles_dir() / name
     if not target.is_dir():
-        raise ProfileError(f"Profil bulunamadı: {name}")
+        raise ProfileError(tr("profiles.profil_bulunamadi_name", name=name))
     shutil.rmtree(target)
     return {"name": name}

@@ -60,12 +60,12 @@ def cross_check_package(package_name: str, local_version: str = "") -> CrossChec
     if aur_ver and _version_compare(aur_ver, best_ver) > 0:
         best_source = "aur"
         best_ver = aur_ver
-        reason = f"AUR'da daha yeni bir sürüm mevcut ({aur_ver} > {local_version})"
+        reason = tr("cross.aur_da_daha_yeni", aur_ver=aur_ver, local_version=local_version)
 
     if flatpak_ver and _version_compare(flatpak_ver, best_ver) > 0:
         best_source = "flatpak"
         best_ver = flatpak_ver
-        reason = f"Flatpak deposunda daha yeni bir sürüm mevcut ({flatpak_ver})"
+        reason = tr("cross.flatpak_deposunda_daha_yeni", flatpak_ver=flatpak_ver)
 
     log.info(
         "Cross-check for %s: local=%s, aur=%s, flatpak=%s → recommendation: %s",

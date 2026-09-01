@@ -148,10 +148,10 @@ def appimage_to_deb(
         (success, message, deb_path)
     """
     if not appimage_path.is_file():
-        return False, f"Dosya bulunamadı: {appimage_path}", None
+        return False, tr("appimage.dosya_bulunamadi_appimage_path", appimage_path=appimage_path), None
 
     if not is_appimage_file(appimage_path):
-        return False, f"Geçersiz AppImage: {appimage_path.name}", None
+        return False, tr("appimage.gecersiz_appimage_appimage_path", appimage_path_name=appimage_path.name), None
 
     # Get metadata
     info = get_appimage_info(appimage_path)
@@ -220,7 +220,7 @@ def appimage_to_deb(
         )
 
         if res.returncode != 0:
-            return False, f"dpkg-deb başarısız: {res.stderr}", None
+            return False, tr("appimage.dpkg_deb_basarisiz_res", res_stderr=res.stderr), None
 
         log.info(tr("appimage.appimage_deb_donusturuldu_s"), output_path)
-        return True, f"DEB paketi hazır: {output_path.name}", output_path
+        return True, tr("appimage.deb_paketi_hazir_output", output_path_name=output_path.name), output_path

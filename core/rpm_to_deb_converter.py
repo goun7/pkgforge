@@ -43,7 +43,7 @@ def rpm_to_deb(
         (success, message, deb_path)
     """
     if not rpm_path.is_file():
-        return False, f"Dosya bulunamadı: {rpm_path}", None
+        return False, tr("rpm2deb.dosya_bulunamadi_rpm_path", rpm_path=rpm_path), None
 
     if not shutil.which("rpm2cpio"):
         return False, "rpm2cpio bulunamadı — rpmextract paketi gerekli", None
@@ -62,7 +62,7 @@ def rpm_to_deb(
         cmd = f"{shlex.quote(shutil.which('rpm2cpio') or 'rpm2cpio')} {shlex.quote(str(rpm_path))} | {shlex.quote(shutil.which('bsdtar') or 'bsdtar')} -xf -"
         res = safe_run(["/bin/bash", "-c", cmd], cwd=str(pkg_dir), timeout=60)
         if res.returncode != 0:
-            return False, f"RPM çıkarma başarısız: {res.stderr[:200]}", None
+            return False, tr("rpm2deb.rpm_cikarma_basarisiz_stderr", stderr=res.stderr[:200]), None
 
         # 2. Get RPM metadata
         rpm_cmd = shutil.which("rpm")
@@ -124,7 +124,7 @@ def rpm_to_deb(
             timeout=60,
         )
         if res.returncode != 0:
-            return False, f"dpkg-deb başarısız: {res.stderr[:200]}", None
+            return False, tr("rpm2deb.dpkg_deb_basarisiz_stderr", stderr=res.stderr[:200]), None
 
         log.info(tr("rpm2deb.rpm_deb_donusturuldu_s"), output_path)
-        return True, f"DEB paketi hazır: {output_path.name}", output_path
+        return True, tr("rpm2deb.deb_paketi_hazir_output", output_path_name=output_path.name), output_path

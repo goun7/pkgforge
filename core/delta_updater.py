@@ -310,7 +310,7 @@ def _write_and_enable_units(units: tuple) -> tuple[bool, str]:
     res = _safe_run(privileged_write_batch_argv("pkexec"),
                     input=manifest, timeout=30)
     if res.returncode != 0:
-        return False, f"Dosyalar yazılamadı (kod {res.returncode})"
+        return False, tr("delta.dosyalar_yazilamadi_kod_res", res_returncode=res.returncode)
 
     _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
     res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
@@ -340,7 +340,7 @@ def install_auto_update(interval_hours: int = 6) -> tuple[bool, str]:
         if not ok:
             return False, err
     except Exception as exc:  # noqa: BLE001
-        return False, f"Kurulum başarısız: {exc}"
+        return False, tr("delta.kurulum_basarisiz_exc", exc=exc)
 
     NL = chr(10)
     msg = (
@@ -392,7 +392,7 @@ def remove_auto_update() -> tuple[bool, str]:
         return True, "✅ Auto-update servisi kaldırıldı."
 
     except Exception as exc:  # noqa: BLE001
-        return False, f"Kaldırma başarısız: {exc}"
+        return False, tr("delta.kaldirma_basarisiz_exc", exc=exc)
 
 
 def get_auto_update_status() -> dict:
@@ -452,21 +452,21 @@ def enable_auto_update() -> tuple[bool, str]:
 
     timer_path = Path(f"/etc/systemd/system/{_TIMER_NAME}.timer")
     if not timer_path.exists():
-        return False, f"Timer dosyası bulunamadı: {timer_path}"
+        return False, tr("delta.timer_dosyasi_bulunamadi_timer", timer_path=timer_path)
 
     # Faz 14: systemctl fiilleri helper uzerinden yetkili (tek diyalog;
     # auth_admin_keep ile 5 dk icinde tekrar sormaz).
     res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
                                               f"{_TIMER_NAME}.timer"), timeout=15)
     if res.returncode != 0:
-        return False, f"Timer etkinleştirilemedi: {res.stderr[:200]}"
+        return False, tr("delta.timer_etkinlestirilemedi_stderr", stderr=res.stderr[:200])
 
     res = _safe_run(privileged_systemctl_argv("pkexec", "start",
                                               f"{_TIMER_NAME}.timer"), timeout=15)
     if res.returncode != 0:
-        return False, f"Timer başlatılamadı: {res.stderr[:200]}"
+        return False, tr("delta.timer_baslatilamadi_stderr", stderr=res.stderr[:200])
 
-    return True, f"Otomatik güncelleme etkinleştirildi ({_TIMER_NAME}.timer)"
+    return True, tr("delta.otomatik_guncelleme_etkinlestirildi", _TIMER_NAME=_TIMER_NAME)
 
 
 def disable_auto_update() -> tuple[bool, str]:
@@ -488,9 +488,9 @@ def disable_auto_update() -> tuple[bool, str]:
                                               f"{_TIMER_NAME}.timer"), timeout=15)
 
     if res.returncode == 0:
-        return True, f"Otomatik güncelleme devre dışı bırakıldı ({_TIMER_NAME}.timer)"
+        return True, tr("delta.otomatik_guncelleme_devre_disi", _TIMER_NAME=_TIMER_NAME)
     else:
-        return False, f"Timer devre dışı bırakılamadı: {res.stderr[:200]}"
+        return False, tr("delta.timer_devre_disi_birakilamadi", stderr=res.stderr[:200])
 
 
 def get_delta_logs(lines: int = 50) -> str:
@@ -516,7 +516,7 @@ def get_delta_logs(lines: int = 50) -> str:
         stdout = res.stdout if isinstance(res.stdout, str) else res.stdout.decode("utf-8", errors="replace")
         return stdout.strip()
     else:
-        return f"Log okunamadı: {res.stderr[:200]}"
+        return tr("delta.log_okunamadi_stderr", stderr=res.stderr[:200])
 
 
 def notify_update_available(packages: list[str]) -> bool:
@@ -533,7 +533,7 @@ def notify_update_available(packages: list[str]) -> bool:
     if not packages:
         return False
 
-    message = f"{len(packages)} paket güncellenebilir:\n" + "\n".join(f"  • {p}" for p in packages[:10])
+    message = tr("delta.packages_paket_guncellenebilir", packages=len(packages)) + "\n".join(f"  • {p}" for p in packages[:10])
 
     # Try notify-send (Linux desktop)
     notify_send = shutil.which("notify-send")
@@ -547,5 +547,5 @@ def notify_update_available(packages: list[str]) -> bool:
         return True
 
     # Fallback: stdout
-    print(f"\n📢 Güncelleme Mevcut:\n{message}")
+    print(tr("delta.guncelleme_mevcut_message", message=message))
     return True

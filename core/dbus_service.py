@@ -16,6 +16,8 @@ import os
 import threading
 from typing import Any
 
+from i18n import tr
+
 log = logging.getLogger(__name__)
 
 DEFAULT_BUS_NAME = "org.pkgforge.App"
@@ -150,7 +152,7 @@ class PkgForgeService:
         try:
             conn = open_dbus_connection()
         except Exception as exc:
-            raise ServiceError(f"Oturum veriyoluna bağlanılamadı: {exc}") from exc
+            raise ServiceError(tr("dbus.oturum_veriyoluna_baglanilamadi_exc", exc=exc)) from exc
 
         reply = conn.send_and_get_reply(
             message_bus.RequestName(self.bus_name, int(DBusNameFlags.do_not_queue)))
@@ -160,7 +162,7 @@ class PkgForgeService:
                 detail = str(reply.body[0])
             conn.close()
             raise ServiceError(
-                f"Veriyolu adı alınamadı ({self.bus_name}): {detail}"
+                tr("dbus.veriyolu_adi_alinamadi_self", self_bus_name=self.bus_name, detail=detail)
             )
 
         self._conn = conn

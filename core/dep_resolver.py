@@ -46,8 +46,8 @@ class ResolveReport:
 
     def summary(self) -> str:
         lines = [
-            f"  Toplam bağımlılık: {self.total}",
-            f"  Çözümlenen:        {self.resolved_count}",
+            tr("dep.toplam_bagimlilik_self_total", self_total=self.total),
+            tr("dep.cozumlenen_self_resolved_count", self_resolved_count=self.resolved_count),
             f"  Eksik:             {self.missing_count}",
         ]
         if self.missing_count > 0:
@@ -250,7 +250,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
     if res.returncode == 0:
         return True, f"{len(packages)} paket kuruldu: {', '.join(packages)}"
     else:
-        return False, f"Kurulum başarısız: {res.stderr[:300]}"
+        return False, tr("dep.kurulum_basarisiz_stderr", stderr=res.stderr[:300])
 
 
 

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from config import ToolPaths
 from core.security import safe_run, sha256_hash
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -114,9 +115,7 @@ def _compare_rebuild(
         diff_size=diff_size,
         total_size=total_size,
         detail=(
-            f"Paket farklı — eşleşme oranı: {match_ratio:.1%}\n"
-            f"  Orijinal: {original_hash[:32]}…\n"
-            f"  Yeniden:  {rebuild_hash[:32]}…"
+            tr("repro.paket_farkli_eslesme_orani", match_ratio=match_ratio, original_hash=original_hash[:32], rebuild_hash=rebuild_hash[:32])
         ),
         original_hash=original_hash,
         rebuild_hash=rebuild_hash,
@@ -143,7 +142,7 @@ def verify_reproducible(
         VerifyResult with comparison details
     """
     if not original_pkg.is_file():
-        return VerifyResult(detail=f"Paket bulunamadı: {original_pkg}")
+        return VerifyResult(detail=tr("repro.paket_bulunamadi_original_pkg", original_pkg=original_pkg))
 
     if not tools.makepkg:
         return VerifyResult(detail="makepkg bulunamadı — yeniden oluşturma yapılamıyor")

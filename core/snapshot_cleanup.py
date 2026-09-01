@@ -19,6 +19,7 @@ from pathlib import Path
 from core.privileged import privileged_remove_argv
 from core.security import safe_run
 from core.snapshot_manager import detect_backend
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -188,7 +189,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
         res = safe_run(privileged_write_batch_argv("pkexec"),
                        input=manifest, timeout=30)
         if res.returncode != 0:
-            return False, f"Dosyalar yazılamadı (kod {res.returncode})"
+            return False, tr("snapclean.dosyalar_yazilamadi_kod_res", res_returncode=res.returncode)
 
         # Enable/start: helper uzerinden yetkili systemctl.
         safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
@@ -198,18 +199,12 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
                                            f"{TIMER_NAME}.timer"), timeout=15)
 
         msg = (
-            f"✅ Snapshot cleanup servisi kuruldu!\n\n"
-            f"  Timer: Her gün 03:00'da çalışır\n"
-            f"  Maksimum snapshot yaşı: {max_age_days} gün\n"
-            f"  Servis: {SERVICE_NAME}.service\n"
-            f"  Timer: {TIMER_NAME}.timer\n\n"
-            f"  Durumu kontrol: systemctl status {TIMER_NAME}.timer\n"
-            f"  Kaldır: Raporlar → Temizlik → Kaldır (veya pkgforge snapshot-cleanup --remove)"
+            tr("snapclean.snapshot_cleanup_servisi_kuruldu", max_age_days=max_age_days, SERVICE_NAME=SERVICE_NAME, TIMER_NAME=TIMER_NAME, TIMER_NAME_2=TIMER_NAME)
         )
         return True, msg
 
     except Exception as exc:  # noqa: BLE001
-        return False, f"Kurulum başarısız: {exc}"
+        return False, tr("snapclean.kurulum_basarisiz_exc", exc=exc)
 
 
 def remove_cleanup_service() -> tuple[bool, str]:
@@ -251,7 +246,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
         return True, "✅ Snapshot cleanup servisi kaldırıldı."
 
     except Exception as exc:  # noqa: BLE001
-        return False, f"Kaldırma başarısız: {exc}"
+        return False, tr("snapclean.kaldirma_basarisiz_exc", exc=exc)
 
 
 def get_cleanup_status() -> dict:

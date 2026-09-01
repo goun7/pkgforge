@@ -21,6 +21,7 @@ from pathlib import Path
 
 from config import extract_package_name
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -203,8 +204,7 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
     )
     if res.returncode != 0:
         graph.warnings.append(
-            f"'{graph.root}' kurulu değil. Grafik için paketin kurulu olması veya "
-            f".pkg.tar.zst dosyasının mevcut olması gerekir."
+            tr("depgraph.graph_root_kurulu_degil", graph_root=graph.root)
         )
         # Try reading from .PKGINFO if the file is a .pkg.tar.zst
         if pkg_path.is_file() and ".pkg.tar" in pkg_path.name:
@@ -376,7 +376,7 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
     graph.root = extract_package_name(pkg_path.name)
 
     if not pkg_path.is_file():
-        graph.warnings.append(f"Dosya bulunamadı: {graph.root}")
+        graph.warnings.append(tr("depgraph.dosya_bulunamadi_graph_root", graph_root=graph.root))
         return graph
 
     with tempfile.TemporaryDirectory(prefix="pkgforge_graph_") as tmpdir:

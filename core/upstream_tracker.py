@@ -100,10 +100,10 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
 
             if prev_etag and etag and prev_etag != etag:
                 has_update = True
-                detail = f"ETag değişti: {prev_etag[:20]}… → {etag[:20]}…"
+                detail = tr("upstream.etag_degisti_prev_etag", prev_etag=prev_etag[:20], etag=etag[:20])
             elif prev_last_mod and last_mod and prev_last_mod != last_mod:
                 has_update = True
-                detail = f"Last-Modified değişti: {prev_last_mod} → {last_mod}"
+                detail = tr("upstream.last_modified_degisti_prev", prev_last_mod=prev_last_mod, last_mod=last_mod)
             elif not prev_etag and not prev_last_mod:
                 # İlk kayıt — sakla ama güncelleme olarak işaretleme
                 detail = "İlk kontrol — upstream erişilebilir"

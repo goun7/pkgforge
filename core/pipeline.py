@@ -368,7 +368,7 @@ class ConversionPipeline(QObject):
         # MIME type
         try:
             mime = validate_mime_type(file_path, self._tools)
-            self._log("info", f"MIME doğrulandı: {mime}")
+            self._log("info", tr("pipeline.mime_dogrulandi_mime", mime=mime))
         except (ValueError, FileNotFoundError) as exc:
             self._set_step(PipelineStep.SECURITY, "error")
             self._result.message = str(exc)
@@ -441,7 +441,7 @@ class ConversionPipeline(QObject):
                     self._log("warning", "clamscan bulunamadı — malware taraması atlandı")
                     self._set_step(PipelineStep.MALWARE_SCAN, "skipped")
             except Exception as exc:  # noqa: BLE001
-                self._log("warning", f"Malware taraması başarısız: {exc}")
+                self._log("warning", tr("pipeline.malware_taramasi_basarisiz_exc", exc=exc))
                 self._set_step(PipelineStep.MALWARE_SCAN, "warning")
             self.progress.emit(25)
         else:
@@ -464,7 +464,7 @@ class ConversionPipeline(QObject):
             self._result.metadata = meta
         except Exception as exc:  # noqa: BLE001
             self._set_step(PipelineStep.ANALYSIS, "error")
-            self._result.message = f"Paket analizi başarısız: {exc}"
+            self._result.message = tr("pipeline.paket_analizi_basarisiz_exc", exc=exc)
             self._log("error", str(exc))
             return None
 
@@ -473,8 +473,7 @@ class ConversionPipeline(QObject):
         if not meta.arch_compatible:
             self._set_step(PipelineStep.ANALYSIS, "error")
             self._result.message = (
-                f"Uyumsuz mimari: {meta.arch} → {meta.arch_mapped}. "
-                f"Bu sistem yalnızca x86_64 ve any destekler."
+                tr("pipeline.uyumsuz_mimari_meta_arch", meta_arch=meta.arch, meta_arch_mapped=meta.arch_mapped)
             )
             self._log("error", self._result.message)
             return None
@@ -487,7 +486,7 @@ class ConversionPipeline(QObject):
             traversal = check_path_traversal(meta.file_list)
             if traversal:
                 self._set_step(PipelineStep.ANALYSIS, "error")
-                self._result.message = f"Path traversal saldırısı tespit edildi: {traversal[:3]}"
+                self._result.message = tr("pipeline.path_traversal_saldirisi_tespit", traversal=traversal[:3])
                 self._log("error", self._result.message)
                 return None
 
@@ -503,14 +502,14 @@ class ConversionPipeline(QObject):
                 if aur_res.status == "found_newer":
                     self._log("warning", f"AUR'da daha yeni versiyon mevcut: {aur_res.aur_version} (paket: {meta.version})")
                 elif aur_res.status == "out_of_date":
-                    self._log("info", f"AUR paketi eskimiş (OutOfDate): {aur_res.aur_version}, yerel dönüşüm önerilir")
+                    self._log("info", tr("pipeline.aur_paketi_eskimis_outofdate", aur_res_aur_version=aur_res.aur_version))
                 elif aur_res.status == "found_older":
                     self._log("info", f"Yerel paket AUR'dakinden daha yeni: {meta.version} > {aur_res.aur_version}")
                 elif aur_res.status == "not_found":
                     self._log("info", "Paket AUR'da bulunamadı, özel dönüşüm yapılıyor")
             except Exception as exc:  # noqa: BLE001
                 log.warning(tr("pipeline.aur_kontrolu_atlandi_s"), exc)
-                self._log("warning", f"AUR kontrolü yapılamadı: {exc}")
+                self._log("warning", tr("pipeline.aur_kontrolu_yapilamadi_exc", exc=exc))
 
         self._set_step(PipelineStep.ANALYSIS, "done")
         return meta
@@ -558,26 +557,26 @@ class ConversionPipeline(QObject):
         # Check required tools
         missing = self._tools.missing_required
         if missing:
-            self._result.message = f"Gerekli araçlar bulunamadı: {', '.join(missing)}"
+            self._result.message = tr("pipeline.gerekli_araclar_bulunamadi_var0", var0=', '.join(missing))
             self._log("error", self._result.message)
             return
 
         optional_missing = self._tools.missing_optional
         if optional_missing:
-            self._log("warning", f"İsteğe bağlı araçlar eksik: {', '.join(optional_missing)}")
+            self._log("warning", tr("pipeline.stege_bagli_araclar_eksik", var0=', '.join(optional_missing)))
 
         # ── Universal intake: classify the input and route by type ──
         ir = self._classify_input(file_path)
         if ir.file_type not in (intake.FileType.DEB, intake.FileType.RPM):
             self._temp_dir = create_temp_dir()
-            self._log("info", f"Geçici dizin: {self._temp_dir}")
+            self._log("info", tr("pipeline.gecici_dizin_self_temp_2", self__temp_dir=self._temp_dir))
             self._run_intake_route(file_path, ir)
             return
         is_deb = ir.file_type == intake.FileType.DEB
 
         # Create temp directory
         self._temp_dir = create_temp_dir()
-        self._log("info", f"Geçici dizin: {self._temp_dir}")
+        self._log("info", tr("pipeline.gecici_dizin_self_temp", self__temp_dir=self._temp_dir))
 
         self._stage_security(file_path, is_deb)
         if self._result.message or self._cancelled:
@@ -979,7 +978,7 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.INSTALL, "done")
             self.progress.emit(100)
             self._result.success = True
-            self._result.message = f"{pkg_name} dönüştürüldü (dry-run: kurulmadı)"
+            self._result.message = tr("pipeline.pkg_name_donusturuldu_dry", pkg_name=pkg_name)
             self._log("info", self._result.message)
             return
 
@@ -1010,7 +1009,7 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.INSTALL, "done")
             self.progress.emit(100)
             self._result.success = True
-            self._result.message = f"{pkg_name} başarıyla kuruldu"
+            self._result.message = tr("pipeline.pkg_name_basariyla_kuruldu", pkg_name=pkg_name)
         else:
             self._set_step(PipelineStep.INSTALL, "error")
             self._result.success = False
@@ -1148,7 +1147,7 @@ class ConversionPipeline(QObject):
                 shutil.rmtree(self._temp_dir, onerror=self._on_rm_error)
                 self._log("info", "Geçici dosyalar temizlendi")
             except OSError as exc:
-                self._log("warning", f"Temizlik hatası: {exc}")
+                self._log("warning", tr("pipeline.temizlik_hatasi_exc", exc=exc))
 
 
     def _set_step(self, step: PipelineStep, status: str) -> None:
@@ -1157,11 +1156,11 @@ class ConversionPipeline(QObject):
         if status == "running":
             self._log("info", f"━━ {label} ━━")
         elif status == "done":
-            self._log("success", f"✓ {label} tamamlandı")
+            self._log("success", tr("pipeline.label_tamamlandi", label=label))
         elif status == "error":
-            self._log("error", f"✗ {label} başarısız")
+            self._log("error", tr("pipeline.label_basarisiz", label=label))
         elif status == "warning":
-            self._log("warning", f"⚠ {label} — uyarılar mevcut")
+            self._log("warning", tr("pipeline.label_uyarilar_mevcut", label=label))
 
     def _log(self, level: str, message: str) -> None:
         self.log_message.emit(message, level)

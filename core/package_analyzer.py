@@ -63,8 +63,7 @@ def analyze_package(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     file_size_mb = file_path.stat().st_size / (1024 * 1024)
     if file_size_mb > MAX_PIPE_INPUT_MB:
         raise RuntimeError(
-            f"Paket çok büyük ({file_size_mb:.0f}MB > {MAX_PIPE_INPUT_MB}MB limiti). "
-            f"Bellek taşıma (pipe) saldırısına karşı koruma aktif."
+            tr("analyzer.paket_cok_buyuk_file", file_size_mb=file_size_mb, MAX_PIPE_INPUT_MB=MAX_PIPE_INPUT_MB)
         )
 
     suffix = file_path.suffix.lower()
@@ -74,7 +73,7 @@ def analyze_package(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     elif suffix == ".rpm":
         return _analyze_rpm(file_path, tools)
     else:
-        raise ValueError(f"Desteklenmeyen dosya uzantısı: {suffix}")
+        raise ValueError(tr("analyzer.desteklenmeyen_dosya_uzantisi_suffi", suffix=suffix))
 
 
 # ── .deb analysis ────────────────────────────────────────────────
@@ -89,7 +88,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     # List archive members to find control.tar.*
     ar_result = safe_run([tools.ar, "t", str(file_path)])
     if ar_result.returncode != 0:
-        raise RuntimeError(f"ar başarısız: {ar_result.stderr}")
+        raise RuntimeError(tr("analyzer.ar_basarisiz_ar_result", ar_result_stderr=ar_result.stderr))
 
     members = ar_result.stdout.strip().splitlines()
     control_tar = None
@@ -110,7 +109,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     if extract_result.returncode != 0:
         stderr = extract_result.stderr
         stderr_str = stderr.decode("utf-8", errors="replace") if isinstance(stderr, bytes) else str(stderr)
-        raise RuntimeError(f"control.tar çıkarılamadı: {stderr_str}")
+        raise RuntimeError(tr("analyzer.control_tar_cikarilamadi_stderr", stderr_str=stderr_str))
 
     # Determine tar flags for decompression
     tar_flags = _tar_flags_for(control_tar)
@@ -133,7 +132,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     if tar_result.returncode != 0:
         stderr = tar_result.stderr
         stderr_str = stderr.decode("utf-8", errors="replace") if isinstance(stderr, bytes) else str(stderr)
-        raise RuntimeError(f"control dosyası okunamadı: {stderr_str}")
+        raise RuntimeError(tr("analyzer.control_dosyasi_okunamadi_stderr", stderr_str=stderr_str))
 
     stdout = tar_result.stdout
     control_text = stdout.decode("utf-8", errors="replace") if isinstance(stdout, bytes) else str(stdout)

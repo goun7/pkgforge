@@ -14,6 +14,7 @@ import threading
 from pathlib import Path
 
 from config import ToolPaths, discover_tools
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def convert_rpm_sync(
         try:
             meta = analyze_package(rpm_path, tools)
         except (FileNotFoundError, ValueError, OSError) as exc:
-            result.message = f"RPM analizi başarısız: {exc}"
+            result.message = tr("cli.rpm_analizi_basarisiz_exc", exc=exc)
             return result
         converter.convert(rpm_path, output_dir, meta)
     done_event.wait(timeout=600)

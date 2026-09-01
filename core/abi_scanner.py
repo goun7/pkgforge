@@ -76,16 +76,16 @@ class ABIScanReport:
 
     def summary(self) -> str:
         lines = [
-            f"  🔍 Taranan ELF dosyası: {self.binary_count}",
+            tr("abi.taranan_elf_dosyasi_self", self_binary_count=self.binary_count),
             f"  🔎 Kontrol edilen sembol: {self.checked_symbols}",
-            f"  ❌ Sembol uyumsuzluğu: {len(self.mismatches)}",
-            f"  📦 Eksik kütüphane: {len(self.missing_libs)}",
+            tr("abi.sembol_uyumsuzlugu_mismatches", mismatches=len(self.mismatches)),
+            tr("abi.eksik_kutuphane_missing_libs", missing_libs=len(self.missing_libs)),
         ]
         if self.namcap_available:
             n_errors = sum(1 for r in self.namcap_results if r.severity == "error")
             n_warns = sum(1 for r in self.namcap_results if r.severity == "warning")
             n_info = sum(1 for r in self.namcap_results if r.severity == "info")
-            lines.append(f"  🏷️  Namcap: {n_errors} hata, {n_warns} uyarı, {n_info} bilgi")
+            lines.append(tr("abi.namcap_errors_hata_warns", n_errors=n_errors, n_warns=n_warns, n_info=n_info))
         if self.mismatches:
             lines.append("")
             lines.append("  Uyumsuz Semboller:")

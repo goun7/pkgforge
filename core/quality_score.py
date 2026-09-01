@@ -17,6 +17,7 @@ from pathlib import Path
 
 from config import ToolPaths
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) ->
             report.checks.append(QualityCheck(
                 name="ABI Uyumluluğu", category="security",
                 passed=True, score=10, max_score=10,
-                detail=f"{abi.binary_count} ELF dosyası, uyumsuzluk yok",
+                detail=tr("quality.abi_binary_count_elf", abi_binary_count=abi.binary_count),
             ))
         else:
             report.checks.append(QualityCheck(
@@ -221,7 +222,7 @@ def _compatibility_checks(pkginfo: dict[str, str], report: QualityReport) -> Non
                 name="Bağımlılık Çözümleme", category="compatibility",
                 passed=resolve_report.all_resolved,
                 score=score, max_score=15,
-                detail=f"{resolve_report.resolved_count}/{resolve_report.total} çözümlendi",
+                detail=tr("quality.resolve_report_resolved_count", resolve_report_resolved_count=resolve_report.resolved_count, resolve_report_total=resolve_report.total),
             ))
         else:
             report.checks.append(QualityCheck(

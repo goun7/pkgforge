@@ -24,6 +24,7 @@ from pathlib import Path, PurePosixPath
 
 import config
 from config import APP_VERSION, PROFILE_NAME_RE
+from i18n import tr
 
 # Per-profile files captured in every bundle.
 _BUNDLE_FILES = ("settings.json", "history.db", "history.db-wal", "history.db-shm")
@@ -106,7 +107,7 @@ def import_backup(backup_path: str) -> dict:
     """Restore a PkgForge backup bundle into the current config root."""
     p = Path(backup_path).expanduser()
     if not p.is_file():
-        raise SyncError(f"Yedek dosyası bulunamadı: {p}")
+        raise SyncError(tr("cloud.yedek_dosyasi_bulunamadi", p=p))
 
     restored: list[str] = []
     with zipfile.ZipFile(p) as zf:
@@ -123,14 +124,14 @@ def import_backup(backup_path: str) -> dict:
                 continue
             parts = PurePosixPath(member).parts
             if len(parts) != 2:
-                raise SyncError(f"Güvenilmeyen arşiv üyesi: {member}")
+                raise SyncError(tr("cloud.guvenilmeyen_arsiv_uyesi_member_2", member=member))
             profile, fname = parts
             if not PROFILE_NAME_RE.match(profile) or fname not in _BUNDLE_FILES:
-                raise SyncError(f"Güvenilmeyen arşiv üyesi: {member}")
+                raise SyncError(tr("cloud.guvenilmeyen_arsiv_uyesi_member", member=member))
             blob = zf.read(member)
             want = expected.get(member)
             if want and hashlib.sha256(blob).hexdigest() != want:
-                raise SyncError(f"Bütünlük hatası: {member}")
+                raise SyncError(tr("cloud.butunluk_hatasi_member", member=member))
             planned[(profile, fname)] = blob
 
         for (profile, fname), blob in planned.items():
@@ -266,9 +267,9 @@ def webdav_push() -> dict:
         with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             resp.read()
     except urllib.error.HTTPError as exc:
-        raise SyncError(f"Sunucu hatası: HTTP {exc.code}") from exc
+        raise SyncError(tr("cloud.sunucu_hatasi_http_exc_2", exc_code=exc.code)) from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        raise SyncError(f"Sunucuya ulaşılamadı: {_net_reason(exc)}") from exc
+        raise SyncError(tr("cloud.sunucuya_ulasilamadi_exc_2", exc=_net_reason(exc))) from exc
     return {"ok": True, "remote": url + _REMOTE_NAME, "size": len(blob)}
 
 
@@ -281,9 +282,9 @@ def webdav_pull() -> dict:
         with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             blob = resp.read()
     except urllib.error.HTTPError as exc:
-        raise SyncError(f"Sunucu hatası: HTTP {exc.code}") from exc
+        raise SyncError(tr("cloud.sunucu_hatasi_http_exc", exc_code=exc.code)) from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        raise SyncError(f"Sunucuya ulaşılamadı: {_net_reason(exc)}") from exc
+        raise SyncError(tr("cloud.sunucuya_ulasilamadi_exc", exc=_net_reason(exc))) from exc
 
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp.write(blob)

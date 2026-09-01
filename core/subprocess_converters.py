@@ -94,14 +94,14 @@ class NativeDebConverterSubprocess:
             # Security
             escaping = check_symlink_attacks(src_dir)
             if escaping:
-                self.finished.emit(False, f"Güvenlik: symlink saldırısı: {escaping[:3]}", None)
+                self.finished.emit(False, tr("subconv.guvenlik_symlink_saldirisi_escaping_2", escaping=escaping[:3]), None)
                 return
 
             errors, warnings = check_dangerous_files(src_dir)
             for w in warnings[:5]:
                 self._emit(f"⚠ {w}")
             if errors:
-                self.finished.emit(False, f"Güvenlik: tehlikeli dosya: {errors[:3]}", None)
+                self.finished.emit(False, tr("subconv.guvenlik_tehlikeli_dosya_errors_2", errors=errors[:3]), None)
                 return
 
             # Resolve deps
@@ -119,7 +119,7 @@ class NativeDebConverterSubprocess:
 
         except Exception as exc:  # noqa: BLE001
             log.error(tr("subconv.native_deb_donusum_hatasi_s"), exc)
-            self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
+            self.finished.emit(False, tr("subconv.donusum_hatasi_exc_2", exc=exc), None)
 
     def _extract_data_tar(self, deb_path: Path, dest_dir: Path):
         """Extract data.tar.* from DEB."""
@@ -153,12 +153,11 @@ class NativeDebConverterSubprocess:
         _stdout, stderr = tar_proc.communicate(timeout=60)
         if ar_proc.returncode != 0:
             raise RuntimeError(
-                f"ar başarısız (kod: {ar_proc.returncode}): "
-                f"{ar_stderr.decode('utf-8', errors='replace')}"
+                tr("subconv.ar_basarisiz_kod_ar", ar_proc_returncode=ar_proc.returncode, ar_stderr_decode=ar_stderr.decode('utf-8', errors='replace'))
             )
         if tar_proc.returncode != 0:
             raise RuntimeError(
-                f"İçerik çıkarılamadı: {stderr.decode('utf-8', errors='replace')}"
+                tr("subconv.cerik_cikarilamadi_stderr_decode", stderr_decode=stderr.decode('utf-8', errors='replace'))
             )
 
     def _generate_pkgbuild(self, meta, resolved_deps):
@@ -227,7 +226,7 @@ package() {{
         proc.wait(timeout=600)
 
         if proc.returncode != 0:
-            self.finished.emit(False, f"makepkg başarısız (kod: {proc.returncode})", None)
+            self.finished.emit(False, tr("subconv.makepkg_basarisiz_kod_proc", proc_returncode=proc.returncode), None)
             return
 
         # Find output
@@ -288,7 +287,7 @@ class RpmConverterSubprocess:
         )
         proc.communicate(timeout=60)
         if proc.returncode != 0:
-            return False, f"RPM çıkarma başarısız (kod: {proc.returncode})"
+            return False, tr("subconv.rpm_cikarma_basarisiz_kod", proc_returncode=proc.returncode)
         self._emit("✓ RPM içeriği çıkarıldı")
         return True, ""
 
@@ -300,13 +299,13 @@ class RpmConverterSubprocess:
         from core.security import check_dangerous_files, check_symlink_attacks
         escaping = check_symlink_attacks(pkg_dir)
         if escaping:
-            return False, f"Güvenlik: symlink saldırısı: {escaping[:3]}"
+            return False, tr("subconv.guvenlik_symlink_saldirisi_escaping", escaping=escaping[:3])
 
         errors, warnings = check_dangerous_files(pkg_dir)
         for w in warnings[:5]:
             self._emit(f"⚠ {w}")
         if errors:
-            return False, f"Güvenlik: tehlikeli dosya: {errors[:3]}"
+            return False, tr("subconv.guvenlik_tehlikeli_dosya_errors", errors=errors[:3])
         return True, ""
 
     def _rpm_makepkg_build(self, meta, output_dir: Path) -> tuple[bool, str]:
@@ -354,7 +353,7 @@ class RpmConverterSubprocess:
         build_proc.wait(timeout=600)
 
         if build_proc.returncode != 0:
-            return False, f"makepkg başarısız (kod: {build_proc.returncode})"
+            return False, tr("subconv.makepkg_basarisiz_kod_build", build_proc_returncode=build_proc.returncode)
         return True, ""
 
     @staticmethod
@@ -404,7 +403,7 @@ class RpmConverterSubprocess:
                 self.finished.emit(False, "makepkg başarılı ama çıktı paketi bulunamadı", None)
 
         except Exception as exc:  # noqa: BLE001
-            self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
+            self.finished.emit(False, tr("subconv.donusum_hatasi_exc", exc=exc), None)
 
     def _generate_pkgbuild(self, meta, src_dir):
         from config import RPM_DEP_MAP

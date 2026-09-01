@@ -200,21 +200,21 @@ def verify_provenance(prov: BuildProvenance) -> tuple[bool, str]:
     # 1. Check self-referential hash
     expected = prov.compute_hash()
     if expected != prov.provenance_hash:
-        return False, f"Provenance hash uyuşmuyor: beklenen {expected[:16]}…, mevcut {prov.provenance_hash[:16]}…"
+        return False, tr("provenance.provenance_hash_uyusmuyor_beklenen", expected=expected[:16], provenance_hash=prov.provenance_hash[:16])
 
     # 2. Check source file exists and hash matches
     if prov.source_file and Path(prov.source_file).is_file() and prov.source_sha256:
         from core.security import sha256_hash
         actual = sha256_hash(Path(prov.source_file))
         if actual != prov.source_sha256:
-            return False, f"Kaynak dosya hash uyuşmazlığı: {actual[:16]}… ≠ {prov.source_sha256[:16]}…"
+            return False, tr("provenance.kaynak_dosya_hash_uyusmazligi", actual=actual[:16], source_sha256=prov.source_sha256[:16])
 
     # 3. Check output file exists and hash matches
     if prov.output_file and Path(prov.output_file).is_file() and prov.output_sha256:
         from core.security import sha256_hash
         actual = sha256_hash(Path(prov.output_file))
         if actual != prov.output_sha256:
-            return False, f"Çıktı dosyası hash uyuşmazlığı: {actual[:16]}… ≠ {prov.output_sha256[:16]}…"
+            return False, tr("provenance.cikti_dosyasi_hash_uyusmazligi", actual=actual[:16], output_sha256=prov.output_sha256[:16])
 
     return True, "Provenance doğrulandı ✓"
 
@@ -351,11 +351,11 @@ def verify_attestation(attestation: InTotoStatement) -> tuple[bool, str]:
     """Verify an in-toto attestation statement."""
     # Check statement type
     if attestation._type != "https://in-toto.io/Statement/v1":
-        return False, f"Geçersiz statement tipi: {attestation._type}"
+        return False, tr("provenance.gecersiz_statement_tipi_attestation", attestation__type=attestation._type)
 
     # Check predicate type
     if not attestation.predicate_type.startswith("https://"):
-        return False, f"Geçersiz predicate tipi: {attestation.predicate_type}"
+        return False, tr("provenance.gecersiz_predicate_tipi_attestation", attestation_predicate_type=attestation.predicate_type)
 
     # Check subject exists
     if not attestation.subject:
@@ -363,8 +363,8 @@ def verify_attestation(attestation: InTotoStatement) -> tuple[bool, str]:
 
     # Check required predicate fields
     pred = attestation.predicate
-    for key in ("builder", "buildType", "metadata"):
-        if key not in pred:
-            return False, f"Predicate'de '{key}' alanı eksik"
+    for _key in ("builder", "buildType", "metadata"):
+        if _key not in pred:
+            return False, tr("provenance.predicate_de_key_alani", field=_key)
 
     return True, "Attestation doğrulandı ✓"

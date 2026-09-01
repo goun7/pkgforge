@@ -57,7 +57,7 @@ class NativeDebConverter(QObject):
     def convert(self, deb_path: Path, output_dir: Path) -> None:
         """Start high-speed native DEB conversion."""
         if not deb_path.is_file():
-            self.finished.emit(False, f"DEB dosyası bulunamadı: {deb_path}", None)
+            self.finished.emit(False, tr("nativedeb.deb_dosyasi_bulunamadi_deb", deb_path=deb_path), None)
             return
 
         if not self._tools.makepkg:
@@ -71,7 +71,7 @@ class NativeDebConverter(QObject):
         try:
             self._meta = analyze_package(deb_path, self._tools)
         except Exception as exc:  # noqa: BLE001
-            self.finished.emit(False, f"DEB analizi başarısız: {exc}", None)
+            self.finished.emit(False, tr("nativedeb.deb_analizi_basarisiz_exc", exc=exc), None)
             return
 
         self.output_line.emit("▶ DEB verileri ayıklanıyor...")
@@ -86,7 +86,7 @@ class NativeDebConverter(QObject):
             escaping = check_symlink_attacks(src_dir)
             if escaping:
                 raise RuntimeError(
-                    f"Güvenlik: dizin dışına işaret eden sembolik bağ(lar): {escaping[:3]}"
+                    tr("nativedeb.guvenlik_dizin_disina_isaret", escaping=escaping[:3])
                 )
 
             # Security: flag setuid binaries, device nodes and suspicious ELF
@@ -95,7 +95,7 @@ class NativeDebConverter(QObject):
                 self.output_line.emit(f"⚠ {warn}")
             if errors:
                 raise RuntimeError(
-                    f"Güvenlik: tehlikeli dosya özellikleri: {errors[:3]}"
+                    tr("nativedeb.guvenlik_tehlikeli_dosya_ozellikler", errors=errors[:3])
                 )
 
             # Resolve real Arch dependencies from the extracted binaries so the
@@ -103,19 +103,19 @@ class NativeDebConverter(QObject):
             self.output_line.emit("▶ Bağımlılıklar çözümleniyor...")
             resolved_deps = resolve_runtime_dependencies(src_dir, self._tools)
             if resolved_deps:
-                self.output_line.emit(f"  {len(resolved_deps)} bağımlılık çözümlendi")
+                self.output_line.emit(tr("nativedeb.resolved_deps_bagimlilik_cozumlendi", resolved_deps=len(resolved_deps)))
 
             pkgbuild_content = self._generate_pkgbuild(self._meta, resolved_deps)
 
             pkgbuild_path = build_dir / "PKGBUILD"
             pkgbuild_path.write_text(pkgbuild_content, encoding="utf-8")
-            self.output_line.emit(f"  PKGBUILD oluşturuldu: {pkgbuild_path.name}")
+            self.output_line.emit(tr("nativedeb.pkgbuild_olusturuldu_pkgbuild_path", pkgbuild_path_name=pkgbuild_path.name))
 
             self._run_makepkg(build_dir)
 
         except Exception as exc:  # noqa: BLE001
             log.error(tr("nativedeb.native_deb_donusum_hatasi_s"), exc)
-            self.finished.emit(False, f"Dönüşüm hatası: {exc}", None)
+            self.finished.emit(False, tr("nativedeb.donusum_hatasi_exc", exc=exc), None)
 
     def cancel(self) -> None:
         self._cancelled = True
@@ -128,7 +128,7 @@ class NativeDebConverter(QObject):
         # Find data.tar.* using ar t
         ar_res = safe_run([self._tools.ar, "t", str(deb_path)])
         if ar_res.returncode != 0:
-            raise RuntimeError(f"ar başarısız: {ar_res.stderr}")
+            raise RuntimeError(tr("nativedeb.ar_basarisiz_ar_res", ar_res_stderr=ar_res.stderr))
 
         data_tar = None
         for member in ar_res.stdout.splitlines():
@@ -166,11 +166,10 @@ class NativeDebConverter(QObject):
         _stdout, stderr = tar_proc.communicate(timeout=60)
         if ar_proc.returncode != 0:
             raise RuntimeError(
-                f"ar başarısız (kod: {ar_proc.returncode}): "
-                f"{ar_stderr.decode('utf-8', errors='replace')}"
+                tr("nativedeb.ar_basarisiz_kod_ar", ar_proc_returncode=ar_proc.returncode, ar_stderr_decode=ar_stderr.decode('utf-8', errors='replace'))
             )
         if tar_proc.returncode != 0:
-            raise RuntimeError(f"İçerik çıkarılamadı: {stderr.decode('utf-8', errors='replace')}")
+            raise RuntimeError(tr("nativedeb.cerik_cikarilamadi_stderr_decode", stderr_decode=stderr.decode('utf-8', errors='replace')))
 
     def _generate_pkgbuild(self, meta: PackageMetadata, resolved_deps: list[str] | None = None) -> str:
         """Generate Arch Linux PKGBUILD for extracted DEB contents."""
@@ -252,19 +251,19 @@ class NativeDebConverter(QObject):
             return
 
         if exit_code != 0:
-            self.finished.emit(False, f"makepkg başarısız (kod: {exit_code})", None)
+            self.finished.emit(False, tr("nativedeb.makepkg_basarisiz_kod_exit", exit_code=exit_code), None)
             return
 
         # Find output package
         pkg_file = self._find_output_package()
         if pkg_file:
-            self.output_line.emit(f"✓ Native DEB paketi hazırlandı: {pkg_file.name}")
+            self.output_line.emit(tr("nativedeb.native_deb_paketi_hazirlandi", pkg_file_name=pkg_file.name))
             self.finished.emit(True, "Native DEB dönüşümü başarılı", pkg_file)
         else:
             self.finished.emit(False, "makepkg başarılı ancak çıktı paketi bulunamadı", None)
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
-        self.finished.emit(False, f"Native DEB dönüştürücü hatası: {error}", None)
+        self.finished.emit(False, tr("nativedeb.native_deb_donusturucu_hatasi", error=error), None)
 
     def _find_output_package(self) -> Path | None:
         # PKGDEST is native_build/pkgout (sandbox-bound); also tolerate the

@@ -41,7 +41,7 @@ from core.http_api.read import (
     handle_profile_current,
     handle_profile_list,
 )
-from i18n import load_settings, save_settings
+from i18n import load_settings, save_settings, tr
 
 _write_lock = threading.Lock()
 
@@ -588,7 +588,7 @@ def handle_system_open_path(params):
 
     path = Path(params.get("path", ""))
     if not path.exists():
-        raise FileNotFoundError(f"Yol bulunamadı: {path}")
+        raise FileNotFoundError(tr("api.yol_bulunamadi_path", path=path))
     target = path.parent if path.is_file() else path
     subprocess.Popen(["xdg-open", str(target)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -608,9 +608,9 @@ def handle_system_install_pkg(params):
 
     pkg = Path(params.get("pkg_path", ""))
     if not pkg.is_file():
-        raise FileNotFoundError(f"Paket bulunamadı: {pkg}")
+        raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg))
     if ".pkg.tar" not in pkg.name:
-        raise ValueError(f"Geçersiz paket dosyası: {pkg.name}")
+        raise ValueError(tr("api.gecersiz_paket_dosyasi_pkg", pkg_name=pkg.name))
     tools = discover_tools()
     if not tools.pkexec or not tools.pacman:
         raise RuntimeError("pkexec veya pacman bulunamadı")
@@ -620,7 +620,7 @@ def handle_system_install_pkg(params):
         res = safe_run(argv, timeout=600)
         if res.returncode == 0:
             return {"ok": True, "message": f"{pkg.name} kuruldu"}
-        return {"ok": False, "message": f"Kurulum başarısız (kod {res.returncode})"}
+        return {"ok": False, "message": tr("api.kurulum_basarisiz_kod_res", res_returncode=res.returncode)}
 
     _run_thread(_op, "event/install_done")
     return {"started": True}
@@ -786,7 +786,7 @@ def handle_aur_build(params):
             capture_output=True, text=True, timeout=180, check=False,
         )
         if r.returncode != 0:
-            raise RuntimeError(f"git clone başarısız: {r.stderr.strip()[:300]}")
+            raise RuntimeError(tr("api.git_clone_basarisiz_var0", var0=r.stderr.strip()[:300]))
 
         _event("event/aur_build_progress", {"name": name, "step": "build"})
         cmd = ["makepkg", "-f", "--noconfirm"]
@@ -797,7 +797,7 @@ def handle_aur_build(params):
             cwd=str(workdir / name), check=False,
         )
         if b.returncode != 0:
-            raise RuntimeError(f"makepkg başarısız: {b.stderr.strip()[-300:]}")
+            raise RuntimeError(tr("api.makepkg_basarisiz_var0", var0=b.stderr.strip()[-300:]))
 
         built = sorted((workdir / name).glob("*.pkg.tar.zst"))
         if not built:
@@ -932,7 +932,7 @@ def _make_pipeline(path, item_id, do_install=False):
         p.compatibility_ready.connect(lambda report: p.approve_install(), type=direct)
     else:
         pkg_label = Path(path).name
-        p._skip_install_message = f"{pkg_label} dönüştürüldü (kurulum atlandı)"
+        p._skip_install_message = tr("api.pkg_label_donusturuldu_kurulum", pkg_label=pkg_label)
         p.compatibility_ready.connect(
             lambda report: p.dismiss_install(), type=direct)
     p.finished.connect(_track_finished, type=direct)
@@ -1234,7 +1234,7 @@ def handle_sync_config(params):
                 stored_in = "keyring"
                 s.pop("sync_password", None)  # migrate off plaintext
             except Exception as exc:  # noqa: BLE001 - fallback to settings
-                warning = f"Anahtarlık kullanılamadı: {exc}"
+                warning = tr("api.anahtarlik_kullanilamadi_exc", exc=exc)
                 s["sync_password"] = secret
         else:
             s["sync_password"] = secret

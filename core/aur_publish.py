@@ -20,6 +20,7 @@ from pathlib import Path
 
 from config import extract_package_name
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -233,7 +234,7 @@ def prepare_aur_package(
         version=version,
     )
 
-    return True, f"AUR paketi hazır: {aur_dir}", aur_pkg
+    return True, tr("aurpub.aur_paketi_hazir_aur", aur_dir=aur_dir), aur_pkg
 
 
 def push_to_aur(
@@ -261,7 +262,7 @@ def push_to_aur(
             [git, "init", str(aur_dir)], timeout=10,
         )
         if res.returncode != 0:
-            return False, f"git init başarısız: {res.stderr[:200]}"
+            return False, tr("aurpub.git_init_basarisiz_stderr", stderr=res.stderr[:200])
 
     # Configure git user
     safe_run(
@@ -305,6 +306,6 @@ def push_to_aur(
     )
 
     if res.returncode == 0:
-        return True, f"AUR'a başarıyla yüklendi: {aur_repo_url}"
+        return True, tr("aurpub.aur_basariyla_yuklendi_aur", aur_repo_url=aur_repo_url)
     else:
-        return False, f"Push başarısız: {res.stderr[:300]}"
+        return False, tr("aurpub.push_basarisiz_stderr", stderr=res.stderr[:300])

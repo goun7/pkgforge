@@ -18,6 +18,7 @@ from config import RPM_DEP_MAP, ToolPaths
 from core.dep_resolver import resolve_runtime_dependencies
 from core.package_analyzer import PackageMetadata
 from core.security import check_dangerous_files, check_symlink_attacks
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class RpmConverter(QObject):
             return
 
         if exit_code != 0:
-            self.finished.emit(False, f"RPM çıkarma başarısız (kod: {exit_code})", None)
+            self.finished.emit(False, tr("rpmconv.rpm_cikarma_basarisiz_kod", exit_code=exit_code), None)
             return
 
         self.output_line.emit("✓ RPM içeriği çıkarıldı")
@@ -125,7 +126,7 @@ class RpmConverter(QObject):
         if escaping:
             self.finished.emit(
                 False,
-                f"Güvenlik: dizin dışına işaret eden sembolik bağ(lar): {escaping[:3]}",
+                tr("rpmconv.guvenlik_dizin_disina_isaret", escaping=escaping[:3]),
                 None,
             )
             return
@@ -137,7 +138,7 @@ class RpmConverter(QObject):
         if errors:
             self.finished.emit(
                 False,
-                f"Güvenlik: tehlikeli dosya özellikleri: {errors[:3]}",
+                tr("rpmconv.guvenlik_tehlikeli_dosya_ozellikler", errors=errors[:3]),
                 None,
             )
             return
@@ -146,7 +147,7 @@ class RpmConverter(QObject):
         try:
             self._build_package()
         except Exception as exc:  # noqa: BLE001
-            self.finished.emit(False, f"PKGBUILD oluşturma hatası: {exc}", None)
+            self.finished.emit(False, tr("rpmconv.pkgbuild_olusturma_hatasi_exc", exc=exc), None)
 
     # ── Phase 2: Build ───────────────────────────────────────────
 
@@ -171,7 +172,7 @@ class RpmConverter(QObject):
         pkgbuild_content = self._generate_pkgbuild(src_dir)
         pkgbuild_path = build_dir / "PKGBUILD"
         pkgbuild_path.write_text(pkgbuild_content, encoding="utf-8")
-        self.output_line.emit(f"  PKGBUILD yazıldı: {pkgbuild_path.name}")
+        self.output_line.emit(tr("rpmconv.pkgbuild_yazildi_pkgbuild_path", pkgbuild_path_name=pkgbuild_path.name))
 
         # Run makepkg
         self.output_line.emit("▶ makepkg çalıştırılıyor...")
@@ -207,13 +208,13 @@ class RpmConverter(QObject):
             return
 
         if exit_code != 0:
-            self.finished.emit(False, f"makepkg başarısız (kod: {exit_code})", None)
+            self.finished.emit(False, tr("rpmconv.makepkg_basarisiz_kod_exit", exit_code=exit_code), None)
             return
 
         # Find generated package
         pkg_file = self._find_output_package()
         if pkg_file:
-            self.output_line.emit(f"✓ Paket oluşturuldu: {pkg_file.name}")
+            self.output_line.emit(tr("rpmconv.paket_olusturuldu_pkg_file", pkg_file_name=pkg_file.name))
             self.finished.emit(True, "RPM dönüşümü başarılı", pkg_file)
         else:
             self.finished.emit(False, "makepkg başarılı ama çıktı paketi bulunamadı", None)
@@ -273,9 +274,9 @@ class RpmConverter(QObject):
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
         error_map = {
-            QProcess.ProcessError.FailedToStart: f"{self._phase} işlemi başlatılamadı",
-            QProcess.ProcessError.Crashed: f"{self._phase} işlemi çöktü",
-            QProcess.ProcessError.Timedout: f"{self._phase} zaman aşımı",
+            QProcess.ProcessError.FailedToStart: tr("rpmconv.self_phase_islemi_baslatilamadi", self__phase=self._phase),
+            QProcess.ProcessError.Crashed: tr("rpmconv.self_phase_islemi_coktu", self__phase=self._phase),
+            QProcess.ProcessError.Timedout: tr("rpmconv.self_phase_zaman_asimi", self__phase=self._phase),
         }
         msg = error_map.get(error, f"Bilinmeyen hata: {error}")
         self.finished.emit(False, msg, None)

@@ -180,14 +180,14 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
         return CheckResult(
             name="Namcap Analizi",
             severity=CheckSeverity.ERROR,
-            message=f"{len(errors)} hata, {len(warnings)} uyarı tespit edildi",
+            message=tr("compat.errors_hata_warnings_uyari", errors=len(errors), warnings=len(warnings)),
             details=errors + warnings,
         )
     elif warnings:
         return CheckResult(
             name="Namcap Analizi",
             severity=CheckSeverity.WARNING,
-            message=f"{len(warnings)} uyarı tespit edildi (hata yok)",
+            message=tr("compat.warnings_uyari_tespit_edildi", warnings=len(warnings)),
             details=warnings,
         )
     else:  # pragma: no cover — dış strip() en az bir dolu satır garantiler
@@ -223,7 +223,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
         # Dep names come from untrusted package metadata; validate before
         # passing to pacman so a crafted name cannot inject CLI options.
         if not is_valid_package_name(dep_name):
-            missing.append(f"{dep_name} (geçersiz ad)")
+            missing.append(tr("compat.dep_name_gecersiz_ad", dep_name=dep_name))
             continue
 
         # Check if installed
@@ -255,7 +255,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
             CheckResult(
                 name="Bağımlılık Kontrolü",
                 severity=CheckSeverity.WARNING,
-                message=f"{len(missing)}/{len(depends)} bağımlılık çözümlenemedi",
+                message=tr("compat.missing_depends_bagimlilik_cozumlen", missing=len(missing), depends=len(depends)),
                 details=[f"❌ {d}" for d in missing],
             )
         )
@@ -264,7 +264,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
             CheckResult(
                 name="Bağımlılık Kontrolü",
                 severity=CheckSeverity.PASS,
-                message=f"Tüm bağımlılıklar ({len(resolved)}) çözümlendi",
+                message=tr("compat.tum_bagimliliklar_resolved_cozumlen", resolved=len(resolved)),
                 details=[f"✓ {d}" for d in resolved],
             )
         )
@@ -307,14 +307,14 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
         return CheckResult(
             name="Dosya Çakışması",
             severity=CheckSeverity.WARNING,
-            message=f"{len(conflicts)} dosya mevcut paketlerle çakışıyor",
+            message=tr("compat.conflicts_dosya_mevcut_paketlerle", conflicts=len(conflicts)),
             details=conflicts[:20],  # limit display
         )
 
     return CheckResult(
         name="Dosya Çakışması",
         severity=CheckSeverity.PASS,
-        message=f"{len(check_files)} dosya kontrol edildi, çakışma yok",
+        message=tr("compat.check_files_dosya_kontrol", check_files=len(check_files)),
     )
 
 

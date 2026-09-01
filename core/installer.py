@@ -81,7 +81,7 @@ class Installer(QObject):
             pkg_name: Expected package name for post-install verification.
         """
         if not pkg_path.is_file():
-            self.finished.emit(False, f"Paket dosyası bulunamadı: {pkg_path}")
+            self.finished.emit(False, tr("installer.paket_dosyasi_bulunamadi_pkg", pkg_path=pkg_path))
             return
 
         if not self._tools.pkexec:
@@ -90,7 +90,7 @@ class Installer(QObject):
 
         # Validate that the file has the expected extension
         if ".pkg.tar" not in pkg_path.name:
-            self.finished.emit(False, f"Geçersiz paket dosyası: {pkg_path.name}")
+            self.finished.emit(False, tr("installer.gecersiz_paket_dosyasi_pkg", pkg_path_name=pkg_path.name))
             return
 
         self._pkg_name = pkg_name
@@ -105,11 +105,11 @@ class Installer(QObject):
                 from core.snapshot_manager import detect_backend, take_snapshot
                 backend = detect_backend()
                 if backend != "none":
-                    self.output_line.emit(f"  📸 {backend.upper()} snapshot alınıyor...")
+                    self.output_line.emit(tr("installer.backend_upper_snapshot_aliniyor", backend_upper=backend.upper()))
                     snap = take_snapshot(pkg_name)
                     if snap.success:
                         self._snapshot_name = snap.snapshot_name
-                        self.output_line.emit(f"  ✓ Snapshot hazır: {snap.snapshot_name}")
+                        self.output_line.emit(tr("installer.snapshot_hazir_snap_snapshot", snap_snapshot_name=snap.snapshot_name))
                     else:
                         self._snapshot_name = ""
                         self.output_line.emit(f"  ⚠ {snap.detail}")
@@ -169,17 +169,17 @@ class Installer(QObject):
             if exit_code == 126:
                 self.finished.emit(False, f"Yetkilendirme reddedildi (Polkit){snap_hint}")
             elif exit_code == 127:
-                self.finished.emit(False, f"pkexec komutu bulunamadı{snap_hint}")
+                self.finished.emit(False, tr("installer.pkexec_komutu_bulunamadi_snap", snap_hint=snap_hint))
             else:
-                self.finished.emit(False, f"Kurulum başarısız (kod: {exit_code}){snap_hint}")
+                self.finished.emit(False, tr("installer.kurulum_basarisiz_kod_exit", exit_code=exit_code, snap_hint=snap_hint))
             return
 
         # Post-install verification
         verified = self._verify_installation()
         if verified:
             snap_hint = f" [snapshot: {self._snapshot_name}]" if self._snapshot_name else ""
-            self.output_line.emit(f"✓ {self._pkg_name} başarıyla kuruldu/güncellendi{snap_hint}")
-            self.finished.emit(True, f"{self._pkg_name} başarıyla kuruldu")
+            self.output_line.emit(tr("installer.self_pkg_name_basariyla_2", self__pkg_name=self._pkg_name, snap_hint=snap_hint))
+            self.finished.emit(True, tr("installer.self_pkg_name_basariyla", self__pkg_name=self._pkg_name))
         else:
             self.output_line.emit("⚠ Kurulum tamamlandı ama doğrulama başarısız")
             self.finished.emit(True, "Kurulum tamamlandı (doğrulama yapılamadı)")
@@ -190,7 +190,7 @@ class Installer(QObject):
             QProcess.ProcessError.Crashed: "Kurulum işlemi çöktü",
             QProcess.ProcessError.Timedout: "Kurulum zaman aşımı",
         }
-        msg = error_map.get(error, f"Kurulum hatası: {error}")
+        msg = error_map.get(error, tr("installer.kurulum_hatasi_error", error=error))
         self.finished.emit(False, msg)
 
     def _verify_installation(self) -> bool:

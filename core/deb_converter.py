@@ -107,7 +107,7 @@ class DebConverter(QObject):
         if exit_code != 0:
             self.finished.emit(
                 False,
-                f"debtap hata kodu ile çıktı: {exit_code}",
+                tr("debconv.debtap_hata_kodu_ile", exit_code=exit_code),
                 None,
             )
             return
@@ -115,7 +115,7 @@ class DebConverter(QObject):
         # Find the generated .pkg.tar.* file
         pkg_file = self._find_output_package()
         if pkg_file:
-            self.output_line.emit(f"✓ Paket oluşturuldu: {pkg_file.name}")
+            self.output_line.emit(tr("debconv.paket_olusturuldu_pkg_file", pkg_file_name=pkg_file.name))
             self.finished.emit(True, "DEB dönüşümü başarılı", pkg_file)
         else:
             self.finished.emit(
@@ -133,7 +133,7 @@ class DebConverter(QObject):
             QProcess.ProcessError.ReadError: "Debtap çıktısı okunamadı",
             QProcess.ProcessError.UnknownError: "Bilinmeyen debtap hatası",
         }
-        msg = error_map.get(error, f"Debtap hatası: {error}")
+        msg = error_map.get(error, tr("debconv.debtap_hatasi_error", error=error))
         self.finished.emit(False, msg, None)
 
     def _find_output_package(self) -> Path | None:

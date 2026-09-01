@@ -77,7 +77,7 @@ class SBOMDocument:
             f"  📁 Dizin:    {self.dir_count}",
         ]
         if self.dependencies:
-            lines.append(f"  🔗 Bağımlılıklar ({len(self.dependencies)}): {', '.join(self.dependencies[:10])}")
+            lines.append(tr("sbom.bagimliliklar_dependencies_var1", dependencies=len(self.dependencies), var1=', '.join(self.dependencies[:10])))
             if len(self.dependencies) > 10:
                 lines.append(f"     ... ve {len(self.dependencies) - 10} tane daha")
         return "\n".join(lines)
@@ -339,15 +339,15 @@ class SBOMDiff:
              f"+{len(self.added_files)} eklendi, -{len(self.removed_files)} silindi)"),
         ]
         if self.added_deps:
-            lines.append(f"  ➕ Yeni bağımlılıklar: {', '.join(self.added_deps[:10])}")
+            lines.append(tr("sbom.yeni_bagimliliklar_var0", var0=', '.join(self.added_deps[:10])))
         if self.removed_deps:
-            lines.append(f"  ➖ Kaldırılan bağımlılıklar: {', '.join(self.removed_deps[:10])}")
+            lines.append(tr("sbom.kaldirilan_bagimliliklar_var0", var0=', '.join(self.removed_deps[:10])))
         if self.changed_files:
-            lines.append(f"  🔄 Değişen dosyalar: {len(self.changed_files)}")
+            lines.append(tr("sbom.degisen_dosyalar_changed_files", changed_files=len(self.changed_files)))
             for cf in self.changed_files[:5]:
                 lines.append(f"     {cf['path']}: {cf['old_sha256']} → {cf['new_sha256']}")
         if self.version_changes:
-            lines.append(f"  🔄 Versiyon değişiklikleri: {len(self.version_changes)}")
+            lines.append(tr("sbom.versiyon_degisiklikleri_version_cha", version_changes=len(self.version_changes)))
             for vc in self.version_changes[:5]:
                 lines.append(f"     {vc.get('dep', '?')}: {vc.get('old', '?')} → {vc.get('new', '?')}")
         if not any([self.added_files, self.removed_files, self.changed_files, self.added_deps, self.removed_deps, self.version_changes]):

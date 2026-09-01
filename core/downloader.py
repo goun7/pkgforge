@@ -34,7 +34,7 @@ class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
         parsed = urllib.parse.urlparse(newurl)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(
-                f"Yönlendirme güvenli olmayan şemaya gidiyor: {parsed.scheme}"
+                tr("downloader.yonlendirme_guvenli_olmayan_semaya", parsed_scheme=parsed.scheme)
             )
         if self._require_https and parsed.scheme != "https":
             raise ValueError(
@@ -71,7 +71,7 @@ def _validate_download_url(url: str, require_https: bool) -> urllib.parse.ParseR
     """
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme not in ("http", "https"):
-        raise ValueError(f"Geçersiz URL şeması: {parsed.scheme}. Yalnızca http ve https desteklenir.")
+        raise ValueError(tr("downloader.gecersiz_url_semasi_parsed", parsed_scheme=parsed.scheme))
     if require_https and parsed.scheme != "https":
         raise ValueError(
             "Güvenlik: yalnızca HTTPS bağlantıları kabul edilir. "
@@ -98,8 +98,7 @@ def _verify_download_sha256(dest_file: Path, expected_sha256: str) -> None:
     if actual.lower() != expected_sha256.strip().lower():
         dest_file.unlink(missing_ok=True)
         raise ValueError(
-            f"SHA-256 doğrulaması başarısız: beklenen {expected_sha256.strip()[:16]}…, "
-            f"gerçek {actual[:16]}…"
+            tr("downloader.sha_256_dogrulamasi_basarisiz", var0=expected_sha256.strip()[:16], actual=actual[:16])
         )
     log.info(tr("downloader.sha_256_dogrulandi_s"), actual[:16])
 
@@ -152,7 +151,7 @@ def download_package(
         with _open_url(req, timeout=30, require_https=require_https) as resp:
             content_length = resp.headers.get("Content-Length")
             if content_length and int(content_length) > max_bytes:
-                raise ValueError(f"Dosya boyutu çok büyük: {int(content_length) / (1024*1024):.1f} MB")
+                raise ValueError(tr("downloader.dosya_boyutu_cok_buyuk", var0=int(content_length) / (1024*1024)))
 
             # Capture HTTP caching headers for upstream update tracking
             if response_info is not None:
@@ -179,7 +178,7 @@ def download_package(
         retry_with_backoff(_do_download, config=retry_config, operation_name=f"download({filename})")
     except Exception as exc:  # noqa: BLE001
         log.error(tr("downloader.i_ndirme_basarisiz_3_deneme"), exc)
-        raise RuntimeError(f"İndirme başarısız: {exc}")
+        raise RuntimeError(tr("downloader.ndirme_basarisiz_exc", exc=exc))
 
     # Optional integrity verification against a known SHA-256
     if expected_sha256:

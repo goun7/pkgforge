@@ -91,7 +91,7 @@ def validate_mime_type(file_path: Path, tools: ToolPaths) -> str:
     Raises ValueError if the file is not a valid .deb or .rpm.
     """
     if not file_path.is_file():
-        raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
+        raise FileNotFoundError(tr("security.dosya_bulunamadi_file_path", file_path=file_path))
 
     result = subprocess.run(
         [tools.file_cmd, "--mime-type", "-b", str(file_path)],
@@ -115,8 +115,7 @@ def validate_mime_type(file_path: Path, tools: ToolPaths) -> str:
 
     if mime not in valid_mimes:
         raise ValueError(
-            f"Geçersiz dosya türü: {mime}. "
-            f"Yalnızca .deb ve .rpm dosyaları desteklenir."
+            tr("security.gecersiz_dosya_turu_mime", mime=mime)
         )
     return mime
 
@@ -126,10 +125,10 @@ def validate_file_size(file_path: Path, max_mb: int, warn_mb: int) -> str | None
     size_mb = file_path.stat().st_size / (1024 * 1024)
     if size_mb > max_mb:
         raise ValueError(
-            f"Dosya boyutu ({size_mb:.0f} MB) maksimum limiti aşıyor ({max_mb} MB)."
+            tr("security.dosya_boyutu_size_mb", size_mb=size_mb, max_mb=max_mb)
         )
     if size_mb > warn_mb:
-        return f"Dosya boyutu büyük: {size_mb:.0f} MB"
+        return tr("security.dosya_boyutu_buyuk_size", size_mb=size_mb)
     return None
 
 
@@ -198,8 +197,7 @@ def check_compression_bomb(
             estimated_mb = member_count * 0.01  # rough estimate
             if archive_mb > 0 and estimated_mb / archive_mb > max_ratio:
                 return (
-                    f"⚠ Potansiyel decompression bomb: {member_count} dosya, "
-                    f"tahmini sıkıştırma oranı > {max_ratio}x"
+                    tr("security.potansiyel_decompression_bomb_membe", member_count=member_count, max_ratio=max_ratio)
                 )
 
         # For RPMs: similar check using rpm2cpio header
@@ -219,8 +217,7 @@ def check_compression_bomb(
                         # Compare uncompressed (KB) vs compressed (MB) in same units
                         if payload_kb > 0 and installed_kb / (archive_mb * 1024) > max_ratio:
                             return (
-                                f"⚠ Potansiyel decompression bomb: "
-                                f"kurulum boyutu {installed_kb}KB, arşiv {archive_mb:.0f}MB"
+                                tr("security.potansiyel_decompression_bomb_kurul", installed_kb=installed_kb, archive_mb=archive_mb)
                             )
                     except (ValueError, IndexError):
                         pass
@@ -287,10 +284,10 @@ def verify_deb_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
 
         return SignatureResult(
             has_signature=True,
-            detail=f"İmza dosyası bulundu: {', '.join(sig_members)}",
+            detail=tr("security.mza_dosyasi_bulundu_var0", var0=', '.join(sig_members)),
         )
     except (subprocess.TimeoutExpired, OSError) as exc:
-        return SignatureResult(detail=f"İmza kontrolü başarısız: {exc}")
+        return SignatureResult(detail=tr("security.mza_kontrolu_basarisiz_exc", exc=exc))
 
 
 def verify_rpm_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
@@ -313,7 +310,7 @@ def verify_rpm_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
             )
         return SignatureResult(detail="RPM imzasız veya imza doğrulanamadı")
     except OSError as exc:
-        return SignatureResult(detail=f"RPM imza kontrolü başarısız: {exc}")
+        return SignatureResult(detail=tr("security.rpm_imza_kontrolu_basarisiz", exc=exc))
 
 
 # ── Path traversal detection ─────────────────────────────────────

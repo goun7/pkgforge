@@ -16,6 +16,7 @@ from pathlib import Path
 from PyQt6.QtCore import QObject, QProcess, pyqtSignal
 
 from config import ToolPaths
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ class DistroboxFallback(QObject):
 
         image = "ubuntu:latest" if pkg_type == "deb" else "fedora:latest"
         self._phase = "create"
-        self.output_line.emit(f"▶ Container oluşturuluyor: {self._container_name} ({image})")
+        self.output_line.emit(tr("distrobox.container_olusturuluyor_self_contai", self__container_name=self._container_name, image=image))
 
         self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
@@ -101,7 +102,7 @@ class DistroboxFallback(QObject):
 
     def _on_create_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if exit_code != 0:
-            self.finished.emit(False, f"Container oluşturulamadı (kod: {exit_code})")
+            self.finished.emit(False, tr("distrobox.container_olusturulamadi_kod_exit", exit_code=exit_code))
             return
 
         self.output_line.emit("✓ Container oluşturuldu")
@@ -145,7 +146,7 @@ class DistroboxFallback(QObject):
 
     def _on_install_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if exit_code != 0:
-            self.finished.emit(False, f"Container içi kurulum başarısız (kod: {exit_code})")
+            self.finished.emit(False, tr("distrobox.container_ici_kurulum_basarisiz", exit_code=exit_code))
             return
 
         self.output_line.emit("✓ Paket container içinde kuruldu")
@@ -171,7 +172,7 @@ class DistroboxFallback(QObject):
         if exit_code != 0:
             # Export failure is not critical
             self.output_line.emit("⚠ Masaüstü kısayolu dışa aktarılamadı (manuel: distrobox-export --app)")
-            self.finished.emit(True, f"{self._pkg_name} container'da kuruldu (kısayol manuel)")
+            self.finished.emit(True, tr("distrobox.self_pkg_name_container", self__pkg_name=self._pkg_name))
         else:
             self.output_line.emit("✓ Masaüstü kısayolu oluşturuldu")
             self.finished.emit(True, f"{self._pkg_name} container'da kuruldu ve sisteme entegre edildi")
@@ -186,4 +187,4 @@ class DistroboxFallback(QObject):
                 self.output_line.emit(f"  {stripped}")
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
-        self.finished.emit(False, f"Distrobox hatası ({self._phase}): {error}")
+        self.finished.emit(False, tr("distrobox.distrobox_hatasi_self_phase", self__phase=self._phase, error=error))

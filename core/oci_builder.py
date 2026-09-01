@@ -46,7 +46,7 @@ def build_oci_image(
         (success, message, output_path)
     """
     if not pkg_path.is_file():
-        return False, f"Paket dosyası bulunamadı: {pkg_path}", None
+        return False, tr("oci.paket_dosyasi_bulunamadi_pkg", pkg_path=pkg_path), None
 
     # Determine which container runtime to use
     buildah = shutil.which("buildah")
@@ -94,7 +94,7 @@ def _build_with_buildah(
                 timeout=30,
             )
             if res.returncode != 0:
-                return False, f"buildah from başarısız: {res.stderr}", None
+                return False, tr("oci.buildah_from_basarisiz_res", res_stderr=res.stderr), None
 
             # 2. Copy the converted package into the container
             res = safe_run(
@@ -103,7 +103,7 @@ def _build_with_buildah(
             )
             if res.returncode != 0:
                 _cleanup_container(buildah, container_name)
-                return False, f"buildah copy başarısız: {res.stderr}", None
+                return False, tr("oci.buildah_copy_basarisiz_res", res_stderr=res.stderr), None
 
             # 3. Set the working directory
             safe_run(
@@ -124,7 +124,7 @@ def _build_with_buildah(
             )
             if res.returncode != 0:
                 _cleanup_container(buildah, container_name)
-                return False, f"buildah commit başarısız: {res.stderr}", None
+                return False, tr("oci.buildah_commit_basarisiz_res", res_stderr=res.stderr), None
 
             # 6. Export to OCI tarball
             res = safe_run(
@@ -133,18 +133,18 @@ def _build_with_buildah(
             )
             if res.returncode != 0:
                 _cleanup_container(buildah, container_name)
-                return False, f"buildah push başarısız: {res.stderr}", None
+                return False, tr("oci.buildah_push_basarisiz_res", res_stderr=res.stderr), None
 
             # Cleanup
             _cleanup_container(buildah, container_name)
             safe_run([buildah, "rmi", tag], timeout=30)
 
             log.info(tr("oci.oci_goruntu_olusturuldu_s_s"), output_file.name, tag)
-            return True, f"OCI görüntü hazır: {output_file.name} ({tag})", output_file
+            return True, tr("oci.oci_goruntu_hazir_output_2", output_file_name=output_file.name, tag=tag), output_file
 
         except Exception as exc:  # noqa: BLE001
             _cleanup_container(buildah, container_name)
-            return False, f"OCI oluşturma hatası: {exc}", None
+            return False, tr("oci.oci_olusturma_hatasi_exc_2", exc=exc), None
 
 
 def _build_with_podman(
@@ -178,7 +178,7 @@ def _build_with_podman(
                 timeout=120,
             )
             if res.returncode != 0:
-                return False, f"podman build başarısız: {res.stderr}", None
+                return False, tr("oci.podman_build_basarisiz_res", res_stderr=res.stderr), None
 
             # Export to OCI tarball
             res = safe_run(
@@ -186,16 +186,16 @@ def _build_with_podman(
                 timeout=120,
             )
             if res.returncode != 0:
-                return False, f"podman save başarısız: {res.stderr}", None
+                return False, tr("oci.podman_save_basarisiz_res", res_stderr=res.stderr), None
 
             # Cleanup
             safe_run([podman, "rmi", tag], timeout=30)
 
             log.info(tr("oci.oci_goruntu_olusturuldu_s_s_2"), output_file.name, tag)
-            return True, f"OCI görüntü hazır: {output_file.name} ({tag})", output_file
+            return True, tr("oci.oci_goruntu_hazir_output", output_file_name=output_file.name, tag=tag), output_file
 
         except Exception as exc:  # noqa: BLE001
-            return False, f"OCI oluşturma hatası: {exc}", None
+            return False, tr("oci.oci_olusturma_hatasi_exc", exc=exc), None
 
 
 def _cleanup_container(runtime: str, name: str) -> None:

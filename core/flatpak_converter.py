@@ -143,7 +143,7 @@ def create_deb_package(
         (success, message)
     """
     if not files_dir.is_dir():
-        return False, f"Dosya dizini bulunamadı: {files_dir}"
+        return False, tr("flatpak.dosya_dizini_bulunamadi_files", files_dir=files_dir)
 
     with tempfile.TemporaryDirectory(prefix="pkgforge_deb_") as tmpdir:
         deb_root = Path(tmpdir) / "deb"
@@ -192,10 +192,10 @@ def create_deb_package(
         )
 
         if res.returncode != 0:
-            return False, f"dpkg-deb başarısız: {res.stderr}"
+            return False, tr("flatpak.dpkg_deb_basarisiz_res", res_stderr=res.stderr)
 
         log.info(tr("flatpak.deb_paketi_olusturuldu_s"), output_path)
-        return True, f"DEB paketi hazır: {output_path.name}"
+        return True, tr("flatpak.deb_paketi_hazir_output", output_path_name=output_path.name)
 
 
 def flatpak_to_deb(
@@ -219,7 +219,7 @@ def flatpak_to_deb(
     # Get app metadata
     app = get_app_info(app_id)
     if not app:
-        return False, f"Flatpak uygulaması bulunamadı: {app_id}", None
+        return False, tr("flatpak.flatpak_uygulamasi_bulunamadi_app_2", app_id=app_id), None
 
     output_dir.mkdir(parents=True, exist_ok=True)
     deb_name = f"{app.app_id.lower().replace('.', '-').replace('_', '-')}_{app.version}_amd64.deb"
@@ -230,7 +230,7 @@ def flatpak_to_deb(
 
         # Export files
         if not export_app_files(app_id, files_dir, branch):
-            return False, f"Flatpak dosyaları dışa aktarılamadı: {app_id}", None
+            return False, tr("flatpak.flatpak_dosyalari_disa_aktarilamadi", app_id=app_id), None
 
         # Create .deb
         ok, msg = create_deb_package(app, files_dir, output_path)
@@ -297,7 +297,7 @@ def export_flatpak_runtime(
             break
 
     if not app:
-        return False, f"Flatpak uygulaması bulunamadı: {app_id}", None
+        return False, tr("flatpak.flatpak_uygulamasi_bulunamadi_app", app_id=app_id), None
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -348,10 +348,6 @@ def export_flatpak_runtime(
     )
 
     msg = (
-        f"✅ Flatpak runtime manifest oluşturuldu\n"
-        f"  Uygulama:  {app.name} {app.version}\n"
-        f"  Runtime:   {sdk} {sdk_version}\n"
-        f"  Manifest:  {manifest_path}\n"
-        f"  Derlemek:  flatpak-builder --force-clean build {manifest_path}"
+        tr("flatpak.flatpak_runtime_manifest_olusturuld", app_name=app.name, app_version=app.version, sdk=sdk, sdk_version=sdk_version, manifest_path=manifest_path, manifest_path_2=manifest_path)
     )
     return True, msg, manifest_path

@@ -183,7 +183,7 @@ def _take_btrfs_snapshot(snap_name: str) -> SnapshotInfo:
             snapshot_name=snap_path,
             mount_point="/",
             success=True,
-            detail=f"Btrfs snapshot hazır: {snap_path}",
+            detail=tr("snapshot.btrfs_snapshot_hazir_snap", snap_path=snap_path),
         )
     else:
         log.warning(tr("snapshot.btrfs_snapshot_basarisiz_s"), res.stderr[:200])
@@ -192,7 +192,7 @@ def _take_btrfs_snapshot(snap_name: str) -> SnapshotInfo:
             snapshot_name="",
             mount_point="/",
             success=False,
-            detail=f"Snapshot başarısız: {res.stderr[:200]}",
+            detail=tr("snapshot.snapshot_basarisiz_stderr", stderr=res.stderr[:200]),
         )
 
 
@@ -229,7 +229,7 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
         script_path.write_text(rollback_script, encoding="utf-8")
         script_path.chmod(0o755)
     except OSError as exc:
-        return False, f"Rollback scripti oluşturulamadı: {exc}"
+        return False, tr("snapshot.rollback_scripti_olusturulamadi_exc", exc=exc)
 
     # 2. Create systemd service for boot-time execution
     service_content = (
@@ -262,14 +262,7 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
             tmp_service = Path(f"/tmp/pkgforge-rollback-{os.getpid()}.service")  # nosec B108
             tmp_service.write_text(service_content, encoding="utf-8")
             msg = (
-                f"📦 Btrfs rollback planı hazırlandı:\n\n"
-                f"  1. Servis dosyasını kurun:\n"
-                f"     sudo cp {tmp_service} {service_path}\n"
-                f"  2. Etkinleştirin:\n"
-                f"     sudo systemctl enable pkgforge-rollback.service\n"
-                f"  3. Sistemi yeniden başlatın:\n"
-                f"     sudo reboot\n\n"
-                f"  Snapshot: {snap_path}"
+                tr("snapshot.btrfs_rollback_plani_hazirlandi_2", tmp_service=tmp_service, service_path=service_path, snap_path=snap_path)
             )
             return True, msg
 
@@ -278,15 +271,12 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
             "pkexec", "enable", "pkgforge-rollback.service"), timeout=10)
 
         msg = (
-            f"✅ Btrfs rollback planı hazırlandı!\n\n"
-            f"  Sistemi yeniden başlattığınızda {snap_path} snapshot'ına geri dönülecek.\n"
-            f"  Rollback sonrası otomatik temizlik yapılacak.\n\n"
-            f"  ⚠️  Sistemi şimdi yeniden başlatmak ister misiniz? (sudo reboot)"
+            tr("snapshot.btrfs_rollback_plani_hazirlandi", snap_path=snap_path)
         )
         return True, msg
 
     except Exception as exc:  # noqa: BLE001
-        return False, f"Rollback planı oluşturulamadı: {exc}"
+        return False, tr("snapshot.rollback_plani_olusturulamadi_exc", exc=exc)
 
 
 def _list_btrfs_snapshots() -> list[dict[str, str]]:
@@ -346,23 +336,19 @@ def _take_zfs_snapshot(snap_name: str) -> SnapshotInfo:
             snapshot_name=snap_full,
             mount_point="/",
             success=True,
-            detail=f"ZFS snapshot hazır: {snap_full}",
+            detail=tr("snapshot.zfs_snapshot_hazir_snap", snap_full=snap_full),
         )
     else:
         return SnapshotInfo(
             backend="zfs", snapshot_name="", mount_point="/",
-            success=False, detail=f"ZFS snapshot başarısız: {res.stderr[:200]}",
+            success=False, detail=tr("snapshot.zfs_snapshot_basarisiz_stderr", stderr=res.stderr[:200]),
         )
 
 
 def _restore_zfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
     """Restore a ZFS snapshot."""
     msg = (
-        f"⚠️ ZFS snapshot geri yükleme:\n"
-        f"  1. Sistemi yeniden başlat (en güvenli yol)\n"
-        f"  2. Veya: sudo zfs rollback {snapshot_name}\n\n"
-        f"  Not: Canlı root dataset geri yükleme veri kaybına neden olabilir.\n"
-        f"  Snapshot: {snapshot_name}"
+        tr("snapshot.zfs_snapshot_geri_yukleme", snapshot_name=snapshot_name, snapshot_name_2=snapshot_name)
     )
     return True, msg
 

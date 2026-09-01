@@ -79,7 +79,7 @@ def sign_with_sigstore(
         )
 
     if not file_path.is_file():
-        return SigstoreResult(success=False, message=f"Dosya bulunamadı: {file_path}")
+        return SigstoreResult(success=False, message=tr("sigstore.dosya_bulunamadi_file_path_2", file_path=file_path))
 
     out_dir = output_dir or file_path.parent
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -105,7 +105,7 @@ def sign_with_sigstore(
         sig_path = out_dir / f"{file_path.name}.sig"
         sigstore_result = SigstoreResult(
             success=True,
-            message=f"Dosya imzalandı: {file_path.name}",
+            message=tr("sigstore.dosya_imzalandi_file_path", file_path_name=file_path.name),
             signature_path=sig_path if sig_path.exists() else None,
         )
 
@@ -121,7 +121,7 @@ def sign_with_sigstore(
     else:
         stderr = result.stderr if isinstance(result.stderr, str) else result.stderr.decode("utf-8", errors="replace")
         log.warning(tr("sigstore.sigstore_imzalama_basarisiz_s"), stderr[:200])
-        return SigstoreResult(success=False, message=f"İmzalama başarısız: {stderr[:200]}")
+        return SigstoreResult(success=False, message=tr("sigstore.mzalama_basarisiz_stderr", stderr=stderr[:200]))
 
 
 def verify_with_sigstore(
@@ -150,7 +150,7 @@ def verify_with_sigstore(
         )
 
     if not file_path.is_file():
-        return SigstoreResult(success=False, message=f"Dosya bulunamadı: {file_path}")
+        return SigstoreResult(success=False, message=tr("sigstore.dosya_bulunamadi_file_path", file_path=file_path))
 
     # Build cosign verify command
     sig_path = file_path.parent / f"{file_path.name}.sig"
@@ -181,13 +181,13 @@ def verify_with_sigstore(
         log.info(tr("sigstore.sigstore_dogrulama_basarili_s"), file_path.name)
         return SigstoreResult(
             success=True,
-            message=f"Doğrulama başarılı: {file_path.name}",
+            message=tr("sigstore.dogrulama_basarili_file_path", file_path_name=file_path.name),
             signature_path=sig_path if sig_path.exists() else None,
         )
     else:
         stderr = result.stderr if isinstance(result.stderr, str) else result.stderr.decode("utf-8", errors="replace")
         log.warning(tr("sigstore.sigstore_dogrulama_basarisiz_s"), stderr[:200])
-        return SigstoreResult(success=False, message=f"Doğrulama başarısız: {stderr[:200]}")
+        return SigstoreResult(success=False, message=tr("sigstore.dogrulama_basarisiz_stderr", stderr=stderr[:200]))
 
 
 def get_sigstore_status() -> dict:
