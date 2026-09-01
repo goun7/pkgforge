@@ -75,6 +75,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_health(args)
     elif command == "doctor":
         return _cmd_doctor(args)
+    elif command == "signing-setup":
+        return _cmd_signing_setup(args)
     elif command == "wrapped":
         return _cmd_wrapped(args)
     elif command == "snapshot-cleanup":
@@ -1229,6 +1231,26 @@ def _cmd_health(args: argparse.Namespace) -> int:
 
     print(f"🏥 Genel Sağlık: {health} ({success_rate:.0f}%)")
 
+    return 0
+
+
+def _cmd_signing_setup(args: argparse.Namespace) -> int:
+    """Handle `pkgforge signing-setup` (Tur-55 B7)."""
+    import json as _json
+    from pathlib import Path
+
+    from core.signing_wizard import render_text, run_wizard
+
+    method = getattr(args, "method", "auto") or "auto"
+    save_path = getattr(args, "save_config", None)
+    save_to = Path(save_path) if save_path else None
+
+    result = run_wizard(method=method, persist_to=save_to)
+    print(render_text(result))
+    if save_to is not None:
+        print()
+        print("📦 JSON config:")
+        print(_json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
     return 0
 
 

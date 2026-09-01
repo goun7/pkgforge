@@ -283,6 +283,16 @@ def main() -> int:
     quality_parser = subparsers.add_parser("quality", help=tr("cli.quality_help"))
     quality_parser.add_argument("package", help=tr("cli.arg_quality_pkg"))
 
+    # signing-setup subcommand (Tur-55 B7)
+    signing_setup = subparsers.add_parser("signing-setup",
+                                           help=tr("cli.signing_setup_help"))
+    signing_setup.add_argument("--method",
+                               choices=["pgp", "sigstore", "skip", "auto"],
+                               default="auto",
+                               help=tr("cli.signing_setup_help"))
+    signing_setup.add_argument("--save-config", metavar="PATH",
+                               help=tr("cli.signing_setup_save_help"))
+
     # publish subcommand
     publish_parser = subparsers.add_parser("publish", help=tr("cli.publish_help"))
     publish_parser.add_argument("package", help=tr("cli.arg_publish_pkg"))

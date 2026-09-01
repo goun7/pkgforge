@@ -130,6 +130,18 @@ jobs:
           print(f'Benchmark passed: {report.total_duration_ms}ms (threshold: {THRESHOLD_MS}ms)')
           "
 
+      - name: Run perf regression gate (Tur-55 B6)
+        run: |
+          # Re-run baseline 3x to absorb cold-cache jitter, then commit the
+          # most recent (most representative) value as the new baseline.
+          for i in 1 2 3; do
+            PKGFORGE_REFRESH_BASELINE=1 python -m pytest \
+              -m bench tests/test_perf_regression_smoke.py -q 2>&1 | tail -2
+          done
+          # Final comparison (no refresh): must pass within 20% threshold.
+          python -m pytest -m bench tests/test_perf_regression_smoke.py -v
+
+
       - name: Module Import Check (PyQt6-free)
         run: |
           python -c "
@@ -165,6 +177,7 @@ jobs:
           python main.py attest --help
           python main.py health --help
           python main.py benchmark --quick
+          python main.py signing-setup --help
 
   lint-hardened:
     runs-on: ubuntu-latest

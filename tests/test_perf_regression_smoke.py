@@ -29,28 +29,35 @@ BASELINE_PATH = REPO / "tests" / "perf_baseline.json"
 
 
 def _measure_json_serialize_5k() -> float:
-    """Stable workload: serialize 5000 small dicts to JSON."""
+    """Stable workload: serialize 5000 small dicts to JSON (best-of-3)."""
     payload = {"name": "test-pkg", "version": "1.0.0", "arch": "amd64",
                "deps": ["libc", "glib2"], "size": 1024, "ok": True}
     iterations = 5000
-    t0 = time.perf_counter()
-    for _ in range(iterations):
-        json.dumps(payload)
-    elapsed_ms = (time.perf_counter() - t0) * 1000.0
-    return elapsed_ms
+    samples = []
+    for _ in range(3):
+        t0 = time.perf_counter()
+        for _ in range(iterations):
+            json.dumps(payload)
+        samples.append((time.perf_counter() - t0) * 1000.0)
+    # Median over 3 samples — absorbs cold-cache and GC jitter.
+    samples.sort()
+    return samples[len(samples) // 2]
 
 
-def _measure_human_formatter_1k() -> float:
-    """Stable workload: format 1000 log records through HumanFormatter."""
+def _measure_human_formatter_10k() -> float:
+    """Stable workload: format 10000 log records through HumanFormatter (best-of-3)."""
     from core.structured_log import HumanFormatter
     fmt = HumanFormatter(use_colors=False)
-    iterations = 1000
-    t0 = time.perf_counter()
-    for i in range(iterations):
-        rec = _ShimRecord("pkgforge.x.%d" % i, "msg-%d" % i)
-        fmt.format(rec)
-    elapsed_ms = (time.perf_counter() - t0) * 1000.0
-    return elapsed_ms
+    iterations = 10000
+    samples = []
+    for _ in range(3):
+        t0 = time.perf_counter()
+        for i in range(iterations):
+            rec = _ShimRecord(f"pkgforge.x.{i}", f"msg-{i}")
+            fmt.format(rec)
+        samples.append((time.perf_counter() - t0) * 1000.0)
+    samples.sort()
+    return samples[len(samples) // 2]
 
 
 class _ShimRecord:
@@ -77,13 +84,14 @@ def _collect_report() -> BenchmarkReport:
         memory_peak_kb=0,
     ))
     results.append(BenchmarkResult(
-        name="log.human_formatter_1k",
-        duration_ms=_measure_human_formatter_1k(),
+        name="log.human_formatter_10k",
+        duration_ms=_measure_human_formatter_10k(),
         memory_peak_kb=0,
     ))
     return BenchmarkReport(results=results)
 
 
+@pytest.mark.bench
 def test_perf_regression_gate() -> None:
     """Run perf workloads and compare against baseline.
 

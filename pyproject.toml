@@ -64,7 +64,9 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 [tool.pytest.ini_options]
 timeout = 120
 timeout_method = "signal"
-addopts = "-q --tb=short"
+addopts = "-q --tb=short -m 'not bench'"
+# `pytest -m bench` sadece performans regresyon testlerini çalıştırır;
+# normal `pytest` çağrısında atlanır (jitter-sensitive, izole çalışmalı).
 # SEC-SEGFAULT (titrek coverage+Qt native crash) tanilamasi: faulthandler
 # segfault aninda C/Python yigin dokumu uretir; timeout ise 120s asan
 # testlerde iz doker. Tekrar gorulurse kok-neden analizi bu izle yapilir.
