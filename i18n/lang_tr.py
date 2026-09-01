@@ -831,4 +831,9 @@ STRINGS: dict[str, str] = {
     "signing.setup.sigstore_step3": "Save the .sig and attach to package",
     "signing.setup.done": "Setup complete. Use pkgforge sign to sign packages.",
     "cli.signing_setup_save_help": "Persist wizard output to PATH as JSON",
+    "api.v2_description": "PkgForge HTTP API v2 — paket, tanılama ve imzalama uç noktaları.",
+    "cli.serve_api_help": "REST API v2 sunucusunu çalıştır (FastAPI + OpenAPI).",
+    "cli.serve_api_host_help": "Bağlama adresi (varsayılan 127.0.0.1).",
+    "cli.serve_api_port_help": "Bağlama portu (varsayılan 8899).",
+    "cli.serve_api_export_help": "OpenAPI JSON PATH'e yaz ve çık (sunucu yok).",
 }

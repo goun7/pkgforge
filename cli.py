@@ -77,6 +77,8 @@ def run_cli(args: argparse.Namespace) -> int:
         return _cmd_doctor(args)
     elif command == "signing-setup":
         return _cmd_signing_setup(args)
+    elif command == "serve-api":
+        return _cmd_serve_api(args)
     elif command == "wrapped":
         return _cmd_wrapped(args)
     elif command == "snapshot-cleanup":
@@ -1231,6 +1233,25 @@ def _cmd_health(args: argparse.Namespace) -> int:
 
     print(f"🏥 Genel Sağlık: {health} ({success_rate:.0f}%)")
 
+    return 0
+
+
+def _cmd_serve_api(args: argparse.Namespace) -> int:
+    """Handle `pkgforge serve-api` (Tur-55 C10)."""
+    from core.api_v2 import export_openapi, run as _run_api
+
+    export_target = getattr(args, "export_openapi", None)
+    if export_target:
+        out = export_openapi(export_target)
+        print(f"📦 OpenAPI → {out}")
+        return 0
+
+    host = getattr(args, "host", "127.0.0.1") or "127.0.0.1"
+    port = int(getattr(args, "port", 8899) or 8899)
+    print(f"🚀 PkgForge API v2: http://{host}:{port}")
+    print(f"   • Docs:   http://{host}:{port}/docs")
+    print(f"   • Schema: http://{host}:{port}/api/v2/openapi.json")
+    _run_api(host=host, port=port)
     return 0
 
 

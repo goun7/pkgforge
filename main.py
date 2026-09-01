@@ -293,6 +293,16 @@ def main() -> int:
     signing_setup.add_argument("--save-config", metavar="PATH",
                                help=tr("cli.signing_setup_save_help"))
 
+    # serve-api subcommand (Tur-55 C10)
+    serve_api = subparsers.add_parser("serve-api",
+                                      help=tr("cli.serve_api_help"))
+    serve_api.add_argument("--host", default="127.0.0.1",
+                           help=tr("cli.serve_api_host_help"))
+    serve_api.add_argument("--port", type=int, default=8899,
+                           help=tr("cli.serve_api_port_help"))
+    serve_api.add_argument("--export-openapi", metavar="PATH",
+                           help=tr("cli.serve_api_export_help"))
+
     # publish subcommand
     publish_parser = subparsers.add_parser("publish", help=tr("cli.publish_help"))
     publish_parser.add_argument("package", help=tr("cli.arg_publish_pkg"))

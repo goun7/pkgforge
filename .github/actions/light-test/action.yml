@@ -1,0 +1,29 @@
+name: Light test (no e2e deps)
+description: Run pytest on core tests (Ubuntu/macOS/Windows friendly).
+inputs:
+  python-version:
+    description: Python version
+    required: true
+    type: string
+  os:
+    description: Runner OS label
+    required: true
+    type: string
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-timeout hypothesis
+    - shell: bash
+      run: |
+        python -m pytest tests/ -q --tb=short --no-header \
+          --ignore=tests/test_e2e_pipeline.py \
+          --ignore=tests/test_e2e_real_packages.py \
+          --ignore=tests/test_sync_backends_e2e.py

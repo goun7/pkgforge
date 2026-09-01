@@ -296,3 +296,43 @@ jobs:
           python main.py doctor --tools | tee /tmp/doctor-tools.log
           python main.py doctor --json > /tmp/doctor.json
           python -c "import json; d=json.load(open('/tmp/doctor.json')); assert 'version' in d; print('doctor JSON ok:', d['version'])"
+
+  # Tur-55 C11: composite action + multi-distro matrix
+  multi-distro:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.12", "3.14"]
+        exclude:
+          # Windows-latest + Python 3.10 combo not yet validated in CI.
+          - os: windows-latest
+            python-version: "3.10"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-timeout hypothesis
+      - name: Run tests (non-e2e)
+        run: |
+          python -m pytest tests/ -q --tb=short --no-header \
+            --ignore=tests/test_e2e_pipeline.py \
+            --ignore=tests/test_e2e_real_packages.py \
+            --ignore=tests/test_sync_backends_e2e.py
+      - name: Composite action smoke (Ubuntu-only)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: ./.github/actions/light-test
+        with:
+          python-version: ${{ matrix.python-version }}
+          os: ${{ matrix.os }}
