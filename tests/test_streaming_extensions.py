@@ -72,7 +72,7 @@ def test_stream_tar_index_lists_entries(tmp_path: Path) -> None:
 def test_stream_tar_index_handles_empty(tmp_path: Path) -> None:
     """Empty tar yields no entries (just zero padding)."""
     tar = tmp_path / "empty.tar"
-    with tarfile.open(tar, "w") as t:
+    with tarfile.open(tar, "w"):
         pass  # writes only end-of-archive block
     entries = list(stream_tar_index(tar))
     assert entries == []
