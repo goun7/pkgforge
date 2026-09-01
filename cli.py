@@ -144,7 +144,9 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             print(tr("cli.download_error").format(error=str(exc)))
             return 1
     else:
-        file_path = Path(target).resolve()
+        from core.workspace import Workspace
+        workspace = Workspace()
+        file_path = workspace.resolve_path(target)
         if not file_path.is_file():
             print(tr("cli.file_not_found").format(path=file_path))
             return 1

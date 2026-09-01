@@ -54,3 +54,18 @@ class Workspace:
 
     def to_dict(self) -> dict[str, dict[str, str]]:
         return {m.name: m.to_dict() for m in self.members()}
+
+    def resolve_path(self, path: str | Path) -> Path:
+        """Resolve a path relative to the workspace root if not absolute."""
+        p = Path(path)
+        if p.is_absolute():
+            return p.resolve()
+        cwd_candidate = (Path.cwd() / p).resolve()
+        if cwd_candidate.exists():
+            return cwd_candidate
+        root_candidate = (self.root / p).resolve()
+        if root_candidate.exists():
+            return root_candidate
+        return root_candidate
+
+
