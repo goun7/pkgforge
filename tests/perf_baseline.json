@@ -1,0 +1,13 @@
+{
+  "created": "2026-09-01T10:32:37+0300",
+  "results": {
+    "json.serialize_5k": {
+      "duration_ms": 17,
+      "memory_peak_kb": 0
+    },
+    "log.human_formatter_1k": {
+      "duration_ms": 2,
+      "memory_peak_kb": 0
+    }
+  }
+}
