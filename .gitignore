@@ -8,6 +8,9 @@ dist/
 .pytest_cache/
 .mypy_cache/
 tests/perf_baseline.latest.json
+.gnupg-home/
+.gpg-test/
+.conv-test/
 *.db
 cıktı.txt
 .freebuff/
