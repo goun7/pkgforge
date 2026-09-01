@@ -1,0 +1,41 @@
+# PkgForge monorepo workspace (Tur-55 C9).
+# Tek repo içinde birden çok alt-proje: core (Python), desktop (Tauri+React),
+# cli (Python entrypoint), shared (tip/şema sözleşmeleri).
+[workspace]
+members = ["core", "cli", "shared", "desktop"]
+schema_version = 1
+root = "."
+
+[core]
+path = "core"
+language = "python"
+runtime = "3.10+"
+entrypoint = "main.py"
+test_root = "tests"
+lint = "ruff check core cli main.py i18n tests"
+typecheck = "mypy core cli main.py"
+test = "pytest tests/"
+coverage_required = 100
+
+[cli]
+path = "cli"
+language = "python"
+runtime = "3.10+"
+# cli is a flat module (cli.py at repo root) for backward compatibility.
+entrypoint = "main.py"
+
+[shared]
+path = "shared"
+language = "json-schema+python+ts"
+# shared/contracts/ altında Python dataclass + JSON Schema + TS type karşılıkları.
+# Python tarafında 'from shared.contracts import X' ile import edilir.
+# TypeScript tarafında 'import type { X } from "../../shared/contracts/x.ts"'.
+
+[desktop]
+path = "desktop"
+language = "typescript+rust"
+runtime = "node 20+, rust stable"
+build = "pnpm run build"
+test = "pnpm run test"
+# desktop/ kendi package.json + Cargo.toml'u ile yönetilir; üst düzey
+# monorepo tool'u (pnpm workspace, cargo workspace) İSTEĞE BAĞLI.

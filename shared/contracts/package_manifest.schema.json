@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pkgforge.local/schemas/package_manifest.schema.json",
+  "title": "PkgForge Package Manifest",
+  "description": "Üretilen .pkg.tar.zst paketinin üst-meta verisi. Python ve TypeScript tarafında paylaşılır.",
+  "type": "object",
+  "required": ["name", "version", "arch"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Paket adı (lowercase, alphanum + dash)",
+      "pattern": "^[a-z0-9][a-z0-9._+-]*$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver",
+      "pattern": "^\\d+\\.\\d+\\.\\d+([-+][A-Za-z0-9.]+)?$"
+    },
+    "arch": {
+      "type": "string",
+      "enum": ["amd64", "arm64", "i386", "any"]
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "signed": {
+      "type": "boolean"
+    },
+    "signature_path": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
