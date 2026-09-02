@@ -248,7 +248,11 @@ def stream_join(
                 f"sha256 mismatch: expected {expected_sha256}, "
                 f"got {sha.hexdigest()}"
             )
-    except Exception:
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).debug(
+            "stream copy failed; removed partial dst", exc_info=exc)
         dst.unlink(missing_ok=True)
         raise
     return written

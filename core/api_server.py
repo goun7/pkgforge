@@ -774,7 +774,6 @@ def handle_aur_build(params):
     import tempfile
 
     name = str(params.get("name", ""))
-    install = bool(params.get("install", False))
     _validate_aur_name(name)
 
     def _op():
@@ -789,9 +788,10 @@ def handle_aur_build(params):
             raise RuntimeError(tr("api.git_clone_basarisiz_var0", var0=r.stderr.strip()[:300]))
 
         _event("event/aur_build_progress", {"name": name, "step": "build"})
+        # Security: build-only. makepkg -si would run arbitrary AUR PKGBUILD
+        # code with privileged install hooks; installation must go through
+        # the consolidated polkit helper (install-pkg) instead.
         cmd = ["makepkg", "-f", "--noconfirm"]
-        if install and shutil.which("pacman"):
-            cmd = ["makepkg", "-si", "--noconfirm"]
         b = _sp.run(
             cmd, capture_output=True, text=True, timeout=3600,
             cwd=str(workdir / name), check=False,

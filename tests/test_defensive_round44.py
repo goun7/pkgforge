@@ -133,9 +133,10 @@ def test_aur_build_install_and_failures(monkeypatch, tmp_path):
         except Exception as exc:                                # noqa: BLE001
             return {"ok": False, "hata": str(exc)}
 
-    # install=True -> -si komdu (709)
+    # install=True bile olsa yalnız build yapılır (makepkg -si ASLA çalışmaz)
     AS.handle_aur_build({"name": "demo", "install": True})
-    assert kayit.makepkg_cmd[:2] == ["makepkg", "-si"]              # 708-709
+    assert kayit.makepkg_cmd[:2] == ["makepkg", "-f"]
+    assert "-si" not in kayit.makepkg_cmd
 
     # makepkg hata kodu (714-715)
     kayit.kirik_makepkg = True
