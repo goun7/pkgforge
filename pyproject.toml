@@ -12,22 +12,22 @@ license = {text = "GPL-3.0-or-later"}
 authors = [
     {name = "PkgForge Contributors"},
 ]
-urls = {
-    "Homepage" = "https://github.com/goun7/pkgforge",
-    "Repository" = "https://github.com/goun7/pkgforge",
-    "Documentation" = "https://github.com/goun7/pkgforge/blob/master/README.md",
-    "Changelog" = "https://github.com/goun7/pkgforge/blob/master/CHANGELOG.md",
-    "Bug Tracker" = "https://github.com/goun7/pkgforge/issues",
-}
 keywords = ["arch", "linux", "package", "deb", "rpm", "converter", "pkgforge"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Topic :: System :: Systems Administration",
 ]
+
+[project.urls]
+Homepage = "https://github.com/goun7/pkgforge"
+Repository = "https://github.com/goun7/pkgforge"
+Documentation = "https://github.com/goun7/pkgforge/blob/master/README.md"
+Changelog = "https://github.com/goun7/pkgforge/blob/master/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/goun7/pkgforge/issues"
 
 [project.optional-dependencies]
 gui = ["PyQt6>=6.5.0"]
@@ -72,6 +72,9 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 timeout = 120
 timeout_method = "signal"
 addopts = "-q --tb=short -m 'not bench'"
+markers = [
+    "bench: performance regression tests (run with -m bench, skipped by default)",
+]
 # `pytest -m bench` sadece performans regresyon testlerini çalıştırır;
 # normal `pytest` çağrısında atlanır (jitter-sensitive, izole çalışmalı).
 # SEC-SEGFAULT (titrek coverage+Qt native crash) tanilamasi: faulthandler
