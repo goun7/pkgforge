@@ -21,14 +21,30 @@ from i18n import tr
 
 log = logging.getLogger(__name__)
 
-_GNUPGHOME = os.environ.get("GNUPGHOME", "")  
+_GNUPGHOME = os.environ.get("GNUPGHOME", "")  # evaluated once, validated per call
 
 
 def _gpg_homedir_args() -> list[str]:
-    """Return --homedir arg if a custom GNUPGHOME is set."""
-    if _GNUPGHOME:
-        return ["--homedir", _GNUPGHOME]
-    return []
+    """Return --homedir arg if a custom GNUPGHOME is set (SEC-validated).
+
+    Validates ownership (must be the current user) and tightens overly
+    permissive modes to 0700 — a world/group-readable keyring is a key
+    disclosure vector.
+    """
+    home = Path(_GNUPGHOME) if _GNUPGHOME else None
+    if home is None or not home.is_dir():
+        return []
+    st = home.stat()
+    if st.st_uid != os.geteuid():
+        raise RuntimeError(
+            f"GNUPGHOME not owned by the current user (uid "
+            f"{st.st_uid} != {os.geteuid()}): {home}")
+    if st.st_mode & 0o077:
+        try:
+            home.chmod(0o700)
+        except OSError as exc:
+            log.warning("GNUPGHOME chmod 0700 failed: %s", exc)
+    return ["--homedir", str(home)]
 
 
 @dataclass
@@ -76,11 +92,13 @@ def sign_package(
     if key_path:
         cmd += ["--default-key", str(key_path)]
     if passphrase:
-        cmd += ["--pinentry-mode", "loopback", "--passphrase", passphrase]
+        # SEC: the passphrase must never appear in argv — it is readable
+        # via /proc/<pid>/cmdline by every local user. Feed it via stdin.
+        cmd += ["--pinentry-mode", "loopback", "--passphrase-fd", "0"]
 
     cmd.append(str(package_path))
 
-    res = safe_run(cmd, timeout=60)
+    res = safe_run(cmd, timeout=60, input=passphrase if passphrase else None)
 
     if res.returncode != 0:
         return False, tr("signing.gpg_imzalama_basarisiz_res", res_stderr=res.stderr)
