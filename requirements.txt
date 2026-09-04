@@ -20,7 +20,12 @@ PyQt6>=6.5.0; python_version>="3.10"
 # pytest-timeout>=2.0
 # mypy>=1.0
 # bandit>=1.7
+# ── Optional: REST API (pkgforge serve-api) ────────────────────
+# Preferred install: pip install 'pkgforge[api]'  (pyproject extra)
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
 pydantic>=2.7.0
+
+# Python 3.10 needs the tomli backport for TOML parsing (3.11+ has tomllib).
+tomli>=2.0.1; python_version<"3.11"
 

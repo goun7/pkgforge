@@ -232,7 +232,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             print(tr("cli.files_preview").format(count=len(preview_files)))
             for f in preview_files[:10]:
                 print(f"    {f}")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"⚠️  Uyumluluk önizlemesi atlandı: {exc}", file=sys.stderr)
         log.warning("Uyumluluk önizleme hatası", exc_info=True)
 
@@ -249,7 +249,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 aur_pkgs = [d.aur_package or d.name for d in resolve_report.deps if not d.resolved and d.source != "not_found"]
                 if aur_pkgs:
                     print(f"\n📦 Eksik AUR paketleri kurulabilir: {', '.join(aur_pkgs)}")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             print(f"⚠️  Bağımlılık çözümlemesi atlandı: {exc}", file=sys.stderr)
             log.warning("Bağımlılık çözümleme hatası", exc_info=True)
 
@@ -1242,8 +1242,13 @@ def _cmd_health(args: argparse.Namespace) -> int:
 
 def _cmd_serve_api(args: argparse.Namespace) -> int:
     """Handle `pkgforge serve-api` (Tur-55 C10)."""
-    from core.api_v2 import export_openapi
-    from core.api_v2 import run as _run_api
+    try:
+        from core.api_v2 import export_openapi
+        from core.api_v2 import run as _run_api
+    except ImportError as exc:
+        print(f"❌ REST API bagimlilklari kurulu degil: {exc}", file=sys.stderr)
+        print("   Kurulum: pip install 'pkgforge[api]'", file=sys.stderr)
+        return 2
 
     export_target = getattr(args, "export_openapi", None)
     if export_target:

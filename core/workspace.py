@@ -8,7 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import tomllib
+from core._toml import TOMLDecodeError
+from core._toml import loads as toml_loads
 
 
 @dataclass
@@ -32,8 +33,8 @@ class Workspace:
         self._members: dict[str, MemberInfo] = {}
         if WORKSPACE_FILE.is_file():
             try:
-                data = tomllib.loads(WORKSPACE_FILE.read_text(encoding="utf-8"))
-            except (OSError, tomllib.TOMLDecodeError):
+                data = toml_loads(WORKSPACE_FILE.read_text(encoding="utf-8"))
+            except (OSError, TOMLDecodeError):
                 return
             for key in data.get("workspace", {}).get("members", []):
                 m = data.get(key)

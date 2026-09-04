@@ -21,11 +21,12 @@ from typing import Any
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from config import APP_VERSION
 from i18n import tr
 
 app = FastAPI(
     title="PkgForge REST API v2",
-    version="2.0.0",
+    version=APP_VERSION,
     description=tr("api.v2_description"),
     contact={"name": "PkgForge", "url": "https://github.com/goun7/pkgforge"},
     license_info={"name": "MIT"},
@@ -36,7 +37,7 @@ app = FastAPI(
 
 class VersionResponse(BaseModel):
     name: str = Field(default="pkgforge")
-    version: str = Field(default="2.0.0")
+    version: str = Field(default=APP_VERSION)
     api: str = Field(default="v2")
 
 

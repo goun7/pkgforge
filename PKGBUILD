@@ -22,6 +22,8 @@ makedepends=(
 optdepends=(
     'python-pyqt6: GUI interface (pkgforge gui)'
     'python-pyqt6-sip: GUI interface'
+    'python-fastapi: REST API (pkgforge serve-api)'
+    'python-uvicorn: REST API server'
     'namcap: Static package analysis'
     'bubblewrap: Build sandbox isolation'
     'debtap: Legacy DEB conversion fallback'
