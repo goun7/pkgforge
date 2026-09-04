@@ -26,9 +26,13 @@ _check_path() {
     if echo "$p" | grep -qE '\.\.'; then
         echo "HATA: Path traversal tespit edildi: $p" >&2; exit 5
     fi
+    # SEC: symlink'li bilesenleri cozmeden yapilan string-prefix karsilastirmasi
+    # atlanabilir; once kanonik yolu coz, prefix'i O yola uygula.
+    local real
+    real="$(realpath -m "$p")"
     local ok=false
     for prefix in "${ALLOWED_WRITE_PREFIXES[@]}"; do
-        if [[ "$p" == "$prefix"* ]]; then ok=true; break; fi
+        if [[ "$real" == "$prefix"* ]]; then ok=true; break; fi
     done
     if [ "$ok" = false ]; then
         echo "HATA: Yol izin verilen dizinlerde degil: $p" >&2; exit 6
@@ -63,12 +67,16 @@ case "$CMD" in
         [ $# -eq 1 ] || usage
         DEST="$1"
         _check_path "$DEST"
+        # SEC: mkdir sonrasi yeniden coz (symlink'li ust dizin kacisini kapat)
+        # ve mktemp (O_EXCL) ile tahmin edilebilir tmp yarisi engellenir.
+        DEST="$(realpath -m "$DEST")"
+        _check_path "$DEST"
         _check_not_symlink "$DEST"
-        _check_not_symlink "$(dirname "$DEST")"
         mkdir -p "$(dirname "$DEST")"
-        tmp="$DEST.tmp"
+        _check_not_symlink "$(dirname "$DEST")"
+        tmp="$(mktemp "$DEST.XXXXXX")"
         cat > "$tmp"
-        mv "$tmp" "$DEST"
+        mv -f "$tmp" "$DEST"
         ;;
     write-batch)
         # Faz 14: coklu dosya yazmayi TEK pkexec diyalogunda topla.
@@ -81,13 +89,15 @@ case "$CMD" in
             IFS= read -r -d '' DEST || { echo "HATA: Eksik hedef yolu" >&2; exit 11; }
             IFS= read -r -d '' CONTENT || true
             _check_path "$DEST"
+            DEST="$(realpath -m "$DEST")"
+            _check_path "$DEST"
             _check_not_symlink "$DEST"
-            _check_not_symlink "$(dirname "$DEST")"
             mkdir -p "$(dirname "$DEST")"
-            tmp="$DEST.tmp"
+            _check_not_symlink "$(dirname "$DEST")"
+            tmp="$(mktemp "$DEST.XXXXXX")"
             printf '%s' "$CONTENT" > "$tmp"
             chmod "$MOD" "$tmp" 2>/dev/null || true
-            mv "$tmp" "$DEST"
+            mv -f "$tmp" "$DEST"
             n=$((n+1))
         done
         echo "write-batch: $n dosya yazildi"
