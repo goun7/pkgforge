@@ -435,6 +435,15 @@ class ConversionPipeline(QObject):
                         )
                         self._log("error", self._result.message)
                         return
+                    if not scan_result.clean:
+                        # SEC: motor hatasi fail-closed — donusumu durdur.
+                        self._set_step(PipelineStep.MALWARE_SCAN, "error")
+                        self._result.message = (
+                            f"⛔ Malware tarayıcısı hata verdi (fail-closed): "
+                            f"{scan_result.detail}"
+                        )
+                        self._log("error", self._result.message)
+                        return
                     self._log("info", scan_result.detail)
                     self._set_step(PipelineStep.MALWARE_SCAN, "done")
                 else:

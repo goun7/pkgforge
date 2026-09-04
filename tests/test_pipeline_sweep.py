@@ -160,15 +160,23 @@ def _reach_conversion(pipe, monkeypatch, tmp_path, *, scan=None,
 
 
 def test_malware_scan_clean_logs_engine(pipe, monkeypatch, tmp_path):
-    scan_result = NS(infected=False, engine_version="ClamAV 0.103.0",
+    scan_result = NS(infected=False, clean=True, engine_version="ClamAV 0.103.0",
                      detail="temiz", infected_files=[])
     logs = _reach_conversion(pipe, monkeypatch, tmp_path, scan=lambda fp, t: scan_result)
     assert any("ClamAV motoru" in m for _, m in logs)
     assert any("temiz" in m for _, m in logs)
 
 
+def test_malware_engine_error_fails_closed(pipe, monkeypatch, tmp_path):
+    """SEC: engine hatasi donusumu durdurur (fail-open yok)."""
+    scan_result = NS(infected=False, clean=False, engine_version="",
+                     detail="hata kod 2", infected_files=[])
+    _reach_conversion(pipe, monkeypatch, tmp_path, scan=lambda fp, t: scan_result)
+    assert "fail-closed" in pipe._result.message
+
+
 def test_malware_scan_db_freshness_warning(pipe, monkeypatch, tmp_path):
-    scan_result = NS(infected=False, engine_version="", detail="temiz",
+    scan_result = NS(infected=False, clean=True, engine_version="", detail="temiz",
                      infected_files=[])
     logs = _reach_conversion(pipe, monkeypatch, tmp_path,
                              scan=lambda fp, t: scan_result,

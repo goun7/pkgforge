@@ -105,7 +105,10 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
             })
 
     if hit_network_error and not vulns:
+        # SEC: ag hatasinda "temiz" varsayma — cagiran bunu offline/guvenilmez
+        # sayar (fail-open yok).
         result["offline"] = True
+        result["network_error"] = True
 
     result["vulns"] = vulns
     result["count"] = len(vulns)

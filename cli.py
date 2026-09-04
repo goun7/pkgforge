@@ -233,7 +233,8 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             for f in preview_files[:10]:
                 print(f"    {f}")
     except Exception as exc:  # noqa: BLE001
-        log.debug("Uyumluluk önizleme atlandı: %s", exc)
+        print(f"⚠️  Uyumluluk önizlemesi atlandı: {exc}", file=sys.stderr)
+        log.warning("Uyumluluk önizleme hatası", exc_info=True)
 
     # Smart dependency resolution (--resolve-deps)
     if getattr(args, "resolve_deps", False):
@@ -249,7 +250,8 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 if aur_pkgs:
                     print(f"\n📦 Eksik AUR paketleri kurulabilir: {', '.join(aur_pkgs)}")
         except Exception as exc:  # noqa: BLE001
-            log.debug("Bağımlılık çözümleme atlandı: %s", exc)
+            print(f"⚠️  Bağımlılık çözümlemesi atlandı: {exc}", file=sys.stderr)
+            log.warning("Bağımlılık çözümleme hatası", exc_info=True)
 
     # Generate SLSA provenance record
     from core.provenance import create_provenance, save_provenance
