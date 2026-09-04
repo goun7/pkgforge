@@ -1221,7 +1221,7 @@ def handle_sync_config(params):
     if "sync_username" in params:
         s["sync_username"] = str(params["sync_username"]).strip()
 
-    stored_in = "settings"
+    stored_in = "unchanged"
     warning = ""
     if params.get("sync_password"):
         secret = str(params["sync_password"])
@@ -1233,13 +1233,16 @@ def handle_sync_config(params):
                 webdav_store(str(user)).set_secret(secret)
                 stored_in = "keyring"
                 s.pop("sync_password", None)  # migrate off plaintext
-            except Exception as exc:  # noqa: BLE001 - fallback to settings
+            except Exception as exc:  # noqa: BLE001 - never store plaintext
                 warning = tr("api.anahtarlik_kullanilamadi_exc", exc=exc)
-                s["sync_password"] = secret
+                stored_in = "rejected"
+        elif not user:
+            stored_in = "rejected"
+            warning = "Anahtarlik icin kullanici adi gerekli"
         else:
-            s["sync_password"] = secret
-            if not user:
-                warning = "Anahtarlik icin kullanici adi gerekli"
+            stored_in = "rejected"
+            warning = ("Plaintext password storage is disabled. Enable a "
+                       "Secret Service (gnome-keyring/kwalletd) and retry.")
 
     save_settings(s)
     out = {"ok": True, "password_stored": stored_in}

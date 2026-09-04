@@ -233,22 +233,22 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
     user = str(s.get("sync_username", ""))
     # F4.4: prefer the OS keyring; plaintext settings value is a legacy
     # fallback that sync.config removes once the keyring accepts a secret.
-    pw = ""
-    try:
-        # Bilinçli tembel içe aktarma: secrets_store isteğe bağlıdır
-        # (keyring paketi yoksa modül yüklemesi başarısız olabilir) ve
-        # bu fonksiyon anahtarlıksız da çalışmak zorundadır.
-        from core.secrets_store import available, webdav_store
+    # F4.4 + SEC hardening: the password lives ONLY in the OS keyring. The
+    # plaintext settings.json fallback is removed — a broken/missing Secret
+    # Service must abort the sync, never leak the secret to disk-backed JSON.
+    from core.secrets_store import SecretStoreError, available, webdav_store
 
-        if user and available():
-            stored = webdav_store(user).get_secret()
-            if stored is not None:
-                pw = stored
-    except Exception as exc:  # noqa: BLE001 - never break push over keyring
-        __import__("logging").getLogger(__name__).debug(
-            "keyring lookup failed: %s", exc)
-    if not pw:
-        pw = str(s.get("sync_password", ""))
+    if user and not available():
+        raise SecretStoreError(
+            "Secret Service unavailable. PkgForge does NOT store the WebDAV "
+            "password in plain text. Enable gnome-keyring (or kwalletd) and "
+            "retry, or disable cloud sync."
+        )
+    pw = ""
+    if user:
+        stored = webdav_store(user).get_secret()
+        if stored is not None:
+            pw = stored
     if user or pw:
         token = base64.b64encode(f"{user}:{pw}".encode()).decode("ascii")
         headers["Authorization"] = f"Basic {token}"

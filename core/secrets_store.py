@@ -2,9 +2,9 @@
 """PkgForge — Secret Service (keyring) client (F4.4).
 
 Minimal org.freedesktop.secrets client over jeepney (blocking IO) storing
-small secrets (WebDAV password) in the default collection. Every entry point
-degrades gracefully: without jeepney or a running Secret Service the store
-reports unavailable and callers fall back to settings.json.
+small secrets (WebDAV password) in the default collection. Without jeepney
+or a running Secret Service the store reports unavailable and callers MUST
+surface an error — plaintext fallback storage is forbidden (SEC).
 """
 
 from __future__ import annotations

@@ -180,6 +180,34 @@ def test_push_rejects_non_http_schemes(cfg_root: Path, url: str):
         webdav_push()
 
 
+def _keyring_stub(monkeypatch: pytest.MonkeyPatch, secret: str = "p") -> None:
+    """Stub Secret Service ON with a fixed secret for _webdav_target."""
+    import core.secrets_store as ss
+
+    monkeypatch.setattr(ss, "available", lambda: True, raising=False)
+
+    class _Store:
+        def __init__(self, user: str) -> None:
+            pass
+
+        def get_secret(self):
+            return secret
+
+    monkeypatch.setattr(ss, "webdav_store", _Store, raising=False)
+
+
+def test_push_aborts_without_keyring_when_user_set(
+        cfg_root: Path, monkeypatch: pytest.MonkeyPatch):
+    """SEC: no Secret Service + user configured -> hard stop, no plaintext."""
+    import core.secrets_store as ss
+
+    _seed_default_state()
+    monkeypatch.setattr(ss, "available", lambda: False, raising=False)
+    _configure("https://cloud.example/dav/")
+    with pytest.raises(ss.SecretStoreError):
+        webdav_push()
+
+
 def test_push_uploads_bundle(cfg_root: Path, monkeypatch: pytest.MonkeyPatch):
     captured: dict = {}
 
@@ -191,6 +219,7 @@ def test_push_uploads_bundle(cfg_root: Path, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     _seed_default_state()
+    _keyring_stub(monkeypatch)
     _configure("https://cloud.example/dav/")
 
     result = webdav_push()
@@ -218,6 +247,7 @@ def test_pull_restores_remote_bundle(cfg_root: Path, monkeypatch: pytest.MonkeyP
         return _FakeResponse(remote_bytes)
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    _keyring_stub(monkeypatch)
     _configure("https://cloud.example/dav/", allow_insecure_http=True)
 
     result = webdav_pull()
@@ -235,6 +265,7 @@ def test_pull_http_error_maps_to_syncerror(cfg_root: Path, monkeypatch: pytest.M
         raise urllib.error.HTTPError(req.full_url, 404, "nf", hdrs=None, fp=None)  # type: ignore[arg-type]
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    _keyring_stub(monkeypatch)
     _configure("https://cloud.example/dav/")
     with pytest.raises(SyncError, match="404"):
         webdav_pull()

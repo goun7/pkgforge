@@ -64,16 +64,32 @@ def test_webdav_uses_keyring_password_over_settings(
     assert headers["Authorization"] == f"Basic {token}"
 
 
-def test_webdav_falls_back_to_settings_when_no_secret(
+def test_webdav_never_reads_plaintext_when_no_secret(
         cfg_root, monkeypatch: pytest.MonkeyPatch):
+    """Keyring up but no secret stored -> empty password, NOT 'legacy'."""
     from i18n import load_settings, save_settings
 
     save_settings({**load_settings(), "sync_url": "https://dav.example",
                    "sync_username": "ali", "sync_password": "legacy"})
     _keyring_on(monkeypatch, saved=None)
     _url, headers = _webdav_target()
-    token = base64.b64encode(b"ali:legacy").decode()
+    token = base64.b64encode(b"ali:").decode()
     assert headers["Authorization"] == f"Basic {token}"
+    assert "legacy" not in headers["Authorization"]
+
+
+def test_webdav_aborts_without_keyring_service(
+        cfg_root, monkeypatch: pytest.MonkeyPatch):
+    """No Secret Service -> hard stop, plaintext value stays unused."""
+    import core.secrets_store as SS
+
+    from i18n import load_settings, save_settings
+
+    save_settings({**load_settings(), "sync_url": "https://dav.example",
+                   "sync_username": "ali", "sync_password": "legacy"})
+    monkeypatch.setattr(SS, "available", lambda: False)
+    with pytest.raises(SS.SecretStoreError):
+        _webdav_target()
 
 
 # --- sync.config stores into keyring & migrates off plaintext -----------------
@@ -92,7 +108,7 @@ def test_config_prefers_keyring_and_drops_plaintext(
     assert _FakeStore.instances[-1].username == "ayse"
 
 
-def test_config_keeps_settings_fallback_without_keyring(
+def test_config_never_stores_plaintext_without_keyring(
         cfg_root, monkeypatch: pytest.MonkeyPatch):
     from i18n import load_settings, save_settings
 
@@ -102,8 +118,10 @@ def test_config_keeps_settings_fallback_without_keyring(
     monkeypatch.setattr(SS, "available", lambda: False)
     out = A.handle_sync_config({"sync_username": "ayse",
                                 "sync_password": "plain"})
-    assert out == {"ok": True, "password_stored": "settings"}
-    assert load_settings().get("sync_password") == "plain"
+    assert out["ok"] is True
+    assert out["password_stored"] == "rejected"
+    assert out["warning"]
+    assert "sync_password" not in load_settings()
 
 
 def test_push_pull_still_work_end_to_end_with_keyring(

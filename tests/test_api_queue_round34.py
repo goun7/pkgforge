@@ -239,7 +239,7 @@ def test_sync_config_password_paths(monkeypatch):
 
     yanit = AS.handle_sync_config({"sync_url": "https://sunucu",
                                    "sync_username": "ali"})
-    assert yanit["password_stored"] == "settings"                 # 1133-1136
+    assert yanit["password_stored"] == "unchanged"                # sifre verilmemis
 
     ss = _mod(monkeypatch, "core.secrets_store")
 
@@ -257,19 +257,22 @@ def test_sync_config_password_paths(monkeypatch):
     assert Depo.kayit == "gizli"
     assert "sync_password" not in ayarlar
 
-    # anahtarlik hata verir -> settings'e duser + uyari
+    # anahtarlik hata verir -> plaintext'e asla yazilmaz + uyari
     def kirik_depo(user):
         raise RuntimeError("servis yok")
     monkeypatch.setattr(ss, "webdav_store", kirik_depo, raising=False)
     yanit = AS.handle_sync_config({"sync_username": "ali",
                                    "sync_password": "gizli2"})
-    assert yanit["password_stored"] == "settings"
+    assert yanit["password_stored"] == "rejected"
     assert "kullanılamadı" in yanit["warning"]                    # 1151
+    assert "sync_password" not in ayarlar
 
-    # kullanici adi yok -> settings + uyari
+    # kullanici adi yok -> plaintext'e asla yazilmaz + uyari
     yanit = AS.handle_sync_config({"sync_username": "",
                                    "sync_password": "gizli3"})
+    assert yanit["password_stored"] == "rejected"
     assert yanit.get("warning") == "Anahtarlik icin kullanici adi gerekli"
+    assert "sync_password" not in ayarlar
 
 
 # --- dbus / rehearse -------------------------------------------------------------
