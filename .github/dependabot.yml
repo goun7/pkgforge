@@ -1,0 +1,26 @@
+# Dependency update automation — PkgForge
+# Weekly cadence; pip groups kept coarse to limit PR noise on a solo project.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-dev:
+        dependency-type: "development"
+  - package-ecosystem: "npm"
+    directory: "/desktop"
+    schedule:
+      interval: "weekly"
+    groups:
+      js-dev:
+        dependency-type: "development"
+  - package-ecosystem: "cargo"
+    directory: "/desktop/src-tauri"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"

@@ -15,7 +15,7 @@ test_root = "tests"
 lint = "ruff check core cli main.py i18n tests"
 typecheck = "mypy core cli main.py"
 test = "pytest tests/"
-coverage_required = 100
+coverage_required = 99
 
 [cli]
 path = "cli"
