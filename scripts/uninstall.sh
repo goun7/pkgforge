@@ -41,6 +41,19 @@ rm -f /usr/share/icons/hicolor/scalable/apps/pkgforge.svg
 echo "🔐 Removing polkit policy..."
 rm -f /usr/share/polkit-1/actions/org.pkgforge.app.policy
 
+echo "🛠️  Removing consolidated privileged helper..."
+rm -f /usr/share/pkgforge/scripts/pkgforge-privileged.sh
+rmdir /usr/share/pkgforge/scripts 2>/dev/null || true
+rmdir /usr/share/pkgforge 2>/dev/null || true
+
+echo "📄 Removing AppStream metainfo..."
+rm -f /usr/share/metainfo/org.pkgforge.app.metainfo.xml
+
+echo "⏱️  Removing delta update units..."
+rm -f /etc/systemd/system/pkgforge-delta.service
+rm -f /etc/systemd/system/pkgforge-delta.timer
+systemctl daemon-reload 2>/dev/null || true
+
 echo "⌨️  Removing shell completion scripts..."
 rm -f /usr/share/bash-completion/completions/pkgforge
 rm -f /usr/share/zsh/site-functions/_pkgforge

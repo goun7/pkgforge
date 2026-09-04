@@ -12,8 +12,10 @@ fi
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Read version from config.py (single source of truth)
-VERSION="$(python3 -c "import re,sys; sys.path.insert(0, '"$PROJECT_DIR"'); print(__import__('config').APP_VERSION)" 2>/dev/null || echo "unknown")"
+# Read version from pyproject.toml (single source of truth) without
+# importing project code as root (import executes arbitrary file content).
+VERSION="$(sed -n 's/^version = "\(.*\)"$/\1/p' "$PROJECT_DIR/pyproject.toml" | head -1)"
+VERSION="${VERSION:-unknown}"
 echo "📦 PkgForge v$VERSION — Starting System Installation..."
 
 INSTALL_DIR="/usr/lib/pkgforge"
@@ -48,12 +50,16 @@ fi
 echo "📂 Installing application files: $INSTALL_DIR"
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
-# Copy everything except VCS metadata, virtualenvs, caches and build output
+# Copy everything except VCS metadata, virtualenvs, caches, tests and docs —
+# tests/docs/CI artefacts have no business inside /usr/lib.
 tar -C "$PROJECT_DIR" \
     --exclude=.git --exclude=.venv --exclude=__pycache__ \
     --exclude=.mypy_cache --exclude=.pytest_cache --exclude=.hypothesis \
     --exclude=.ruff_cache --exclude=build --exclude=dist \
     --exclude="*.egg-info" --exclude=.freebuff --exclude=utest \
+    --exclude=tests --exclude=docs --exclude=.github \
+    --exclude=htmlcov --exclude=.coverage \
+    --exclude=node_modules --exclude=target \
     --exclude="*.deb" --exclude="*.rpm" --exclude="*.pkg.tar.*" \
     -cf - . | tar -C "$INSTALL_DIR" -xf -
 
@@ -78,16 +84,11 @@ cp "$PROJECT_DIR/data/pkgforge.svg" /usr/share/icons/hicolor/scalable/apps/pkgfo
 chmod 644 /usr/share/icons/hicolor/scalable/apps/pkgforge.svg
 
 # 5. Polkit policies.
-# Faz 14: helper policy (org.pkgforge.helper.policy) EKSIK kurulumda pkexec
-# her cagrida genel auth_admin fallback'ine dusuyordu = "sudo bombardimani".
-# HER IKI policy kurulur: app.policy (dogrudan pacman fallback) + helper.policy
-# (konsolide helper; auth_admin_keep ile 5 dk icinde tek parola).
+# Faz 14 + SEC: yalnizca konsolide helper policy kurulur. Eski app.policy
+# /usr/bin/pacman'a genel polkit yetkisi veriyordu (keyfi pacman calistirma
+# yuzu) ve kaldirildi; tum root islemleri pkgforge-privileged.sh'tan gecer.
 mkdir -p /usr/share/polkit-1/actions
-if [ -f "$PROJECT_DIR/data/org.pkgforge.app.policy" ]; then
-    echo "🔐 Installing polkit policy: /usr/share/polkit-1/actions/org.pkgforge.app.policy"
-    cp "$PROJECT_DIR/data/org.pkgforge.app.policy" /usr/share/polkit-1/actions/org.pkgforge.app.policy
-    chmod 644 /usr/share/polkit-1/actions/org.pkgforge.app.policy
-fi
+rm -f /usr/share/polkit-1/actions/org.pkgforge.app.policy
 if [ -f "$PROJECT_DIR/packaging/polkit/org.pkgforge.helper.policy" ]; then
     echo "🔐 Installing polkit policy: /usr/share/polkit-1/actions/org.pkgforge.helper.policy"
     cp "$PROJECT_DIR/packaging/polkit/org.pkgforge.helper.policy" /usr/share/polkit-1/actions/org.pkgforge.helper.policy

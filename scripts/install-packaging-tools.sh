@@ -30,15 +30,36 @@ pacman -S --needed --noconfirm flatpak flatpak-builder xdelta3 \
     || echo "⚠️  Some pacman packages failed to install (check mirrors/DB)."
 
 # ── 2. appimagetool (not in pacman; GitHub release binary) ─────
+# Pinned release + sha256: "continuous" is an untagged moving target and a
+# supply-chain risk (root downloads it blind). Pin tag 1.9.0 x86_64.
 if command -v appimagetool >/dev/null 2>&1; then
     echo "✅ appimagetool already present: $(command -v appimagetool)"
 else
     ARCH="$(uname -m)"
-    URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${ARCH}.AppImage"
+    TAG="1.9.0"
+    URL="https://github.com/AppImage/appimagetool/releases/download/${TAG}/appimagetool-${ARCH}.AppImage"
+    case "${ARCH}" in
+        x86_64)
+            EXPECTED_SHA256="46fdd785094c7f6e545b61afcfb0f3d98d8eab243f644b4b17698c01d06083d1"
+            ;;
+        *)
+            EXPECTED_SHA256=""
+            ;;
+    esac
     echo "⬇️  appimagetool: $URL"
     if curl -fsSL -o /usr/local/bin/appimagetool "$URL"; then
+        if [ -n "$EXPECTED_SHA256" ]; then
+            ACTUAL_SHA256="$(sha256sum /usr/local/bin/appimagetool | awk '{print $1}')"
+            if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+                echo "❌ appimagetool sha256 mismatch (expected $EXPECTED_SHA256, got $ACTUAL_SHA256)"
+                rm -f /usr/local/bin/appimagetool
+                exit 1
+            fi
+        else
+            echo "⚠️  No pinned sha256 for arch ${ARCH} — skipping integrity check"
+        fi
         chmod 755 /usr/local/bin/appimagetool
-        echo "✅ appimagetool installed to /usr/local/bin/appimagetool"
+        echo "✅ appimagetool ${TAG} installed to /usr/local/bin/appimagetool"
         echo "   NOTE: it is itself an AppImage. If FUSE is unavailable run it as:"
         echo "         appimagetool --appimage-extract-and-run ..."
     else

@@ -57,7 +57,6 @@ include = ["core*", "core.plugins*", "ui*", "i18n*"]
 "share/icons/hicolor/scalable/apps" = ["data/pkgforge.svg"]
 "share/metainfo" = ["data/org.pkgforge.app.metainfo.xml"]
 "share/polkit-1/actions" = [
-    "data/org.pkgforge.app.policy",
     "packaging/polkit/org.pkgforge.helper.policy",
 ]
 "share/pkgforge/scripts" = [
