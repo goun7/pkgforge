@@ -356,16 +356,18 @@ def generate_pkgbuild_from_source(
         build_cmds = "    make"
         install_cmds = '    make DESTDIR="$pkgdir" install'
 
-    makedepends_str = " ".join(f"'{d}'" for d in makedepends_base)
+    from core.bash_util import pkgbuild_literal
+
+    makedepends_str = " ".join(pkgbuild_literal(d) for d in makedepends_base)
 
     pkgbuild = f"""# Maintainer: PkgForge <noreply@pkgforge.app>
 
 pkgname={name}
 pkgver={version}
 pkgrel=1
-pkgdesc='{description}'
+pkgdesc={pkgbuild_literal(description)}
 arch=('x86_64')
-url='{repo_url}'
+url={pkgbuild_literal(repo_url)}
 license=('{license_id}')
 depends=()
 makedepends=({makedepends_str})

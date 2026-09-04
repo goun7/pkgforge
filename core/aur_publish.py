@@ -148,6 +148,8 @@ def _generate_pkgbuild(
 
     build_fn, package_fn = _BUILD_FUNCTIONS.get(build_system, _BUILD_FUNCTIONS["make"])
 
+    from core.bash_util import pkgbuild_literal
+
     source_line = (
         f'"{git_url}/archive/v{pkgver}.tar.gz"' if git_url
         else '"$url"'
@@ -159,9 +161,9 @@ def _generate_pkgbuild(
 pkgname={name}
 pkgver={pkgver}
 pkgrel={pkgrel}
-pkgdesc='Converted from deb/rpm by PkgForge'
+pkgdesc={pkgbuild_literal("Converted from deb/rpm by PkgForge")}
 arch=('x86_64')
-url='{git_url or "$url"}'
+url={pkgbuild_literal(git_url or "https://aur.archlinux.org")}
 license=('GPL-3.0-or-later')
 depends=()
 makedepends=('{'cmake' if build_system == 'cmake' else 'meson' if build_system == 'meson' else 'cargo' if build_system == 'cargo' else 'python-build python-installer python-setuptools python-wheel' if build_system == 'python' else ''}')

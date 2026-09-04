@@ -318,9 +318,10 @@ def _sanitize_version(version: str) -> str:
 def _escape_bash(text: str) -> str:
     """Escape text for safe use inside single-quoted PKGBUILD strings.
 
-    Handles single quotes (end quote, escape, re-open) and strips other
-    shell-active characters that could be interpreted inside a PKGBUILD.
+    Delegates to core.bash_util so there is exactly one escaping owner;
+    kept as a thin wrapper for backwards compatibility with tests/callers.
     """
-    # Strip backticks and $() to prevent command substitution
-    text = text.replace('`', '').replace('$(', '')
-    return text.replace("'", "'\\''")
+    from core.bash_util import pkgbuild_literal
+
+    quoted = pkgbuild_literal(text)
+    return quoted[1:-1] if len(quoted) >= 2 else quoted

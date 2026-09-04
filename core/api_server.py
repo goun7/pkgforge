@@ -769,7 +769,6 @@ def handle_aur_info(params):
 
 
 def handle_aur_build(params):
-    import shutil
     import subprocess as _sp
     import tempfile
 
@@ -802,7 +801,8 @@ def handle_aur_build(params):
         built = sorted((workdir / name).glob("*.pkg.tar.zst"))
         if not built:
             raise RuntimeError("makepkg tamamlandı ama paket dosyası bulunamadı")
-        return {"name": name, "pkg_path": str(built[-1]), "installed": install}
+        # Build-only handler: install is never attempted here (SEC).
+        return {"name": name, "pkg_path": str(built[-1]), "installed": False}
 
     _run_thread(_op, "event/aur_build_done")
     return {"started": True}
