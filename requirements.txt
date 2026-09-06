@@ -27,5 +27,5 @@ uvicorn[standard]>=0.30.0
 pydantic>=2.7.0
 
 # Python 3.10 needs the tomli backport for TOML parsing (3.11+ has tomllib).
-tomli>=2.0.1; python_version<"3.11"
+tomli>=2.4.1; python_version<"3.11"
 
