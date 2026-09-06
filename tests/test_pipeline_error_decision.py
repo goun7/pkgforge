@@ -16,7 +16,7 @@ import pytest
 
 pytest.importorskip("PyQt6")
 
-from PyQt6.QtCore import QCoreApplication, QTimer
+from PyQt6.QtCore import QCoreApplication
 
 from core.compatibility_checker import (
     CheckResult,
@@ -119,8 +119,10 @@ class TestErrorReportWaitsForDecision(unittest.TestCase):
         for p in patches:
             p.start()
         try:
-            # Approve shortly after the worker reaches the decision gate.
-            QTimer.singleShot(50, self.pipeline.approve_install)
+            # Deterministic: approve the moment the report opens (no timer race
+            # on slow runners — the decision latches until the worker arrives).
+            self.pipeline.compatibility_ready.connect(
+                lambda *a: self.pipeline.approve_install())
             self.pipeline.run(self.deb)
         finally:
             for p in patches:
@@ -134,7 +136,8 @@ class TestErrorReportWaitsForDecision(unittest.TestCase):
         for p in patches:
             p.start()
         try:
-            QTimer.singleShot(50, self.pipeline.dismiss_install)
+            self.pipeline.compatibility_ready.connect(
+                lambda *a: self.pipeline.dismiss_install())
             self.pipeline.run(self.deb)
         finally:
             for p in patches:

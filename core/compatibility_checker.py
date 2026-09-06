@@ -211,6 +211,15 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
                 message="Paket bağımlılığı yok",
             )
         ]
+    if not tools.pacman:
+        # Non-Arch host (CI/dev): no pacman db to consult; report skipped.
+        return [
+            CheckResult(
+                name="Bağımlılık Kontrolü",
+                severity=CheckSeverity.WARNING,
+                message="pacman bulunamadı, bağımlılık kontrolü atlandı",
+            )
+        ]
 
     resolved: list[str] = []
     missing: list[str] = []
@@ -291,6 +300,12 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
             name="Dosya Çakışması",
             severity=CheckSeverity.PASS,
             message="Dosya listesi boş, çakışma kontrolü atlandı",
+        )
+    if not tools.pacman:
+        return CheckResult(
+            name="Dosya Çakışması",
+            severity=CheckSeverity.WARNING,
+            message="pacman bulunamadı, çakışma kontrolü atlandı",
         )
 
     conflicts: list[str] = []

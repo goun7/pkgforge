@@ -154,6 +154,7 @@ def test_flatpak_to_deb_dpkg_fail(monkeypatch, tmp_path):
 
     uygulama = NS(app_id="org.Deneme.Uyg", name="Deneme Uyg",
                   version="1.2.3")
+    monkeypatch.setattr(FC, "is_flatpak_available", lambda: True)
     monkeypatch.setattr(FC, "get_app_info", lambda a: uygulama)
     monkeypatch.setattr(FC, "export_app_files", lambda a, d, b: True)
     monkeypatch.setattr(FC, "create_deb_package",

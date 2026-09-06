@@ -364,6 +364,9 @@ def _check_installed(meta: PackageMetadata, tools: ToolPaths) -> None:
     if not is_valid_package_name(meta.name):
         log.warning(tr("analyzer.gecersiz_paket_adi_kurulum_kontrolu"), meta.name)
         return
+    if not tools.pacman:
+        # Non-Arch host (CI/dev): no local db to consult; leave flags unset.
+        return
 
     result = safe_run([tools.pacman, "-Qi", meta.name], timeout=10)
     if result.returncode == 0:
