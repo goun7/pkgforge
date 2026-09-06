@@ -183,12 +183,12 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     if getattr(args, "to_oci", False):
         from core.oci_builder import build_oci_image
         oci_tag = getattr(args, "oci_tag", None)
-        print("🐳 OCI konteyner görüntüsü oluşturuluyor...")
+        print(tr("cli.auto_001"))
         ok, oci_msg, oci_path = build_oci_image(Path(pkg_path), tools, tag=oci_tag)
         if ok:
             print(f"✅ {oci_msg}")
             if oci_path:
-                print(f"   Yüklemek için: podman load -i {oci_path}")
+                print(tr("cli.auto_002").format(oci_path))
         else:
             print(f"❌ {oci_msg}")
             return 1
@@ -210,13 +210,13 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     # --verify-build: reproducible build verification
     if getattr(args, "verify_build", False):
         from core.reproducible_build import verify_reproducible
-        print("🔍 Reproducible build doğrulanıyor...")
+        print(tr("cli.auto_003"))
         vr = verify_reproducible(Path(pkg_path), tools)
         print(f"  {vr.detail}")
         if vr.verified:
-            print("  ✅ Doğrulama başarılı — paket reproducible")
+            print(tr("cli.auto_004"))
         else:
-            print("  ⚠️  Paket farklı — supply chain riski olabilir")
+            print(tr("cli.auto_005"))
         # Continue to install even if verification fails (informational)
 
     # Compatibility grade + "what will change" preview (best-effort, never fatal)
@@ -235,13 +235,13 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             for f in preview_files[:10]:
                 print(f"    {f}")
     except Exception as exc:
-        print(f"⚠️  Uyumluluk önizlemesi atlandı: {exc}", file=sys.stderr)
+        print(tr("cli.auto_compat_preview_skipped").format(exc=exc), file=sys.stderr)
         log.warning("Uyumluluk önizleme hatası", exc_info=True)
 
     # Smart dependency resolution (--resolve-deps)
     if getattr(args, "resolve_deps", False):
         from core.dep_resolver import resolve_dependencies
-        print("\n🔍 Bağımlılıklar çözümleniyor...")
+        print(tr("cli.auto_006"))
         try:
             from core.package_analyzer import analyze_package as _ap
             _meta = _ap(file_path, tools)
@@ -250,9 +250,9 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             if not resolve_report.all_resolved:
                 aur_pkgs = [d.aur_package or d.name for d in resolve_report.deps if not d.resolved and d.source != "not_found"]
                 if aur_pkgs:
-                    print(f"\n📦 Eksik AUR paketleri kurulabilir: {', '.join(aur_pkgs)}")
+                    print(tr("cli.auto_167").format(aur_pkgs=', '.join(aur_pkgs)))
         except Exception as exc:
-            print(f"⚠️  Bağımlılık çözümlemesi atlandı: {exc}", file=sys.stderr)
+            print(tr("cli.auto_dep_resolve_skipped").format(exc=exc), file=sys.stderr)
             log.warning("Bağımlılık çözümleme hatası", exc_info=True)
 
     # Generate SLSA provenance record
@@ -274,12 +274,12 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     if getattr(args, "sign", False):
         from core.package_signing import sign_package
         sign_key = Path(args.sign_key).resolve() if getattr(args, "sign_key", None) else None
-        print(f"✍️  Otomatik imzalanıyor: {Path(pkg_path).name}...")
+        print(tr("cli.auto_007").format(Path(pkg_path).name))
         sign_ok, sign_msg = sign_package(Path(pkg_path), sign_key)
         if sign_ok:
             print(f"✅ {sign_msg}")
         else:
-            print(f"⚠️  İmza başarısız: {sign_msg}")
+            print(tr("cli.auto_008").format(sign_msg))
 
     # Backup converted package in HistoryDB
     db = HistoryDB()
@@ -343,7 +343,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 install_status = "installed"
                 for _line in res.stdout.splitlines():
                     if _line.strip().startswith("snapshot-ok:"):
-                        print(f"  📸 Snapshot hazır: {_line.strip().split('snapshot-ok:', 1)[1].strip()}")
+                        print(tr("cli.auto_009").format(_line.strip().split('snapshot-ok:', 1)[1].strip()))
                         break
             else:
                 print(tr("cli.install_failed").format(error=res.stderr))
@@ -454,8 +454,8 @@ def _cmd_check_updates(args: argparse.Namespace) -> int:
     interval = getattr(args, "interval", 300)
 
     if watch_mode:
-        print(f"👁️  İzleme modu başlatıldı (her {interval} saniyede bir kontrol)\n")
-        print("    Durdurmak için: Ctrl+C\n")
+        print(tr("cli.auto_010").format(interval))
+        print(tr("cli.auto_011"))
 
     while True:
         print(tr("cli.checking_updates") + "\n")
@@ -472,7 +472,7 @@ def _cmd_check_updates(args: argparse.Namespace) -> int:
                 print(f"  {status_icon} {r.package_name:<20} | {r.detail}")
 
             if updates_found:
-                print(f"\n  📢 {len(updates_found)} güncelleme mevcut!")
+                print(tr("cli.auto_012").format(len(updates_found)))
                 for r in updates_found:
                     print(f"     → {r.package_name}: {r.detail}")
 
@@ -483,7 +483,7 @@ def _cmd_check_updates(args: argparse.Namespace) -> int:
         try:
             _time.sleep(interval)
         except KeyboardInterrupt:
-            print("\n  👁️  İzleme durduruldu.")
+            print(tr("cli.auto_013"))
             return 0
 
 
@@ -496,14 +496,14 @@ def _cmd_flatpak_export(args: argparse.Namespace) -> int:
     )
 
     if not is_flatpak_available():
-        print("❌ flatpak bulunamadı — kurulum: sudo pacman -S flatpak")
+        print(tr("cli.auto_014"))
         return 1
 
     # --list: show installed apps
     if getattr(args, "list", False):
         apps = list_installed_apps()
         if not apps:
-            print("  Yüklü Flatpak uygulaması bulunamadı.")
+            print(tr("cli.auto_015"))
             return 0
         print(f"{'App ID':<40} {'Name':<25} {'Version':<15} {'Branch'}")
         print("-" * 95)
@@ -515,19 +515,19 @@ def _cmd_flatpak_export(args: argparse.Namespace) -> int:
     app_id = getattr(args, "app_id", None)
     if not app_id:
         print("❌ Flatpak uygulama ID'si gerekli.")
-        print("   Örnek: pkgforge flatpak-export org.mozilla.firefox")
-        print("   Listelemek için: pkgforge flatpak-export --list")
+        print(tr("cli.auto_016"))
+        print(tr("cli.auto_017"))
         return 1
 
     branch = getattr(args, "branch", "stable")
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
 
-    print(f"🐳 Flatpak → DEB dönüştürülüyor: {app_id}//{branch}...")
+    print(tr("cli.auto_018").format(app_id, branch))
     ok, msg, deb_path = flatpak_to_deb(app_id, out_dir, branch)
 
     if ok:
         print(f"✅ {msg}")
-        print(f"   Kurmak için: sudo dpkg -i {deb_path}")
+        print(tr("cli.auto_019").format(deb_path))
     else:
         print(f"❌ {msg}")
         return 1
@@ -541,31 +541,31 @@ def _cmd_provenance(args: argparse.Namespace) -> int:
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     prov_path = find_provenance(pkg_path)
     if not prov_path:
         # Try looking for .provenance.json next to the package
-        print(f"❌ Provenance dosyası bulunamadı: {pkg_path.name}.provenance.json")
-        print("   Not: Provenance sadece pkgforge convert ile oluşturulan paketler için mevcut.")
+        print(tr("cli.auto_021").format(pkg_path.name))
+        print(tr("cli.auto_022"))
         return 1
 
     prov = load_provenance(prov_path)
     if not prov:
-        print(f"❌ Provenance dosyası okunamadı: {prov_path}")
+        print(tr("cli.auto_023").format(prov_path))
         return 1
 
-    print(f"📋 Provenance Doğrulama: {pkg_path.name}\n")
-    print(f"  Araç:          {prov.tool_name} v{prov.tool_version}")
+    print(tr("cli.auto_024").format(pkg_path.name))
+    print(tr("cli.auto_025").format(prov.tool_name, prov.tool_version))
     print(f"  Build ID:      {prov.build_id}")
     print(f"  Kaynak:        {prov.source_file}")
     if prov.source_url:
         print(f"  Kaynak URL:    {prov.source_url}")
     print(f"  Kaynak SHA-256:{prov.source_sha256[:32]}…" if prov.source_sha256 else "  Kaynak SHA-256: (yok)")
-    print(f"  Çıktı:         {prov.output_file}")
+    print(tr("cli.auto_026").format(prov.output_file))
     print(f"  Çıktı SHA-256: {prov.output_sha256[:32]}…" if prov.output_sha256 else "  Çıktı SHA-256: (yok)")
-    print(f"  Build Zamanı:  {prov.build_timestamp}")
+    print(tr("cli.auto_027").format(prov.build_timestamp))
     print(f"  Build Host:    {prov.build_host}")
     print(f"  Build OS:      {prov.build_os}")
     print(f"  Paket:         {prov.package_name} {prov.package_version}")
@@ -573,7 +573,7 @@ def _cmd_provenance(args: argparse.Namespace) -> int:
     print()
     print(f"  🔒 ClamAV:     {prov.clamav_result}")
     print(f"  💣 Bomb Check: {prov.decompression_bomb_result}")
-    print(f"  ✍️  İmza:       {'Geçerli' if prov.signature_valid else 'Yok/Geçersiz'}")
+    print(tr("cli.auto_028").format('Geçerli' if prov.signature_valid else 'Yok/Geçersiz'))
     print()
 
     valid, msg = verify_provenance(prov)
@@ -591,22 +591,22 @@ def _cmd_appimage_export(args: argparse.Namespace) -> int:
     from core.appimage_converter import appimage_to_deb, is_appimage_available
 
     if not is_appimage_available():
-        print("❌ unsquashfs bulunamadı — kurulum: sudo pacman -S squashfs-tools")
+        print(tr("cli.auto_029"))
         return 1
 
     appimage_path = Path(args.appimage).resolve()
     if not appimage_path.is_file():
-        print(f"❌ Dosya bulunamadı: {appimage_path}")
+        print(tr("cli.auto_030").format(appimage_path))
         return 1
 
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
 
-    print(f"📦 AppImage → DEB dönüştürülüyor: {appimage_path.name}...")
+    print(tr("cli.auto_031").format(appimage_path.name))
     ok, msg, deb_path = appimage_to_deb(appimage_path, out_dir)
 
     if ok:
         print(f"✅ {msg}")
-        print(f"   Kurmak için: sudo dpkg -i {deb_path}")
+        print(tr("cli.auto_019").format(deb_path))
     else:
         print(f"❌ {msg}")
         return 1
@@ -619,22 +619,22 @@ def _cmd_rpm_to_deb(args: argparse.Namespace) -> int:
     from core.rpm_to_deb_converter import is_rpm_to_deb_available, rpm_to_deb
 
     if not is_rpm_to_deb_available():
-        print("❌ rpm2cpio veya dpkg-deb bulunamadı — kurulum: sudo pacman -S rpmextract dpkg")
+        print(tr("cli.auto_032"))
         return 1
 
     rpm_path = Path(args.rpm).resolve()
     if not rpm_path.is_file():
-        print(f"❌ Dosya bulunamadı: {rpm_path}")
+        print(tr("cli.auto_030").format(rpm_path))
         return 1
 
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
 
-    print(f"📦 RPM → DEB dönüştürülüyor: {rpm_path.name}...")
+    print(tr("cli.auto_033").format(rpm_path.name))
     ok, msg, deb_path = rpm_to_deb(rpm_path, out_dir)
 
     if ok:
         print(f"✅ {msg}")
-        print(f"   Kurmak için: sudo dpkg -i {deb_path}")
+        print(tr("cli.auto_019").format(deb_path))
     else:
         print(f"❌ {msg}")
         return 1
@@ -649,16 +649,16 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
     test_file = Path(args.bench_file).resolve() if args.bench_file else None
     quick = getattr(args, "quick", False)
 
-    print("⚡ PkgForge Performans Ölçümü\n")
+    print(tr("cli.auto_034"))
     report = run_benchmarks(test_file=test_file, quick=quick)
     print(report.summary())
     print()
 
     rc = 0
     if report.passed:
-        print("✅ Tüm testler başarılı")
+        print(tr("cli.auto_035"))
     else:
-        print("❌ Bazı testler başarısız")
+        print(tr("cli.auto_036"))
         rc = 1
 
     # F5.26: perf butcesi — baseline kaydet / karsilastir.
@@ -674,11 +674,10 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
 
         baseline = load_baseline(baseline_path)
         if not baseline:
-            print(f"⚠️  Baseline bulunamadı ya da boş: {baseline_path}")
+            print(tr("cli.auto_037").format(baseline_path))
         else:
             res = compare(report, baseline)
-            print(f"\n📊 Perf bütçesi: {res['compared']} metrik karşılaştırıldı"
-                  f" (eşik: %{int(res['threshold'] * 100)})")
+            print(tr("cli.auto_038").format(res['compared'], int(res['threshold'] * 100)))
             for reg in res["regressions"]:
                 print(f"  ❌ {reg['name']}: {reg['baseline_ms']}ms →"
                       f" {reg['current_ms']}ms (%{reg['delta_pct']:+.1f})")
@@ -686,10 +685,10 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
                 print(f"  🚀 {imp['name']}: {imp['baseline_ms']}ms →"
                       f" {imp['current_ms']}ms (%{imp['delta_pct']:+.1f})")
             if not res["ok"]:
-                print(f"❌ {len(res['regressions'])} regresyon bütçeyi aştı")
+                print(tr("cli.auto_039").format(len(res['regressions'])))
                 rc = 1
             else:
-                print("✅ Perf bütçesi içinde")
+                print(tr("cli.auto_040"))
     return rc
 
 
@@ -699,12 +698,12 @@ def _cmd_sign(args: argparse.Namespace) -> int:
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     key_path = Path(args.key).resolve() if args.key else None
 
-    print(f"✍️  Paket imzalanıyor: {pkg_path.name}...")
+    print(tr("cli.auto_041").format(pkg_path.name))
     ok, msg = sign_package(pkg_path, key_path)
 
     if ok:
@@ -720,25 +719,25 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     """Handle `pkgforge verify <package>`."""
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     # Sigstore verification mode
     if getattr(args, "sigstore", False):
         from core.sigstore import verify_with_sigstore
-        print(f"🔍 Sigstore doğrulanıyor: {pkg_path.name}...")
+        print(tr("cli.auto_042").format(pkg_path.name))
         result = verify_with_sigstore(pkg_path)
         print(result.summary())
         return 0 if result.success else 1
 
     # Default: GPG verification
     from core.package_signing import verify_signature
-    print(f"🔍 İmza doğrulanıyor: {pkg_path.name}...")
+    print(tr("cli.auto_043").format(pkg_path.name))
     info = verify_signature(pkg_path)
 
-    print(f"\n  İmza Durumu:  {'✅ Geçerli' if info.valid else '❌ Geçersiz/Yok'}")
+    print(tr("cli.auto_044").format('✅ Geçerli' if info.valid else '❌ Geçersiz/Yok'))
     if info.signer:
-        print(f"  İmzalayan:    {info.signer}")
+        print(tr("cli.auto_045").format(info.signer))
     if info.key_id:
         print(f"  Key ID:       {info.key_id}")
     if info.key_fingerprint:
@@ -759,15 +758,15 @@ def _cmd_sbom(args: argparse.Namespace) -> int:
         new_path = Path(diff_pair[1]).resolve()
         for p in (old_path, new_path):
             if not p.is_file():
-                print(f"❌ Paket bulunamadı: {p}")
+                print(tr("cli.auto_020").format(p))
                 return 1
 
         tools = discover_tools()
         no_hashes = getattr(args, "no_hashes", False)
 
-        print(f"📋 SBOM oluşturuluyor (eski): {old_path.name}")
+        print(tr("cli.auto_046").format(old_path.name))
         old_sbom = generate_sbom(old_path, tools, include_hashes=not no_hashes)
-        print(f"📋 SBOM oluşturuluyor (yeni): {new_path.name}")
+        print(tr("cli.auto_047").format(new_path.name))
         new_sbom = generate_sbom(new_path, tools, include_hashes=not no_hashes)
 
         diff = diff_sboms(old_sbom, new_sbom)
@@ -778,24 +777,24 @@ def _cmd_sbom(args: argparse.Namespace) -> int:
 
         print("\n📊 SBOM Diff:\n")
         print(diff.summary())
-        print(f"\n  📄 Diff dosyası: {diff_path}")
+        print(tr("cli.auto_048").format(diff_path))
         return 0
 
     # Single SBOM generation
     if not args.package:
-        print("❌ Paket yolu gerekli (--diff kullanmıyorsanız)")
+        print(tr("cli.auto_049"))
         return 1
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     tools = discover_tools()
     no_hashes = getattr(args, "no_hashes", False)
     out_dir = Path(args.output_dir).resolve() if args.output_dir else pkg_path.parent
 
-    print(f"📋 SBOM oluşturuluyor: {pkg_path.name}\n")
+    print(tr("cli.auto_050").format(pkg_path.name))
     sbom = generate_sbom(pkg_path, tools, include_hashes=not no_hashes)
 
     # Save to file
@@ -804,7 +803,7 @@ def _cmd_sbom(args: argparse.Namespace) -> int:
 
     # Print summary
     print(sbom.summary())
-    print(f"\n  📄 SBOM dosyası: {sbom_path}")
+    print(tr("cli.auto_051").format(sbom_path))
 
     return 0
 
@@ -820,19 +819,19 @@ def _cmd_attest(args: argparse.Namespace) -> int:
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     # Find existing provenance record
     prov_path = find_provenance(pkg_path)
     if not prov_path:
-        print(f"❌ Provenance kaydı bulunamadı: {pkg_path.name}.provenance.json")
-        print("   Önce pkgforge convert ile dönüşüm yapın.")
+        print(tr("cli.auto_052").format(pkg_path.name))
+        print(tr("cli.auto_053"))
         return 1
 
     prov = load_provenance(prov_path)
     if not prov:
-        print(f"❌ Provenance yüklenemedi: {prov_path}")
+        print(tr("cli.auto_054").format(prov_path))
         return 1
 
     # Create in-toto attestation
@@ -843,7 +842,7 @@ def _cmd_attest(args: argparse.Namespace) -> int:
     att_path = save_attestation(attestation, pkg_path.parent / f"{pkg_path.name}.attestation.json")
 
     # Summary
-    print("📋 SLSA Attestation Oluşturuldu:\n")
+    print(tr("cli.auto_055"))
     print(f"  Statement:  {attestation._type}")
     print(f"  Predicate:  {attestation.predicate_type}")
     print(f"  Subject:    {attestation.subject[0]['name'] if attestation.subject else '(yok)'}")
@@ -878,8 +877,8 @@ def _cmd_graph(args: argparse.Namespace) -> int:
 
     pkg_file = _resolve_pkg_file(pkg_name)
     if not pkg_file:
-        print(f"❌ Paket dosyası bulunamadı: {pkg_name}")
-        print("   Bir .pkg.tar.zst dosya yolu verin veya paket kurulu olmalı.")
+        print(tr("cli.auto_056").format(pkg_name))
+        print(tr("cli.auto_057"))
         return 1
 
     if show_files:
@@ -887,11 +886,11 @@ def _cmd_graph(args: argparse.Namespace) -> int:
     else:
         graph = build_dep_graph(pkg_file)
         if not graph.nodes:
-            print(f"❌ Grafik oluşturulamadı: {pkg_name}")
+            print(tr("cli.auto_058").format(pkg_name))
             return 1
 
     stats = graph.stats()
-    print(f"\n📊 Bağımlılık Grafiği: {graph.root}\n")
+    print(tr("cli.auto_059").format(graph.root))
     print(f"   Toplam: {stats['total']}, Kurulu: {stats['installed']}, Eksik: {stats['missing']}")
     print(f"   Maks Derinlik: {stats['max_depth']}")
     print()
@@ -924,10 +923,10 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         records = filtered
 
     print("\n🔍 PkgForge Audit Trail\n")
-    print(f"   Toplam kayıt: {len(records)}\n")
+    print(tr("cli.auto_060").format(len(records)))
 
     if not records:
-        print("  Kayıt bulunamadı.")
+        print(tr("cli.auto_061"))
         return 0
 
     # Summary
@@ -937,36 +936,36 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         status_counts[r.status] = status_counts.get(r.status, 0) + 1
         type_counts[r.package_type] = type_counts.get(r.package_type, 0) + 1
 
-    print("📊 Özet:")
+    print(tr("cli.auto_062"))
     for status, count in sorted(status_counts.items()):
         icon = {"installed": "✅", "converted": "📦", "install_failed": "❌", "oci_built": "🐳"}.get(status, "•")
         print(f"   {icon} {status}: {count}")
     print()
 
-    print("📦 Paket Türleri:")
+    print(tr("cli.auto_063"))
     for ptype, count in sorted(type_counts.items()):
         print(f"   • {ptype}: {count}")
     print()
 
     # Integrity check
-    print("🔒 Bütünlük Kontrolü:")
+    print(tr("cli.auto_064"))
     integrity_issues = 0
     for r in records:
         # Check if output package still exists
         if r.output_pkg and not Path(r.output_pkg).exists():
-            print(f"   ⚠️  {r.package_name}: Çıktı dosyası silinmiş ({r.output_pkg})")
+            print(tr("cli.auto_065").format(r.package_name, r.output_pkg))
             integrity_issues += 1
         # Check if backup still exists
         if r.backup_pkg and not Path(r.backup_pkg).exists():
-            print(f"   ⚠️  {r.package_name}: Yedek dosya silinmiş ({r.backup_pkg})")
+            print(tr("cli.auto_066").format(r.package_name, r.backup_pkg))
             integrity_issues += 1
         # Check if source URL is recorded but no http headers
         if r.source_url and not r.http_etag and not r.http_last_modified:
             pass  # Not necessarily an issue, just informational
     if integrity_issues == 0:
-        print("   ✅ Tüm dosyalar mevcut")
+        print(tr("cli.auto_067"))
     else:
-        print(f"   ⚠️  {integrity_issues} bütünlük sorunu tespit edildi")
+        print(tr("cli.auto_068").format(integrity_issues))
     print()
 
     # Anomaly detection
@@ -978,12 +977,12 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         name_counts[r.package_name] = name_counts.get(r.package_name, 0) + 1
     for name, count in name_counts.items():
         if count > 3:
-            print(f"   ⚠️  '{name}' {count} kez dönüştürülmüş — tekrarlayan süreç?")
+            print(tr("cli.auto_069").format(name, count))
             anomalies += 1
     # Check for rapid-fire installs (potential abuse)
     recent_installed = [r for r in records if r.status == "installed"][:5]
     if len(recent_installed) >= 5:
-        print("   ⚠️  Son 5 kurulumda hız yüksek — otomatik süreç olabilir")
+        print(tr("cli.auto_070"))
         anomalies += 1
     # Check for failed packages without retry
     failed_names = set()
@@ -993,14 +992,14 @@ def _cmd_audit(args: argparse.Namespace) -> int:
     for name in failed_names:
         installed_count = sum(1 for r in records if r.package_name == name and r.status == "installed")
         if installed_count == 0:
-            print(f"   ⚠️  '{name}' başarısız ama hiç başarılı olmadı — sorun kalıcı olabilir")
+            print(tr("cli.auto_071").format(name))
             anomalies += 1
     if anomalies == 0:
         print("   ✅ Anomali tespit edilmedi")
     print()
 
     # Provenance verification
-    print("📋 Provenance Doğrulama:")
+    print(tr("cli.auto_072"))
     provenance_count = 0
     for r in records:
         if r.output_pkg:
@@ -1008,13 +1007,13 @@ def _cmd_audit(args: argparse.Namespace) -> int:
             if prov_file.exists():
                 provenance_count += 1
     if provenance_count > 0:
-        print(f"   ✅ {provenance_count}/{len(records)} kayıt için provenance mevcut")
+        print(tr("cli.auto_073").format(provenance_count, len(records)))
     else:
-        print("   ℹ️  Hiç provenance kaydı bulunamadı")
+        print(tr("cli.auto_074"))
     print()
 
     # Detailed trail
-    print("📋 Detaylı Kayıtlar:")
+    print(tr("cli.auto_075"))
     print(f"{'ID':<4} {'Tarih':<20} {'Paket':<20} {'Tür':<6} {'Durum':<12} {'Orijinal Dosya'}")
     print("-" * 90)
     for r in records:
@@ -1029,15 +1028,15 @@ def _cmd_scan_image(args: argparse.Namespace) -> int:
 
     image_path = Path(args.image).resolve()
     if not image_path.is_file():
-        print(f"❌ Görüntü dosyası bulunamadı: {image_path}")
+        print(tr("cli.auto_076").format(image_path))
         return 1
 
-    print(f"🔍 OCI Görüntü Taraması: {image_path.name}\n")
+    print(tr("cli.auto_077").format(image_path.name))
     result = scan_oci_image(image_path)
     tools_avail = result["tools"]
 
     if not any(tools_avail.values()):
-        print("❌ Tarama aracı bulunamadı.")
+        print(tr("cli.auto_078"))
         print("   Kurulum: sudo pacman -S trivy")
         print("   veya: sudo pacman -S grype")
         print("   veya: sudo pacman -S clamav")
@@ -1053,35 +1052,35 @@ def _cmd_scan_image(args: argparse.Namespace) -> int:
             print(f"  ✅ {clean_msg}")
         elif st == "findings":
             tf = [f for f in findings if f["tool"] == tool]
-            print(f"  ⚠️  {label} bulguları ({len(tf)} {unit}):")
+            print(tr("cli.auto_079").format(label, len(tf), unit))
             for f in tf[:10]:
                 print(f"      {f['line']}")
         elif st == "error":
-            print(f"  ⚠️  {label} çalışamadı: {errors.get(tool, '')}")
+            print(tr("cli.auto_080").format(label, errors.get(tool, '')))
 
     if tools_avail["trivy"]:
-        print("  🔬 Trivy CVE taraması...")
+        print(tr("cli.auto_081"))
         _print_tool("trivy", "Trivy", "Trivy: Kritik CVE bulunamadı", "satır")
     if tools_avail["grype"]:
-        print("  🔬 Grype bağımlılık taraması...")
+        print(tr("cli.auto_082"))
         _print_tool("grype", "Grype", "Grype: Yüksek-seviye açık bulunamadı", "adet")
     if tools_avail["clamscan"]:
-        print("  🔬 ClamAV malware taraması...")
+        print(tr("cli.auto_083"))
         st = status.get("clamscan")
         if st == "clean":
             print("  ✅ ClamAV: Temiz")
         elif st == "findings":
             cf = [f for f in findings if f["tool"] == "clamscan"]
             body = "\n".join(f["line"] for f in cf)
-            print(f"  ❌ ClamAV enfekte dosya tespit etti:\n{body}")
+            print(tr("cli.auto_168").format(body=body))
         elif st == "error":
-            print(f"  ⚠️  ClamAV çalışamadı: {errors.get('clamscan', '')}")
+            print(tr("cli.auto_084").format(errors.get('clamscan', '')))
 
     print()
     if result["clean"]:
-        print("✅ Tüm taramalar temiz — görüntü güvenli.")
+        print(tr("cli.auto_085"))
         return 0
-    print("⚠️  Bazı taramalar uyarı verdi — sonuçları inceleyin.")
+    print(tr("cli.auto_086"))
     return 1
 
 
@@ -1092,17 +1091,17 @@ def _cmd_from_source(args: argparse.Namespace) -> int:
     repo_url = args.repo_url
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
 
-    print(f"📥 Kaynaktan PKGBUILD oluşturuluyor: {repo_url}\n")
+    print(tr("cli.auto_087").format(repo_url))
 
     import tempfile
     with tempfile.TemporaryDirectory(prefix="pkgforge_src_") as tmpdir:
         tmp = Path(tmpdir)
 
         # 1. Clone repo
-        print("  📥 Depo klonlanıyor...")
+        print(tr("cli.auto_088"))
         res = safe_run(["git", "clone", "--depth=1", repo_url, str(tmp / "repo")], timeout=120)
         if res.returncode != 0:
-            print(f"❌ Git clone başarısız: {res.stderr[:200]}")
+            print(tr("cli.auto_089").format(res.stderr[:200]))
             return 1
 
         repo_dir = tmp / "repo"
@@ -1143,18 +1142,18 @@ def _cmd_from_source(args: argparse.Namespace) -> int:
         # 4. Write PKGBUILD
         output_pkgbuild = out_dir / f"PKGBUILD-{proj_name}"
         output_pkgbuild.write_text(pkgbuild_content, encoding="utf-8")
-        print(f"✅ PKGBUILD oluşturuldu: {output_pkgbuild}\n")
+        print(tr("cli.auto_090").format(output_pkgbuild))
 
         # Show preview
-        print("📋 PKGBUILD Önizleme:")
+        print(tr("cli.auto_091"))
         print("-" * 60)
         for i, line in enumerate(pkgbuild_content.splitlines()[:30]):
             print(f"  {line}")
         if len(pkgbuild_content.splitlines()) > 30:
-            print(f"  ... ({len(pkgbuild_content.splitlines()) - 30} satır daha)")
+            print(tr("cli.auto_092").format(len(pkgbuild_content.splitlines()) - 30))
         print("-" * 60)
 
-        print(f"\n💡 Derlemek için: cd {out_dir} && makepkg -si")
+        print(tr("cli.auto_093").format(out_dir))
 
     return 0
 
@@ -1167,18 +1166,18 @@ def _cmd_abi_check(args: argparse.Namespace) -> int:
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
-    print(f"🔍 ABI Uyumluluk Taraması: {pkg_path.name}\n")
+    print(tr("cli.auto_094").format(pkg_path.name))
     report = check_abi_compatibility(pkg_path)
     print(report.summary())
 
     if report.passed:
-        print("\n✅ ABI uyumluluğu sağlam — tüm semboller destekleniyor.")
+        print(tr("cli.auto_095"))
     else:
         print(f"\n⚠️  {report.error_count} uyumsuzluk tespit edildi.")
-        print("   Paket kurulsa bile çalışmayabilir.")
+        print(tr("cli.auto_096"))
         return 1
 
     return 0
@@ -1190,11 +1189,11 @@ def _cmd_health(args: argparse.Namespace) -> int:
     records = db.get_history(limit=1000)
     stats = db.get_usage_stats()
 
-    print("\n🏥 PkgForge Sağlık Raporu\n")
+    print(tr("cli.auto_097"))
 
     if not records:
-        print("  Henüz kayıtlı dönüşüm bulunmuyor.")
-        print("  İlk dönüşümü başlatmak için: pkgforge convert <dosya>")
+        print(tr("cli.auto_098"))
+        print(tr("cli.auto_099"))
         return 0
 
     # Status distribution
@@ -1208,17 +1207,17 @@ def _cmd_health(args: argparse.Namespace) -> int:
     failed = status_counts.get("install_failed", 0)
     success_rate = ((installed + converted) / total * 100) if total > 0 else 0
 
-    print("📊 Dönüşüm İstatistikleri:")
-    print(f"   Toplam dönüşüm:      {total}")
-    print(f"   Başarılı kurulum:    {installed} ({installed/total*100:.0f}%)" if total else "")
-    print(f"   Başarılı (kurumsuz): {converted} ({converted/total*100:.0f}%)" if total else "")
-    print(f"   Başarısız kurulum:   {failed} ({failed/total*100:.0f}%)" if total else "")
-    print(f"   Başarı oranı:        {success_rate:.0f}%")
-    print(f"   URL indirme:         {url_count}")
+    print(tr("cli.auto_100"))
+    print(tr("cli.auto_101").format(total))
+    print(tr("cli.auto_182").format(installed=installed, pct=installed/total*100) if total else "")
+    print(tr("cli.auto_183").format(converted=converted, pct=converted/total*100) if total else "")
+    print(tr("cli.auto_184").format(failed=failed, pct=failed/total*100) if total else "")
+    print(tr("cli.auto_102").format(success_rate))
+    print(tr("cli.auto_169").format(url_count=url_count))
     print()
 
     # Type breakdown
-    print("📦 Paket Tür Dağılımı:")
+    print(tr("cli.auto_103"))
     for ptype, count in sorted(type_counts.items()):
         pct = count / total * 100 if total else 0
         bar = "█" * int(pct / 5) + "░" * (20 - int(pct / 5))
@@ -1228,7 +1227,7 @@ def _cmd_health(args: argparse.Namespace) -> int:
     # Architecture breakdown
     arch_counts = stats.get("by_arch", {})
     if arch_counts:
-        print("🖥️  Mimari Dağılımı:")
+        print(tr("cli.auto_104"))
         for arch, count in sorted(arch_counts.items(), key=lambda x: -x[1]):
             pct = count / total * 100 if total else 0
             print(f"   {arch:<12} {count} ({pct:.0f}%)")
@@ -1237,19 +1236,19 @@ def _cmd_health(args: argparse.Namespace) -> int:
     # Output size
     avg_size = stats.get("avg_output_size_mb", 0.0)
     if avg_size > 0:
-        print(f"💾 Çıktı Boyutu (ortalama): {avg_size:.1f} MB")
+        print(tr("cli.auto_105").format(avg_size))
         print()
 
     # Recent activity
     if records:
-        print("📅 Son Aktivite:")
-        print(f"   İlk kayıt:  {records[-1].timestamp}")
-        print(f"   Son kayıt:  {records[0].timestamp}")
+        print(tr("cli.auto_170"))
+        print(tr("cli.auto_106").format(records[-1].timestamp))
+        print(tr("cli.auto_107").format(records[0].timestamp))
         print()
 
     # Failed packages (error patterns)
     if failed > 0:
-        print("⚠️  Başarısız Paketler:")
+        print(tr("cli.auto_108"))
         for r in records:
             if r.status == "install_failed":
                 print(f"   ❌ {r.package_name} ({r.package_type}) — {r.original_file}")
@@ -1261,21 +1260,21 @@ def _cmd_health(args: argparse.Namespace) -> int:
         name_counts[r.package_name] = name_counts.get(r.package_name, 0) + 1
     top_packages = sorted(name_counts.items(), key=lambda x: -x[1])[:5]
     if top_packages and top_packages[0][1] > 1:
-        print("🔝 En Çok Dönüşen Paketler:")
+        print(tr("cli.auto_109"))
         for name, count in top_packages:
             if count > 1:
-                print(f"   • {name}: {count} kez")
+                print(tr("cli.auto_171").format(name=name, count=count))
         print()
 
     # Health score
     if success_rate >= 90:
-        health = "🟢 Mükemmel"
+        health = tr("cli.health_excellent")
     elif success_rate >= 70:
-        health = "🟡 İyi"
+        health = tr("cli.health_good")
     else:
-        health = "🔴 Sorunlu"
+        health = tr("cli.health_poor")
 
-    print(f"🏥 Genel Sağlık: {health} ({success_rate:.0f}%)")
+    print(tr("cli.auto_110").format(health, success_rate))
 
     return 0
 
@@ -1346,7 +1345,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             print(f"\n❌ Eksik zorunlu: {', '.join(t['missing_required'])}",
                   file=sys.stderr)
             return 2
-        print("\n✅ Tüm zorunlu araçlar mevcut.")
+        print(tr("cli.auto_111"))
         return 0
 
     def mark(ok: bool) -> str:
@@ -1357,7 +1356,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     print()
 
     t = r["tools"]
-    print(f"{mark(t['ok'])} Araçlar")
+    print(tr("cli.auto_112").format(mark(t['ok'])))
     if t["missing_required"]:
         print(f"   Eksik zorunlu: {', '.join(t['missing_required'])}")
     if t["missing_optional"]:
@@ -1366,7 +1365,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
           f"  distrobox: {mark(t['distrobox'])}")
 
     k = r["keyring"]
-    print(f"{mark(k['ok'])} Anahtarlık — {k.get('detail', '')}")
+    print(tr("cli.auto_113").format(mark(k['ok']), k.get('detail', '')))
 
     s = r["storage"]
     print(f"{mark(s['ok'])} Depolama — profil: {s['profile']},"
@@ -1378,13 +1377,13 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     print(f"{mark(d['ok'])} D-Bus")
 
     sc = r["scheduler"]
-    print(f"{mark(sc['ok'])} Zamanlayıcı — görev: {sc.get('tasks', 0)}")
+    print(tr("cli.auto_114").format(mark(sc['ok']), sc.get('tasks', 0)))
 
     print()
     if r["ok"]:
-        print("🟢 Genel: sağlıklı")
+        print(tr("cli.auto_115"))
         return 0
-    print("🔴 Genel: zorunlu araçlar eksik")
+    print(tr("cli.auto_116"))
     return 1
 
 
@@ -1397,20 +1396,19 @@ def _cmd_wrapped(args: argparse.Namespace) -> int:
     print(f"🎁 PkgForge {year} Wrapped")
     print()
     if r["total"] == 0:
-        print(f"   {year} yılında hiç dönüşüm kaydı yok.")
+        print(tr("cli.auto_117").format(year))
         return 0
-    print(f"   Toplam dönüşüm: {r['total']}")
-    print(f"   Başarılı: {r['success']}  |  Başarısız: {r['failed']}"
-          f"  |  Başarı oranı: %{r['success_rate']}")
-    print(f"   Farklı paket: {r['distinct_packages']}")
+    print(tr("cli.auto_118").format(r['total']))
+    print(tr("cli.auto_119").format(r['success'], r['failed'], r['success_rate']))
+    print(tr("cli.auto_120").format(r['distinct_packages']))
     if r["busiest_month"]:
-        print(f"   En yoğun ay: {r['busiest_month']}")
+        print(tr("cli.auto_121").format(r['busiest_month']))
     if r["by_type"]:
         types = ", ".join(f"{k}: {v}"
                           for k, v in sorted(r["by_type"].items()))
-        print(f"   Türler: {types}")
+        print(tr("cli.auto_122").format(types))
     if r["top_packages"]:
-        print("   En çok dönüştürülenler:")
+        print(tr("cli.auto_123"))
         for i, p in enumerate(r["top_packages"], 1):
             print(f"     {i}. {p['name']} ({p['count']})")
     return 0
@@ -1431,7 +1429,7 @@ def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
 
     if getattr(args, "install", False):
         max_age = getattr(args, "max_age", 7)
-        print(f"📦 Snapshot cleanup servisi kuruluyor (maks. yaş: {max_age} gün)...\n")
+        print(tr("cli.auto_124").format(max_age))
         ok, msg = install_cleanup_service(max_age_days=max_age)
         if ok:
             print(msg)
@@ -1441,7 +1439,7 @@ def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
         return 0
 
     elif getattr(args, "remove", False):
-        print("🗑️  Snapshot cleanup servisi kaldırılıyor...\n")
+        print(tr("cli.auto_125"))
         ok, msg = remove_cleanup_service()
         if ok:
             print(msg)
@@ -1455,24 +1453,24 @@ def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
         status = get_cleanup_status()
         print("\n🔍 PkgForge Snapshot Cleanup Durumu\n")
         if status["installed"]:
-            print("  📦 Servis:    Kurulu")
-            print(f"  ▶️  Durum:     {'Aktif' if status['active'] else 'Durdurulmuş'}")
+            print(tr("cli.auto_172"))
+            print(tr("cli.auto_173_aktif") if status['active'] else tr("cli.auto_173_pasif"))
             if status["next_run"]:
-                print(f"  ⏰ Sıradaki:  {status['next_run']}")
+                print(tr("cli.auto_126").format(status['next_run']))
         else:
-            print("  ❌ Servis kurulu değil")
-            print("\n  💡 Kurmak için: pkgforge snapshot-cleanup --install")
+            print(tr("cli.auto_127"))
+            print(tr("cli.auto_128"))
 
         print("\n  📋 Mevcut snapshot'lar:")
         from core.snapshot_manager import detect_backend, list_snapshots
         backend = detect_backend()
-        print(f"  Algılanan arka plan: {backend}")
+        print(tr("cli.auto_129").format(backend))
         snaps = list_snapshots()
         if snaps:
             for s in snaps:
                 print(f"    • {s['name']} ({s.get('date', '?')})")
         else:
-            print("    (snapshot bulunamadı)")
+            print(tr("cli.auto_130"))
         return 0
 
 
@@ -1482,11 +1480,11 @@ def _cmd_quality(args: argparse.Namespace) -> int:
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     tools = discover_tools()
-    print(f"\n📊 Paket Kalite Puanlaması: {pkg_path.name}\n")
+    print(tr("cli.auto_131").format(pkg_path.name))
     report = score_package(pkg_path, tools)
     print(report.summary())
     return 0 if report.passed else 1
@@ -1498,13 +1496,13 @@ def _cmd_publish(args: argparse.Namespace) -> int:
 
     pkg_path = Path(args.package).resolve()
     if not pkg_path.is_file():
-        print(f"❌ Paket bulunamadı: {pkg_path}")
+        print(tr("cli.auto_020").format(pkg_path))
         return 1
 
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
     aur_url = getattr(args, "aur_url", None)
 
-    print(f"📦 AUR paketi hazırlanıyor: {pkg_path.name}\n")
+    print(tr("cli.auto_132").format(pkg_path.name))
     ok, msg, aur_pkg = prepare_aur_package(pkg_path, out_dir)
 
     if not ok or not aur_pkg:
@@ -1517,7 +1515,7 @@ def _cmd_publish(args: argparse.Namespace) -> int:
         print(f"   .SRCINFO: {aur_pkg.srcinfo}")
 
     if aur_url:
-        print("\n🚀 AUR'a yükleniyor...")
+        print(tr("cli.auto_133"))
         ok2, msg2 = push_to_aur(aur_pkg.pkgbuild.parent, aur_url)
         if ok2:
             print(f"✅ {msg2}")
@@ -1525,7 +1523,7 @@ def _cmd_publish(args: argparse.Namespace) -> int:
             print(f"❌ {msg2}")
             return 1
     else:
-        print("\n💡 AUR'a yüklemek için:")
+        print(tr("cli.auto_134"))
         print(f"   pkgforge publish {pkg_path} --aur-url ssh://aur@aur.archlinux.org/{aur_pkg.name}.git")
 
     return 0
@@ -1535,14 +1533,14 @@ def _cmd_verify_rollback(args: argparse.Namespace) -> int:
     """Handle `pkgforge verify-rollback`."""
     from core.rollback_verify import verify_rollback
 
-    print("\n🔍 Rollback Doğrulaması\n")
+    print(tr("cli.auto_135"))
     result = verify_rollback()
     print(result.detail)
 
     if result.verified:
-        print("\n✅ Snapshot rollback mekanizması çalışıyor.")
+        print(tr("cli.auto_136"))
     else:
-        print("\n❌ Rollback doğrulanamadı.")
+        print(tr("cli.auto_137"))
         return 1
 
     return 0
@@ -1595,7 +1593,7 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
             print(f"❌ {exc}")
             return 1
         except (RuntimeError, ValueError) as exc:
-            print(f"❌ Kurulum başarısız: {exc}")
+            print(tr("cli.auto_138").format(exc))
             return 1
 
     elif action == "remove":
@@ -1606,35 +1604,35 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
             print(f"❌ {exc}")
             return 1
         if removed:
-            print(f"🗑️  Plugin kaldırıldı: {name}")
+            print(tr("cli.auto_139").format(name))
             reload_plugins()
         else:
-            print(f"❌ Plugin bulunamadı: {name}")
+            print(tr("cli.auto_140").format(name))
             return 1
 
     elif action == "list":
         installed = list_installed_plugins()
         if not installed:
-            print("📋 Yerel plugin yok (tüm built-in pluginler aktif)")
+            print(tr("cli.auto_141"))
         else:
-            print(f"📋 Yerel pluginler ({len(installed)}):")
+            print(tr("cli.auto_174").format(count=len(installed)))
             for p in installed:
                 print(f"  • {p['name']} ({p['size']} bytes)")
 
     elif action == "available":
-        print("🌐 Marketplace'ten pluginler yükleniyor...")
+        print(tr("cli.auto_142"))
         available = fetch_available_plugins()
         if not available:
-            print("⚠️  Plugin bulunamadı (çevrimdışı veya marketplace erişilemez)")
+            print(tr("cli.auto_143"))
         else:
-            print(f"📋 Kullanılabilir pluginler ({len(available)}):")
+            print(tr("cli.auto_144").format(len(available)))
             for p in available:
                 print(f"  • {p['name']} v{p['version']} — {p['description']}")
 
     elif action == "update":
         from core.plugins.marketplace import update_plugin as _update_plugin
         name = args.name
-        print(f"🔄 Plugin güncelleniyor: {name}")
+        print(tr("cli.auto_145").format(name))
         ok, msg, _path = _update_plugin(name)
         if ok:
             print(f"✅ {msg}")
@@ -1645,17 +1643,17 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
 
     elif action == "audit":
         from core.plugins.marketplace import audit_plugins as _audit_plugins
-        print("🔍 Plugin checksum doğrulanıyor...")
+        print(tr("cli.auto_146"))
         results = _audit_plugins()
         if not results:
-            print("📋 Denetlenecek yerel plugin yok")
+            print(tr("cli.auto_175"))
         else:
             for r in results:
                 icon = {"ok": "✅", "changed": "⚠️", "unknown": "❓", "error": "❌"}.get(r["status"], "?")
                 print(f"  {icon} {r['name']}: {r['message']}")
 
     else:
-        print("❌ Geçersiz plugin komutu. Kullanım: install, remove, list, available, update, audit")
+        print(tr("cli.auto_147"))
         return 1
 
     return 0
@@ -1679,7 +1677,7 @@ def _cmd_delta(args: argparse.Namespace) -> int:
         print(f"  Timer kurulu:  {'✅' if status.get('installed') else '❌'}")
         print(f"  Timer aktif:   {'✅' if status.get('active') else '❌'}")
         if status.get("next_run"):
-            print(f"  Sonraki çalışma: {status['next_run']}")
+            print(tr("cli.auto_148").format(status['next_run']))
 
     elif action == "enable":
         hint = privileged_setup_hint()
@@ -1695,7 +1693,7 @@ def _cmd_delta(args: argparse.Namespace) -> int:
         return 0 if ok else 1
 
     else:
-        print("❌ Geçersiz delta komutu. Kullanım: status, enable, disable")
+        print(tr("cli.auto_149"))
         return 1
 
     return 0

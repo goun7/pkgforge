@@ -70,15 +70,15 @@ class QualityReport:
 
         # Grade interpretation
         if self.total_score >= 90:
-            lines.append("  🏆 Mükemmel — production-ready")
+            lines.append(tr("quality.grade_excellent"))
         elif self.total_score >= 75:
-            lines.append("  ✅ İyi — çoğu ortamda çalışır")
+            lines.append(tr("quality.grade_good"))
         elif self.total_score >= 60:
-            lines.append("  ⚠️ Kabul edilebilir — bazı sorunlar var")
+            lines.append(tr("quality.grade_fair"))
         elif self.total_score >= 40:
-            lines.append("  ⚠️ Düşük — ciddi sorunlar mevcut")
+            lines.append(tr("quality.grade_poor"))
         else:
-            lines.append("  ❌ Kötü — kurulum önerilmez")
+            lines.append(tr("quality.grade_bad"))
 
         return "\n".join(lines)
 

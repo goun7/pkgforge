@@ -20,6 +20,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from i18n import tr
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -59,7 +61,7 @@ def check_dependencies(install: bool = False) -> bool:
     missing_required: list[tuple[str, str]] = []
     missing_optional: list[tuple[str, str]] = []
 
-    print("🔍 PkgForge — Sistem bağımlılıkları kontrol ediliyor...\n")
+    print(tr("main.auto_150"))
 
     for tool, pkg, required in SYSTEM_DEPS:
         found = shutil.which(tool)
@@ -77,16 +79,16 @@ def check_dependencies(install: bool = False) -> bool:
     print()
 
     if not missing_required and not missing_optional:
-        print("✅ Tüm bağımlılıklar mevcut!\n")
+        print(tr("main.auto_151"))
         return True
 
     if missing_required:
-        print(f"❌ {len(missing_required)} gerekli bağımlılık eksik:")
+        print(tr("main.auto_152").format(len(missing_required)))
         for tool, pkg in missing_required:
             print(f"   • {tool} ({pkg})")
 
     if missing_optional:
-        print(f"\n⚠️  {len(missing_optional)} isteğe bağlı bağımlılık eksik:")
+        print(tr("main.auto_153").format(len(missing_optional)))
         for tool, pkg in missing_optional:
             print(f"   • {tool} ({pkg})")
 
@@ -109,42 +111,42 @@ def check_dependencies(install: bool = False) -> bool:
 
         if pacman_pkgs:
             cmd = ["sudo", "pacman", "-S", "--needed", "--noconfirm"] + pacman_pkgs
-            print(f"📦 Pacman ile kuruluyor: {' '.join(pacman_pkgs)}")
+            print(tr("main.auto_176").format(pkgs=' '.join(pacman_pkgs)))
             result = subprocess.run(cmd, check=False)
             if result.returncode != 0:
-                print("❌ Pacman kurulumu başarısız!")
+                print(tr("main.auto_154"))
                 return False
 
         if aur_pkgs:
             aur_helper = shutil.which("paru") or shutil.which("yay")
             if aur_helper:
                 cmd = [aur_helper, "-S", "--needed", "--noconfirm"] + aur_pkgs
-                print(f"📦 AUR ile kuruluyor: {' '.join(aur_pkgs)}")
+                print(tr("main.auto_177").format(pkgs=' '.join(aur_pkgs)))
                 result = subprocess.run(cmd, check=False)
                 if result.returncode != 0:
-                    print("⚠️  AUR kurulumu başarısız (manuel kurulum gerekebilir)")
+                    print(tr("main.auto_155"))
             else:
-                print(f"⚠️  AUR helper bulunamadı. Manuel kurun: paru -S {' '.join(aur_pkgs)}")
+                print(tr("main.auto_156").format(' '.join(aur_pkgs)))
 
         # Debtap database sync
         if "debtap" in [t for t, _ in all_missing]:
             debtap_db = Path("/var/cache/debtap/debian-main-packages-files")
             if shutil.which("debtap") and not debtap_db.exists():
-                print("🔄 Debtap veritabanı senkronize ediliyor...")
+                print(tr("main.auto_157"))
                 subprocess.run(["sudo", "debtap", "-u"], check=False)
 
         # Re-check
-        print("\n🔍 Yeniden kontrol ediliyor...")
+        print(tr("main.auto_178"))
         still_missing = [t for t, p, r in SYSTEM_DEPS if r and not shutil.which(t)]
         if still_missing:
-            print(f"❌ Hâlâ eksik: {', '.join(still_missing)}")
+            print(tr("main.auto_179").format(pkgs=', '.join(still_missing)))
             return False
 
-        print("✅ Bağımlılıklar kuruldu!\n")
+        print(tr("main.auto_158"))
         return True
 
     if missing_required:
-        print("\n💡 Otomatik kurmak için: python main.py --install-deps")
+        print(tr("main.auto_159"))
         return False
 
     return True
@@ -158,9 +160,9 @@ def _check_pyqt6() -> bool:
         import PyQt6.QtWidgets  # noqa: F401
         return True
     except ImportError:
-        print("❌ PyQt6 bulunamadı!")
-        print("   Kurmak için: sudo pacman -S python-pyqt6 python-pyqt6-sip")
-        print("   veya: pip install PyQt6")
+        print(tr("main.auto_160"))
+        print(tr("main.auto_161"))
+        print(tr("main.auto_180"))
         return False
 
 
@@ -441,7 +443,7 @@ def main() -> int:
         from core.offline_cache import get_cache
         cache = get_cache()
         count = cache.clear_all()
-        print(f"🗑️  {count} önbellek kaydı temizlendi.")
+        print(tr("main.auto_162").format(count))
         return 0
 
     if args.version:
@@ -468,7 +470,7 @@ def main() -> int:
     file_list = getattr(args, "file", None)
     if file_list and len(file_list) > 1 and hasattr(args, "install"):
         from cli import run_cli
-        print(f"📦 Toplu dönüştürme: {len(file_list)} dosya")
+        print(tr("main.auto_163").format(len(file_list)))
         failures = 0
         for fp in file_list:
             args.target = str(fp)
@@ -476,9 +478,9 @@ def main() -> int:
             if result != 0:
                 failures += 1
         if failures:
-            print(f"\n⚠️  {failures}/{len(file_list)} dosya başarısız")
+            print(tr("main.auto_164").format(failures, len(file_list)))
             return 1
-        print(f"\n✅ {len(file_list)} dosya başarıyla dönüştürüldü")
+        print(tr("main.auto_165").format(len(file_list)))
         return 0
     if args.command == "serve":
         if getattr(args, "http", False):
@@ -494,7 +496,7 @@ def main() -> int:
                 try:
                     token = _P(tf).read_text(encoding="utf-8").strip()
                 except OSError as exc:
-                    print(f"hata: token dosyası okunamadı: {exc}")
+                    print(tr("main.auto_166").format(exc))
                     return 2
             if not token:
                 token = _os.environ.get("PKGFORGE_TOKEN", "")
@@ -543,7 +545,7 @@ def main() -> int:
         if res["installed"]:
             print("kurulum tamam. etkinlestirme:", res["enable"])
         else:
-            print("(dry-run: hicbir dosya yazilmadi)")
+            print(tr("main.auto_181"))
         return 0
     if args.command and args.command != "gui":
         from cli import run_cli
