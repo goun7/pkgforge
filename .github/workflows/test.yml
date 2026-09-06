@@ -305,17 +305,15 @@ jobs:
           python main.py doctor --json > /tmp/doctor.json
           python -c "import json; d=json.load(open('/tmp/doctor.json')); assert 'version' in d; print('doctor JSON ok:', d['version'])"
 
-  # Tur-55 C11: composite action + multi-distro matrix
+  # F1: PkgForge Arch-only'dir (pacman/makepkg/systemd/polkit). windows/macos
+  # koşuları ya skip'lerle sahte-yeşil ya da gereksiz-kırmızı veriyordu;
+  # matrix ubuntu'ya indirildi, gerçek Arch kapsamı arch-smoke job'unda.
   multi-distro:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
         python-version: ["3.10", "3.12", "3.14"]
-        exclude:
-          # Windows-latest + Python 3.10 combo not yet validated in CI.
-          - os: windows-latest
-            python-version: "3.10"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -345,3 +343,27 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           os: ${{ matrix.os }}
+
+  # F1: Arch gerçeği — ubuntu runner içinde archlinux container'da gerçek
+  # pacman/makepkg ile smoke: doctor + dry-run convert + saf-logic subset.
+  arch-smoke:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system deps (real Arch toolchain)
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git base-devel python python-pip file fakeroot binutils
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-timeout
+      - name: Doctor + dry-run convert (real makepkg)
+        run: |
+          python main.py doctor --tools
+          python main.py convert utest/hello_1.0.0-1_amd64.deb --dry-run
+      - name: Pure-logic subset
+        run: python -m pytest tests/test_security_pure_logic.py tests/test_maps.py -q -p no:cacheprovider

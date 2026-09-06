@@ -11,7 +11,23 @@
 [![Desktop](https://img.shields.io/badge/desktop-582%20vitest%20tests-brightgreen)](desktop/)
 [![Ruff](https://img.shields.io/badge/ruff-0%20errors-brightgreen)](#)
 
-**PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **PyQt6 GUI**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
+**PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **Tauri desktop app**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
+
+---
+
+## 🧪 Demo (real output)
+
+```console
+$ pkgforge convert hello_1.0.0-1_amd64.deb --dry-run
+    ==> "hello" paketi oluşturuluyor...
+    ==> hello 1.0.0-1 paketinin derlenmesi tamamlandı
+✅ Paket başarıyla dönüştürüldü: hello-1.0.0-1-x86_64.pkg.tar.zst
+📊 Uyumluluk notu: B (warning)
+📁 Kurulacak dosyalar: 2
+    ./usr/bin/hello
+    ./usr/share/hello/data.txt
+📋 Provenance: hello-1.0.0-1-x86_64.pkg.tar.zst.provenance.json
+```
 
 ---
 
@@ -19,7 +35,7 @@
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
 - **🛡️ 12 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
-- **💻 Dual Interface (Headless CLI + PyQt6 GUI)**: CLI runs without PyQt6 or a display server. GUI mode requires PyQt6 (`sudo pacman -S python-pyqt6`).
+- **💻 Dual Interface (Headless CLI + Tauri Desktop)**: CLI runs without any GUI dependencies. The primary graphical interface is the Tauri 2 + React desktop app (`desktop/`, build with `cd desktop && pnpm tauri build`). The legacy PyQt6 GUI (`pkgforge gui`) is frozen — security fixes only, removal planned for v3.0.
 - **🖥️ Native Tauri Desktop App**: A modern Tauri 2 + React 19 shell (in `desktop/`) with tr/en i18n, theme + accent colors, command palette, feature tour, lazy-loaded pages, and a Python sidecar over JSON-RPC. Build with `cd desktop && pnpm tauri build`.
 - **🌐 Direct URL Conversion**: Download and convert packages directly from HTTP/HTTPS links (`pkgforge convert https://...`).
 - **📸 Atomic Snapshot Rollback**: Automatically takes Btrfs/ZFS filesystem snapshots before installation for instant atomic rollback.
@@ -117,18 +133,35 @@ pkgforge publish package.pkg.tar.zst             # Publish to AUR
 pkgforge verify-rollback                         # Test rollback mechanism
 pkgforge --clear-cache                           # Clear offline cache
 
-# GUI (requires PyQt6)
+# GUI (legacy PyQt6, frozen — requires PyQt6)
 pkgforge gui
 ```
 
+> **UI decision (2026-09-05):** the primary interface is the Tauri desktop
+> (`desktop/`) + Python sidecar. PyQt6 (`pkgforge gui`) is frozen: no new
+> features, security fixes only; removal planned for v3.0.
+
 ---
 
-## 🖼️ GUI Features
+## 🖼️ Desktop App (primary)
 
-> **UI karari (2026-09-05):** birincil arayuz Tauri masaustu (`desktop/`) + Python sidecar'dir.
-> PyQt6 (`pkgforge gui`) dondurulmustur: yeni ozellik eklenmez, yalnizca guvenlik duzeltmesi yapilir; kaldirma v3.0'da.
+Build and run the Tauri 2 + React 19 desktop shell (tr/en i18n, themes,
+command palette, feature tour, lazy-loaded pages, Python sidecar over JSON-RPC):
 
-Launch the graphical interface via `pkgforge gui` or your application launcher:
+```bash
+cd desktop && pnpm install && pnpm tauri dev
+# production bundle:
+cd desktop && pnpm tauri build
+```
+
+## 🖼️ Legacy PyQt6 GUI (frozen)
+
+> Launch via `pkgforge gui` (requires `sudo pacman -S python-pyqt6`) or your
+> application launcher. No new features are added here.
+
+---
+
+### Legacy PyQt6 feature set
 
 - **Drag-and-Drop Drop Zone**: Drop `.deb` or `.rpm` files directly onto the app.
 - **Multi-Package Queue Sidebar**: Process multiple packages sequentially.
@@ -174,7 +207,7 @@ To run the automated test suite (requires dev dependencies):
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest tests/ -q --timeout=120
+make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
 Current status (measured 2026-09-07, `make verify`): **2506 tests: 2499 passed,
@@ -198,7 +231,6 @@ PkgForge ücretsiz ve açık kaynaklıdır. Size zaman kazandırıyorsa gelişim
 desteklemeyi düşünebilirsiniz.
 
 - **GitHub Sponsors:** [github.com/sponsors/goun7](https://github.com/sponsors/goun7)
-- **Polar.sh:** [polar.sh/goun7](https://polar.sh/goun7)
 - **Giveth (crypto):** [giveth.io/project/pkgforge](https://giveth.io/project/pkgforge)
 
 ### 🪙 Direct crypto donations / Direkt kripto bağışı

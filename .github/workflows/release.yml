@@ -9,8 +9,37 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  # F1: testsiz publish yok. Tag push'unda tam suit + lint kapıları
+  # build'den ÖNCE koşar; kırmızıysa release durur.
+  gate:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      - name: Ruff (pinned, CI-parity)
+        run: python -m ruff check .
+      - name: Mypy (core+cli+main+config)
+        run: python -m mypy core/ cli.py main.py config.py --ignore-missing-imports --no-error-summary
+      - name: Bandit (core+entry points)
+        run: python -m bandit -r core/ cli.py main.py config.py -ll --skip B101,B311
+      - name: Full test suite (no coverage, fail-fast off)
+        run: python -m pytest tests/ -q --tb=short -p no:cacheprovider
+
+  build:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # SLSA provenance attestation (keyless, OIDC)
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +54,31 @@ jobs:
 
       - name: Build sdist and wheel
         run: python -m build
+
+      - name: SHA256SUMS
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: SBOM (SPDX + CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: spdx-json
+          output-file: dist/pkgforge.spdx.json
+
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: cyclonedx-json
+          output-file: dist/pkgforge.cyclonedx.json
+
+      - name: Attest build provenance (SLSA, Sigstore)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/*.whl, dist/*.tar.gz"
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
@@ -51,6 +105,9 @@ jobs:
           files: |
             dist/*.whl
             dist/*.tar.gz
+            dist/SHA256SUMS
+            dist/pkgforge.spdx.json
+            dist/pkgforge.cyclonedx.json
           generate_release_notes: true
           draft: false
           prerelease: false
