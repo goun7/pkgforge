@@ -210,10 +210,8 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-09-07, `make verify`): **2521 tests: 2514 passed,
-5 skipped, 2 pre-existing env failures** (`test_delta_enable_start_fail`,
-`test_install_auto_update_service_write_fail` — systemd/pkexec-dependent,
-fail on clean tree too) · coverage **99%** on `core/`+`ui/`+`i18n/`
+Current status (measured 2026-09-07, `make verify`): **2521 tests: 2516 passed,
+5 skipped, 0 failed** · coverage **99%** on `core/`+`ui/`+`i18n/`
 (12 746 statements, 118 missed) · mypy: 0 errors in 95 files
 (`core/`+`cli.py`+`main.py`+`config.py`, imports followed) · bandit CI-parity:
 clean (-ll 0 Medium/0 High) · i18n parity 987/987 (tr/en) · mini mutation 3/3 KILLED.

@@ -492,13 +492,13 @@ def test_delta_enable_start_fail(monkeypatch):
 
     def sahte_run(cmd, input=None, timeout=0):
         cmd = list(cmd)
-        if "start" in cmd[2:]:
+        if "service-enable" in cmd:
             return NS(returncode=1, stdout=b"", stderr=b"baslatmadi")
         return NS(returncode=0, stdout=b"", stderr=b"")
 
     monkeypatch.setattr(SEC, "safe_run", sahte_run)
     ok, msg = DU.enable_auto_update()
-    assert ok is False and "Timer başlatılamadı" in msg              # 392-393
+    assert ok is False and "etkinleştirilemedi" in msg               # 392-393
 
 
 # ── profiles 55-56 / 65-66 / 81-82 ───────────────────────────────────────────────

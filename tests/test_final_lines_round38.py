@@ -53,6 +53,7 @@ def test_extract_symbol_returncode_nonzero(monkeypatch):
 def test_namcap_skip_prefix(monkeypatch):
     # 308: 'namcap:' onekli ve bos satirlar atlanir
     cikti = "\nnamcap: hata ayiklama\nPKGBUILD (1): error: tag x\n"
+    monkeypatch.setattr(AB.shutil, "which", lambda n: "/usr/bin/namcap")
     monkeypatch.setattr(AB, "safe_run",
                         lambda cmd, timeout=0, **k: NS(returncode=0,
                                                        stdout=cikti,

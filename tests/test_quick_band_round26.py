@@ -143,7 +143,7 @@ def test_install_auto_update_service_write_fail(monkeypatch):
 
     def hedefli_run(cmd, timeout=0, input=None, **k):
         birlesik = " ".join(str(c) for c in cmd)
-        if "write-batch" in birlesik:
+        if "service-deploy" in birlesik:
             return NS(returncode=1, stderr="redd")
         return NS(returncode=0, stdout="", stderr="")
 

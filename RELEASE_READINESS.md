@@ -8,7 +8,7 @@
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Test suit'i | **2521 test: 2514 passed, 5 skipped, 2 pre-existing env-fail** | `pytest tests/ -q` (junit) |
+| Test suit'i | **2521 test: 2516 passed, 5 skipped, 0 failed** | `pytest tests/ -q` (junit) |
 | Kapsama | **%99** — 12 746 ifade, 118 eksik (`core/`+`ui/`+`i18n/`) | `--cov-fail-under=99` geçiyor |
 | mypy | **0 hata** / 95 dosya (`core/`+`cli`+`main`+`config`, import takibi) | `make verify` |
 | ruff | **0 hata** (0.16.4, CI-parite) | `ruff check .` |
@@ -18,11 +18,11 @@
 | Repo | **PUBLIC**, master korumalı (force-push/silme yasak) | `gh repo view` |
 | Release boru hattı | gate (ruff+mypy+bandit+tam suit) → build → SBOM (SPDX+CycloneDX) + SLSA provenance + SHA256SUMS | `release.yml` |
 
-## Bilinen 2 başarısızlık (çevresel, temiz ağaçta da patlar)
+## Bilinen başarısızlık: yok (local 2521/2521)
 
-- `test_delta_enable_start_fail`, `test_install_auto_update_service_write_fail`
-  — systemd/pkexec bağımlı; CI (ubuntu, systemd'li) ve Arch makinede
-  ayrıca değerlendirilir.
+Eskiden "pre-existing" sanılan 2 delta-timer testi bayat mock çıktı
+(Faz-14 argv değişimine uyarlandı); ubuntu CI'daki kalan farklar
+araç-guard'larıyla kapatıldı. CI yeşili release boru hattında izlenir.
 
 ## Kalan insan adımları
 

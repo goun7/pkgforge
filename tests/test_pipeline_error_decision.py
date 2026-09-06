@@ -88,7 +88,19 @@ class TestErrorReportWaitsForDecision(unittest.TestCase):
 
     def _patch_common(self):
         """Patch every stage before compatibility so the run reaches it."""
+        # Arch toolchain gate bypass: _run_pipeline returns early when
+        # required tools are missing (ubuntu CI); tests exercise the
+        # decision flow, so provide a complete toolset explicitly.
+        from config import ToolPaths
+        self.pipeline._tools = ToolPaths(
+            pacman="/usr/bin/pacman", makepkg="/usr/bin/makepkg",
+            fakeroot="/usr/bin/fakeroot", file_cmd="/usr/bin/file",
+            pkexec="/usr/bin/pkexec", bsdtar="/usr/bin/bsdtar")
+
         def fake_convert(deb_path, output_dir):
+            self.pipeline._async_success = True
+            self.pipeline._async_message = ""
+            self.pipeline._async_pkg_path = self.converted
             self.pipeline._async_success = True
             self.pipeline._async_message = ""
             self.pipeline._async_pkg_path = self.converted
