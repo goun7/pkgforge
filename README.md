@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-2506%20collected-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-2521%20collected-brightgreen)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
@@ -77,7 +77,7 @@ sudo ./scripts/uninstall.sh
 ### Option 2: pip / wheel
 
 ```bash
-pip install dist/pkgforge-2.0.0-py3-none-any.whl   # after: pip wheel . --no-deps -w dist/
+pip install dist/pkgforge-2.1.0-py3-none-any.whl   # after: pip wheel . --no-deps -w dist/
 # or from a checkout:
 pip install .
 ```
@@ -210,14 +210,14 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-09-07, `make verify`): **2506 tests: 2499 passed,
+Current status (measured 2026-09-07, `make verify`): **2521 tests: 2514 passed,
 5 skipped, 2 pre-existing env failures** (`test_delta_enable_start_fail`,
 `test_install_auto_update_service_write_fail` — systemd/pkexec-dependent,
-fail on clean tree too) · coverage **99.09%** on `core/`+`ui/`+`i18n/`
-(12 638 statements, 115 missed) · mypy: 0 errors in 84 files
+fail on clean tree too) · coverage **99%** on `core/`+`ui/`+`i18n/`
+(12 746 statements, 118 missed) · mypy: 0 errors in 95 files
 (`core/`+`cli.py`+`main.py`+`config.py`, imports followed) · bandit CI-parity:
-clean (-ll 0 Medium/0 High) · i18n parity 788/788 (tr/en) · mini mutation 3/3 KILLED.
-Wheel build verified (`pkgforge==2.0.0`) and E2E smoke-tested from a
+clean (-ll 0 Medium/0 High) · i18n parity 987/987 (tr/en) · mini mutation 3/3 KILLED.
+Wheel build verified (`pkgforge==2.1.0`) and E2E smoke-tested from a
 fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
 
 ---

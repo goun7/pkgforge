@@ -4,6 +4,42 @@ All notable changes to PkgForge will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.1.0] - 2026-09-07
+
+### Added
+- **gates**: `make verify` tek komutu + `[tool.coverage/ruff/mypy]` pinleri
+  (`requirements-dev`: ruff==0.16.4, mypy==2.3.1); CI ile yerel aynı kapı.
+- **ci**: `release.yml` gate job'u (ruff+mypy+bandit+tam suit) + her release'e
+  SBOM (SPDX+CycloneDX) + SLSA provenance + SHA256SUMS; `supply-chain` job'u
+  (pip-audit + pnpm audit); `arch-smoke` job'u (gerçek Arch container'da
+  doctor + dry-run convert); sahte windows/macos matrix'i kaldırıldı.
+- **test**: SSRF guard (15 test), i18n parite kilidi korunuyor (987/987).
+- **docs**: `docs/adr/004-api-split.md`, `docs/adr/005-ssrf-confirm.md`,
+  `docs/BENCHMARK_PARITY.md` (ölçülen PkgForge sayıları; debtap sütunu
+  root `debtap -u` bekliyor).
+- **packaging**: `packaging/aur/pkgforge-git/PKGBUILD` (+ `.SRCINFO`,
+  namcap-temiz); branch protection (force-push/silme yasak).
+
+### Changed
+- **refactor(api)**: 1996 satırlık `core/api_server.py` →
+  `core/api/{transport,handlers_*,registry,protocol,http}` + facade;
+  `dir()` diff ile tam uyumluluk (`AS.transport`, `AS.handlers_queue`,
+  `AS.http` kanonik yamalar).
+- **i18n**: cli.py/main.py kullanıcı-yolu tam tr/en (794 → 987 anahtar);
+  `--lang en` duman testli; quality grade + health skoru da yerelleşti.
+- **security**: Tauri strict CSP (`csp: null` kapatıldı); SSRF deny-by-default
+  (`allow_private_hosts` opt-in; ilk URL + her yönlendirme + marketplace +
+  upstream HEAD); `plugin install` artık `--yes`/etkileşimli onay istiyor.
+- **repo**: PUBLIC + topic/description vitrini; Polar.sh linkleri kaldırıldı
+  (hesap yok); Giveth kripto bağışı eklendi.
+
+### Fixed
+- **fix(rpc)**: desktop'ın çağırdığı `plugin.install` metodu METHODS'ta yoktu
+  (`Method not found`) — bölünme sırasında bulunup bağlandı.
+- **fix(lint)**: ruff 7, mypy 2 (tarihsel "0 hata" iddiaları yanlıştı).
+- **docs**: README sayıları ölçülen gerçeklere çekildi (2521 test:
+  2514 passed + 5 skip + 2 çevresel fail; %99 kapsama; 95 dosya mypy).
+
 ## [Unreleased]
 
 ### Added

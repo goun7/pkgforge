@@ -1,6 +1,6 @@
 # Maintainer: goun7 <https://github.com/goun7/pkgforge>
 pkgname=pkgforge
-pkgver=2.0.0
+pkgver=2.1.0
 pkgrel=1
 pkgdesc="Modern .deb/.rpm package converter, safety analyzer, and lifecycle manager for Arch Linux"
 arch=('any')

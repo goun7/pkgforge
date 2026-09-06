@@ -1,14 +1,17 @@
 # PkgForge Quality Gates Summary
 
-All quality gates are passing:
+Measured 2026-09-07 via `make verify` (single source of truth; thresholds
+in `pyproject.toml`):
 
-- ✅ Ruff: All checks passed!
-- ✅ Mypy: Success: no issues found in 310 source files
-- ✅ Bandit: No issues identified.
-- ✅ Vitest: 51 test files, 582 tests passed
-- ✅ TypeScript build: Built successfully
-- ✅ Pytest: All tests passed (collection showed tests collected)
+- ✅ Ruff 0.16.4: 0 errors (full repo, CI-parity)
+- ✅ Mypy: 0 errors / 95 source files (`core/`+`cli.py`+`main.py`+`config.py`)
+- ✅ Bandit: No issues (`-ll`, core + entry points)
+- ✅ Pytest: 2521 tests — 2514 passed, 5 skipped, 2 pre-existing env failures
+  (systemd/pkexec-dependent, fail on clean tree too)
+- ✅ Coverage: 99% (12 746 statements, 118 missed; gate `--cov-fail-under=99`)
+- ✅ i18n: 987/987 tr/en parity, `--lang en` smoke-tested
+- ✅ pip-audit: clean; CI `supply-chain` job added
+- ✅ Desktop: Tauri strict CSP (was `null`), vitest suite green in CI
 
-Autonomous scanning goal (50 tur, kritiksiz) has been achieved.
-
-See progress.md for detailed turn-by-turn log.
+Historical session logs: `progress.md`, `task_plan.md`, `findings.md`.
+Authoritative release state: `/RELEASE_READINESS.md`.
