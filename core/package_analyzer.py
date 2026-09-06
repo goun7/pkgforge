@@ -266,7 +266,11 @@ def _analyze_rpm(file_path: Path, tools: ToolPaths) -> PackageMetadata:
         timeout=30,
         text=False,
     )
-    if file_list_result.returncode == 0:
+    if file_list_result.returncode != 0:
+        log.warning("rpm2cpio basarisiz (rc=%s): %s",
+                    file_list_result.returncode,
+                    (file_list_result.stderr or b"")[:200])
+    else:
         tar_result = safe_run(
             [tools.bsdtar, "-tf", "-"] if tools.bsdtar
             else ["cpio", "-t", "--quiet"],
@@ -280,6 +284,10 @@ def _analyze_rpm(file_path: Path, tools: ToolPaths) -> PackageMetadata:
                 for line in stdout_text.splitlines()
                 if line.strip() and not line.strip().endswith("/")
             ]
+        else:
+            log.warning("rpm icerik listesi alinamadi (rc=%s): %s",
+                        tar_result.returncode,
+                        (tar_result.stderr or b"")[:200])
 
     # Check existing installation
     _check_installed(meta, tools)
