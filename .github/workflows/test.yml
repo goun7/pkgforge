@@ -131,7 +131,7 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: pnpm audit (high+)
         working-directory: desktop
         run: pnpm audit --audit-level=high
@@ -244,7 +244,7 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
           cache-dependency-path: desktop/pnpm-lock.yaml
       - name: Install deps
@@ -392,7 +392,7 @@ jobs:
       - name: Install system deps (real Arch toolchain)
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm git base-devel python python-pip file fakeroot binutils
+          pacman -S --noconfirm git base-devel python python-pip file fakeroot binutils polkit bubblewrap
       - name: Install Python deps
         run: |
           # Ephemeral Arch container (PEP 668 bypass is safe here).
