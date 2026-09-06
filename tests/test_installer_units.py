@@ -438,7 +438,7 @@ def test_find_helper_source_exact(qapp, monkeypatch):
     import pathlib
     real = pathlib.Path.is_file
 
-    def fake_is_file(self):
+    def fake_is_file(self, **k):
         s = str(self)
         if s.startswith(("/usr/share/pkgforge", sys.prefix)):
             return False
@@ -451,7 +451,7 @@ def test_find_helper_source_exact(qapp, monkeypatch):
 def test_find_helper_sysprefix(qapp, monkeypatch):
     import pathlib
 
-    def fake_is_file(self):
+    def fake_is_file(self, **k):
         return str(self).startswith(sys.prefix)
 
     monkeypatch.setattr(pathlib.Path, "is_file", fake_is_file)
@@ -464,7 +464,7 @@ def test_find_helper_sysprefix(qapp, monkeypatch):
 def test_find_helper_usr_share(qapp, monkeypatch):
     import pathlib
 
-    def fake_is_file(self):
+    def fake_is_file(self, **k):
         return str(self).startswith("/usr/share/pkgforge")
 
     monkeypatch.setattr(pathlib.Path, "is_file", fake_is_file)
@@ -474,7 +474,7 @@ def test_find_helper_usr_share(qapp, monkeypatch):
 
 def test_find_helper_fallback_first(qapp, monkeypatch):
     import pathlib
-    monkeypatch.setattr(pathlib.Path, "is_file", lambda self: False)
+    monkeypatch.setattr(pathlib.Path, "is_file", lambda self, **k: False)
     # Hicbir aday yoksa SISTEM yolu doner (polkit yalnizca orayi tanir).
     assert _find_install_helper() == Path(
         "/usr/share/pkgforge/scripts/install_helper.sh")

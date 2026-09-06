@@ -36,10 +36,9 @@ optdepends=(
 )
 provides=('pkgforge')
 conflicts=('pkgforge')
-# NOTE: Tag v2.0.0 must exist in the repo before building this PKGBUILD.
-# Update sha256sums once the release tarball is published.
+# NOTE: sha256 verified against the published v2.1.0 tag tarball (2026-09-07).
 source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('9fa3c3df368630c526af67bd4041fb78696661f8fd85a653f70cf8518e8d12b4')
 
 prepare() {
     cd "$srcdir/pkgforge-$pkgver"

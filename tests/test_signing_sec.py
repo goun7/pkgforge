@@ -44,7 +44,7 @@ def test_gnupghome_rejects_foreign_ownership(
     monkeypatch.setattr(ps, "_GNUPGHOME", str(home))
     monkeypatch.setattr(ps.os, "geteuid", lambda: 12345)
     monkeypatch.setattr(
-        ps.Path, "stat", lambda self: NS(st_uid=999, st_mode=0o700),
+        ps.Path, "stat", lambda self, **k: NS(st_uid=999, st_mode=0o700),
         raising=False)
     with pytest.raises(RuntimeError, match="not owned"):
         ps._gpg_homedir_args()

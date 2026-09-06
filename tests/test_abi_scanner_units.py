@@ -70,9 +70,9 @@ def test_check_version_with_fake_libs(monkeypatch, tmp_path):
 
     known = {"/usr/lib", "/usr/lib64", "/lib", "/lib64", "/usr/lib/x86_64-linux-gnu"}
     orig_is_dir, orig_is_file = Path.is_dir, Path.is_file
-    monkeypatch.setattr(Path, "is_dir", lambda self: True if str(self) in known else orig_is_dir(self))
-    monkeypatch.setattr(Path, "is_file", lambda self: True if self == real else orig_is_file(self))
-    monkeypatch.setattr(Path, "is_symlink", lambda self: False)
+    monkeypatch.setattr(Path, "is_dir", lambda self, **k: True if str(self) in known else orig_is_dir(self))
+    monkeypatch.setattr(Path, "is_file", lambda self, **k: True if self == real else orig_is_file(self))
+    monkeypatch.setattr(Path, "is_symlink", lambda self, **k: False)
     monkeypatch.setattr(Path, "glob", lambda self, pat: iter([real]) if pat.startswith("libc.so") else iter([]))
     monkeypatch.setattr(AS, "_get_available_versions", lambda p: ["GLIBC_2.35", "GLIBC_2.17"])
 

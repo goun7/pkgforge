@@ -21,7 +21,7 @@ def _kur(kayit):
 
 def test_find_install_helper_fallback(monkeypatch):
     monkeypatch.setattr(Path, "is_file",
-                        lambda self: False, raising=True)
+                        lambda self, **k: False, raising=True)
     sonuc = _find_install_helper()
     assert sonuc == INSTALL_HELPER or sonuc.is_absolute()      # 34-37
 
