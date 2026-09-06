@@ -3,11 +3,11 @@
 
 -r requirements.txt
 
-pytest>=7.0
-pytest-cov>=4.0
-pytest-timeout>=2.0
+pytest>=9.1.1
+pytest-cov>=7.1.0
+pytest-timeout>=2.4.0
 mypy==2.3.1
-bandit>=1.7
-ruff==0.16.4
-hypothesis>=6.0
-pyinstaller>=6.0
+bandit>=1.9.4
+ruff==0.16.5
+hypothesis>=6.167.1
+pyinstaller>=6.22.2
