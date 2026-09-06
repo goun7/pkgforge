@@ -132,8 +132,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: desktop/pnpm-lock.yaml
       - name: pnpm audit (high+)
         working-directory: desktop
         run: pnpm audit --audit-level=high
@@ -397,9 +395,10 @@ jobs:
           pacman -S --noconfirm git base-devel python python-pip file fakeroot binutils
       - name: Install Python deps
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-timeout
+          # Ephemeral Arch container (PEP 668 bypass is safe here).
+          python -m pip install --upgrade pip --break-system-packages
+          pip install -r requirements.txt --break-system-packages
+          pip install pytest pytest-timeout --break-system-packages
       - name: Doctor + dry-run convert (real makepkg)
         run: |
           python main.py doctor --tools

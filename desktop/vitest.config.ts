@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    // Vitest 4 forks pool + jsdom, Node 20'de worker baslatma hatasi
+    // veriyor (webidl.util.markAsUncloneable); threads kararli.
+    pool: "threads",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
     // Coverage enstrumantasyonu render'lari yavaslatir; dar timeout flaky

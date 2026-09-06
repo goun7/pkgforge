@@ -33,6 +33,7 @@ export const API_METHODS = [
   "pipeline.start",
   "plugin.audit",
   "plugin.available",
+  "plugin.install",
   "plugin.list",
   "plugin.uninstall",
   "plugin.update",
