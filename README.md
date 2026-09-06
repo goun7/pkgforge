@@ -195,6 +195,14 @@ desteklemeyi düşünebilirsiniz.
 
 - **GitHub Sponsors:** [github.com/sponsors/goun7](https://github.com/sponsors/goun7)
 - **Polar.sh:** [polar.sh/goun7](https://polar.sh/goun7)
+- **Giveth (crypto):** [giveth.io/project/pkgforge](https://giveth.io/project/pkgforge)
+
+### 🪙 Direct crypto donations / Direkt kripto bağışı
+
+- **Solana (SOL):** `H39cdtoNKeef14fzK7T6ruj53wYXVx5sRh3hrbbLkbuy`
+- **EVM / Base (ETH, USDC):** `0xf6Cf772B361F3F08A5B809f21e6ec5fC525b7497`
+- **Bitcoin (BTC):** `bc1qajsqt2cgs5lal7esxwk2sxmpd9g2mzpltax0r3`
+- **Sui (SUI):** `0xe92e3602e5d2a75c9d1f1340277ef8ebbe93dedfb553bf411b2114455b12a761`
 
 ---
 
