@@ -33,9 +33,9 @@ def sunucu():
     eski_qapp = AS._ensure_qapp
     eski_sched = AS._ensure_scheduler
     eski_restore = AS.restore_queue
-    AS._ensure_qapp = lambda: None
-    AS._ensure_scheduler = lambda: None
-    AS.restore_queue = lambda: 0
+    AS.transport._ensure_qapp = lambda: None
+    AS.handlers_queue._ensure_scheduler = lambda: None
+    AS.handlers_queue.restore_queue = lambda: 0
     t = threading.Thread(target=kos, daemon=True)
     t.start()
     for _ in range(100):
@@ -54,9 +54,9 @@ def sunucu():
         raise RuntimeError("sunucu kalkmadi")
     yield f"127.0.0.1:{port}"
     # temizlik: thread daemon oldugu icin sonlanmasi beklenmez
-    AS._ensure_qapp = eski_qapp
-    AS._ensure_scheduler = eski_sched
-    AS.restore_queue = eski_restore
+    AS.transport._ensure_qapp = eski_qapp
+    AS.handlers_queue._ensure_scheduler = eski_sched
+    AS.handlers_queue.restore_queue = eski_restore
 
 
 def _istek(sunucu_adres, method="POST", path="/", govde=None,
@@ -156,7 +156,7 @@ def test_dispatch_unknown_and_exception():
 
 def test_rate_limited_window(monkeypatch):
     AS._http_rate.clear()
-    monkeypatch.setattr(AS, "_HTTP_RATE_LIMIT", 2)
+    monkeypatch.setattr(AS.http, "_HTTP_RATE_LIMIT", 2)
     simdi = time.time()
     assert AS._rate_limited("1.1.1.1", simdi) is False
     assert AS._rate_limited("1.1.1.1", simdi) is False
@@ -188,7 +188,7 @@ def test_build_openapi_schema_shape():
 
 def test_post_rate_limited_http(sunucu, monkeypatch):
     AS._http_rate.clear()
-    monkeypatch.setattr(AS, "_HTTP_RATE_LIMIT", 1)
+    monkeypatch.setattr(AS.http, "_HTTP_RATE_LIMIT", 1)
     baslik = {"Authorization": "Bearer op-token"}
     kod1, _ = _istek(sunucu, govde={"id": 20, "method": "app.version"},
                      basliklar=baslik)

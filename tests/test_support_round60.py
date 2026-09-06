@@ -35,7 +35,9 @@ def test_funding_yml_valid():
 
     data = yaml.safe_load((KOK / ".github" / "FUNDING.yml").read_text())  # type: ignore[attr-defined]
     assert data["github"] == ["goun7"]
-    assert any("polar.sh" in u for u in data["custom"])
+    # Polar.sh yok: hesap acilmadi (acilinca geri eklenecek). Giveth canli.
+    assert any("giveth.io" in u for u in data["custom"])
+    assert not any("polar.sh" in u for u in data["custom"])
 
 
 def test_issue_templates_exist():

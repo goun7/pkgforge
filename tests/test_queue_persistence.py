@@ -14,18 +14,18 @@ def isolated_queue(tmp_path, monkeypatch):
     monkeypatch.setattr(
         QS, "queue_db_path", lambda profile=None: tmp_path / "queue.db")
     monkeypatch.setattr(A, "_queue_store", None)
-    A._queue_items.clear()
+    A.handlers_queue._queue_items.clear()
     monkeypatch.setattr(A, "_queue_seq", 0)
     yield tmp_path
-    A._queue_items.clear()
-    store = A._queue_store
+    A.handlers_queue._queue_items.clear()
+    store = A.handlers_queue._queue_store
     if store:
         try:
             store.close()
         except Exception:  # noqa: BLE001, S110 - teardown best-effort
             pass
-    A._queue_store = None
-    A._queue_seq = 0
+    A.handlers_queue._queue_store = None
+    A.handlers_queue._queue_seq = 0
 
 
 def _mkpkg(root: Path, name: str) -> Path:
@@ -86,37 +86,37 @@ def test_store_remove_and_clear(tmp_path):
 def test_add_persists_and_restart_restores(isolated_queue):
     deb = _mkpkg(isolated_queue, "hello.deb")
     assert A.handle_queue_add({"paths": [str(deb)]}) == {"added": 1}
-    assert len(A._queue_items) == 1
+    assert len(A.handlers_queue._queue_items) == 1
 
     # Simulate a restart: in-memory state is gone, db remains.
-    A._queue_items.clear()
-    A._queue_seq = 0
+    A.handlers_queue._queue_items.clear()
+    A.handlers_queue._queue_seq = 0
     restored = A.restore_queue()
     assert restored == 1
     items = A.handle_queue_list({})
     assert len(items) == 1
     assert items[0]["path"] == str(deb)
     assert items[0]["status"] == "pending"
-    assert A._queue_seq >= 1  # sequence advanced past restored id
+    assert A.handlers_queue._queue_seq >= 1  # sequence advanced past restored id
 
 
 def test_done_item_not_restored(isolated_queue):
     deb = _mkpkg(isolated_queue, "hello.deb")
     A.handle_queue_add({"paths": [str(deb)]})
-    item_id = next(iter(A._queue_items))
-    A._set_item(item_id, status="done", message="bitti")
+    item_id = next(iter(A.handlers_queue._queue_items))
+    A.handlers_queue._set_item(item_id, status="done", message="bitti")
 
-    A._queue_items.clear()
+    A.handlers_queue._queue_items.clear()
     assert A.restore_queue() == 0
 
 
 def test_remove_persists(isolated_queue):
     deb = _mkpkg(isolated_queue, "hello.deb")
     A.handle_queue_add({"paths": [str(deb)]})
-    item_id = next(iter(A._queue_items))
+    item_id = next(iter(A.handlers_queue._queue_items))
     A.handle_queue_remove({"id": item_id})
 
-    A._queue_items.clear()
+    A.handlers_queue._queue_items.clear()
     assert A.restore_queue() == 0
 
 
@@ -125,17 +125,17 @@ def test_clear_persists(isolated_queue):
     A.handle_queue_add({"paths": [str(deb)]})
     A.handle_queue_clear({})
 
-    A._queue_items.clear()
+    A.handlers_queue._queue_items.clear()
     assert A.restore_queue() == 0
 
 
 def test_priority_change_persists(isolated_queue):
     deb = _mkpkg(isolated_queue, "hello.deb")
     A.handle_queue_add({"paths": [str(deb)]})
-    item_id = next(iter(A._queue_items))
+    item_id = next(iter(A.handlers_queue._queue_items))
     A.handle_queue_priority({"id": item_id, "priority": 9})
 
-    A._queue_items.clear()
+    A.handlers_queue._queue_items.clear()
     A.restore_queue()
     items = A.handle_queue_list({})
     assert items[0]["priority"] == 9

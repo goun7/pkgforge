@@ -21,9 +21,9 @@ def sse_sunucu():
     def kos():
         AS.serve_http(port=port, token="op", host="127.0.0.1")
     eski = (AS._ensure_qapp, AS._ensure_scheduler, AS.restore_queue)
-    AS._ensure_qapp = lambda: None
-    AS._ensure_scheduler = lambda: None
-    AS.restore_queue = lambda: 0
+    AS.transport._ensure_qapp = lambda: None
+    AS.handlers_queue._ensure_scheduler = lambda: None
+    AS.handlers_queue.restore_queue = lambda: 0
     import threading
     threading.Thread(target=kos, daemon=True).start()
     for _ in range(100):
@@ -34,7 +34,7 @@ def sse_sunucu():
         except OSError:
             time.sleep(0.05)
     yield f"127.0.0.1:{port}"
-    AS._ensure_qapp, AS._ensure_scheduler, AS.restore_queue = eski
+    AS._ensure_qapp, AS._ensure_scheduler, AS.handlers_queue.restore_queue = eski
 
 
 def _serbest_port():
@@ -45,15 +45,15 @@ def _serbest_port():
 
 def test_sse_publish_subscribe_units(monkeypatch):
     aboneler = []
-    monkeypatch.setattr(AS, "_sse_subscribers", aboneler)
-    monkeypatch.setattr(AS, "_sse_history", [])
+    monkeypatch.setattr(AS.transport, "_sse_subscribers", aboneler)
+    monkeypatch.setattr(AS.transport, "_sse_history", [])
 
     q = AS._sse_subscribe()                                        # 75-79
     assert q in aboneler
 
     AS._sse_publish("event/x", {"deger": 1})                       # 66-70
     assert q.get_nowait()["method"] == "event/x"
-    assert AS._sse_history[-1]["params"] == {"deger": 1}
+    assert AS.transport._sse_history[-1]["params"] == {"deger": 1}
 
     # dolu kuyruk sessizce yutulur
     dolu = NS(put_nowait=lambda p: (_ for _ in ()).throw(Exception("dolu")))
@@ -119,10 +119,10 @@ def _serve_kos(monkeypatch, satirlar, sec_hazir=True, sec_hata=None):
         monkeypatch.setattr(select, "select",
                             lambda *a: (([sys.stdin], [], [])
                                         if sec_hazir else ([], [], [])))
-    monkeypatch.setattr(AS, "_send",
+    monkeypatch.setattr(AS.transport, "_send",
                         lambda o: gonderilen.append(o)
                         or (_ for _ in ()).throw(KeyboardInterrupt()))
-    monkeypatch.setattr(AS, "_ensure_qapp",
+    monkeypatch.setattr(AS.transport, "_ensure_qapp",
                         lambda: NS(processEvents=lambda: None))
     monkeypatch.setattr(json.JSONDecodeError, "__init__",
                         lambda self, *a: None, raising=False)
@@ -164,7 +164,7 @@ def test_serve_blank_line_continue_then_eof(monkeypatch):
 
 def test_pipeline_gate_handlers_with_active(monkeypatch):
     cagrilar = []
-    monkeypatch.setattr(AS, "_pipeline",
+    monkeypatch.setattr(AS.transport, "_pipeline",
                         NS(cancel=lambda: cagrilar.append("c"),
                            approve_install=lambda: cagrilar.append("a"),
                            dismiss_install=lambda m: cagrilar.append(m)))

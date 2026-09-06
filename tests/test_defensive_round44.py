@@ -23,8 +23,8 @@ def senkron_yardimci(monkeypatch):
         except Exception as exc:                                # noqa: BLE001
             kayit.append((event_name, {"ok": False, "hata": str(exc)}))
 
-    monkeypatch.setattr(AS, "_run_thread", sahte)
-    monkeypatch.setattr(AS, "_event",
+    monkeypatch.setattr(AS.transport, "_run_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_event",
                         lambda m, p: kayit.append(("olay:" + m, p)))
     return kayit
 
@@ -36,7 +36,7 @@ ARACLAR = NS(bsdtar="bsdtar", file_cmd="file", readelf="readelf",
 
 def test_run_thread_real_paths(monkeypatch):
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append((m, p)))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append((m, p)))
 
     AS._run_thread(lambda: {"tamam": 1}, "event/t1")               # 252-257
     AS._run_thread(lambda: (_ for _ in ()).throw(
@@ -49,7 +49,7 @@ def test_run_thread_real_paths(monkeypatch):
 
     # takma ad dogrudan
     yakalanan = []
-    monkeypatch.setattr(AS, "_run_thread",
+    monkeypatch.setattr(AS.transport, "_run_thread",
                         lambda fn, ev: yakalanan.append((fn, ev)))
     AS._run_security_thread(lambda: 1)                             # 262-264
     assert yakalanan[0][1] == "event/security_done"
@@ -130,7 +130,7 @@ def test_aur_build_install_and_failures(monkeypatch, tmp_path):
     kayit.kirik_makepkg = False
     kayit.paket_yok = False
     kayitlar = []
-    monkeypatch.setattr(AS, "_run_thread",
+    monkeypatch.setattr(AS.transport, "_run_thread",
                         lambda fn, ev="e": kayitlar.append(_calistir(fn)))
     def _calistir(fn):
         try:
@@ -165,26 +165,26 @@ def _calistir(fn):
 # --- queue/schedule artiklari ------------------------------------------------------
 
 def test_restore_queue_store_none(monkeypatch):
-    monkeypatch.setattr(AS, "_queue_store", None)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", None)
     assert AS.restore_queue() == 0                                 # 791-792
 
 
 def test_dispatch_do_install_serial(monkeypatch):
-    monkeypatch.setattr(AS, "_queue_items", {})
-    monkeypatch.setattr(AS, "_queue_running", False)
-    monkeypatch.setattr(AS, "_queue_lock", __import__("threading").RLock())
+    monkeypatch.setattr(AS.handlers_queue, "_queue_items", {})
+    monkeypatch.setattr(AS.handlers_queue, "_queue_running", False)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_lock", __import__("threading").RLock())
     gorunen = []
     class Hazir:
         def stage(self, p):
             pass
         def run_staged(self):
             pass
-    monkeypatch.setattr(AS, "_make_pipeline", lambda *a, **k: Hazir())
-    monkeypatch.setattr(AS, "_event", lambda m, p: gorunen.append(m))
-    AS._queue_items["q1"] = {"id": "q1", "path": "/x", "status": "pending",
+    monkeypatch.setattr(AS.handlers_queue, "_make_pipeline", lambda *a, **k: Hazir())
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: gorunen.append(m))
+    AS.handlers_queue._queue_items["q1"] = {"id": "q1", "path": "/x", "status": "pending",
                              "priority": 0, "message": ""}
     AS._queue_dispatch(parallel=4, do_install=True)                # 938-940
-    assert AS._queue_running is False
+    assert AS.handlers_queue._queue_running is False
 
 
 def test_schedule_state_real_import():
@@ -194,15 +194,15 @@ def test_schedule_state_real_import():
 
 def test_scheduler_tick_parse_and_outer_error(monkeypatch):
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append(p))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append(p))
     ayarlar = {}
-    monkeypatch.setattr(AS, "load_settings", lambda: dict(ayarlar))
-    monkeypatch.setattr(AS, "save_settings", lambda s: ayarlar.update(s))
+    monkeypatch.setattr(AS.handlers_queue, "load_settings", lambda: dict(ayarlar))
+    monkeypatch.setattr(AS.handlers_queue, "save_settings", lambda s: ayarlar.update(s))
 
     # bozuk last_run -> due=True dali (1050-1051)
     durum = {"enabled": True, "last_run": "bozuk-format",
              "interval_hours": 1, "task": "t"}
-    monkeypatch.setattr(AS, "_schedule_state", lambda: dict(durum))
+    monkeypatch.setattr(AS.handlers_queue, "_schedule_state", lambda: dict(durum))
     cagri = {"n": 0}
 
     def tek_tur(sn):
@@ -220,7 +220,7 @@ def test_scheduler_tick_parse_and_outer_error(monkeypatch):
 
     def patlak():
         raise RuntimeError("durum okunamadi")
-    monkeypatch.setattr(AS, "_schedule_state", patlak)
+    monkeypatch.setattr(AS.handlers_queue, "_schedule_state", patlak)
     try:
         AS._scheduler_tick()
     except KeyboardInterrupt:
@@ -246,10 +246,10 @@ def test_serve_not_ready_then_valid(monkeypatch):
     monkeypatch.setattr(sys, "stdin", SahteStdin())
     import select as select_mod
     monkeypatch.setattr(select_mod, "select", sec)
-    monkeypatch.setattr(AS, "_send",
+    monkeypatch.setattr(AS.transport, "_send",
                         lambda o: gonderilen.append(o)
                         or (_ for _ in ()).throw(KeyboardInterrupt()))
-    monkeypatch.setattr(AS, "_ensure_qapp",
+    monkeypatch.setattr(AS.transport, "_ensure_qapp",
                         lambda: NS(processEvents=lambda: None))
     try:
         AS.serve()                                                 # 1336+1347
@@ -278,12 +278,12 @@ def test_sse_stream_keepalive_real(monkeypatch):
             raise OSError("soket kapandi")
 
     eski = (AS._ensure_qapp, AS._ensure_scheduler, AS.restore_queue)
-    AS._ensure_qapp = lambda: None
-    AS._ensure_scheduler = lambda: None
-    AS.restore_queue = lambda: 0
+    AS.transport._ensure_qapp = lambda: None
+    AS.handlers_queue._ensure_scheduler = lambda: None
+    AS.handlers_queue.restore_queue = lambda: 0
 
     import threading
-    monkeypatch.setattr(AS.queue, "Queue", SahteKuyruk)
+    monkeypatch.setattr(AS.transport.queue, "Queue", SahteKuyruk)
 
     import http.client
 
@@ -321,5 +321,5 @@ def test_sse_stream_keepalive_real(monkeypatch):
         tampon += parca
     sock.close()
 
-    AS._ensure_qapp, AS._ensure_scheduler, AS.restore_queue = eski
+    AS._ensure_qapp, AS._ensure_scheduler, AS.handlers_queue.restore_queue = eski
     assert b"keepalive" in tampon                                 # 1532-1533

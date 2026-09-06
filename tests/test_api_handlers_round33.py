@@ -21,9 +21,9 @@ def senkron(monkeypatch):
         except Exception as exc:  # noqa: BLE001
             kayit.append((event_name, {"ok": False, "hata": str(exc)}))
 
-    monkeypatch.setattr(AS, "_run_thread", sahte)
-    monkeypatch.setattr(AS, "_run_security_thread", sahte)
-    monkeypatch.setattr(AS, "_event",
+    monkeypatch.setattr(AS.transport, "_run_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_run_security_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_event",
                         lambda m, p: kayit.append(("olay:" + m, p)))
     return kayit
 
@@ -162,14 +162,17 @@ def test_system_install_pkg(senkron, monkeypatch, tmp_path):
     pkg = tmp_path / "demo-1.0-1-x86_64.pkg.tar.zst"
     pkg.write_bytes(b"P")
 
-    monkeypatch.setattr(AS, "discover_tools", lambda: NS(pkexec="", pacman=""))
+    monkeypatch.setattr(AS.handlers_system, "discover_tools", lambda: NS(pkexec="", pacman=""))
+    monkeypatch.setattr(AS.handlers_repo, "discover_tools", lambda: NS(pkexec="", pacman=""))
     with pytest.raises(RuntimeError):
         AS.handle_system_install_pkg({"pkg_path": str(pkg)})
 
     sec = _mod(monkeypatch, "core.security")
     monkeypatch.setattr(sec, "safe_run",
                         lambda cmd, timeout=0, **k: NS(returncode=0))
-    monkeypatch.setattr(AS, "discover_tools",
+    monkeypatch.setattr(AS.handlers_system, "discover_tools",
+                        lambda: NS(pkexec="/usr/bin/pkexec", pacman="/usr/bin/pacman"))
+    monkeypatch.setattr(AS.handlers_repo, "discover_tools",
                         lambda: NS(pkexec="/usr/bin/pkexec", pacman="/usr/bin/pacman"))
     assert AS.handle_system_install_pkg({"pkg_path": str(pkg)})["started"] is True
     bulunan = [r for r in senkron if r[0] == "event/install_done"]
@@ -223,7 +226,8 @@ def test_compare_diff(senkron, monkeypatch, tmp_path):
                         lambda p, t, include_hashes=True: belge)
     monkeypatch.setattr(sbom_mod, "diff_sboms",
                         lambda a, b: NS(to_dict=lambda: {"fark": 0}))
-    monkeypatch.setattr(AS, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_system, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_repo, "discover_tools", lambda: NS())
     AS.handle_compare_diff({"old_path": str(eski), "new_path": str(yeni)})
     assert senkron[-1][1]["sonuc"] == {"fark": 0}                 # 635-639
 

@@ -29,17 +29,17 @@ def test_parallel_clamped_to_4(monkeypatch: pytest.MonkeyPatch):
         def start(self):
             pass
 
-    monkeypatch.setattr(A.threading, "Thread", _FakeThread)
-    A._queue_items["qx"] = {"id": "qx", "path": "/x.deb", "name": "x",
+    monkeypatch.setattr(A.handlers_queue.threading, "Thread", _FakeThread)
+    A.handlers_queue._queue_items["qx"] = {"id": "qx", "path": "/x.deb", "name": "x",
                             "status": "pending", "priority": 0, "message": ""}
-    A._queue_running = False
+    A.handlers_queue._queue_running = False
     try:
         res = A.handle_queue_start({"parallel": 99})
         assert res["started"] is True
         assert captured["args"] == (4, False)  # clamped + conversion-only
     finally:
-        A._queue_running = False
-        A._queue_items.pop("qx", None)
+        A.handlers_queue._queue_running = False
+        A.handlers_queue._queue_items.pop("qx", None)
 
 
 def test_queue_cancel_targets_registry(monkeypatch: pytest.MonkeyPatch):
@@ -51,17 +51,17 @@ def test_queue_cancel_targets_registry(monkeypatch: pytest.MonkeyPatch):
         def cancel(self):
             cancelled.append(True)
 
-    A._active_pipelines["q1"] = _FakePipeline()
-    A._active_pipelines["q2"] = _FakePipeline()
+    A.handlers_queue._active_pipelines["q1"] = _FakePipeline()
+    A.handlers_queue._active_pipelines["q2"] = _FakePipeline()
     try:
         out = A.handle_queue_cancel({"item_id": "q1"})
         assert out == {"cancelled": 1}
         # simulate completion removing the cancelled pipeline
-        del A._active_pipelines["q1"]
+        del A.handlers_queue._active_pipelines["q1"]
         out = A.handle_queue_cancel({})
         assert out == {"cancelled": 1}  # only q2 left
     finally:
-        A._active_pipelines.clear()
+        A.handlers_queue._active_pipelines.clear()
 
 
 # --- real end-to-end parallel conversion (subprocess sidecar) -----------------

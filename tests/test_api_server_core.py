@@ -7,9 +7,9 @@ import core.api_server as API
 
 
 def test_result_error_event(monkeypatch, capsys):
-    monkeypatch.setattr(API, "_http_mode", False)
+    monkeypatch.setattr(API.transport, "_http_mode", False)
     sent = []
-    monkeypatch.setattr(API, "_send", lambda obj: sent.append(obj))
+    monkeypatch.setattr(API.transport, "_send", lambda obj: sent.append(obj))
     API._result(7, {"x": 1})
     API._error(8, -32000, "hata")
     API._event("event/test", {"p": 1})
@@ -17,9 +17,9 @@ def test_result_error_event(monkeypatch, capsys):
     assert sent[1]["error"]["code"] == -32000
     assert sent[2]["method"] == "event/test"
 
-    monkeypatch.setattr(API, "_http_mode", True)
+    monkeypatch.setattr(API.transport, "_http_mode", True)
     pub = []
-    monkeypatch.setattr(API, "_sse_publish", lambda m, p: pub.append((m, p)))
+    monkeypatch.setattr(API.transport, "_sse_publish", lambda m, p: pub.append((m, p)))
     API._event("event/x", {"y": 2})
     assert pub == [("event/x", {"y": 2})]
 
@@ -81,7 +81,7 @@ def test_methods_registry_and_openapi():
 
 def test_dispatch_blocking(monkeypatch):
     sent = []
-    monkeypatch.setattr(API, "_send", lambda obj: sent.append(obj))
+    monkeypatch.setattr(API.transport, "_send", lambda obj: sent.append(obj))
     monkeypatch.setitem(API.METHODS, "test.db", lambda p: "db-sonuc")
     API._dispatch_blocking({"id": 9, "method": "test.db"})
     assert len(sent) == 1
@@ -90,7 +90,7 @@ def test_dispatch_blocking(monkeypatch):
 def test_route_request_main_thread(monkeypatch):
     # pipeline el-sikma metodlari main thread'de senkron gonderilir
     sent = []
-    monkeypatch.setattr(API, "_send", lambda obj: sent.append(obj))
+    monkeypatch.setattr(API.transport, "_send", lambda obj: sent.append(obj))
     monkeypatch.setitem(API.METHODS, "pipeline.cancel", lambda p: {"ok": True})
     API._route_request({"id": 1, "method": "pipeline.cancel"})
     assert len(sent) == 1 and sent[0]["id"] == 1
@@ -106,7 +106,7 @@ def test_route_request_worker_thread(monkeypatch):
         def start(self):
             pass
 
-    monkeypatch.setattr(API.threading, "Thread", FakeThread)
+    monkeypatch.setattr(API.protocol.threading, "Thread", FakeThread)
     API._route_request({"id": 2, "method": "settings.get"})
     assert len(spawned) == 1
     assert spawned[0][0] is API._dispatch_blocking

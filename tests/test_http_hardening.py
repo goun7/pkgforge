@@ -36,7 +36,7 @@ def test_nonloopback_insecure_flag_passes_gate(monkeypatch):
     class _Sentinel(Exception):
         pass
 
-    monkeypatch.setattr(A, "_ensure_qapp", lambda: (_ for _ in ()).throw(_Sentinel()))
+    monkeypatch.setattr(A.transport, "_ensure_qapp", lambda: (_ for _ in ()).throw(_Sentinel()))
     with pytest.raises(_Sentinel):
         A.serve_http(host="0.0.0.0", token="secret", insecure_http_lan=True)
 
@@ -45,7 +45,7 @@ def test_loopback_needs_no_insecure_flag(monkeypatch):
     class _Sentinel(Exception):
         pass
 
-    monkeypatch.setattr(A, "_ensure_qapp", lambda: (_ for _ in ()).throw(_Sentinel()))
+    monkeypatch.setattr(A.transport, "_ensure_qapp", lambda: (_ for _ in ()).throw(_Sentinel()))
     # loopback + token must clear both gates (reach server bootstrap)
     with pytest.raises(_Sentinel):
         A.serve_http(host="127.0.0.1", token="secret")

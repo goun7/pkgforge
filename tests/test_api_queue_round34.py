@@ -21,8 +21,8 @@ def senkron(monkeypatch):
         except Exception as exc:  # noqa: BLE001
             kayit.append((event_name, {"ok": False, "hata": str(exc)}))
 
-    monkeypatch.setattr(AS, "_run_thread", sahte)
-    monkeypatch.setattr(AS, "_event", lambda m, p: kayit.append(("olay:" + m, p)))
+    monkeypatch.setattr(AS.transport, "_run_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: kayit.append(("olay:" + m, p)))
     return kayit
 
 
@@ -42,11 +42,11 @@ def _mod(monkeypatch, ad, **ozellikler):
 
 @pytest.fixture()
 def temiz_kuyruk(monkeypatch):
-    monkeypatch.setattr(AS, "_queue_items", {})
-    monkeypatch.setattr(AS, "_queue_seq", 0)
-    monkeypatch.setattr(AS, "_queue_running", False)
-    monkeypatch.setattr(AS, "_active_pipelines", {})
-    monkeypatch.setattr(AS, "_queue_store", False)   # kalicilik kapali
+    monkeypatch.setattr(AS.handlers_queue, "_queue_items", {})
+    monkeypatch.setattr(AS.handlers_queue, "_queue_seq", 0)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_running", False)
+    monkeypatch.setattr(AS.handlers_queue, "_active_pipelines", {})
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", False)   # kalicilik kapali
 
 
 # --- queue -----------------------------------------------------------------------
@@ -79,7 +79,7 @@ def test_queue_add_list_priority_remove_clear(temiz_kuyruk, tmp_path):
 
 def test_persist_and_restore(temiz_kuyruk, monkeypatch):
     # store None iken persist'ler sessizce doner
-    monkeypatch.setattr(AS, "_queue_store", None)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", None)
     AS._persist_item({"id": "q1"}); AS._persist_remove("q1")
     AS._persist_clear(); assert AS.restore_queue() == 0           # 791-792
 
@@ -87,7 +87,7 @@ def test_persist_and_restore(temiz_kuyruk, monkeypatch):
         def upsert(self, it): raise RuntimeError("yazilamaz")
         def remove(self, iid): raise RuntimeError("silinemez")
         def clear(self, st): raise RuntimeError("temizlenemez")
-    monkeypatch.setattr(AS, "_queue_store", KirilStore())
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", KirilStore())
     AS._persist_item({"id": "q1"}); AS._persist_remove("q1")      # 759-760
     AS._persist_clear("")                                         # 779-780
     monkeypatch.setattr(AS, "load_restorable",
@@ -98,35 +98,35 @@ def test_persist_and_restore(temiz_kuyruk, monkeypatch):
         def load_restorable(self):
             return [{"id": "q7", "path": "/x.deb", "status": "done"},
                     {"id": "q7", "path": "/x.deb", "status": "done"}]
-    monkeypatch.setattr(AS, "_queue_store", Store2())
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", Store2())
     assert AS.restore_queue() == 1                                # 802-806
-    assert AS._queue_seq == 7 and AS._queue_items["q7"]["id"] == "q7"
+    assert AS.handlers_queue._queue_seq == 7 and AS.handlers_queue._queue_items["q7"]["id"] == "q7"
 
     class Store3:
         def load_restorable(self):
             raise RuntimeError("bozuk veritabani")
-    monkeypatch.setattr(AS, "_queue_store", Store3())
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", Store3())
     assert AS.restore_queue() == 0                                # 795-796
 
 
 def test_get_queue_store_sentinel(monkeypatch):
-    monkeypatch.setattr(AS, "_queue_store", None)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", None)
 
     class Patlak:
         def __init__(self): raise RuntimeError("acilamadi")
     monkeypatch.setitem(sys.modules, "core.queue_store",
                         NS(QueueStore=Patlak))
-    assert AS._get_queue_store() is None                          # 749-750
+    assert AS.handlers_queue._get_queue_store() is None                          # 749-750
 
-    monkeypatch.setattr(AS, "_queue_store", False)
-    assert AS._get_queue_store() is None                          # False->None
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", False)
+    assert AS.handlers_queue._get_queue_store() is None                          # False->None
 
 
 def test_get_queue_store_registers_atexit_close(monkeypatch):
     """Singleton QueueStore process cikisinda atexit ile kapatilmali."""
-    monkeypatch.setattr(AS, "_queue_store", None)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", None)
     kayitli = []
-    monkeypatch.setattr(AS.atexit, "register", lambda fn: kayitli.append(fn))
+    monkeypatch.setattr(AS.handlers_queue.atexit, "register", lambda fn: kayitli.append(fn))
 
     class SahteStore:
         closed = False
@@ -136,7 +136,7 @@ def test_get_queue_store_registers_atexit_close(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "core.queue_store",
                         NS(QueueStore=SahteStore))
-    store = AS._get_queue_store()
+    store = AS.handlers_queue._get_queue_store()
     assert isinstance(store, SahteStore)
     assert len(kayitli) == 1            # atexit'e tam bir kayit
     kayitli[0]()                        # kayitli close cagrisi
@@ -147,7 +147,7 @@ def test_queue_cancel(temiz_kuyruk):
     iptal = []
     calisan = NS(cancel=lambda: iptal.append(1))
     kirik = NS(cancel=lambda: (_ for _ in ()).throw(RuntimeError("kilit")))
-    AS._active_pipelines.update({"q1": calisan, "q2": kirik})
+    AS.handlers_queue._active_pipelines.update({"q1": calisan, "q2": kirik})
     yanit = AS.handle_queue_cancel({})                            # 968-977
     assert yanit == {"cancelled": 1}
     yanit = AS.handle_queue_cancel({"item_id": "q1"})
@@ -156,15 +156,15 @@ def test_queue_cancel(temiz_kuyruk):
 
 def test_queue_start_paths(temiz_kuyruk, monkeypatch):
     assert AS.handle_queue_start({})["started"] is False          # bos kuyruk
-    AS._queue_items["q1"] = {"id": "q1", "path": "/x", "status": "pending"}
-    AS._queue_running = True
+    AS.handlers_queue._queue_items["q1"] = {"id": "q1", "path": "/x", "status": "pending"}
+    AS.handlers_queue._queue_running = True
     assert AS.handle_queue_start({})["reason"] == "already running"
-    AS._queue_running = False
-    monkeypatch.setattr(AS, "_queue_dispatch", lambda *a: None)
+    AS.handlers_queue._queue_running = False
+    monkeypatch.setattr(AS.handlers_queue, "_queue_dispatch", lambda *a: None)
     yanit = AS.handle_queue_start({"parallel": 9, "install": True})
     assert yanit["started"] is True                               # 992-995
     time.sleep(0.05)
-    AS._queue_running = False
+    AS.handlers_queue._queue_running = False
 
 
 # --- schedule / profile ----------------------------------------------------------
@@ -178,13 +178,13 @@ def test_schedule_get_set(monkeypatch):
         {"enabled": True, "last_run": "bozuk", "interval_hours": 2, "task": "t"},
     ]
     for d in durumlar:
-        monkeypatch.setattr(AS, "_schedule_state", lambda d=d: dict(d))
+        monkeypatch.setattr(AS.handlers_queue, "_schedule_state", lambda d=d: dict(d))
         st = AS.handle_schedule_get({})                           # 1009-1024
         assert "next_run" in st
 
     ayarlar = {}
-    monkeypatch.setattr(AS, "load_settings", lambda: dict(ayarlar))
-    monkeypatch.setattr(AS, "save_settings",
+    monkeypatch.setattr(AS.handlers_queue, "load_settings", lambda: dict(ayarlar))
+    monkeypatch.setattr(AS.handlers_queue, "save_settings",
                         lambda s: ayarlar.update(s))
     assert AS.handle_schedule_set({"enabled": True,
                                    "interval_hours": 0.5,
@@ -234,8 +234,8 @@ def test_sync_export_import_push_pull(senkron, monkeypatch):
 
 def test_sync_config_password_paths(monkeypatch):
     ayarlar = {}
-    monkeypatch.setattr(AS, "load_settings", lambda: dict(ayarlar))
-    monkeypatch.setattr(AS, "save_settings", lambda s: ayarlar.clear() or ayarlar.update(s))
+    monkeypatch.setattr(AS.handlers_queue, "load_settings", lambda: dict(ayarlar))
+    monkeypatch.setattr(AS.handlers_queue, "save_settings", lambda s: ayarlar.clear() or ayarlar.update(s))
 
     yanit = AS.handle_sync_config({"sync_url": "https://sunucu",
                                    "sync_username": "ali"})
@@ -279,8 +279,8 @@ def test_sync_config_password_paths(monkeypatch):
 
 def test_dbus_handlers(senkron, monkeypatch):
     ayarlar = {}
-    monkeypatch.setattr(AS, "load_settings", lambda: dict(ayarlar))
-    monkeypatch.setattr(AS, "save_settings", lambda s: (ayarlar.clear(), ayarlar.update(s)))
+    monkeypatch.setattr(AS.handlers_queue, "load_settings", lambda: dict(ayarlar))
+    monkeypatch.setattr(AS.handlers_queue, "save_settings", lambda s: (ayarlar.clear(), ayarlar.update(s)))
     yanit = AS.handle_dbus_set_policy({"allow_mutations": True})   # 1180-1184
     assert yanit["allow_mutations"] is True
 
@@ -334,25 +334,25 @@ def test_make_pipeline_connections(temiz_kuyruk, monkeypatch):
     monkeypatch.setitem(sys.modules, "core.pipeline",
                         NS(ConversionPipeline=SahteBoru))
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append((m, p)))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append((m, p)))
 
-    AS._queue_items["q1"] = {"id": "q1", "path": "/x", "status": "running"}
+    AS.handlers_queue._queue_items["q1"] = {"id": "q1", "path": "/x", "status": "running"}
     p = AS._make_pipeline("/dizin/paket.deb", "q1")               # 810-859
-    assert AS._active_pipelines["q1"] is p
+    assert AS.handlers_queue._active_pipelines["q1"] is p
     assert p._skip_install_message.endswith("kurulum atlandı)")
 
     # finished tetikle -> item done + event
     sonuc = NS(success=True, message="bitti", converted_pkg=None)
     for fn in p.finished.aboneler:
         fn(sonuc)
-    assert AS._queue_items["q1"]["status"] == "done"              # 830-833
+    assert AS.handlers_queue._queue_items["q1"]["status"] == "done"              # 830-833
     assert any(m == "event/finished" for m, _p in olaylar)
 
     # hata yolu
-    AS._queue_items["q1"]["status"] = "running"
+    AS.handlers_queue._queue_items["q1"]["status"] = "running"
     for fn in p.finished.aboneler:
         fn(NS(success=False, message="hata", converted_pkg=None))
-    assert AS._queue_items["q1"]["status"] == "error"
+    assert AS.handlers_queue._queue_items["q1"]["status"] == "error"
 
     # do_install yolu onay abonesi ekler
     p2 = AS._make_pipeline("/x.rpm", "q2", do_install=True)
@@ -366,7 +366,7 @@ def test_make_pipeline_connections(temiz_kuyruk, monkeypatch):
 
 
 def test_queue_dispatch_loop(temiz_kuyruk, monkeypatch):
-    AS._queue_items["q1"] = {"id": "q1", "path": "/p/a.deb",
+    AS.handlers_queue._queue_items["q1"] = {"id": "q1", "path": "/p/a.deb",
                              "name": "a.deb", "status": "pending",
                              "priority": 0, "message": ""}
     sahne = []
@@ -378,27 +378,27 @@ def test_queue_dispatch_loop(temiz_kuyruk, monkeypatch):
         def run_staged(self):
             pass
 
-    monkeypatch.setattr(AS, "_make_pipeline", lambda *a, **k: Hazir())
+    monkeypatch.setattr(AS.handlers_queue, "_make_pipeline", lambda *a, **k: Hazir())
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append((m, p)))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append((m, p)))
     AS._queue_dispatch(2, do_install=False)                       # 934-961
     assert sahne == ["/p/a.deb"]
-    assert AS._queue_items["q1"]["status"] in ("done", "error", "running")
-    assert AS._queue_running is False
+    assert AS.handlers_queue._queue_items["q1"]["status"] in ("done", "error", "running")
+    assert AS.handlers_queue._queue_running is False
     assert ("event/queue_done", {"ok": True}) in olaylar
 
 
 def test_scheduler_tick_and_ensure(monkeypatch):
-    monkeypatch.setattr(AS, "_scheduler_started", False)
+    monkeypatch.setattr(AS.handlers_queue, "_scheduler_started", False)
     cagri = {"n": 0}
     durum = {"enabled": True, "last_run": "", "interval_hours": 1,
              "task": "guncelle"}
     ayarlar = {}
-    monkeypatch.setattr(AS, "_schedule_state", lambda: dict(durum))
-    monkeypatch.setattr(AS, "load_settings", lambda: dict(ayarlar))
-    monkeypatch.setattr(AS, "save_settings", lambda s: ayarlar.update(s))
+    monkeypatch.setattr(AS.handlers_queue, "_schedule_state", lambda: dict(durum))
+    monkeypatch.setattr(AS.handlers_queue, "load_settings", lambda: dict(ayarlar))
+    monkeypatch.setattr(AS.handlers_queue, "save_settings", lambda s: ayarlar.update(s))
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append(p))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append(p))
 
     # tek tur kos: sleep'i kir
     def bir_ve_cik(sn):
@@ -414,7 +414,7 @@ def test_scheduler_tick_and_ensure(monkeypatch):
     assert olaylar and olaylar[0]["task"] == "guncelle"
 
     AS._ensure_scheduler()                                        # 1063-1067
-    assert AS._scheduler_started is True
+    assert AS.handlers_queue._scheduler_started is True
     AS._ensure_scheduler()   # ikinci cagri is yapmaz
 
 
@@ -442,7 +442,7 @@ def test_serve_stdio_loop(monkeypatch):
     monkeypatch.setattr(sys, "stdin", SahteStdin())
     monkeypatch.setattr("select.select",
                         lambda *a: (True, [], []))
-    monkeypatch.setattr(AS, "_send", lambda o: gonderilen.append(o) or (_ for _ in ()).throw(KeyboardInterrupt()))
+    monkeypatch.setattr(AS.transport, "_send", lambda o: gonderilen.append(o) or (_ for _ in ()).throw(KeyboardInterrupt()))
     monkeypatch.setattr(json_mod := __import__("json"), "loads",
                         json_loads_orijinal := json_mod.loads)
 
@@ -451,7 +451,7 @@ def test_serve_stdio_loop(monkeypatch):
             raise json_mod.JSONDecodeError("hata", s, 0)
         return json_loads_orijinal(s)
     monkeypatch.setattr(json_mod, "loads", akilli_loads)
-    monkeypatch.setattr(AS, "_ensure_qapp",
+    monkeypatch.setattr(AS.transport, "_ensure_qapp",
                         lambda: NS(processEvents=lambda: None))
     monkeypatch.setattr(AS, "_restore", lambda: 0, raising=False)
 

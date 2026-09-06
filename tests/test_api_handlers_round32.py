@@ -22,10 +22,10 @@ def senkron(monkeypatch):
         except (RuntimeError, ValueError, FileNotFoundError, OSError) as exc:
             kayit.append((event_name, {"ok": False, "hata": str(exc)}))
 
-    monkeypatch.setattr(AS, "_run_thread", sahte)
-    monkeypatch.setattr(AS, "_run_security_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_run_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_run_security_thread", sahte)
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append((m, p)))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append((m, p)))
     return kayit, olaylar
 
 
@@ -92,7 +92,7 @@ def test_pipeline_start_ok_and_gates(senkron, tmp_path, monkeypatch):
     yanit = AS.handle_pipeline_start({"path": str(dogru)})
     assert yanit["started"] is True
 
-    AS._pipeline = None
+    AS.transport._pipeline = None
     assert AS.handle_pipeline_cancel({}) == {"ok": True}       # 151-153
     assert AS.handle_pipeline_approve({}) == {"ok": True}      # 157-159
     assert AS.handle_pipeline_dismiss({"message": "m"}) == {"ok": True}
@@ -157,7 +157,8 @@ def test_security_sign_and_sbom(senkron, monkeypatch, tmp_path):
     _mod(monkeypatch, "core.sbom",
                     generate_sbom=lambda p, t, include_hashes=True: NS(
                         to_dict=lambda: {"dosya": 1}))
-    monkeypatch.setattr(AS, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_security, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_system, "discover_tools", lambda: NS())
     AS.handle_security_sbom({"pkg_path": str(pkg)})
     assert kayit[-1][1]["sonuc"] == {"dosya": 1}
 
@@ -166,7 +167,8 @@ def test_security_quality_provenance_cve(senkron, monkeypatch, tmp_path):
     kayit, _ = senkron
     pkg = tmp_path / "p.pkg.tar.zst"
     pkg.write_bytes(b"P")
-    monkeypatch.setattr(AS, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_security, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_system, "discover_tools", lambda: NS())
 
     from core.quality_score import QualityReport
     monkeypatch.setattr(
@@ -208,7 +210,8 @@ def test_export_handlers(senkron, monkeypatch, tmp_path):
     kayit, _ = senkron
     pkg = tmp_path / "p.pkg.tar.zst"
     pkg.write_bytes(b"P")
-    monkeypatch.setattr(AS, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_security, "discover_tools", lambda: NS())
+    monkeypatch.setattr(AS.handlers_system, "discover_tools", lambda: NS())
 
     _mod(monkeypatch, "core.oci_builder",
                build_oci_image=lambda p, t, tag=None, output_file=None: (
