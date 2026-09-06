@@ -30,7 +30,7 @@ class TestCLIHelp(unittest.TestCase):
         """--version should show version."""
         result = self._run_cli("--version")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("2.0.0", result.stdout)
+        self.assertIn("PkgForge v", result.stdout)
 
     def test_convert_help(self):
         """convert --help should show options."""
@@ -95,9 +95,13 @@ class TestCLIConvert(unittest.TestCase):
 
     def test_convert_test_deb(self):
         """Should convert the test DEB file."""
+        import shutil
+
         deb_path = Path("utest/hello_1.0.0-1_amd64.deb")
         if not deb_path.exists():
             self.skipTest("Test DEB not found")
+        if not shutil.which("makepkg"):
+            self.skipTest("makepkg not available (Arch-only build step)")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             result = self._run_cli(

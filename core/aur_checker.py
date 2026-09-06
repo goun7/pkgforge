@@ -161,15 +161,21 @@ def _version_compare(ver_a: str, ver_b: str) -> int:
     # Fallback Python version comparison
     import re
 
-    def _normalize(v: str) -> list[int]:
-        v = re.sub(r"^\d+:", "", v)
+    def _split(v: str) -> tuple[int, list[int]]:
+        epoch = 0
+        m = re.match(r"^(\d+):", v)
+        if m:
+            epoch = int(m.group(1))
+            v = v[m.end():]
         if "-" in v:
             v = v.rsplit("-", 1)[0]
-        parts = re.findall(r"\d+", v)
-        return [int(p) for p in parts]
+        parts = [int(p) for p in re.findall(r"\d+", v)]
+        return epoch, parts
 
-    a_parts = _normalize(ver_a)
-    b_parts = _normalize(ver_b)
+    a_epoch, a_parts = _split(ver_a)
+    b_epoch, b_parts = _split(ver_b)
+    if a_epoch != b_epoch:
+        return a_epoch - b_epoch
 
     for a, b in zip(a_parts, b_parts):
         if a != b:

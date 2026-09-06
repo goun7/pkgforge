@@ -18,11 +18,13 @@ def client():
 
 
 def test_version(client):
+    from config import APP_VERSION
+
     r = client.get("/api/v2/version")
     assert r.status_code == 200
     body = r.json()
     assert body["name"] == "pkgforge"
-    assert body["version"] == "2.0.0"
+    assert body["version"] == APP_VERSION
     assert body["api"] == "v2"
 
 
