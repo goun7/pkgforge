@@ -125,6 +125,9 @@ pkgforge gui
 
 ## 🖼️ GUI Features
 
+> **UI karari (2026-09-05):** birincil arayuz Tauri masaustu (`desktop/`) + Python sidecar'dir.
+> PyQt6 (`pkgforge gui`) dondurulmustur: yeni ozellik eklenmez, yalnizca guvenlik duzeltmesi yapilir; kaldirma v3.0'da.
+
 Launch the graphical interface via `pkgforge gui` or your application launcher:
 
 - **Drag-and-Drop Drop Zone**: Drop `.deb` or `.rpm` files directly onto the app.
@@ -192,7 +195,6 @@ desteklemeyi düşünebilirsiniz.
 
 - **GitHub Sponsors:** [github.com/sponsors/goun7](https://github.com/sponsors/goun7)
 - **Polar.sh:** [polar.sh/goun7](https://polar.sh/goun7)
-- **Kreosus (Türkiye):** [kreosus.com/goun7](https://www.kreosus.com/goun7)
 
 ---
 

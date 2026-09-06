@@ -275,7 +275,10 @@ def test_rpm_happy_path_with_rename(monkeypatch, tmp_path):
     assert ok is True, kayit.bitisler
     assert paket is not None
     assert (tmp_path / "build" / "PKGBUILD").is_file()
-    assert (tmp_path / "build" / "src").is_dir()      # pkg_root yeniden adlandi
+    # finalize: urun kokte, src/ temizlendi
+    assert paket == tmp_path / "demo-1.0-x.pkg.tar.zst"
+    assert paket.is_file()
+    assert not (tmp_path / "build" / "src").exists()
 
 
 def test_rpm_analyze_exception(monkeypatch, tmp_path):
@@ -339,8 +342,9 @@ def test_rpm_pkg_dir_vanished_fallback_src(monkeypatch, tmp_path):
                    popen_rc=0, popen_yaz="demo-1.0-x.pkg.tar.zst",
                    meta=_meta(version="1.0"))
     conv._do_convert(tmp_path / "x.rpm", tmp_path)
-    ok, _m, _p = kayit.bitisler[-1]
-    assert ok is True and (tmp_path / "build" / "src").is_dir()
+    ok, _m, paket = kayit.bitisler[-1]
+    # finalize sonrasi urun cikis kokundedir
+    assert ok is True and paket == tmp_path / "demo-1.0-x.pkg.tar.zst"
 
 
 def _kademeli_popen(ilk_rc, sonraki_rc=0, yaz=None):

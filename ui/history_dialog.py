@@ -33,6 +33,7 @@ from config import discover_tools
 from core.history_db import HistoryDB
 from core.security import is_valid_package_name, safe_run
 from i18n import tr
+from ui.background_worker import run_in_background
 
 log = logging.getLogger(__name__)
 
@@ -312,12 +313,20 @@ class HistoryDialog(QDialog):
                 return
             pkexec = self._tools.pkexec or "pkexec"
             pacman = self._tools.pacman or "pacman"
-            res = safe_run([pkexec, pacman, "-R", "--noconfirm", "--", pkg_name], timeout=60)
-            if res.returncode == 0:
-                QMessageBox.information(self, tr("common.success"), tr("history.msg_uninstalled").format(name=pkg_name))
-                self._load_data()
-            else:
-                QMessageBox.critical(self, tr("common.error"), tr("history.msg_uninstall_failed").format(error=res.stderr))
+            cmd = [pkexec, pacman, "-R", "--noconfirm", "--", pkg_name]
+            run_in_background(
+                lambda: safe_run(cmd, timeout=60),
+                on_done=lambda res: self._on_uninstall_done(pkg_name, res),
+                on_error=lambda err: QMessageBox.critical(
+                    self, tr("common.error"), err),
+            )
+
+    def _on_uninstall_done(self, pkg_name: str, res) -> None:
+        if res.returncode == 0:
+            QMessageBox.information(self, tr("common.success"), tr("history.msg_uninstalled").format(name=pkg_name))
+            self._load_data()
+        else:
+            QMessageBox.critical(self, tr("common.error"), tr("history.msg_uninstall_failed").format(error=res.stderr))
 
     def _rollback_selected(self) -> None:
         pkg_name = self._get_selected_pkg_name()
@@ -343,12 +352,20 @@ class HistoryDialog(QDialog):
         if reply == QMessageBox.StandardButton.Yes:
             pkexec = self._tools.pkexec or "pkexec"
             pacman = self._tools.pacman or "pacman"
-            res = safe_run([pkexec, pacman, "-U", "--noconfirm", "--", str(backup_file)], timeout=120)
-            if res.returncode == 0:
-                QMessageBox.information(self, tr("common.success"), tr("history.msg_rolled_back").format(name=pkg_name))
-                self._load_data()
-            else:
-                QMessageBox.critical(self, tr("common.error"), tr("history.msg_rollback_failed").format(error=res.stderr))
+            cmd = [pkexec, pacman, "-U", "--noconfirm", "--", str(backup_file)]
+            run_in_background(
+                lambda: safe_run(cmd, timeout=120),
+                on_done=lambda res: self._on_rollback_done(pkg_name, res),
+                on_error=lambda err: QMessageBox.critical(
+                    self, tr("common.error"), err),
+            )
+
+    def _on_rollback_done(self, pkg_name: str, res) -> None:
+        if res.returncode == 0:
+            QMessageBox.information(self, tr("common.success"), tr("history.msg_rolled_back").format(name=pkg_name))
+            self._load_data()
+        else:
+            QMessageBox.critical(self, tr("common.error"), tr("history.msg_rollback_failed").format(error=res.stderr))
 
     def _clear_history(self) -> None:
         reply = QMessageBox.question(

@@ -162,6 +162,7 @@ def test_net_reason_variants():
 def _webdav_ortam(monkeypatch, tmp_path):
     import core.cloud_sync as CS
     import i18n
+    from core.secrets_store import SecretStoreError as _GercekHata
     monkeypatch.setattr(i18n, "load_settings",
                         lambda: {"sync_url": "https://dav.example/eg/",
                                  "sync_username": "ayse",
@@ -174,7 +175,8 @@ def _webdav_ortam(monkeypatch, tmp_path):
 
     monkeypatch.setitem(sys.modules, "core.secrets_store",
                         NS(available=lambda: True,
-                           webdav_store=PatlakMagaza))
+                           webdav_store=PatlakMagaza,
+                           SecretStoreError=_GercekHata))
     return CS
 
 

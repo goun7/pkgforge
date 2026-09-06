@@ -44,6 +44,20 @@ def sync_bg(monkeypatch):
     monkeypatch.setattr(TD, "run_in_background", run)
 
 
+def _onayla_kaldirma(monkeypatch):
+    """Uretimdeki QMessageBox.question modalini Yes ile yanitla.
+
+    Kaldirma artik yikici-islem onayi ister; mock'suz test modalda
+    sonsuza dek bloklanir (offscreen dahil).
+    """
+    from PyQt6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(
+        QMessageBox, "question",
+        staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes),
+    )
+
+
 def test_seven_tabs(td):
     assert td._tabs.count() == 7
 
@@ -201,6 +215,7 @@ def test_snapshot_remove(td, sync_bg, monkeypatch):
     import core.snapshot_cleanup as SC
     monkeypatch.setattr(SC, "remove_cleanup_service",
                         lambda: (True, "kaldirildi"))
+    _onayla_kaldirma(monkeypatch)
     td._run_snapshot_remove()
     assert "kaldirildi" in td._snapshot_status.text()
     assert td._snap_remove_btn.isEnabled()
@@ -279,6 +294,7 @@ def test_snapshot_remove_error(td, sync_bg, monkeypatch):
         raise RuntimeError("remove patladi")
 
     monkeypatch.setattr(SC, "remove_cleanup_service", boom)
+    _onayla_kaldirma(monkeypatch)
     td._run_snapshot_remove()
     assert "remove patladi" in td._snapshot_status.text()
 

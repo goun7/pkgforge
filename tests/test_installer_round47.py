@@ -29,14 +29,56 @@ def test_find_install_helper_fallback(monkeypatch):
 # --- 83-131: kurulus govdesi (snapshot dallari + QProcess baslangici) --------------
 
 def _snapshot_modulleri_hazirla(monkeypatch, mod):
-    sm = sys.modules.setdefault("core.snapshot_manager", NS())
+    if "core.snapshot_manager" not in sys.modules:
+        monkeypatch.setitem(sys.modules, "core.snapshot_manager", NS())
+    sm = sys.modules["core.snapshot_manager"]
     monkeypatch.setattr(sm, "detect_backend",
                         lambda: mod.get("backend", "snapper"), raising=False)
-    monkeypatch.setattr(
-        sm, "take_snapshot",
-        lambda ad: NS(success=mod["success"],
-                      snapshot_name=mod.get("ad", "snap_1"),
-                      detail=mod.get("detay", "")), raising=False)
+    monkeypatch.setattr(sm, "snapshot_name",
+                        lambda label: mod.get("ad", "snap_1"), raising=False)
+
+
+class _SahteIsaret:
+    def __init__(self):
+        self.baglilar = []
+
+    def connect(self, fn):
+        self.baglilar.append(fn)
+
+
+class _SahteByte:
+    def __init__(self, veri: bytes):
+        self._veri = veri
+
+    def data(self) -> bytes:
+        return self._veri
+
+
+class _SahteSurec:
+    """QProcess yerine argv yakalayan sahte surec (tek-diyalog sozlesmesi)."""
+
+    def __init__(self, cikti: bytes = b""):
+        self.readyReadStandardOutput = _SahteIsaret()
+        self.finished = _SahteIsaret()
+        self.errorOccurred = _SahteIsaret()
+        self.baslatilan = []
+        self._cikti = cikti
+
+    def setProcessChannelMode(self, _m):
+        pass
+
+    def start(self, prog, args):
+        self.baslatilan.append((prog, list(args)))
+
+    def readAllStandardOutput(self):
+        return _SahteByte(self._cikti)
+
+
+def _kuru_argv_yakala(kayit, cikti=b""):
+    sahte = _SahteSurec(cikti)
+    kurucu = Installer(ARACLAR, process_factory=lambda _p: sahte)
+    kurucu.finished.connect(lambda ok, msg: kayit.append((ok, msg)))
+    return kurucu, sahte
 
 
 def test_install_body_snapshot_success(monkeypatch, tmp_path):
@@ -47,12 +89,19 @@ def test_install_body_snapshot_success(monkeypatch, tmp_path):
     _snapshot_modulleri_hazirla(
         monkeypatch, {"success": True, "ad": "pre_demo"})
     kayit = []
-    ciktilar = []
-    kurucu = _kur(kayit)
-    kurucu.output_line.connect(ciktilar.append)
+    kurucu, sahte = _kuru_argv_yakala(kayit)
     kurucu.install(pkg, "demo")                                # 83-99
+    prog, argv = sahte.baslatilan[0]
+    assert "--snapshot" in argv and "pre_demo" in argv
+    assert argv[-1] == str(pkg)
+    # helper snapshot-ok satiri → ad kaydedilir + bilgi basilir
+    kurucu2, _s2 = _kuru_argv_yakala(kayit, cikti=b"snapshot-ok: /pre_demo\n")
+    ciktilar = []
+    kurucu2.output_line.connect(ciktilar.append)
+    kurucu2.install(pkg, "demo")
+    kurucu2._on_output()
+    assert kurucu2._snapshot_name == "/pre_demo"
     assert any("📸" in s for s in ciktilar)
-    assert kurucu._snapshot_name == "pre_demo"
 
 
 def test_install_body_snapshot_fail_and_none(monkeypatch, tmp_path):
@@ -61,47 +110,44 @@ def test_install_body_snapshot_fail_and_none(monkeypatch, tmp_path):
     import i18n
     monkeypatch.setattr(i18n, "load_setting", lambda k, d: True)
 
-    # snapshot alinamadi (101-102)
-    _snapshot_modulleri_hazirla(
-        monkeypatch, {"success": False, "detay": "btrfs yok"})
-    kayit = []
-    ciktilar = []
-    kurucu = _kur(kayit)
-    kurucu.output_line.connect(ciktilar.append)
-    kurucu.install(pkg, "demo")
-    assert any("⚠" in s for s in ciktilar)
-    assert kurucu._snapshot_name == ""
+    # ad uretimi patlarsa bayrak duser, kurulum devam eder
+    import core.snapshot_manager as SM
+    monkeypatch.setattr(SM, "detect_backend", lambda: "btrfs")
 
-    # backend none (103-104)
+    def patlak(_label):
+        raise RuntimeError("disk dolu")
+
+    monkeypatch.setattr(SM, "snapshot_name", patlak)
+    kayit = []
+    kurucu, sahte = _kuru_argv_yakala(kayit)
+    kurucu.install(pkg, "demo")
+    assert kurucu._snapshot_name == ""
+    _prog, argv = sahte.baslatilan[0]
+    assert "--snapshot" not in argv
+
+    # backend none → bayrak yok
     _snapshot_modulleri_hazirla(monkeypatch, {"backend": "none",
                                               "success": True})
-    kurucu2 = _kur(kayit)
+    kurucu2, sahte2 = _kuru_argv_yakala(kayit)
     kurucu2.install(pkg, "demo")
     assert kurucu2._snapshot_name == ""
+    assert "--snapshot" not in sahte2.baslatilan[0][1]
 
-    # istisna yolu (105-107): take_snapshot patlatir
-    sm = sys.modules.setdefault("core.snapshot_manager", NS())
-    monkeypatch.setattr(sm, "detect_backend", lambda: "snapper",
-                        raising=False)
-    def patlak(ad):
-        raise RuntimeError("disk dolu")
-    monkeypatch.setattr(sm, "take_snapshot", patlak, raising=False)
-    kurucu3 = _kur(kayit)
-    kurucu3.install(pkg, "demo")
-    assert kurucu3._snapshot_name == ""
-
-    # ayar kapali (108-109)
+    # ayar kapali
     monkeypatch.setattr(i18n, "load_setting", lambda k, d: False)
-    kurucu4 = _kur(kayit)
+    kurucu4, sahte4 = _kuru_argv_yakala(kayit)
     kurucu4.install(pkg, "demo")
     assert kurucu4._snapshot_name == ""
+    assert "--snapshot" not in sahte4.baslatilan[0][1]
 
     # yardimci yok -> dogrudan pacman dalı (125-131)
     import core.installer as INS
     monkeypatch.setattr(INS, "INSTALL_HELPER",
                         tmp_path / "yok.sh", raising=False)
-    kurucu5 = _kur(kayit)
+    kurucu5, sahte5 = _kuru_argv_yakala(kayit)
     kurucu5.install(pkg, "demo")
+    _prog5, argv5 = sahte5.baslatilan[0]
+    assert argv5[1:4] == ["-U", "--noconfirm", "--"]
 
 
 # --- 133-138: cancel -------------------------------------------------------------

@@ -43,6 +43,7 @@ STRINGS: dict[str, str] = {
     "tools.audit_load": "Load Audit Trail",
     "tools.file_missing": "❌ File not found",
     "tools.running": "Running…",
+    "tools.snap_remove_confirm": "The snapshot cleanup service will be removed from the system. Continue?",
     "tools.rpm_tools_missing": "rpm2cpio or dpkg-deb not found (install rpmextract/dpkg)",
     "tools.abi_passed": "✅ ABI compatibility OK",
     "tools.abi_failed": "⚠️ ABI incompatibilities found",

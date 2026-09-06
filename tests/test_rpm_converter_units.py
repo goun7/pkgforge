@@ -136,7 +136,11 @@ def test_happy_build(monkeypatch, tmp_path):
     out_pkg.write_bytes(b"P")
     assert len(fac.procs) == 2 and fac.procs[1].started[0] == "/usr/bin/makepkg"
     fac.procs[1].finished.emit(0, None)
-    assert results[-1][0] is True and results[-1][2] == out_pkg
+    # finalize: urun cikis kokune tasinir, src/ + pkg/ temizlenir
+    assert results[-1][0] is True
+    assert results[-1][2] == tmp_path / "araclar-2.5-1-x86_64.pkg.tar.zst"
+    assert not (tmp_path / "build" / "src").exists()
+    assert not out_pkg.exists()
 
 def test_makepkg_fail_and_missing_output(monkeypatch, tmp_path):
     conv, fac, _lines, results = _converter(monkeypatch)

@@ -494,8 +494,11 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def _on_cancel(self) -> None:
-        if self._pipeline:
-            self._pipeline.cancel()
+        if self._pipeline is None:
+            # No active pipeline: a stray cancel click must not touch the
+            # thread object or claim cancellation is happening.
+            return
+        self._pipeline.cancel()
         self._status_bar.showMessage(tr("status.cancelling"))
 
     @pyqtSlot(int, str)
@@ -739,6 +742,8 @@ class MainWindow(QMainWindow):
             self._url_btn.setToolTip(tr("url.title"))
             self._history_btn.setToolTip(tr("history.title"))
             self._updates_btn.setToolTip(tr("updates.title"))
+            self._tools_btn.setToolTip(tr("tools.title"))
+            self._fleet_btn.setToolTip(tr("fleet.title"))
             self._settings_btn.setToolTip(tr("settings.title"))
             self._about_btn.setToolTip(tr("about.title"))
 
@@ -781,6 +786,10 @@ class MainWindow(QMainWindow):
                 self._pipeline.cancel()
             if self._pipeline_thread:
                 self._pipeline_thread.quit()
-                self._pipeline_thread.wait(3000)
+                if not self._pipeline_thread.wait(3000):
+                    # Worker is stuck (e.g. a blocking subprocess call):
+                    # terminate instead of hanging the whole app on exit.
+                    self._pipeline_thread.terminate()
+                    self._pipeline_thread.wait(1000)
 
         event.accept()

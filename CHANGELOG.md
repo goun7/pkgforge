@@ -7,6 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **feat(deps)**: `core/maps.py` — Debian→Arch ad eşleştirme (`debian_dep_to_arch`,
+  `DEB_DEP_MAP`: libc6→glibc, libstdc++6→gcc-libs, ...), lisans çözümleyici
+  (`arch_license`: bilinen token→SPDX, bilinmeyen→dürüst `LicenseRef-<pkg>-unknown`),
+  lisans stub yazıcı ve derleme sonlandırıcı (`finalize_build_output`).
+- **feat(deps)**: betik yorumlayıcı taraması — `resolve_runtime_dependencies` artık
+  shebang satırlarını da okur (`sh`→bash, `python3`→python, ...); betik-ağırlıklı
+  paketlerde `dependency-detected-not-included` hatası kapanır.
+- **docs**: tek dosya gelir modeli `acik-kaynak-gelir-modeli.md` (GitHub Sponsors +
+  Polar.sh adım adım Ek A/B, mali müşavir kontrol listesi Ek C); Kreosus kaldırıldı;
+  `MONETIZATION_PLAN.md` yönlendirmeye indirgendi; Tauri birincil UI ilanı.
+- **test(maps)**: `tests/test_maps.py` (12 test: eşleştirme, lisans, stub, finalize,
+  yorumlayıcı taraması).
+- **test(ui)**: yarım kalmış async UI WIP'ine test uyarlaması — history uninstall/rollback
+  testleri arka-plan thread'ini olay döngüsüyle bekler (`_pompala`); snapshot kaldırma
+  testleri yeni yıkım-onay modalini Yes ile yanıtlar.
 - **feat(ui)**: ResultDialog'a "🚀 Uygulamayı Aç" (Launch) butonu — read-only
   diyalogta çalıştırılabilir paket uygulamaları tek tıkla açılır
   (QDesktopServices; launch_requested sinyali; başarısızlıkta uyarı + tr/en).
@@ -25,6 +40,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   Launch iddiaları dürüst düzeltme kayıtlarıyla netleştirildi.
 
 ### Fixed
+- **fix(packaging)**: üretilen her paket sistematik namcap ERROR alıyordu
+  (`license=('custom')` → `unknown-spdx-license-identifier`; betik paketlerinde
+  ek `dependency-detected-not-included`). Artık bilinen lisans SPDX'e çevrilir,
+  bilinmeyen `LicenseRef-<pkg>-unknown` + dürüst `usr/share/licenses/<pkg>/UNKNOWN`
+  stub'uyla paketlenir; shebang yorumlayıcıları `depends`e eklenir. Örnek: hello
+  test paketi D→B, namcap çıktısı 2 hata→0 hata.
+- **fix(compat)**: Debian bağımlılık adları (`libc6`, `libstdc++6`, ...) pacman ile
+  birebir aranıp her pakette sahte WARNING üretiyordu. `DEB_DEP_MAP` normalizasyonu
+  ile Arch karşılıklarına çevrilir; bilinmeyen adlar tahmin edilmeden raporlanır.
+- **fix(ux)**: dönüştürülen paket `native_build/pkgout/` (veya `build/pkgout/`) altına
+  gömülüyor, `src/`+`pkg/` artıkları dizinde kalıyordu. Artık ürün çıktı köküne taşınır,
+  `src/`/`pkg/` temizlenir, `PKGBUILD` inceleme için saklanır.
+- **fix(tests)**: yarım kalmış işlerin bozduğu 9 test onarıldı — history/tools dialog
+  async WIP'i (3+2 test), main_window kapatma-davranışı değişikliği (1+1 yeni test),
+  GPG stdin değişikliğine uymayan imza mock'ları, SecretStoreError içermeyen WebDAV
+  stub'u, WORKSPACE_FILE ham atamasının sonraki testleri zehirlemesi.
+- **fix(sync)**: keyring okuma hatası ham `RuntimeError` olarak fırlayıp senkronu
+  öldürüyordu; artık yakalanıp parolasız devam edilir (sunucu reddederse `SyncError`).
+  Düz-metin parola geri-dönüşü yasağı korunur; servis yoksa `available()` abort eder.
 - **fix(ux)**: sudo/pkexec bombardımanı — delta/snapshot kurulumları tek işlemde
   4-5 ayrı parola diyalogu açıyordu. Yeni `write-batch` helper alt-komutu tüm
   dosyaları TEK pkexec diyaloğunda yazar; systemctl fiilleri (enable/start/

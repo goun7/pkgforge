@@ -73,6 +73,20 @@ def get_root_mount_point() -> str:
     return ""
 
 
+def snapshot_name(label: str = "pkgforge") -> str:
+    """Generate a policy-safe snapshot name: pkgforge-<label>-<ts>.
+
+    Helper scriptler yalnizca pkgforge- one ekli adlari kabul eder, bu
+    fonksiyon tek uretim noktasidir (kurulum akisi + dogrudan cagrilar
+    ayni adi uretir).
+    """
+    import re as _re
+
+    clean = _re.sub(r"[^A-Za-z0-9_.-]", "-", (label or "pkgforge").strip())
+    clean = clean.strip("-") or "pkgforge"
+    return f"pkgforge-{clean}-{int(time.time())}"
+
+
 def take_snapshot(label: str = "pkgforge") -> SnapshotInfo:
     """Take a snapshot of the root filesystem before package installation.
 
@@ -83,8 +97,13 @@ def take_snapshot(label: str = "pkgforge") -> SnapshotInfo:
         SnapshotInfo with the snapshot details.
     """
     backend = detect_backend()
-    ts = int(time.time())
-    snap_name = f"pkgforge-{label}-{ts}"
+    snap_name = snapshot_name(label)
+
+    # Root baglaminda (servis/zaten-yetkili) dogrudan calis: sifir diyalog.
+    # Normal kullanici baglaminda helper uzerinden TEK diyalogla calis;
+    # eski akis helper'siz deneyip sessizce basarisiz oluyordu.
+    if os.geteuid() != 0:
+        return _take_snapshot_privileged(backend, snap_name)
 
     if backend == "btrfs":
         return _take_btrfs_snapshot(snap_name)
@@ -98,6 +117,51 @@ def take_snapshot(label: str = "pkgforge") -> SnapshotInfo:
             success=False,
             detail="Btrfs veya ZFS algılanmadı — snapshot oluşturulamıyor",
         )
+
+
+def _take_snapshot_privileged(backend: str, snap_name: str) -> SnapshotInfo:
+    """Take a snapshot via the privileged helper (single pkexec dialog)."""
+    from core.privileged import privileged_snapshot_argv
+
+    if backend == "btrfs":
+        op, target = "take-btrfs", f"/{snap_name}"
+    elif backend == "zfs":
+        dataset = _get_zfs_root_dataset()
+        if not dataset:
+            return SnapshotInfo(
+                backend="zfs", snapshot_name="", mount_point="",
+                success=False, detail="ZFS root dataset bulunamadı",
+            )
+        op, target = "take-zfs", f"{dataset}@{snap_name}"
+    else:
+        return SnapshotInfo(
+            backend="none", snapshot_name="", mount_point="",
+            success=False,
+            detail="Btrfs veya ZFS algılanmadı — snapshot oluşturulamıyor",
+        )
+    try:
+        res = safe_run(privileged_snapshot_argv("pkexec", op, target),
+                       timeout=60)
+    except Exception as exc:  # noqa: BLE001
+        return SnapshotInfo(
+            backend=backend, snapshot_name="", mount_point="/",
+            success=False, detail=f"Snapshot yetkili cagrisi basarisiz: {exc}",
+        )
+    if res.returncode == 0:
+        return SnapshotInfo(
+            backend=backend, snapshot_name=target, mount_point="/",
+            success=True, detail=f"Snapshot hazir: {target}",
+        )
+    if res.returncode in (126, 127):
+        detail = "Yetkilendirme reddedildi/iptal — snapshot atlandi"
+    elif res.stderr.strip():
+        detail = res.stderr.strip().splitlines()[-1][:200]
+    else:
+        detail = f"Snapshot basarisiz (kod {res.returncode})"
+    return SnapshotInfo(
+        backend=backend, snapshot_name="", mount_point="/",
+        success=False, detail=detail,
+    )
 
 
 def restore_snapshot(snapshot_name: str) -> tuple[bool, str]:
@@ -137,15 +201,39 @@ def list_snapshots() -> list[dict[str, str]]:
 
 
 def delete_snapshot(snapshot_name: str) -> bool:
-    """Delete a PkgForge snapshot."""
+    """Delete a PkgForge snapshot.
+
+    Root baglaminda dogrudan, normal kullanici baglaminda helper
+    uzerinden TEK diyalogla silinir. Yalnizca pkgforge- one ekli adlar
+    kabul edilir (helper tarafinda da zorunlu).
+    """
+    base = snapshot_name.rsplit("/", 1)[-1].split("@")[-1]
+    if not base.startswith("pkgforge-"):
+        log.warning("Snapshot silme reddedildi (oneksiz ad): %s", snapshot_name)
+        return False
     backend = detect_backend()
+    if os.geteuid() == 0:
+        if backend == "btrfs":
+            res = safe_run(["btrfs", "subvolume", "delete", snapshot_name], timeout=30)
+            return res.returncode == 0
+        elif backend == "zfs":
+            res = safe_run(["zfs", "destroy", snapshot_name], timeout=30)
+            return res.returncode == 0
+        return False
+    from core.privileged import privileged_snapshot_argv
+
     if backend == "btrfs":
-        res = safe_run(["btrfs", "subvolume", "delete", snapshot_name], timeout=30)
-        return res.returncode == 0
+        op = "delete-btrfs"
     elif backend == "zfs":
-        res = safe_run(["zfs", "destroy", snapshot_name], timeout=30)
-        return res.returncode == 0
-    return False
+        op = "destroy-zfs"
+    else:
+        return False
+    try:
+        res = safe_run(privileged_snapshot_argv("pkexec", op, snapshot_name),
+                       timeout=30)
+    except Exception:  # noqa: BLE001
+        return False
+    return res.returncode == 0
 
 
 # ── Btrfs implementation ────────────────────────────────────────
@@ -224,14 +312,9 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
         'echo "[pkgforge] Cleanup done."\n'
     )
 
-    script_path = Path("/usr/local/bin/pkgforge-rollback.sh")
-    try:
-        script_path.write_text(rollback_script, encoding="utf-8")
-        script_path.chmod(0o755)
-    except OSError as exc:
-        return False, tr("snapshot.rollback_scripti_olusturulamadi_exc", exc=exc)
+    snap_path = snapshot_name if snapshot_name.startswith("/") else f"/{snapshot_name}"
 
-    # 2. Create systemd service for boot-time execution
+    # 2. Boot-time rollback servisi icerigi.
     service_content = (
         "[Unit]\n"
         "Description=PkgForge Package Rollback\n"
@@ -246,37 +329,44 @@ def _restore_btrfs_snapshot(snapshot_name: str) -> tuple[bool, str]:
         "[Install]\n"
         "WantedBy=multi-user.target\n"
     )
-
     service_path = Path("/etc/systemd/system/pkgforge-rollback.service")
+
+    # 1. Rollback script + systemd servisi TEK pkexec diyalogunda yazilir
+    # ve servis etkinlestirilir (service-deploy). Eski akis once
+    # /usr/local/bin'e dogrudan yazmayi deniyordu (kullanici olarak her
+    # zaman basarisiz) ve ayri bir pkexec ile enable ediyordu.
+    from core.privileged import (
+        build_write_batch_manifest,
+        privileged_service_deploy_argv,
+    )
+
+    manifest = build_write_batch_manifest([
+        ("755", "/usr/local/bin/pkgforge-rollback.sh", rollback_script),
+        ("644", "/etc/systemd/system/pkgforge-rollback.service", service_content),
+    ])
     try:
-        # Use pkexec for the systemd file creation
         res = safe_run(
-            privileged_write_argv("pkexec", str(service_path)),
-            input=service_content,
-            timeout=10,
+            privileged_service_deploy_argv("pkexec", "pkgforge-rollback.service"),
+            input=manifest,
+            timeout=30,
         )
-        if res.returncode != 0:
-            # Fallback: write to temp and ask user to install
-            # pid-suffixed name; content is a generated systemd unit,
-            # not attacker-controlled, and the file is only a hand-off for the user.
-            tmp_service = Path(f"/tmp/pkgforge-rollback-{os.getpid()}.service")  # nosec B108
-            tmp_service.write_text(service_content, encoding="utf-8")
-            msg = (
-                tr("snapshot.btrfs_rollback_plani_hazirlandi_2", tmp_service=tmp_service, service_path=service_path, snap_path=snap_path)
-            )
-            return True, msg
-
-        # Enable the service
-        safe_run(privileged_systemctl_argv(
-            "pkexec", "enable", "pkgforge-rollback.service"), timeout=10)
-
+    except Exception as exc:  # noqa: BLE001
+        return False, tr("snapshot.rollback_plani_olusturulamadi_exc", exc=exc)
+    if res.returncode != 0:
+        # Fallback: dosyayi /tmp'ye birak, kullanici el ile kursun.
+        # pid-suffixed name; content is a generated systemd unit,
+        # not attacker-controlled, and the file is only a hand-off for the user.
+        tmp_service = Path(f"/tmp/pkgforge-rollback-{os.getpid()}.service")  # nosec B108
+        tmp_service.write_text(service_content, encoding="utf-8")
         msg = (
-            tr("snapshot.btrfs_rollback_plani_hazirlandi", snap_path=snap_path)
+            tr("snapshot.btrfs_rollback_plani_hazirlandi_2", tmp_service=tmp_service, service_path=service_path, snap_path=snap_path)
         )
         return True, msg
 
-    except Exception as exc:  # noqa: BLE001
-        return False, tr("snapshot.rollback_plani_olusturulamadi_exc", exc=exc)
+    msg = (
+        tr("snapshot.btrfs_rollback_plani_hazirlandi", snap_path=snap_path)
+    )
+    return True, msg
 
 
 def _list_btrfs_snapshots() -> list[dict[str, str]]:

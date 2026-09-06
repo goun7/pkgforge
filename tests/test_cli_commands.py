@@ -491,7 +491,7 @@ def test_cmd_rollback_success_and_failure(monkeypatch, tmp_path, capsys):
         return SimpleNamespace(returncode=0, stdout="", stderr="")
     monkeypatch.setattr(cli, "safe_run", fake_run)
     assert cli._cmd_rollback(argparse.Namespace(package="demo")) == 0
-    assert "-U" in seen["cmd"] and str(backup) in seen["cmd"]
+    assert "install-pkg" in seen["cmd"] and str(backup) in seen["cmd"]
 
     def bad_run(cmd, timeout=None):
         return SimpleNamespace(returncode=1, stdout="", stderr="hata")
@@ -535,6 +535,8 @@ def test_cmd_verify_gpg_paths(monkeypatch, capsys, tmp_path):
 
 
 def test_cmd_verify_sigstore_mode(monkeypatch, capsys, tmp_path):
+    import core.sigstore  # noqa: F401 — altmodul ozelligini kaydet ki
+    # monkeypatch noktali yolu her calisma sirasinda cozebilsin
     f = tmp_path / "x.pkg.tar.zst"
     f.write_bytes(b"x")
     res = SimpleNamespace(summary=lambda: "sig", success=False)

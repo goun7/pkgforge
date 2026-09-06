@@ -60,8 +60,13 @@ def test_run_thread_real_paths(monkeypatch):
 def test_source_generate_all_build_systems(senkron_yardimci, monkeypatch,
                                            tmp_path):
     kayit = senkron_yardimci
-    fs = sys.modules.setdefault("core.from_source", NS())
-    sec = sys.modules.setdefault("core.security", NS())
+    # setdefault kalici kirlenme birakir; yoksa monkeypatch ile gecici kur.
+    if "core.from_source" not in sys.modules:
+        monkeypatch.setitem(sys.modules, "core.from_source", NS())
+    fs = sys.modules["core.from_source"]
+    if "core.security" not in sys.modules:
+        monkeypatch.setitem(sys.modules, "core.security", NS())
+    sec = sys.modules["core.security"]
     monkeypatch.setattr(sec, "safe_run",
                         lambda cmd, timeout=0, **k:
                         NS(returncode=0, stdout="", stderr=""),

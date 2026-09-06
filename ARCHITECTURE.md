@@ -23,6 +23,12 @@ PkgForge is a modular Python application with a clear separation between CLI, GU
     └────────────────────────────────────┘
 ```
 
+## UI Strategy (2026-09-05, karar)
+
+- **Birincil:** Tauri 2 + React (`desktop/`) + Python sidecar (JSON-RPC). Yeni ozellikler buraya eklenir.
+- **Donduruldu:** PyQt6 (`ui/`, `pkgforge gui`). Yeni ozellik yok; yalnizca guvenlik/kritik duzeltme. Kaldirma v3.0'da planlanir (38 test dosyasi bagli oldugu icin ani silme suite'yi kizartir).
+- CLI (`cli.py` + `core/`) paylasilan cekirdektir; her iki UI ayni sidecar sozlesmesini kullanir.
+
 ## Core Modules
 
 ### Security Layer (`core/security.py`)

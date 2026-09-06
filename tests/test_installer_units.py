@@ -1,6 +1,7 @@
 """Coverage itmesi — core/installer.py guardlar ve sonuc dallari."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from types import SimpleNamespace as NS
 
@@ -126,7 +127,6 @@ def test_verify_invalid_name_skips_pacman(monkeypatch):
 # error/find_helper/init/verify dallari tam korunur.
 # ══════════════════════════════════════════════════════════════════
 import logging
-import sys
 
 from PyQt6.QtCore import QObject, QProcess
 
@@ -226,7 +226,7 @@ def test_install_happy_helper(qapp, tmp_path, monkeypatch):
     assert fp.readyReadStandardOutput.connected == [inst._on_output]
     assert fp.finished.connected == [inst._on_finished]
     assert fp.errorOccurred.connected == [inst._on_error]
-    assert fp.started == [("/usr/bin/pkexec", ["/bin/bash", str(helper), str(pkg)])]
+    assert fp.started == [("/usr/bin/pkexec", [str(helper), str(pkg)])]
     assert f"▶ Paket kuruluyor: {pkg.name}" in lines
     assert "  Yetki yükseltme isteniyor (Polkit)..." in lines
 
@@ -245,23 +245,25 @@ def test_install_happy_fallback(qapp, tmp_path, monkeypatch):
         ["/usr/bin/pacman", "-U", "--noconfirm", "--", str(pkg)],
     )]
 
-# ── install snapshot blogu ──────────────────────────────────────
-def _snap_setup(monkeypatch, backend, snap):
+# ── install snapshot blogu (tek-diyalog sozlesmesi) ─────────────
+# Kurulum snapshot'i ayri take_snapshot cagrisi degil, helper'a
+# --snapshot bayragidir. Testler argv sozlesmesini kilitler.
+def _snap_setup(monkeypatch, backend, ad="snap-9"):
     import core.snapshot_manager as SM
     import i18n
-    calls = {"load_setting": [], "take_snapshot": []}
+    calls = {"load_setting": [], "snapshot_name": []}
 
     def ls(k, d=None):
         calls["load_setting"].append((k, d))
         return True
 
-    def ts(name):
-        calls["take_snapshot"].append(name)
-        return snap
+    def sn(label):
+        calls["snapshot_name"].append(label)
+        return ad
 
     monkeypatch.setattr(i18n, "load_setting", ls)
     monkeypatch.setattr(SM, "detect_backend", lambda: backend)
-    monkeypatch.setattr(SM, "take_snapshot", ts)
+    monkeypatch.setattr(SM, "snapshot_name", sn)
     return calls
 
 
@@ -269,66 +271,54 @@ def test_install_snapshot_success(qapp, tmp_path, monkeypatch):
     fp = FakeProcess()
     inst, _got, lines, helper = _mk(qapp, tmp_path, lambda p: fp)
     monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
-    calls = _snap_setup(monkeypatch, "btrfs",
-                        NS(success=True, snapshot_name="snap-9", detail=""))
-    pkg = tmp_path / "demo.pkg.tar.zst"
-    pkg.write_bytes(b"x")
-    inst.install(pkg, "demo")
-    assert inst._snapshot_name == "snap-9"
-    assert ("snapshot", True) in calls["load_setting"]
-    assert calls["take_snapshot"] == ["demo"]
-    assert any("BTRFS snapshot" in s for s in lines)
-    assert any("Snapshot hazır: snap-9" in s for s in lines)
-
-
-def test_install_snapshot_fail(qapp, tmp_path, monkeypatch):
-    fp = FakeProcess()
-    inst, _got, lines, helper = _mk(qapp, tmp_path, lambda p: fp)
-    monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
-    _snap_setup(monkeypatch, "btrfs",
-                NS(success=False, snapshot_name="", detail="detay-hata"))
+    calls = _snap_setup(monkeypatch, "btrfs")
     pkg = tmp_path / "demo.pkg.tar.zst"
     pkg.write_bytes(b"x")
     inst.install(pkg, "demo")
     assert inst._snapshot_name == ""
-    assert any("detay-hata" in s for s in lines)
+    assert ("snapshot", True) in calls["load_setting"]
+    assert calls["snapshot_name"] == ["demo"]
+    assert fp.started == [("/usr/bin/pkexec",
+                            [str(helper), "--snapshot", "snap-9", str(pkg)])]
+    # helper snapshot-ok satiri gorunce ad kaydedilir + bilgi basilir
+    fp._out = b"snapshot-ok: /snap-9\n"
+    inst._on_output()
+    assert inst._snapshot_name == "/snap-9"
+    assert any("Snapshot hazır: /snap-9" in s for s in lines)
+
+
+def test_install_snapshot_fail(qapp, tmp_path, monkeypatch, caplog):
+    fp = FakeProcess()
+    inst, _got, _lines, helper = _mk(qapp, tmp_path, lambda p: fp)
+    monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
+    import core.snapshot_manager as SM
+    import i18n
+    monkeypatch.setattr(i18n, "load_setting", lambda k, d=None: True)
+    monkeypatch.setattr(SM, "detect_backend", lambda: "btrfs")
+    boom = RuntimeError("snap-patladi")
+    monkeypatch.setattr(SM, "snapshot_name", lambda label: (_ for _ in ()).throw(boom))
+    pkg = tmp_path / "demo.pkg.tar.zst"
+    pkg.write_bytes(b"x")
+    with caplog.at_level(logging.DEBUG, logger="core.installer"):
+        inst.install(pkg, "demo")
+    assert inst._snapshot_name == ""
+    # bayrak dusurulur, kurulum devam eder
+    assert fp.started == [("/usr/bin/pkexec", [str(helper), str(pkg)])]
+    recs = [r for r in caplog.records if "temizleme" in r.getMessage().lower()]
+    assert recs and recs[0].msg == "Snapshot temizleme başarısız: %s"
+    assert boom in recs[0].args
 
 
 def test_install_snapshot_backend_none(qapp, tmp_path, monkeypatch):
     fp = FakeProcess()
     inst, _got, lines, helper = _mk(qapp, tmp_path, lambda p: fp)
     monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
-    _snap_setup(monkeypatch, "none", NS(success=True, snapshot_name="x", detail=""))
+    _snap_setup(monkeypatch, "none")
     pkg = tmp_path / "demo.pkg.tar.zst"
     pkg.write_bytes(b"x")
     inst.install(pkg, "demo")
     assert inst._snapshot_name == ""
-    assert not any("snapshot alınıyor" in s for s in lines)
-
-
-def test_install_snapshot_exception(qapp, tmp_path, monkeypatch, caplog):
-    import core.snapshot_manager as SM
-    import i18n
-    fp = FakeProcess()
-    inst, _got, _lines, helper = _mk(qapp, tmp_path, lambda p: fp)
-    monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
-    monkeypatch.setattr(i18n, "load_setting", lambda k, d=None: True)
-    monkeypatch.setattr(SM, "detect_backend", lambda: "btrfs")
-
-    boom = RuntimeError("snap-patladi")
-
-    def raise_it(name):
-        raise boom
-
-    monkeypatch.setattr(SM, "take_snapshot", raise_it)
-    pkg = tmp_path / "demo.pkg.tar.zst"
-    pkg.write_bytes(b"x")
-    with caplog.at_level(logging.DEBUG, logger="core.installer"):
-        inst.install(pkg, "demo")
-    assert inst._snapshot_name == ""
-    recs = [r for r in caplog.records if "temizleme" in r.getMessage().lower()]
-    assert recs and recs[0].msg == "Snapshot temizleme başarısız: %s"
-    assert boom in recs[0].args
+    assert fp.started == [("/usr/bin/pkexec", [str(helper), str(pkg)])]
 
 
 def test_install_snapshot_setting_off(qapp, tmp_path, monkeypatch):
@@ -340,16 +330,17 @@ def test_install_snapshot_setting_off(qapp, tmp_path, monkeypatch):
     monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
     monkeypatch.setattr(i18n, "load_setting", lambda k, d=None: False)
 
-    def no_snap(name):
+    def no_snap(label):
         called["n"] += 1
-        return NS(success=True, snapshot_name="x", detail="")
+        return "snap-x"
 
-    monkeypatch.setattr(SM, "take_snapshot", no_snap)
+    monkeypatch.setattr(SM, "snapshot_name", no_snap)
     pkg = tmp_path / "demo.pkg.tar.zst"
     pkg.write_bytes(b"x")
     inst.install(pkg, "demo")
     assert inst._snapshot_name == ""
     assert called["n"] == 0
+    assert fp.started == [("/usr/bin/pkexec", [str(helper), str(pkg)])]
 
 
 # ── cancel / _on_output / _on_error / _default_process ─────────
@@ -442,7 +433,18 @@ def _src_helper_path():
     return Path(INS.__file__).resolve().parent.parent / "scripts" / "install_helper.sh"
 
 
-def test_find_helper_source_exact(qapp):
+def test_find_helper_source_exact(qapp, monkeypatch):
+    # Sistem + sys.prefix kopyalari yoksa kaynak agaca dusulur.
+    import pathlib
+    real = pathlib.Path.is_file
+
+    def fake_is_file(self):
+        s = str(self)
+        if s.startswith("/usr/share/pkgforge") or s.startswith(sys.prefix):
+            return False
+        return real(self)
+
+    monkeypatch.setattr(pathlib.Path, "is_file", fake_is_file)
     assert _find_install_helper() == _src_helper_path()
 
 
@@ -473,7 +475,9 @@ def test_find_helper_usr_share(qapp, monkeypatch):
 def test_find_helper_fallback_first(qapp, monkeypatch):
     import pathlib
     monkeypatch.setattr(pathlib.Path, "is_file", lambda self: False)
-    assert _find_install_helper() == _src_helper_path()
+    # Hicbir aday yoksa SISTEM yolu doner (polkit yalnizca orayi tanir).
+    assert _find_install_helper() == Path(
+        "/usr/share/pkgforge/scripts/install_helper.sh")
 
 
 # ── _verify_installation (7 mutant): arguman yakalama ──────────

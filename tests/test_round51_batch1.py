@@ -27,7 +27,7 @@ def test_sign_package_full_flow(monkeypatch, tmp_path):
     anahtar = tmp_path / "anahtar.gpg"
     anahtar.write_bytes(b"K")
     monkeypatch.setattr(PS, "safe_run",
-                        lambda cmd, timeout=0:
+                        lambda cmd, timeout=0, **kw:
                         NS(returncode=2, stderr="gizli anahtar yok"))
     ok, msg = PS.sign_package(pkg, key_path=anahtar,
                               passphrase="parola")
@@ -35,12 +35,12 @@ def test_sign_package_full_flow(monkeypatch, tmp_path):
 
     # rc=0 ama .sig uretilmedi (77-78)
     monkeypatch.setattr(PS, "safe_run",
-                        lambda cmd, timeout=0: NS(returncode=0, stderr=b""))
+                        lambda cmd, timeout=0, **kw: NS(returncode=0, stderr=b""))
     ok, msg = PS.sign_package(pkg)
     assert ok is False and "oluşturulamadı" in msg
 
     # basari yoli (80-81): safe_run icinde sig dosyasi olustur
-    def uret(cmd, timeout=0):
+    def uret(cmd, timeout=0, **kw):
         Path(str(cmd[-1]) + ".sig").write_bytes(b"S")
         return NS(returncode=0, stderr=b"")
     monkeypatch.setattr(PS, "safe_run", uret)
@@ -170,7 +170,9 @@ def test_convert_rpm_sync_meta_and_analyze_fail(monkeypatch, tmp_path):
     assert sonuc.success is True                                      # 91-95
 
     # meta None + analiz hatasi (103-108)
-    pa = sys.modules.setdefault("core.package_analyzer", NS())
+    if "core.package_analyzer" not in sys.modules:
+        monkeypatch.setitem(sys.modules, "core.package_analyzer", NS())
+    pa = sys.modules["core.package_analyzer"]
     def patlak(p, t):
         raise ValueError("bozuk rpm")
     monkeypatch.setattr(pa, "analyze_package", patlak, raising=False)

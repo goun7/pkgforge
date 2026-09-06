@@ -1,7 +1,6 @@
 # GitHub Sponsors etkinleştiğinde bu dosya otomatik olarak "Sponsor"
-# butonunu repoda gösterir. custom girdileri Polar (MoR) ve Kreosus
-# (Türkiye) yansıtıcılarıdır — hesaplar açıldığında yalnızca URL güncellenir.
+# butonunu repoda gösterir. custom girdisi Polar (MoR) yansıtıcısıdır —
+# hesap açıldığında yalnızca URL güncellenir.
 github: [goun7]
 custom:
   - "https://polar.sh/goun7"
-  - "https://www.kreosus.com/goun7"

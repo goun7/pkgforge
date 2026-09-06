@@ -187,20 +187,19 @@ def test_install_auto_update_write_rejected(monkeypatch):
 
 
 def test_install_auto_update_single_write_dialog(monkeypatch):
-    """Faz 14: kurulum TAM OLARAK TEK pkexec write diyalogu açmalı (eski
-    akış 4 ayrı diyalog seriye diziyordu = 'sudo bombardımanı')."""
+    """Kurulum TAM OLARAK TEK pkexec diyalogu açmalı (service-deploy):
+    eski akış 4 ayrı diyalog seriye diziyordu = 'sudo bombardımanı'."""
     monkeypatch.setattr("os.path.isfile", lambda p: True)
-    write_calls = []
+    calls = []
 
     def fake_run(argv, timeout=None, input=None, **kw):
-        argv = list(argv)
-        if "write-batch" in argv:
-            write_calls.append(argv)
+        calls.append(list(argv))
         return _ns(0)
     monkeypatch.setattr("core.security.safe_run", fake_run)
     ok, msg = DU.install_auto_update(interval_hours=12)
     assert ok is True and "12" in msg
-    assert len(write_calls) == 1, f"tek write-batch beklenir: {write_calls}"
+    assert len(calls) == 1, f"tek diyalog beklenir: {calls}"
+    assert "service-deploy" in calls[0]
 
 
 def test_timer_interval_reflected(monkeypatch, tmp_path):
@@ -210,7 +209,7 @@ def test_timer_interval_reflected(monkeypatch, tmp_path):
     contents = {}
 
     def fake_run(argv, timeout=None, input=None, **kw):
-        if "write-batch" in argv and input:
+        if "service-deploy" in argv and input:
             # manifest: NUL ayırıcılı üçlü (mod, yol, içerik) — timer son.
             parts = input.split(b"\x00")
             timer = parts[-2]
@@ -241,7 +240,8 @@ def test_remove_auto_update_success(monkeypatch):
     monkeypatch.setattr("core.security.safe_run", fake_run)
     ok, msg = DU.remove_auto_update()
     assert ok is True and "kaldırıldı" in msg
-    assert any("daemon-reload" in c for c in seen)
+    assert len(seen) == 1, f"tek diyalog beklenir: {seen}"
+    assert "service-remove" in seen[0]
 
 
 def _patch_systemctl_queries(monkeypatch, enabled, active, show_out):
@@ -290,8 +290,8 @@ def test_enable_disable_paths(monkeypatch, tmp_path):
     assert ok3 is True and "devre dışı" in msg3
 
     def bad_run(argv, timeout=None, **kw):
-        # Faz 14: fiil artık pkexec helper zinciri içinde ("disable" argüman).
-        return _ns(1) if "disable" in argv else _ns(0)
+        # service-disable helper zinciri icinde gecer.
+        return _ns(1) if any("disable" in a for a in argv) else _ns(0)
     monkeypatch.setattr("core.security.safe_run", bad_run)
     ok4, msg4 = DU.disable_auto_update()
     assert ok4 is False and "devre dışı bırakılamadı" in msg4

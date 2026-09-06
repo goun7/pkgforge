@@ -44,15 +44,15 @@ def test_install_success_flow(monkeypatch):
     monkeypatch.setattr(SC, "safe_run", fake_run)
     ok, msg = SC.install_cleanup_service(max_age_days=5)
     assert ok is True and "kuruldu" in msg
-    # Faz 14: içerik artık tek write-batch manifest'inde (bytes) taşınır.
-    manifests = [inp for argv, inp in writes
-                 if inp is not None and isinstance(inp, (bytes, bytearray))
-                 and "write-batch" in argv]
-    assert len(manifests) == 1, "tek write-batch manifest beklenir"
-    assert b"MAX_AGE_DAYS=5" in manifests[0]
-    # Diğer tüm pkexec çağrıları systemd fiilleri (daemon-reload/enable/start).
-    others = [argv for argv, _ in writes if "write-batch" not in argv]
-    assert any("daemon-reload" in argv for argv in others)
+    # TEK pkexec diyalogu: service-deploy (manifest bytes + unit).
+    deploys = [(argv, inp) for argv, inp in writes if "service-deploy" in argv]
+    assert len(deploys) == 1, f"tek service-deploy beklenir: {writes}"
+    argv, manifest = deploys[0]
+    assert argv[-1].endswith(".timer")
+    assert isinstance(manifest, (bytes, bytearray))
+    assert b"MAX_AGE_DAYS=5" in manifest
+    # Baska pkexec cagrisi yok.
+    assert len(writes) == 1, f"tek diyalog beklenir: {writes}"
 
 
 def test_install_pkexec_reject(monkeypatch):
@@ -65,20 +65,19 @@ def test_install_pkexec_reject(monkeypatch):
 
 
 def test_install_single_write_dialog(monkeypatch):
-    """Faz 14: snapshot kurulumu TAM OLARAK TEK pkexec write diyalogu açar."""
+    """Snapshot kurulumu TAM OLARAK TEK pkexec diyalogu açar (service-deploy)."""
     monkeypatch.setattr(SC, "detect_backend", lambda: "btrfs")
     monkeypatch.setattr(SC.os.path, "isfile", lambda p: True)
-    write_calls = 0
+    calls = []
 
     def fake_run(argv, timeout=None, input=None, **kw):
-        nonlocal write_calls
-        if "write-batch" in argv:
-            write_calls += 1
+        calls.append(list(argv))
         return _ns(0)
     monkeypatch.setattr(SC, "safe_run", fake_run)
     ok, _msg = SC.install_cleanup_service()
     assert ok is True
-    assert write_calls == 1, f"tek diyalog beklenir, {write_calls} var"
+    assert len(calls) == 1, f"tek diyalog beklenir, {calls} var"
+    assert "service-deploy" in calls[0]
 
 
 def test_remove_success_and_no_systemctl(monkeypatch):
@@ -95,7 +94,10 @@ def test_remove_success_and_no_systemctl(monkeypatch):
     monkeypatch.setattr(SC, "safe_run", fake_run)
     ok2, msg2 = SC.remove_cleanup_service()
     assert ok2 is True and "kaldırıldı" in msg2
-    assert any("daemon-reload" in c for c in seen)
+    # TEK diyalog: service-remove (unit + dosyalar).
+    assert len(seen) == 1, f"tek diyalog beklenir: {seen}"
+    assert "service-remove" in seen[0]
+    assert any(a.endswith(".timer") for a in seen[0])
 
 
 def _patch_status_queries(monkeypatch, enabled_code, active_code, show_out):

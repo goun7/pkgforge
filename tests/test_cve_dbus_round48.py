@@ -45,7 +45,9 @@ def test_query_osv_missing_key(monkeypatch):
 def test_scan_package_analyzer_paths(tmp_path, monkeypatch):
     pkg = tmp_path / "paket-1-1-x86_64.pkg.tar.zst"
     pkg.write_bytes(b"P")
-    pa = sys.modules.setdefault("core.package_analyzer", NS())
+    if "core.package_analyzer" not in sys.modules:
+        monkeypatch.setitem(sys.modules, "core.package_analyzer", NS())
+    pa = sys.modules["core.package_analyzer"]
 
     # analiz basarili (129-132, 137-139)
     monkeypatch.setattr(pa, "analyze_package",

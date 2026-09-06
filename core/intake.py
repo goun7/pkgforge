@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
+from core.maps import arch_license
+
 log = logging.getLogger(__name__)
 
 
@@ -271,6 +273,9 @@ def generate_binary_pkgbuild(
         depends = ["glib2", "cairo"]
     deps = " ".join('"' + d + '"' for d in depends)
     deps = "(" + deps + ")"
+    lic = license_id
+    if not lic or lic.strip().lower() in ("unknown", "custom"):
+        lic = arch_license("", name)
     lines = [
         "pkgname=" + name,
         "pkgver=" + version,
@@ -278,7 +283,7 @@ def generate_binary_pkgbuild(
         'pkgdesc="' + desc + '"',
         'arch=("x86_64")',
         'url="' + (url if url else "unknown") + '"',
-        "license=('" + license_id + "')",
+        "license=('" + lic + "')",
         "depends=" + deps,
         'source=("' + tarball_name + '")',
         'sha256sums=("' + (sha256 or "SKIP") + '")',
@@ -450,6 +455,9 @@ def generate_source_tarball_pkgbuild(
     makedepends_str = " ".join("'" + d + "'" for d in makedeps)
     cd = 'cd "$srcdir/' + top_dir + '"' if top_dir else 'cd "$srcdir"'
     desc = description.replace(chr(34), "") or (name + " (PkgForge kaynak derleme)")
+    lic = license_id
+    if not lic or lic.strip().lower() in ("unknown", "custom"):
+        lic = arch_license("", name)
     lines = [
         "# Maintainer: PkgForge <noreply@pkgforge.app>",
         "",
@@ -459,7 +467,7 @@ def generate_source_tarball_pkgbuild(
         'pkgdesc="' + desc + '"',
         'arch=("x86_64")',
         'url="' + (url if url else "unknown") + '"',
-        "license=('" + license_id + "')",
+        "license=('" + lic + "')",
         "depends=()",
         "makedepends=(" + makedepends_str + ")",
         'source=("' + tarball_name + '")',

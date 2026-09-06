@@ -178,7 +178,12 @@ def test_security_small_handlers(monkeypatch, tmp_path):
     pkg = tmp_path / "p.pkg.tar.zst"
     pkg.write_bytes(b"P")
 
-    ps = sys.modules.setdefault("core.package_signing", NS())
+    # monkeypatch.setitem: test bitince orijinal modul geri gelir.
+    # Eskiden sys.modules.setdefault kullaniliyordu; gercek modul henuz
+    # yuklenmemisse cubuk (NS) surekli kaliyor ve sonraki testlerde
+    # "core.sigstore has no attribute" kirlenmesi yaratiyordu.
+    monkeypatch.setitem(sys.modules, "core.package_signing", NS())
+    ps = sys.modules["core.package_signing"]
     from dataclasses import dataclass
 
     @dataclass
@@ -192,12 +197,14 @@ def test_security_small_handlers(monkeypatch, tmp_path):
     assert yanit["imzali"] is True
     assert AS.handle_security_keys({}) == [{"ad": "k"}]              # 221-224
 
-    sg = sys.modules.setdefault("core.sigstore", NS())
+    monkeypatch.setitem(sys.modules, "core.sigstore", NS())
+    sg = sys.modules["core.sigstore"]
     monkeypatch.setattr(sg, "get_sigstore_status",
                         lambda: {"kurulu": False}, raising=False)
     assert AS.handle_security_sigstore_status({}) == {"kurulu": False}
 
-    pv = sys.modules.setdefault("core.provenance", NS())
+    monkeypatch.setitem(sys.modules, "core.provenance", NS())
+    pv = sys.modules["core.provenance"]
     monkeypatch.setattr(pv, "find_provenance",
                         lambda p: None, raising=False)
     belge = NS(to_dict=lambda: {"id": "p1"})

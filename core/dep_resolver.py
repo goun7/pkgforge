@@ -344,11 +344,80 @@ def resolve_runtime_dependencies(root_dir: Path, tools: ToolPaths) -> list[str]:
     """Return the confirmed Arch package dependencies for a build tree."""
     try:
         sonames = collect_sonames(root_dir, tools)
-        if not sonames:
-            return []
-        packages = sonames_to_packages(sonames, tools)
-        log.info(tr("dep.bagimlilik_cozumu_d_soname_d"), len(sonames), len(packages))
-        return packages
+        packages = sonames_to_packages(sonames, tools) if sonames else []
+        interpreters = collect_script_interpreters(root_dir, tools)
+        merged = sorted(set(packages) | interpreters)
+        log.info(tr("dep.bagimlilik_cozumu_d_soname_d"), len(sonames), len(merged))
+        return merged
     except Exception as exc:  # noqa: BLE001
         log.warning(tr("dep.bagimlilik_cozumu_basarisiz_s"), exc)
         return []
+
+
+# ── Script interpreter resolver ──────────────────────────────
+# ELF disi betikler (sh/python/perl) DT_NEEDED tasimaz; namcap bunlari
+# "dependency-detected-not-included" olarak raporlar. Shebang satirlari
+# taranip yorumlayici saglayan Arch paketleri de bagimlilik sayilir.
+
+_INTERP_MAP: dict[str, str] = {
+    "sh": "bash",
+    "bash": "bash",
+    "dash": "bash",
+    "python3": "python",
+    "python": "python",
+    "perl": "perl",
+    "ruby": "ruby",
+    "node": "nodejs",
+    "nodejs": "nodejs",
+    "awk": "gawk",
+    "gawk": "gawk",
+    "expect": "expect",
+}
+
+_MAX_SCRIPT_FILES = 200
+_MAX_SCRIPT_HEAD = 256
+
+
+def collect_script_interpreters(root_dir: Path, tools: ToolPaths) -> set[str]:
+    """Scan script shebangs (``#!``) and map them to Arch packages.
+
+    Only regular files are read (symlink yok sayilir), ilk 256 bayta
+    bakilir, en fazla 200 dosya taranir. Bilinmeyen yorumlayicilar
+    sessizce atlanir (tahmin yok). ``tools`` su an kullanilmaz; imza
+    ``collect_sonames`` ile parite icin korunur.
+    """
+    _ = tools
+    found: set[str] = set()
+    checked = 0
+    for path in root_dir.rglob("*"):
+        if checked >= _MAX_SCRIPT_FILES:
+            break
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            with open(path, "rb") as f:
+                head = f.read(_MAX_SCRIPT_HEAD)
+        except OSError:
+            continue
+        if not head.startswith(b"#!"):
+            continue
+        checked += 1
+        try:
+            first_line = head.split(b"\n", 1)[0].decode("utf-8", errors="replace")
+        except ValueError:
+            continue
+        parts = first_line[2:].strip().split()
+        if not parts:
+            continue
+        # /usr/bin/env <interp> kalibi veya dogrudan yol
+        if parts[0].endswith("/env") and len(parts) > 1:
+            interp = parts[1]
+        else:
+            interp = parts[0].rsplit("/", 1)[-1]
+        interp = interp.strip()
+        if not interp:
+            continue
+        pkg = _INTERP_MAP.get(interp)
+        if pkg:
+            found.add(pkg)
+    return found

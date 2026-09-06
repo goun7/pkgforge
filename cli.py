@@ -306,13 +306,43 @@ def _cmd_convert(args: argparse.Namespace) -> int:
 
         if confirmed:
             print(tr("cli.installing_pkg").format(name=pkg_path.name))
+            from core.privileged import (
+                find_privileged_helper,
+                privileged_install_pkg_argv,
+                privileged_setup_hint,
+            )
+            hint = privileged_setup_hint()
+            if hint:
+                print(f"  💡 {hint}")
+            # Snapshot + kurulum TEK pkexec diyalogunda (helper --snapshot).
+            # Eski akis ham `pkexec pacman` cagiriyordu: policy eslesmez,
+            # dogrulama katmani yoktu, snapshot hic alinmiyordu.
+            # NOT: konsolide helper kullanilir (install_helper.sh degil);
+            # boylece basiz (PyQt6'siz) CLI calisir.
+            snap_args: list[str] = []
+            try:
+                from core.snapshot_manager import detect_backend, snapshot_name
+                if load_setting("snapshot", True) and detect_backend() != "none":
+                    snap_args = ["--snapshot", snapshot_name(extract_package_name(file_path.name))]
+            except Exception:  # noqa: BLE001
+                snap_args = []
             pkexec = tools.pkexec or "pkexec"
-            pacman = tools.pacman or "pacman"
 
-            res = safe_run([pkexec, pacman, "-U", "--noconfirm", "--", str(pkg_path)], timeout=120)
+            helper = find_privileged_helper()
+            if helper.is_file():
+                argv = privileged_install_pkg_argv(pkexec, str(pkg_path),
+                                                   snapshot=snap_args[1] if snap_args else "")
+            else:
+                pacman = tools.pacman or "pacman"
+                argv = [pkexec, pacman, "-U", "--noconfirm", "--", str(pkg_path)]
+            res = safe_run(argv, timeout=600)
             if res.returncode == 0:
                 print(tr("cli.install_success").format(name=pkg_path.name))
                 install_status = "installed"
+                for _line in res.stdout.splitlines():
+                    if _line.strip().startswith("snapshot-ok:"):
+                        print(f"  📸 Snapshot hazır: {_line.strip().split('snapshot-ok:', 1)[1].strip()}")
+                        break
             else:
                 print(tr("cli.install_failed").format(error=res.stderr))
                 install_status = "install_failed"
@@ -395,9 +425,17 @@ def _cmd_rollback(args: argparse.Namespace) -> int:
 
     tools = discover_tools()
     pkexec = tools.pkexec or "pkexec"
-    pacman = tools.pacman or "pacman"
 
-    res = safe_run([pkexec, pacman, "-U", "--noconfirm", "--", str(target_backup)], timeout=120)
+    # Helper uzerinden kurulum: policy eslesmesi + arguman dogrulamasi.
+    # Eski akis ham `pkexec pacman` idi (genel fallback = ayri parola).
+    from core.privileged import find_privileged_helper, privileged_install_pkg_argv
+    helper = find_privileged_helper()
+    if helper.is_file():
+        argv = privileged_install_pkg_argv(pkexec, str(target_backup))
+    else:
+        pacman = tools.pacman or "pacman"
+        argv = [pkexec, pacman, "-U", "--noconfirm", "--", str(target_backup)]
+    res = safe_run(argv, timeout=600)
     if res.returncode == 0:
         print(tr("cli.rollback_success").format(name=pkg_name))
         return 0
@@ -1378,11 +1416,16 @@ def _cmd_wrapped(args: argparse.Namespace) -> int:
 
 def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
     """Handle `pkgforge snapshot-cleanup`."""
+    from core.privileged import privileged_setup_hint
     from core.snapshot_cleanup import (
         get_cleanup_status,
         install_cleanup_service,
         remove_cleanup_service,
     )
+
+    hint = privileged_setup_hint()
+    if hint and (getattr(args, "install", False) or getattr(args, "remove", False)):
+        print(f"  💡 {hint}\n")
 
     if getattr(args, "install", False):
         max_age = getattr(args, "max_age", 7)
@@ -1606,6 +1649,7 @@ def _cmd_delta(args: argparse.Namespace) -> int:
         enable_auto_update,
         get_auto_update_status,
     )
+    from core.privileged import privileged_setup_hint
 
     action = getattr(args, "delta_action", None)
 
@@ -1619,6 +1663,9 @@ def _cmd_delta(args: argparse.Namespace) -> int:
             print(f"  Sonraki çalışma: {status['next_run']}")
 
     elif action == "enable":
+        hint = privileged_setup_hint()
+        if hint:
+            print(f"  💡 {hint}")
         ok, msg = enable_auto_update()
         print(f"{'✅' if ok else '❌'} {msg}")
         return 0 if ok else 1

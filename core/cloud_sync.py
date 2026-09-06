@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import os
 import sqlite3
 import tempfile
@@ -25,6 +26,8 @@ from pathlib import Path, PurePosixPath
 import config
 from config import APP_VERSION, PROFILE_NAME_RE
 from i18n import tr
+
+log = logging.getLogger(__name__)
 
 # Per-profile files captured in every bundle.
 _BUNDLE_FILES = ("settings.json", "history.db", "history.db-wal", "history.db-shm")
@@ -246,7 +249,15 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
         )
     pw = ""
     if user:
-        stored = webdav_store(user).get_secret()
+        # Gecici keyring okuma hatasi senkronu oldurmez: parola bos
+        # birakilir, sunucu reddederse SyncError uretilir. Guvenlik
+        # siniri korunur — duz-metin settings.json'a ASLA dusulmez;
+        # servis tamamen yoksa yukaridaki available() zaten abort eder.
+        try:
+            stored = webdav_store(user).get_secret()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Keyring okuma hatasi, parolasiz devam ediliyor: %s", exc)
+            stored = None
         if stored is not None:
             pw = stored
     if user or pw:

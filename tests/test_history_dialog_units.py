@@ -89,6 +89,23 @@ def _qmsg(monkeypatch, answers=("question",)):
     return log
 
 
+def _pompala(app, kosul, sure=5.0):
+    """Arka-plan QThread isleri icin olay dongusunu kosul saglanana kadar sur.
+
+    Uretim kodu kaldirma/geri-almayi run_in_background ile yapar; testler
+    callback calisana kadar beklemelidir (yoksa hem assert hem sonraki
+    testin QApplication yikimi bozulur).
+    """
+    import time
+
+    son = time.time() + sure
+    while time.time() < son and not kosul():
+        app.processEvents()
+        time.sleep(0.01)
+    app.processEvents()
+    return bool(kosul())
+
+
 def test_init_populates_rows(dlg):
     d, _db = dlg
     assert d._table.rowCount() == 4
@@ -180,7 +197,7 @@ def test_selected_name_none_without_selection(dlg, monkeypatch):
     assert log["warning"]
 
 
-def test_uninstall_runs_pacman_remove(dlg, monkeypatch):
+def test_uninstall_runs_pacman_remove(dlg, monkeypatch, app):
     d, _db = dlg
     d._table.selectRow(0)
     komutlar = []
@@ -189,8 +206,9 @@ def test_uninstall_runs_pacman_remove(dlg, monkeypatch):
                         or NS(returncode=0, stderr=""))
     log = _qmsg(monkeypatch)
     d._uninstall_selected()
+    assert _pompala(app, lambda: komutlar)
     assert any("demo" in c for c in [" ".join(k) for k in komutlar])
-    assert log["information"]
+    assert _pompala(app, lambda: log["information"])
 
 
 def test_uninstall_invalid_name_blocked(dlg, monkeypatch):
@@ -215,7 +233,7 @@ def test_rollback_without_backup_warns(dlg, monkeypatch, tmp_path):
     assert log["warning"]
 
 
-def test_rollback_happy_and_failure_paths(dlg, monkeypatch, tmp_path):
+def test_rollback_happy_and_failure_paths(dlg, monkeypatch, tmp_path, app):
     d, db = dlg
     d._table.selectRow(0)
     yedek = tmp_path / "demo-backup.pkg.tar.zst"
@@ -226,13 +244,14 @@ def test_rollback_happy_and_failure_paths(dlg, monkeypatch, tmp_path):
     monkeypatch.setattr(HD, "safe_run",
                         lambda cmd, timeout=0: NS(returncode=0, stderr=""))
     d._rollback_selected()
-    assert log["information"]
+    assert _pompala(app, lambda: log["information"])
 
     monkeypatch.setattr(HD, "safe_run",
                         lambda cmd, timeout=0: NS(returncode=1,
                                                   stderr="pacman hatasi"))
     d._rollback_selected()
-    assert log["critical"] and "pacman hatasi" in str(log["critical"][0])
+    assert _pompala(app, lambda: log["critical"])
+    assert "pacman hatasi" in str(log["critical"][0])
 
 
 def test_clear_history_yes_and_no(dlg, monkeypatch):
@@ -387,7 +406,7 @@ def test_uninstall_no_selection_returns(dlg, monkeypatch):
     assert komutlar == []
 
 
-def test_uninstall_failure_shows_critical(dlg, monkeypatch):
+def test_uninstall_failure_shows_critical(dlg, monkeypatch, app):
     d, _db = dlg
     d._table.selectRow(0)
     _qmsg(monkeypatch)
@@ -399,7 +418,8 @@ def test_uninstall_failure_shows_critical(dlg, monkeypatch):
                         staticmethod(lambda *a, **k:
                                      log_kritik.append(a)))
     d._uninstall_selected()
-    assert log_kritik and "cikaramadi" in str(log_kritik[0])
+    assert _pompala(app, lambda: log_kritik)
+    assert "cikaramadi" in str(log_kritik[0])
 
 
 def test_rollback_no_selection_returns(dlg, monkeypatch):

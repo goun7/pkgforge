@@ -16,6 +16,7 @@ from pathlib import Path
 
 from config import ToolPaths
 from core.dep_resolver import parse_needed_sonames, parse_objdump_sonames
+from core.maps import debian_dep_to_arch
 from core.security import is_valid_package_name, safe_run
 from i18n import tr
 
@@ -220,32 +221,41 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
         if not dep_name:
             continue
 
+        # Debian-sourced names (libc6, libstdc++6, ...) are normalized to
+        # Arch equivalents first; unknown foreign names are kept as-is and
+        # reported honestly below instead of guessed.
+        mapped = debian_dep_to_arch(dep_name)
+        lookup_name = mapped or dep_name
+        display_name = (
+            f"{dep_name} → {mapped}" if mapped and mapped != dep_name else dep_name
+        )
+
         # Dep names come from untrusted package metadata; validate before
         # passing to pacman so a crafted name cannot inject CLI options.
-        if not is_valid_package_name(dep_name):
-            missing.append(tr("compat.dep_name_gecersiz_ad", dep_name=dep_name))
+        if not is_valid_package_name(lookup_name):
+            missing.append(tr("compat.dep_name_gecersiz_ad", dep_name=lookup_name))
             continue
 
         # Check if installed
-        qi = safe_run([tools.pacman, "-Qi", dep_name], timeout=5)
+        qi = safe_run([tools.pacman, "-Qi", lookup_name], timeout=5)
         if qi.returncode == 0:
-            resolved.append(dep_name)
+            resolved.append(display_name)
             continue
 
         # Check if available in repos
-        si = safe_run([tools.pacman, "-Si", dep_name], timeout=5)
+        si = safe_run([tools.pacman, "-Si", lookup_name], timeout=5)
         if si.returncode == 0:
-            resolved.append(dep_name)
+            resolved.append(display_name)
             continue
 
         # Dynamic lookup: pacman -Fq
-        pf = safe_run([tools.pacman, "-Fq", dep_name], timeout=5)
+        pf = safe_run([tools.pacman, "-Fq", lookup_name], timeout=5)
         if pf.returncode == 0 and pf.stdout.strip():
             matched_pkg = pf.stdout.strip().splitlines()[0].split("/")[-1]
-            resolved.append(f"{dep_name} → {matched_pkg}")
+            resolved.append(f"{display_name} → {matched_pkg}")
             continue
 
-        missing.append(dep_name)
+        missing.append(display_name)
 
 
     results: list[CheckResult] = []

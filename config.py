@@ -12,8 +12,8 @@ APP_NAME = "PkgForge"
 APP_VERSION = "2.0.0"
 APP_ID = "org.pkgforge.app"
 
-# Destek/bağış (FUNDING.yml ile aynı hedefleri işaret eder; GitHub Sponsors
-# etkinleşene kadar Polar/Kreosus yansıtıcıları kullanılır).
+# Destek (FUNDING.yml ile aynı hedefleri işaret eder; GitHub Sponsors
+# etkinleşene kadar Polar yansıtıcısı kullanılır).
 REPO_URL = "https://github.com/goun7/pkgforge"
 DONATE_URL = "https://polar.sh/goun7"
 
@@ -107,8 +107,7 @@ RPM_ARCH_MAP: dict[str, str] = {
 }
 
 # Known RPM → Arch dependency name mapping
-RPM_DEP_MAP: dict[str, str] = {
-    "glibc": "glibc",
+RPM_DEP_MAP: dict[str, str] = {    "glibc": "glibc",
     "libX11": "libx11",
     "libXext": "libxext",
     "libXrender": "libxrender",
@@ -135,6 +134,82 @@ RPM_DEP_MAP: dict[str, str] = {
     "libsqlite3": "sqlite",
     "libfontconfig": "fontconfig",
     "libfreetype": "freetype2",
+}
+
+# Known Debian → Arch dependency name mapping.
+# ONLY rock-solid equivalences are listed; anything absent stays as-is and
+# is reported as unresolvable (honest warning) rather than guessed.
+# Keys are matched case-insensitively; Debian multiarch qualifiers
+# (e.g. "libc6:amd64") and version constraints are stripped before lookup.
+DEB_DEP_MAP: dict[str, str] = {
+    "libc6": "glibc",
+    "libc6-dev": "glibc",
+    "libstdc++6": "gcc-libs",
+    "libgcc-s1": "gcc-libs",
+    "libgcc1": "gcc-libs",
+    "zlib1g": "zlib",
+    "libbz2-1.0": "bzip2",
+    "liblzma5": "xz",
+    "libssl3": "openssl",
+    "libssl1.1": "openssl-1.1",
+    "libcurl4": "curl",
+    "libcurl3": "curl",
+    "libx11-6": "libx11",
+    "libxext6": "libxext",
+    "libxrender1": "libxrender",
+    "libxcb1": "libxcb",
+    "libgl1": "libglvnd",
+    "libegl1": "libglvnd",
+    "libasound2": "alsa-lib",
+    "libpulse0": "libpulse",
+    "libdbus-1-3": "dbus",
+    "libglib2.0-0": "glib2",
+    "libgtk-3-0": "gtk3",
+    "libgtk-4-1": "gtk4",
+    "libcairo2": "cairo",
+    "libpango-1.0-0": "pango",
+    "libnss3": "nss",
+    "libnspr4": "nspr",
+    "libsqlite3-0": "sqlite",
+    "libfontconfig1": "fontconfig",
+    "libfreetype6": "freetype2",
+    "libpng16-16": "libpng",
+    "libjpeg62-turbo": "libjpeg-turbo",
+    "libexpat1": "expat",
+    "bash": "bash",
+    "dash": "bash",
+    "coreutils": "coreutils",
+    "python3": "python",
+    "perl": "perl",
+}
+
+# Debian-ish license tokens → SPDX identifiers.
+# Matched case-insensitively as substrings; first hit wins, so keep the
+# most specific tokens ("gpl-3", "lgpl-2.1") before generic ones ("gpl").
+DEB_LICENSE_MAP: dict[str, str] = {
+    "gpl-3": "GPL-3.0-only",
+    "gpl3": "GPL-3.0-only",
+    "gpl-2": "GPL-2.0-only",
+    "gpl2": "GPL-2.0-only",
+    "lgpl-2.1": "LGPL-2.1-only",
+    "lgpl-3": "LGPL-3.0-only",
+    "lgpl": "LGPL-2.1-only",
+    "apache-2": "Apache-2.0",
+    "apache": "Apache-2.0",
+    "mit/expat": "MIT",
+    "mit": "MIT",
+    "expat": "MIT",
+    "bsd-3": "BSD-3-Clause",
+    "bsd-2": "BSD-2-Clause",
+    "bsd": "BSD-3-Clause",
+    "mpl-2": "MPL-2.0",
+    "mpl": "MPL-2.0",
+    "isc": "ISC",
+    "zlib/libpng": "Zlib",
+    "artistic-2": "Artistic-2.0",
+    "cc0": "CC0-1.0",
+    "public-domain": "Unlicense",
+    "psf": "Python-2.0",
 }
 
 # AUR RPC endpoints

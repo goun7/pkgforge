@@ -603,7 +603,7 @@ def handle_system_install_pkg(params):
     (org.pkgforge.install) yetkilendirilir ve helper argüman doğrulaması
     (uzanti/mutlak yol/çapraz-yol) devrede kalır.
     """
-    from core.privileged import privileged_argv
+    from core.privileged import privileged_install_pkg_argv
     from core.security import safe_run
 
     pkg = Path(params.get("pkg_path", ""))
@@ -615,8 +615,19 @@ def handle_system_install_pkg(params):
     if not tools.pkexec or not tools.pacman:
         raise RuntimeError("pkexec veya pacman bulunamadı")
 
+    # Snapshot + kurulum TEK diyalogda (helper --snapshot).
+    snap = ""
+    try:
+        from i18n import load_setting
+        from core.snapshot_manager import detect_backend, snapshot_name
+        if load_setting("snapshot", True) and detect_backend() != "none":
+            from config import extract_package_name
+            snap = snapshot_name(extract_package_name(pkg.name))
+    except Exception:  # noqa: BLE001
+        snap = ""
+
     def _op():
-        argv = privileged_argv(tools.pkexec, "install-pkg", str(pkg))
+        argv = privileged_install_pkg_argv(tools.pkexec, str(pkg), snapshot=snap)
         res = safe_run(argv, timeout=600)
         if res.returncode == 0:
             return {"ok": True, "message": f"{pkg.name} kuruldu"}

@@ -44,6 +44,13 @@ def test_delete_and_restore_dispatch(monkeypatch):
     monkeypatch.setattr(SM, "detect_backend", lambda: "btrfs")
     seen = []
     monkeypatch.setattr(SM, "safe_run", lambda c, timeout=None: seen.append(c) or _ns(0))
+    # Normal kullanici: helper uzerinden TEK diyalog.
+    assert delete_snapshot("/pkgforge-x") is True
+    assert seen[0][0] == "pkexec" and "snapshot" in seen[0]
+    assert "delete-btrfs" in seen[0] and "/pkgforge-x" in seen[0]
+    # Root: dogrudan btrfs.
+    monkeypatch.setattr(SM.os, "geteuid", lambda: 0)
+    seen.clear()
     assert delete_snapshot("/pkgforge-x") is True
     assert seen[0][:3] == ["btrfs", "subvolume", "delete"]
 

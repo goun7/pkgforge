@@ -36,15 +36,21 @@ SYSTEMCTL_VERBS = frozenset(
 
 
 def find_privileged_helper() -> Path:
-    """Locate pkgforge-privileged.sh (source tree, wheel, or system install)."""
+    """Locate pkgforge-privileged.sh (system install, wheel, or source tree).
+
+    Siralama bilincli olarak SISTEM once: polkit politikasi yalnizca
+    /usr/share/pkgforge/scripts/ yolunu yetkilendirir. Kaynak agactaki
+    kopya once gelseydi kurulu sistemde bile policy eslesmez, pkexec her
+    cagrida genel fallback ile parola isterdi.
+    """
     import sys
 
     candidates = [
-        Path(__file__).resolve().parent.parent / "scripts"
-        / PRIVILEGED_HELPER_NAME,
+        Path("/usr/share/pkgforge/scripts") / PRIVILEGED_HELPER_NAME,
         Path(sys.prefix) / "share" / "pkgforge" / "scripts"
         / PRIVILEGED_HELPER_NAME,
-        Path("/usr/share/pkgforge/scripts") / PRIVILEGED_HELPER_NAME,
+        Path(__file__).resolve().parent.parent / "scripts"
+        / PRIVILEGED_HELPER_NAME,
     ]
     for candidate in candidates:
         if candidate.is_file():
@@ -109,6 +115,108 @@ def privileged_systemctl_argv(pkexec: str, verb: str,
     if unit:
         argv.append(unit)
     return argv
+
+
+def privileged_install_pkg_argv(pkexec: str, pkg: str,
+                                snapshot: str = "") -> list[str]:
+    """Tek diyalogda snapshot'li kurulum: install-pkg [--snapshot AD] <paket>."""
+    argv = privileged_argv(pkexec, "install-pkg")
+    if snapshot:
+        argv += ["--snapshot", snapshot]
+    argv.append(pkg)
+    return argv
+
+
+def privileged_service_deploy_argv(pkexec: str, unit: str) -> list[str]:
+    """Servis kurulumunun TAMAMI tek diyalogda (manifest stdin'den)."""
+    _check_unit_name(unit)
+    return privileged_argv(pkexec, "service-deploy", unit)
+
+
+def privileged_service_remove_argv(pkexec: str, unit: str,
+                                   *files: str) -> list[str]:
+    """Servis kaldirmanin TAMAMI tek diyalogda (stop+disable+sil+reload)."""
+    _check_unit_name(unit)
+    return privileged_argv(pkexec, "service-remove", unit, *files)
+
+
+def privileged_service_enable_argv(pkexec: str, unit: str) -> list[str]:
+    """enable + start tek diyalogda."""
+    _check_unit_name(unit)
+    return privileged_argv(pkexec, "service-enable", unit)
+
+
+def privileged_service_disable_argv(pkexec: str, unit: str) -> list[str]:
+    """stop + disable tek diyalogda."""
+    _check_unit_name(unit)
+    return privileged_argv(pkexec, "service-disable", unit)
+
+
+_SNAPSHOT_OPS = frozenset(
+    {"take-btrfs", "delete-btrfs", "take-zfs", "destroy-zfs"})
+
+
+def _check_unit_name(unit: str) -> None:
+    import re as _re
+
+    if not unit or _re.search(r"[^A-Za-z0-9._-]", unit):
+        raise ValueError(f"Gecersiz unit adi: {unit}")
+
+
+def privileged_snapshot_argv(pkexec: str, op: str, target: str) -> list[str]:
+    """Dosya-sistemi snapshot islemi tek diyalogda.
+
+    op: take-btrfs | delete-btrfs | take-zfs | destroy-zfs.
+    btrfs hedefleri mutlak yol, zfs hedefleri dataset@snap bicimindedir.
+    Hedef adlar helper tarafinda da dogrulanir (pkgforge- one eki sart).
+    """
+    import re as _re
+
+    if op not in _SNAPSHOT_OPS:
+        raise ValueError(f"Gecersiz snapshot islemi: {op}")
+    if not target or ".." in target:
+        raise ValueError(f"Gecersiz snapshot hedefi: {target}")
+    if op in ("take-zfs", "destroy-zfs"):
+        if "@" not in target:
+            raise ValueError(f"ZFS hedefi dataset@snap biciminde olmali: {target}")
+        dataset, _, snap = target.partition("@")
+        if not dataset or _re.search(r"[^A-Za-z0-9._/-]", dataset):
+            raise ValueError(f"Gecersiz dataset: {target}")
+        if not snap.startswith("pkgforge-"):
+            raise ValueError(f"Snapshot adi pkgforge- ile baslamali: {target}")
+    else:
+        if not target.startswith("/"):
+            raise ValueError(f"Gecersiz snapshot hedefi: {target}")
+    return privileged_argv(pkexec, "snapshot", op, target)
+
+
+def policy_installed() -> bool:
+    """Polkit politikasi + sistem helper'i kurulu mu?
+
+    Kurulu degilse pkexec HER cagrida genel fallback ile parola ister
+    (kuruluysa auth_admin_keep sayesinde tek parola 5 dk yeter).
+    """
+    from core.capabilities import privileged_helper_system_path
+
+    return (Path(POLICY_SYSTEM_PATH).is_file()
+            and Path(privileged_helper_system_path()).is_file())
+
+
+_SETUP_HINT_SHOWN = False
+
+
+def privileged_setup_hint() -> str | None:
+    """Kurulum eksikse tek seferlik uyari metni dondur (oturumda bir kez).
+
+    pkexec bombardimanindan once cagrilir; None ise hersey kurulu demektir.
+    """
+    global _SETUP_HINT_SHOWN
+    if _SETUP_HINT_SHOWN or policy_installed():
+        return None
+    _SETUP_HINT_SHOWN = True
+    return ("Polkit politikasi kurulu degil — her yetkili islem ayri parola "
+            "ister. Tek parola icin: sudo ./scripts/install.sh "
+            "(ardindan policy + helper sisteme kurulur)")
 
 
 def _action_block(aid: str, title: str, desc: str) -> str:

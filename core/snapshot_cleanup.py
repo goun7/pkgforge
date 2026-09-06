@@ -16,7 +16,6 @@ import logging
 import os
 from pathlib import Path
 
-from core.privileged import privileged_remove_argv
 from core.security import safe_run
 from core.snapshot_manager import detect_backend
 from i18n import tr
@@ -172,13 +171,13 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
     service_path = Path(f"/etc/systemd/system/{SERVICE_NAME}.service")
     timer_path = Path(f"/etc/systemd/system/{TIMER_NAME}.timer")
 
-    # Faz 14: TUM dosyalar TEK pkexec diyaloğunda (write-batch); eski
-    # akış 4-5 ayrı diyalog açıyordu.
+    # Tek pkexec diyalogu: dosyalar + daemon-reload + enable + start
+    # hepsi helper icinde (service-deploy). Eski akis 4 ayri cagri
+    # yapiyordu (write-batch + 3x systemctl).
     try:
         from core.privileged import (
             build_write_batch_manifest,
-            privileged_systemctl_argv,
-            privileged_write_batch_argv,
+            privileged_service_deploy_argv,
         )
 
         manifest = build_write_batch_manifest([
@@ -186,17 +185,10 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
             ("644", str(service_path), service_content),
             ("644", str(timer_path), timer_content),
         ])
-        res = safe_run(privileged_write_batch_argv("pkexec"),
-                       input=manifest, timeout=30)
+        res = safe_run(privileged_service_deploy_argv(
+            "pkexec", f"{TIMER_NAME}.timer"), input=manifest, timeout=60)
         if res.returncode != 0:
             return False, tr("snapclean.dosyalar_yazilamadi_kod_res", res_returncode=res.returncode)
-
-        # Enable/start: helper uzerinden yetkili systemctl.
-        safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
-        safe_run(privileged_systemctl_argv("pkexec", "enable",
-                                           f"{TIMER_NAME}.timer"), timeout=15)
-        safe_run(privileged_systemctl_argv("pkexec", "start",
-                                           f"{TIMER_NAME}.timer"), timeout=15)
 
         msg = (
             tr("snapclean.snapshot_cleanup_servisi_kuruldu", max_age_days=max_age_days, SERVICE_NAME=SERVICE_NAME, TIMER_NAME=TIMER_NAME, TIMER_NAME_2=TIMER_NAME)
@@ -223,27 +215,22 @@ def remove_cleanup_service() -> tuple[bool, str]:
         return False, "systemctl bulunamadı"
 
     try:
-        from core.privileged import privileged_systemctl_argv
+        from core.privileged import privileged_service_remove_argv
 
-        # Faz 14: systemctl fiilleri helper uzerinden yetkili.
-        safe_run(privileged_systemctl_argv("pkexec", "stop",
-                                           f"{TIMER_NAME}.timer"), timeout=15)
-        safe_run(privileged_systemctl_argv("pkexec", "disable",
-                                           f"{TIMER_NAME}.timer"), timeout=15)
-
-        # Remove files
-        for path in [
+        # Tek pkexec diyalogu: stop + disable + dosya silme + reload.
+        # Eski akis 6'ya kadar ayri cagri yapiyordu.
+        files = [
             f"/etc/systemd/system/{SERVICE_NAME}.service",
             f"/etc/systemd/system/{TIMER_NAME}.timer",
             "/usr/local/bin/pkgforge-snapshot-cleanup.sh",
-        ]:
-            p = Path(path)
-            if p.exists():
-                safe_run(privileged_remove_argv("pkexec", str(p)), timeout=10)
+        ]
+        res = safe_run(privileged_service_remove_argv(
+            "pkexec", f"{TIMER_NAME}.timer", *files), timeout=60)
 
-        safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
-
-        return True, "✅ Snapshot cleanup servisi kaldırıldı."
+        if res.returncode == 0:
+            return True, "✅ Snapshot cleanup servisi kaldırıldı."
+        return False, tr("snapclean.kaldirma_basarisiz_exc",
+                         exc=f"helper kod {res.returncode}: {res.stderr[:200]}")
 
     except Exception as exc:  # noqa: BLE001
         return False, tr("snapclean.kaldirma_basarisiz_exc", exc=exc)

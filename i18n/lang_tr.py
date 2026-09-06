@@ -43,6 +43,7 @@ STRINGS: dict[str, str] = {
     "tools.audit_load": "Denetim İzini Yükle",
     "tools.file_missing": "❌ Dosya bulunamadı",
     "tools.running": "Çalışıyor…",
+    "tools.snap_remove_confirm": "Snapshot temizlik servisi sistemden kaldırılacak. Onaylıyor musunuz?",
     "tools.rpm_tools_missing": "rpm2cpio veya dpkg-deb bulunamadı (rpmextract/dpkg kurun)",
     "tools.abi_passed": "✅ ABI uyumluluğu sağlam",
     "tools.abi_failed": "⚠️ ABI uyumsuzlukları tespit edildi",

@@ -221,14 +221,39 @@ def test_close_event_with_running_thread_yes(app, win, monkeypatch):
     win._pipeline = NS(cancel=lambda: iptaller.append("p"))
     win._pipeline_thread = NS(isRunning=lambda: True,
                               quit=lambda: iptaller.append("q"),
-                              wait=lambda ms: iptaller.append("w"))
+                              wait=lambda ms: iptaller.append("w") or True,
+                              terminate=lambda: iptaller.append("t"))
     kutu = MW.QMessageBox
     monkeypatch.setattr(kutu, "question",
                         staticmethod(lambda *a, **k: kutu.StandardButton.Yes))
     kabul = []
     ev = NS(accept=lambda: kabul.append(True), ignore=lambda: None)
     win.closeEvent(ev)
+    # temiz cikis: terminate cagrilmaz
     assert iptaller == ["p", "q", "w"] and kabul == [True]
+
+
+def test_close_event_stuck_thread_terminated(app, win, monkeypatch):
+    iptaller = []
+    cagrilar = {"wait": 0}
+
+    def bekle(ms):
+        iptaller.append(f"w{ms}")
+        cagrilar["wait"] += 1
+        return False  # takili worker: ilk wait basarisiz
+
+    win._pipeline = NS(cancel=lambda: iptaller.append("p"))
+    win._pipeline_thread = NS(isRunning=lambda: True,
+                              quit=lambda: iptaller.append("q"),
+                              wait=bekle,
+                              terminate=lambda: iptaller.append("t"))
+    kutu = MW.QMessageBox
+    monkeypatch.setattr(kutu, "question",
+                        staticmethod(lambda *a, **k: kutu.StandardButton.Yes))
+    kabul = []
+    ev = NS(accept=lambda: kabul.append(True), ignore=lambda: None)
+    win.closeEvent(ev)
+    assert iptaller == ["p", "q", "w3000", "t", "w1000"] and kabul == [True]
 
 
 def test_close_event_no_declines(app, win, monkeypatch):

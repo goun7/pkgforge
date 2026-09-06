@@ -5,10 +5,25 @@
 
 set -euo pipefail
 
+BTRFS_BIN="${PKGForge_BTRFS:-/usr/bin/btrfs}"
+ZFS_BIN="${PKGForge_ZFS:-/usr/bin/zfs}"
+
 # ── Argument validation ──────────────────────────────────────────
 
+# Kullanim: install_helper.sh [--snapshot AD] <paket_dosyası>
+# --snapshot verilirse kurulum ONCESI dosya-sistemi snapshot'i alinir.
+# Snapshot best-effort'tur: alinamazsa uyari basar, kurulum devam eder.
+SNAP=""
+if [ "${1:-}" = "--snapshot" ]; then
+    if [ $# -ne 3 ]; then
+        echo "Kullanım: install_helper.sh [--snapshot AD] <paket_dosyası>" >&2
+        exit 1
+    fi
+    SNAP="$2"; shift 2
+fi
+
 if [ $# -ne 1 ]; then
-    echo "Kullanım: install_helper.sh <paket_dosyası>" >&2
+    echo "Kullanım: install_helper.sh [--snapshot AD] <paket_dosyası>" >&2
     exit 1
 fi
 
@@ -59,6 +74,32 @@ if [ "$VALID" = false ]; then
 fi
 
 # ── Execute installation ─────────────────────────────────────────
+
+if [ -n "$SNAP" ]; then
+    # Snapshot adi guvenligi: yalnizca pkgforge- one eki.
+    SNAP_BASE="$(basename "$SNAP")"
+    if [[ "$SNAP_BASE" == pkgforge-* ]] && [[ "$SNAP_BASE" != *".."* ]] \
+        && [[ "$SNAP_BASE" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+        SNAP_OK=false
+        if [ -x "$BTRFS_BIN" ] \
+            && "$BTRFS_BIN" filesystem show / >/dev/null 2>&1 \
+            && "$BTRFS_BIN" subvolume snapshot / "/$SNAP_BASE" 2>/dev/null; then
+            echo "snapshot-ok: /$SNAP_BASE"
+            SNAP_OK=true
+        else
+            DS="$("$ZFS_BIN" list -H -o name,mountpoint -t filesystem 2>/dev/null | awk '$2=="/" {print $1}')"
+            if [ -n "$DS" ] && [ -x "$ZFS_BIN" ] \
+                && "$ZFS_BIN" snapshot -- "$DS@$SNAP_BASE" 2>/dev/null; then
+                echo "snapshot-ok: $DS@$SNAP_BASE"
+                SNAP_OK=true
+            fi
+        fi
+        [ "$SNAP_OK" = true ] \
+            || echo "UYARI: snapshot alinamadi, kuruluma devam ediliyor" >&2
+    else
+        echo "UYARI: gecersiz snapshot adi, atlaniyor: $SNAP" >&2
+    fi
+fi
 
 echo "Paket kuruluyor: $(basename "$PKG_FILE")"
 # '--' guards against a package path starting with '-' being parsed as an option

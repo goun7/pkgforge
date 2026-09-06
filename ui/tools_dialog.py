@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QTabWidget,
@@ -442,6 +443,16 @@ class ToolsDialog(QDialog):
 
     def _run_snapshot_remove(self) -> None:
         from core.snapshot_cleanup import remove_cleanup_service
+        # Destructive: removes a system systemd unit — require confirmation.
+        reply = QMessageBox.question(
+            self,
+            tr("common.warning"),
+            tr("tools.snap_remove_confirm"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         self._snap_remove_btn.setEnabled(False)
 
         def _op():

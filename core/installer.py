@@ -19,19 +19,21 @@ from i18n import tr
 log = logging.getLogger(__name__)
 
 def _find_install_helper() -> Path:
-    """Locate install_helper.sh in source tree or installed data dirs.
+    """Locate install_helper.sh in system install, wheel data dirs, or source.
 
     Search order:
-    1. Source checkout: <project>/scripts/install_helper.sh
+    1. System install: /usr/share/pkgforge/scripts/install_helper.sh
+       (polkit politikasi yalnizca BU yolu yetkilendirir — once bakilir,
+       yoksa kurulu sistemde bile policy eslesmezdi)
     2. pip/wheel install: <sys.prefix>/share/pkgforge/scripts/install_helper.sh
-    3. System install: /usr/share/pkgforge/scripts/install_helper.sh
+    3. Source checkout: <project>/scripts/install_helper.sh
     """
     import sys
 
     candidates = [
-        Path(__file__).resolve().parent.parent / "scripts" / "install_helper.sh",
-        Path(sys.prefix) / "share" / "pkgforge" / "scripts" / "install_helper.sh",
         Path("/usr/share/pkgforge/scripts/install_helper.sh"),
+        Path(sys.prefix) / "share" / "pkgforge" / "scripts" / "install_helper.sh",
+        Path(__file__).resolve().parent.parent / "scripts" / "install_helper.sh",
     ]
     for candidate in candidates:
         if candidate.is_file():
@@ -98,28 +100,24 @@ class Installer(QObject):
 
         self.output_line.emit(f"▶ Paket kuruluyor: {pkg_path.name}")
 
-        # Take a filesystem snapshot before installation (best-effort)
+        # Snapshot adi onceden uretilir; kurulumun kendisiyle AYNI pkexec
+        # diyalogunda alinir (helper --snapshot bayragi). Boylece kurulum
+        # tek parola sorar VE snapshot gercekten olusur. Eski akis snapshot'i
+        # yetkisiz deneyip sessizce basarisiz oluyordu.
+        from core.privileged import privileged_setup_hint
         from i18n import load_setting
+        hint = privileged_setup_hint()
+        if hint:
+            self.output_line.emit(f"  💡 {hint}")
+        snap_arg: list[str] = []
         if load_setting("snapshot", True):
             try:
-                from core.snapshot_manager import detect_backend, take_snapshot
-                backend = detect_backend()
-                if backend != "none":
-                    self.output_line.emit(tr("installer.backend_upper_snapshot_aliniyor", backend_upper=backend.upper()))
-                    snap = take_snapshot(pkg_name)
-                    if snap.success:
-                        self._snapshot_name = snap.snapshot_name
-                        self.output_line.emit(tr("installer.snapshot_hazir_snap_snapshot", snap_snapshot_name=snap.snapshot_name))
-                    else:
-                        self._snapshot_name = ""
-                        self.output_line.emit(f"  ⚠ {snap.detail}")
-                else:
-                    self._snapshot_name = ""
+                from core.snapshot_manager import detect_backend, snapshot_name
+                if detect_backend() != "none":
+                    snap_arg = ["--snapshot", snapshot_name(pkg_name)]
             except Exception as exc:  # noqa: BLE001
                 log.debug(tr("installer.snapshot_temizleme_basarisiz_s"), exc)
-                self._snapshot_name = ""
-        else:
-            self._snapshot_name = ""
+        self._snapshot_name = ""
 
         self.output_line.emit("  Yetki yükseltme isteniyor (Polkit)...")
 
@@ -129,11 +127,14 @@ class Installer(QObject):
         self._process.finished.connect(self._on_finished)
         self._process.errorOccurred.connect(self._on_error)
 
-        # Use install_helper.sh for additional safety layer
+        # Helper DOGRRUDAN calistirilir (pkexec /bin/bash sarmali YOK):
+        # polkit org.pkgforge.install action'i yalnizca helper yolunu
+        # yetkilendirir; /bin/bash uzerinden cagrilinca eslesme olmaz ve
+        # her kurulum genel fallback ile parola isterdi.
         if INSTALL_HELPER.is_file():
             self._process.start(
                 self._tools.pkexec,
-                ["/bin/bash", str(INSTALL_HELPER), str(pkg_path)],
+                [str(INSTALL_HELPER), *snap_arg, str(pkg_path)],
             )
         else:
             # Direct pkexec pacman -U fallback (-- guards against a package
@@ -157,7 +158,11 @@ class Installer(QObject):
         for line in data.splitlines():
             stripped = line.strip()
             if stripped:
-                self.output_line.emit(f"  {stripped}")
+                if stripped.startswith("snapshot-ok:"):
+                    self._snapshot_name = stripped.split("snapshot-ok:", 1)[1].strip()
+                    self.output_line.emit(f"  📸 Snapshot hazır: {self._snapshot_name}")
+                else:
+                    self.output_line.emit(f"  {stripped}")
 
     def _on_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if self._cancelled:

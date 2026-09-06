@@ -286,19 +286,15 @@ WantedBy=timers.target
 
 
 def _write_and_enable_units(units: tuple) -> tuple[bool, str]:
-    """Unit dosyalarini TEK yetkili diyalogda yazar ve timer'i acar.
+    """Unit dosyalarini yazar ve timer'i TEK yetkili diyalogda acar.
 
-    Faz 14: TUM dosyalar TEK pkexec diyalogunda yazilir (write-batch);
-    eski akis 4 ayri diyalog aciyordu ve diyaloglar saniyeler icinde
-    art arda yagdiginda 'sudo bombardimani' deneyimi olusuyordu.
-    systemctl fiilleri de helper uzerinden yetkili yapilir (eski akis
-    bunlari yetkisiz cagiriyordu → sessiz basarisizlik).
+    service-deploy: manifest + daemon-reload + enable + start hepsi helper
+    icinde. Eski akis 4 ayri pkexec cagrisi yapiyordu.
     """
     script_path, script_content, service_path, service_content, timer_path, timer_content = units
     from core.privileged import (
         build_write_batch_manifest,
-        privileged_systemctl_argv,
-        privileged_write_batch_argv,
+        privileged_service_deploy_argv,
     )
     from core.security import safe_run as _safe_run
 
@@ -307,18 +303,10 @@ def _write_and_enable_units(units: tuple) -> tuple[bool, str]:
         ("644", str(service_path), service_content),
         ("644", str(timer_path), timer_content),
     ])
-    res = _safe_run(privileged_write_batch_argv("pkexec"),
-                    input=manifest, timeout=30)
+    res = _safe_run(privileged_service_deploy_argv(
+        "pkexec", f"{_TIMER_NAME}.timer"), input=manifest, timeout=60)
     if res.returncode != 0:
         return False, tr("delta.dosyalar_yazilamadi_kod_res", res_returncode=res.returncode)
-
-    _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
-    res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
-                                             f"{_TIMER_NAME}.timer"), timeout=15)
-    if res.returncode != 0:
-        return False, "Timer etkinleştirilemedi (yetki reddedildi?)"
-    _safe_run(privileged_systemctl_argv("pkexec", "start",
-                                        f"{_TIMER_NAME}.timer"), timeout=15)
     return True, ""
 
 
@@ -367,28 +355,18 @@ def remove_auto_update() -> tuple[bool, str]:
         return False, "systemctl bulunamadı"
 
     try:
-        from core.privileged import (
-            privileged_remove_argv,
-            privileged_systemctl_argv,
-        )
+        from core.privileged import privileged_service_remove_argv
         from core.security import safe_run as _safe_run
 
-        # Faz 14: systemctl fiilleri helper uzerinden yetkili — eski akışta
-        # yetkisiz çağrılar sessizce başarısız oluyordu.
-        _safe_run(privileged_systemctl_argv("pkexec", "stop",
-                                            f"{_TIMER_NAME}.timer"), timeout=15)
-        _safe_run(privileged_systemctl_argv("pkexec", "disable",
-                                            f"{_TIMER_NAME}.timer"), timeout=15)
-
-        for p in [
+        # Tek pkexec diyalogu: stop + disable + dosya silme + reload.
+        res = _safe_run(privileged_service_remove_argv(
+            "pkexec", f"{_TIMER_NAME}.timer",
             f"/etc/systemd/system/{_SERVICE_NAME}.service",
             f"/etc/systemd/system/{_TIMER_NAME}.timer",
-            "/usr/local/bin/pkgforge-auto-update.sh",
-        ]:
-            if Path(p).exists():
-                _safe_run(privileged_remove_argv("pkexec", p), timeout=10)
-
-        _safe_run(privileged_systemctl_argv("pkexec", "daemon-reload"), timeout=15)
+            "/usr/local/bin/pkgforge-auto-update.sh"), timeout=60)
+        if res.returncode != 0:
+            return False, tr("delta.kaldirma_basarisiz_exc",
+                             exc=f"helper kod {res.returncode}")
         return True, "✅ Auto-update servisi kaldırıldı."
 
     except Exception as exc:  # noqa: BLE001
@@ -444,7 +422,7 @@ def enable_auto_update() -> tuple[bool, str]:
     Returns:
         (success, message)
     """
-    from core.privileged import privileged_systemctl_argv
+    from core.privileged import privileged_service_enable_argv
     from core.security import safe_run as _safe_run
     systemctl = shutil.which("systemctl")
     if not systemctl:
@@ -454,17 +432,11 @@ def enable_auto_update() -> tuple[bool, str]:
     if not timer_path.exists():
         return False, tr("delta.timer_dosyasi_bulunamadi_timer", timer_path=timer_path)
 
-    # Faz 14: systemctl fiilleri helper uzerinden yetkili (tek diyalog;
-    # auth_admin_keep ile 5 dk icinde tekrar sormaz).
-    res = _safe_run(privileged_systemctl_argv("pkexec", "enable",
-                                              f"{_TIMER_NAME}.timer"), timeout=15)
+    # enable + start TEK diyalogda (service-enable).
+    res = _safe_run(privileged_service_enable_argv(
+        "pkexec", f"{_TIMER_NAME}.timer"), timeout=30)
     if res.returncode != 0:
         return False, tr("delta.timer_etkinlestirilemedi_stderr", stderr=res.stderr[:200])
-
-    res = _safe_run(privileged_systemctl_argv("pkexec", "start",
-                                              f"{_TIMER_NAME}.timer"), timeout=15)
-    if res.returncode != 0:
-        return False, tr("delta.timer_baslatilamadi_stderr", stderr=res.stderr[:200])
 
     return True, tr("delta.otomatik_guncelleme_etkinlestirildi", _TIMER_NAME=_TIMER_NAME)
 
@@ -475,17 +447,15 @@ def disable_auto_update() -> tuple[bool, str]:
     Returns:
         (success, message)
     """
-    from core.privileged import privileged_systemctl_argv
+    from core.privileged import privileged_service_disable_argv
     from core.security import safe_run as _safe_run
     systemctl = shutil.which("systemctl")
     if not systemctl:
         return False, "systemctl bulunamadı — systemd kurulu değil"
 
-    # Faz 14: yetkili systemctl fiilleri (helper uzerinden).
-    _safe_run(privileged_systemctl_argv("pkexec", "stop",
-                                        f"{_TIMER_NAME}.timer"), timeout=15)
-    res = _safe_run(privileged_systemctl_argv("pkexec", "disable",
-                                              f"{_TIMER_NAME}.timer"), timeout=15)
+    # stop + disable TEK diyalogda (service-disable).
+    res = _safe_run(privileged_service_disable_argv(
+        "pkexec", f"{_TIMER_NAME}.timer"), timeout=30)
 
     if res.returncode == 0:
         return True, tr("delta.otomatik_guncelleme_devre_disi", _TIMER_NAME=_TIMER_NAME)

@@ -184,19 +184,19 @@ def test_install_requires_systemctl(monkeypatch):
 
 
 def test_install_happy_path(monkeypatch):
-    """Faz 14: kurulum artik TEK write-batch cagrisiyla yapilir; eskiden 3
-    ayri pkexec diyalogu vardi (sudo bombardimaninin ana kaynagi)."""
+    """Kurulum TEK service-deploy cagrisiyla yapilir; eskiden 4-6 ayri
+    pkexec diyalogu vardi (sudo bombardimaninin ana kaynagi)."""
     monkeypatch.setattr("os.path.isfile", lambda p: True)
-    batches = []
+    calls = []
 
     def fake(cmd, timeout=0, input=None):
-        if "write-batch" in cmd:
-            batches.append(cmd)
+        calls.append(cmd)
         return _rc(0)
     monkeypatch.setattr("core.security.safe_run", fake)
 
     ok, msg = DU.install_auto_update(interval_hours=12)
-    assert ok is True and len(batches) == 1, "tek write-batch beklenir"
+    assert ok is True and len(calls) == 1, f"tek diyalog beklenir: {calls}"
+    assert "service-deploy" in calls[0]
     assert "12 saatte" in msg or "Timer" in msg
 
 
@@ -283,7 +283,7 @@ def test_enable_disable_paths(monkeypatch, tmp_path):
                         lambda cmd, timeout=0: komutlar.append(cmd)
                         or _rc(0))
     ok, _msg = DU.enable_auto_update()
-    assert ok is True and any("enable" in c for c in komutlar)
+    assert ok is True and any("service-enable" in c for c in komutlar)
 
     ok, msg = DU.disable_auto_update()
     assert ok is True

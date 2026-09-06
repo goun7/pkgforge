@@ -51,10 +51,9 @@ def test_root_mount_point_missing_and_error(monkeypatch):
 
 def test_take_restore_list_delete_dispatch(monkeypatch):
     cagrilan = []
-    monkeypatch.setattr(SM, "_take_btrfs_snapshot",
-                        lambda ad: cagrilan.append(("bt", ad)) or NS())
-    monkeypatch.setattr(SM, "_take_zfs_snapshot",
-                        lambda ad: cagrilan.append(("zf", ad)) or NS())
+    monkeypatch.setattr(SM, "_take_snapshot_privileged",
+                        lambda be, ad: cagrilan.append(("priv", be, ad))
+                        or SM.SnapshotInfo(be, ad, "/", True, ""))
     monkeypatch.setattr(SM, "_restore_btrfs_snapshot",
                         lambda ad: cagrilan.append(("br", ad)) or (True, ""))
     monkeypatch.setattr(SM, "_restore_zfs_snapshot",
@@ -68,37 +67,42 @@ def test_take_restore_list_delete_dispatch(monkeypatch):
     monkeypatch.setattr(SM, "detect_backend", lambda: durum["d"])
 
     durum["d"] = "btrfs"
-    SM.take_snapshot("x")                                          # 88-89
-    SM.restore_snapshot("/pkgforge-x")                             # 116-117
-    SM.list_snapshots()                                            # 131-132
+    SM.take_snapshot("x")
+    SM.restore_snapshot("/pkgforge-x")
+    SM.list_snapshots()
 
     durum["d"] = "zfs"
-    SM.take_snapshot("y")                                          # 90-91
-    SM.restore_snapshot("zroot@pkgforge-y")                        # 118-119
-    SM.list_snapshots()                                            # 133-134
+    SM.take_snapshot("y")
+    SM.restore_snapshot("zroot@pkgforge-y")
+    SM.list_snapshots()
 
-    # delete btrfs/zfs/none (141-147)
+    # delete: helper tek-diyalog sozlesmesi (pkexec snapshot ...)
     silinen = []
     monkeypatch.setattr(SM, "safe_run",
                         lambda cmd, timeout=0:
                         silinen.append(cmd) or OK)
     durum["d"] = "btrfs"
-    assert SM.delete_snapshot("/pkgforge-x") is True               # 142-143
+    assert SM.delete_snapshot("/pkgforge-x") is True
+    assert silinen[0][0] == "pkexec" and "delete-btrfs" in silinen[0]
     durum["d"] = "zfs"
-    assert SM.delete_snapshot("zroot@p") is True                   # 144-146
+    assert SM.delete_snapshot("zroot@pkgforge-p") is True
+    assert "destroy-zfs" in silinen[-1]
     durum["d"] = ""
-    assert SM.delete_snapshot("x") is False                        # 147
-    assert any(c[0] == "zfs" for c in silinen)
+    assert SM.delete_snapshot("x") is False
+    # oneksiz ad reddedilir
+    assert SM.delete_snapshot("/x") is False
 
     tur = [c[0] for c in cagrilan]
-    assert tur == ["bt", "br", "bl", "zf", "zr", "zl"]
+    assert tur == ["priv", "br", "bl", "priv", "zr", "zl"]
 
 
-def test_take_snapshot_none_backend():
+def test_take_snapshot_none_backend(monkeypatch):
     monkey = None
     assert SM.take_snapshot.__doc__
+    # Backend yok: helper'a da gidilmez, parola sorulmaz.
+    monkeypatch.setattr(SM, "detect_backend", lambda: "none")
     bilgi = SM.take_snapshot("n")
-    assert bilgi.backend == "none" or isinstance(bilgi, SM.SnapshotInfo)
+    assert bilgi.backend == "none" and bilgi.success is False
     del monkey
 
 
@@ -179,38 +183,35 @@ def test_restore_btrfs_pkexec_ok(monkeypatch, izole_yollar):
     komutlar = []
 
     def sahte_safe_run(cmd, timeout=0, input=None, **k):
-        komutlar.append(cmd)
+        komutlar.append((cmd, bool(input)))
         return NS(returncode=0, stdout=b"", stderr=b"")
 
     monkeypatch.setattr(SM, "safe_run", sahte_safe_run)
-    ok, msg = SM._restore_btrfs_snapshot("/pkgforge-s2")            # 275-285
+    ok, msg = SM._restore_btrfs_snapshot("/pkgforge-s2")
     assert ok is True and "yeniden başlattığınızda" in msg
-    assert len(komutlar) >= 2                                       # yazma+enable
-    script = izole_yollar["bin"] / "pkgforge-rollback.sh"
-    assert script.is_file() and script.stat().st_mode & 0o755
+    # TEK diyalog: service-deploy (manifest + unit).
+    assert len(komutlar) == 1
+    cmd, _vardata = komutlar[0]
+    assert "service-deploy" in cmd and "pkgforge-rollback.service" in cmd
 
 
 def test_restore_btrfs_script_write_oserror(monkeypatch, izole_yollar):
-    def patlak_write(self, *a, **k):
+    def patlak(cmd, timeout=0, input=None, **k):
         raise OSError("disk salt-okunur")
 
-    monkeypatch.setattr(Path, "write_text", patlak_write)
-    ok, msg = SM._restore_btrfs_snapshot("pkgforge-s3")             # 230-231
+    monkeypatch.setattr(SM, "safe_run", patlak)
+    ok, msg = SM._restore_btrfs_snapshot("pkgforge-s3")
     assert ok is False and "oluşturulamadı" in msg
 
 
 def test_restore_btrfs_unexpected_exception(monkeypatch, izole_yollar):
-    """287-288: servis asamasinda beklenmeyen istisna."""
-    cagri = {"n": 0}
+    """Servis asamasinda beklenmeyen istisna → False + aciklama."""
 
-    def sahte_safe_run(cmd, timeout=0, input=None, **k):
-        cagri["n"] += 1
-        if cagri["n"] >= 2:
-            raise RuntimeError("yetki servisi koptu")
-        return NS(returncode=0, stdout=b"", stderr=b"")
+    def patlak(cmd, timeout=0, input=None, **k):
+        raise RuntimeError("yetki servisi koptu")
 
-    monkeypatch.setattr(SM, "safe_run", sahte_safe_run)
-    ok, msg = SM._restore_btrfs_snapshot("pkgforge-s4")             # 287-288
+    monkeypatch.setattr(SM, "safe_run", patlak)
+    ok, msg = SM._restore_btrfs_snapshot("pkgforge-s4")
     assert ok is False and "Rollback planı oluşturulamadı" in msg
 
 

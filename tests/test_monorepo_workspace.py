@@ -36,13 +36,13 @@ def test_workspace_to_dict_shape() -> None:
     assert "desktop" in d
 
 
-def test_workspace_missing_file_returns_empty(tmp_path: Path) -> None:
+def test_workspace_missing_file_returns_empty(tmp_path: Path, monkeypatch) -> None:
     # Workspace without workspace.toml → empty, no crash.
-    import importlib
-    mod = importlib.import_module("core.workspace")
-    # Patch WORKSPACE_FILE to a missing file.
-    fake = tmp_path / "nope.toml"
-    mod.WORKSPACE_FILE = fake
+    import core.workspace as mod
+
+    # monkeypatch ile: test bitince orijinal WORKSPACE_FILE geri gelir;
+    # ham atama sonraki testlerin Workspace() cagrilarini zehirlerdi.
+    monkeypatch.setattr(mod, "WORKSPACE_FILE", tmp_path / "nope.toml")
     w = mod.Workspace()
     assert w.members() == []
     assert w.to_dict() == {}
