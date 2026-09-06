@@ -45,6 +45,7 @@ jobs:
     permissions:
       contents: read
       id-token: write # SLSA provenance attestation (keyless, OIDC)
+      attestations: write # persist the attestation to the repo
     steps:
       - uses: actions/checkout@v4
 
