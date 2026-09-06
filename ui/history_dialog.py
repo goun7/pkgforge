@@ -317,9 +317,11 @@ class HistoryDialog(QDialog):
             run_in_background(
                 lambda: safe_run(cmd, timeout=60),
                 on_done=lambda res: self._on_uninstall_done(pkg_name, res),
-                on_error=lambda err: QMessageBox.critical(
-                    self, tr("common.error"), err),
+                on_error=self._show_error,
             )
+
+    def _show_error(self, err: str) -> None:
+        QMessageBox.critical(self, tr("common.error"), err)
 
     def _on_uninstall_done(self, pkg_name: str, res) -> None:
         if res.returncode == 0:
@@ -356,8 +358,7 @@ class HistoryDialog(QDialog):
             run_in_background(
                 lambda: safe_run(cmd, timeout=120),
                 on_done=lambda res: self._on_rollback_done(pkg_name, res),
-                on_error=lambda err: QMessageBox.critical(
-                    self, tr("common.error"), err),
+                on_error=self._show_error,
             )
 
     def _on_rollback_done(self, pkg_name: str, res) -> None:

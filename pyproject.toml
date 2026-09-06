@@ -87,6 +87,21 @@ faulthandler_timeout = 120
 # projenin ust-seviye modulleri (config, i18n) o dizinde import edilemedigi
 # icin conftest ImportError verir. Asilmasi gereken bilinen kisit icin
 # ROADMAP F5.8 notuna bakin.
+# F0: tek doğruluk kaynağı — yerel == CI. Kapsam kümesi ve eşikler burada
+# tanımlanır; `make verify` ve CI aynı değerleri kullanır.
+[tool.coverage.run]
+source = ["core", "ui", "i18n"]
+branch = false
+
+[tool.coverage.report]
+fail_under = 99
+show_missing = true
+exclude_also = ["pragma: no cover"]
+
+[tool.mypy]
+ignore_missing_imports = true
+python_version = "3.10"
+
 [tool.mutmut]
 # Kritik moduller: installer (Faz 5 kampanyasi %99.1) + security (Tur-65 kampanyasi).
 # Calistirma: rm -rf mutants && .venv/bin/mutmut run  (test degisince mutants/ silinmeli).

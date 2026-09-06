@@ -91,7 +91,7 @@ def test_install_body_snapshot_success(monkeypatch, tmp_path):
     kayit = []
     kurucu, sahte = _kuru_argv_yakala(kayit)
     kurucu.install(pkg, "demo")                                # 83-99
-    prog, argv = sahte.baslatilan[0]
+    _prog, argv = sahte.baslatilan[0]
     assert "--snapshot" in argv and "pre_demo" in argv
     assert argv[-1] == str(pkg)
     # helper snapshot-ok satiri → ad kaydedilir + bilgi basilir

@@ -22,7 +22,6 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.privileged import privileged_systemctl_argv, privileged_write_argv
 from core.security import safe_run
 from i18n import tr
 

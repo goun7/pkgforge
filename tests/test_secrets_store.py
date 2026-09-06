@@ -82,7 +82,6 @@ def test_webdav_aborts_without_keyring_service(
         cfg_root, monkeypatch: pytest.MonkeyPatch):
     """No Secret Service -> hard stop, plaintext value stays unused."""
     import core.secrets_store as SS
-
     from i18n import load_settings, save_settings
 
     save_settings({**load_settings(), "sync_url": "https://dav.example",

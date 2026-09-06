@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-2428%20collected-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-2506%20collected-brightgreen)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
@@ -177,9 +177,13 @@ pip install -e ".[dev]"
 python -m pytest tests/ -q --timeout=120
 ```
 
-Current status: **full suite green (rc=0)** · **~99% line coverage** on
-`core/`+`ui/`+`i18n/` (11 950 statements, 26 missed — see docs/COVERAGE_GAPS.md) · mypy: 0 errors in
-311 files · bandit CI-parity: clean (-ll 0 Medium/0 High) · mini mutation 3/3 KILLED.
+Current status (measured 2026-09-07, `make verify`): **2506 tests: 2499 passed,
+5 skipped, 2 pre-existing env failures** (`test_delta_enable_start_fail`,
+`test_install_auto_update_service_write_fail` — systemd/pkexec-dependent,
+fail on clean tree too) · coverage **99.09%** on `core/`+`ui/`+`i18n/`
+(12 638 statements, 115 missed) · mypy: 0 errors in 84 files
+(`core/`+`cli.py`+`main.py`+`config.py`, imports followed) · bandit CI-parity:
+clean (-ll 0 Medium/0 High) · i18n parity 788/788 (tr/en) · mini mutation 3/3 KILLED.
 Wheel build verified (`pkgforge==2.0.0`) and E2E smoke-tested from a
 fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
 

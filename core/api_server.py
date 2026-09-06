@@ -618,8 +618,8 @@ def handle_system_install_pkg(params):
     # Snapshot + kurulum TEK diyalogda (helper --snapshot).
     snap = ""
     try:
-        from i18n import load_setting
         from core.snapshot_manager import detect_backend, snapshot_name
+        from i18n import load_setting
         if load_setting("snapshot", True) and detect_backend() != "none":
             from config import extract_package_name
             snap = snapshot_name(extract_package_name(pkg.name))

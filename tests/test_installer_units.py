@@ -311,7 +311,7 @@ def test_install_snapshot_fail(qapp, tmp_path, monkeypatch, caplog):
 
 def test_install_snapshot_backend_none(qapp, tmp_path, monkeypatch):
     fp = FakeProcess()
-    inst, _got, lines, helper = _mk(qapp, tmp_path, lambda p: fp)
+    inst, _got, _lines, helper = _mk(qapp, tmp_path, lambda p: fp)
     monkeypatch.setattr(INS, "INSTALL_HELPER", helper)
     _snap_setup(monkeypatch, "none")
     pkg = tmp_path / "demo.pkg.tar.zst"
@@ -440,7 +440,7 @@ def test_find_helper_source_exact(qapp, monkeypatch):
 
     def fake_is_file(self):
         s = str(self)
-        if s.startswith("/usr/share/pkgforge") or s.startswith(sys.prefix):
+        if s.startswith(("/usr/share/pkgforge", sys.prefix)):
             return False
         return real(self)
 
