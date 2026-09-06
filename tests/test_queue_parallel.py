@@ -82,6 +82,8 @@ def _rpc(proc, method, params=None, req_id=1):
 
 
 @pytest.mark.skipif(not FIXTURE_DEB.is_file(), reason="fixture deb missing")
+@pytest.mark.skipif(__import__("shutil").which("makepkg") is None,
+                      reason="makepkg gerekli (Arch-only derleme)")
 def test_two_items_convert_in_parallel_and_finish(tmp_path):
     env = os.environ.copy()
     env["HOME"] = str(tmp_path)

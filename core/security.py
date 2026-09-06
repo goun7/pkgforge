@@ -595,6 +595,11 @@ def safe_run(
               If False, force binary mode (stdout/stderr are bytes).
     """
     log.debug("Executing: %s", cmd)
+    if not cmd or not cmd[0]:
+        # Bos calistirilabilir (örn. bulunamayan aracın "" yolu) exec'te
+        # anlasilmaz "Permission denied: ''" verirdi; erken ve acik patla.
+        raise FileNotFoundError(
+            f"Çalıştırılacak program yok (araç kurulu değil mi?): {cmd!r}")
     if text is None:
         use_text = not isinstance(input, bytes)
     else:

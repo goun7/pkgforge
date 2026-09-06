@@ -58,6 +58,7 @@ class TestSignal(unittest.TestCase):
 
 
 @unittest.skipUnless(DEB_FIXTURE.is_file(), "hello .deb fixture missing")
+@unittest.skipUnless(__import__("shutil").which("makepkg"), "makepkg gerekli (Arch-only derleme)")
 class TestNativeDebConverterSubprocess(unittest.TestCase):
 
     def test_real_deb_conversion(self):

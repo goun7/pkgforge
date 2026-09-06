@@ -50,6 +50,7 @@ def test_flatpak_export_app_path_missing(monkeypatch):
 
 def test_flatpak_export_fallback_copytree(monkeypatch, tmp_path):
     import core.flatpak_converter as FC
+    monkeypatch.setattr(FC, "is_flatpak_available", lambda: True)
 
     app_koku = tmp_path / "app-koku"
     app_koku.mkdir()
@@ -88,6 +89,7 @@ def test_flatpak_convert_export_fail_and_dpkg_fail(monkeypatch, tmp_path):
     import core.flatpak_converter as FC
 
     uygulama = NS(app_id="org.Deneme.Uyg", version="1.2.3")
+    monkeypatch.setattr(FC, "is_flatpak_available", lambda: True)
     monkeypatch.setattr(FC, "get_app_info", lambda app_id: uygulama)
 
     # export basarisiz (231-232)

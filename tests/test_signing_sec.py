@@ -43,6 +43,9 @@ def test_gnupghome_rejects_foreign_ownership(
     home.mkdir()
     monkeypatch.setattr(ps, "_GNUPGHOME", str(home))
     monkeypatch.setattr(ps.os, "geteuid", lambda: 12345)
+    # is_dir de mock'lanir: 3.12 ile 3.14'te pathlib.Path.is_dir()
+    # stat'e farkli ic yoldan ulasir; mock'suz dal is_dir'e takilabilir.
+    monkeypatch.setattr(ps.Path, "is_dir", lambda self: True)
     monkeypatch.setattr(
         ps.Path, "stat", lambda self, **k: NS(st_uid=999, st_mode=0o700),
         raising=False)

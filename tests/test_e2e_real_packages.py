@@ -86,6 +86,10 @@ class TestRealRPMAnalysis(unittest.TestCase):
         print(f"    Files: {len(meta.file_list)}, Type: {meta.package_type}")
 
     @unittest.skipIf(REAL_RPM is None, "No real RPM file found on system")
+    @unittest.skipUnless(
+        __import__("shutil").which("rpm2cpio")
+        and (__import__("shutil").which("bsdtar") or __import__("shutil").which("cpio")),
+        "rpm2cpio + bsdtar/cpio gerekli")
     def test_rpm_file_list_populated(self):
         """File list should be populated for a real RPM."""
         tools = discover_tools()
