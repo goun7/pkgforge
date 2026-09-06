@@ -52,6 +52,7 @@ def test_download_file_rejects_http(tmp_path):
 def test_download_file_https_writes_payload(tmp_path, monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen",
                         lambda req, timeout=0: FakeResp(b"icerik"))
+    monkeypatch.setattr(MK, "assert_public_host", lambda *a, **k: None)
     dest = tmp_path / "p.py"
     MK._download_file("https://example.com/p.py", dest)
     assert dest.read_bytes() == b"icerik"
@@ -61,6 +62,7 @@ def test_fetch_json_ok_and_http_reject(monkeypatch):
     monkeypatch.setattr(
         "urllib.request.urlopen",
         lambda req, timeout=0: FakeResp(json.dumps({"a": 1}).encode()))
+    monkeypatch.setattr(MK, "assert_public_host", lambda *a, **k: None)
     assert MK._fetch_json("https://x/list.json") == {"a": 1}
     with pytest.raises(ValueError, match="HTTPS"):
         MK._fetch_json("ftp://x/list.json")

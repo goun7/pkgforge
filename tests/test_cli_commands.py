@@ -317,7 +317,7 @@ def test_cmd_plugin_install_success(monkeypatch, capsys):
     monkeypatch.setattr("core.plugins.marketplace.install_plugin", fake_install)
     monkeypatch.setattr("core.plugins.reload_plugins", lambda: ["a", "b"])
     ns = argparse.Namespace(plugin_action="install", name="x==1.2",
-                            force=False, version="latest")
+                            force=False, version="latest", yes=True)
     rc = cli._cmd_plugin(ns)
     out = capsys.readouterr().out
     assert rc == 0 and calls["version"] == "1.2"
@@ -329,7 +329,7 @@ def test_cmd_plugin_install_failures(monkeypatch, capsys):
         raise FileNotFoundError("bulunamadi")
     monkeypatch.setattr("core.plugins.marketplace.install_plugin", nf)
     ns = argparse.Namespace(plugin_action="install", name="x",
-                            force=False, version="latest")
+                            force=False, version="latest", yes=True)
     assert cli._cmd_plugin(ns) == 1
 
     def re_(name, version="latest", force=False):

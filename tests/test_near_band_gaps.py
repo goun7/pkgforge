@@ -233,7 +233,7 @@ def _indirme_ortemi(monkeypatch, tmp_path, url, chunklar):
         def __exit__(self_inner, *a):
             return False
     monkeypatch.setattr(DL, "_open_url",
-                        lambda req, timeout=0, require_https=True: Yanit())
+                        lambda req, timeout=0, require_https=True, **k: Yanit())
     monkeypatch.setattr(DL, "create_temp_dir", lambda: tmp_path)
     monkeypatch.setitem(sys.modules, "core.retry", NS(
         RetryConfig=lambda **k: NS(**k),
@@ -244,7 +244,8 @@ def _indirme_ortemi(monkeypatch, tmp_path, url, chunklar):
 def test_download_filename_fallback_and_tempdir(monkeypatch, tmp_path):
     _indirme_ortemi(monkeypatch, tmp_path, "https://host/pkg-deb-stub",
                     [b"veri", b""])
-    hedef = DL.download_package("https://host/pkg-deb-stub", None)
+    hedef = DL.download_package("https://host/pkg-deb-stub", None,
+                                allow_private_hosts=True)
     assert hedef.name == "downloaded_package.deb"
     assert hedef.parent == tmp_path
 
@@ -255,4 +256,5 @@ def test_download_size_limit_exceeded(monkeypatch, tmp_path):
     _indirme_ortemi(monkeypatch, tmp_path, "https://host/a.deb",
                     [buyuk, b""])
     with pytest.raises(RuntimeError, match="maksimum"):
-        DL.download_package("https://host/a.deb", tmp_path)
+        DL.download_package("https://host/a.deb", tmp_path,
+                            allow_private_hosts=True)

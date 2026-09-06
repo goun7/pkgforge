@@ -18,7 +18,8 @@ class TestSchemeGuardRedirectHandler(unittest.TestCase):
 
     def test_https_redirect_allowed(self):
         from core.downloader import _SchemeGuardRedirectHandler
-        h = _SchemeGuardRedirectHandler(require_https=True)
+        h = _SchemeGuardRedirectHandler(require_https=True,
+                                        allow_private_hosts=True)
         new = h.redirect_request(
             self._req(), None, 302, "Found", {},
             "https://cdn.example.com/file.deb",
@@ -45,7 +46,8 @@ class TestSchemeGuardRedirectHandler(unittest.TestCase):
 
     def test_http_allowed_when_not_requiring_https(self):
         from core.downloader import _SchemeGuardRedirectHandler
-        h = _SchemeGuardRedirectHandler(require_https=False)
+        h = _SchemeGuardRedirectHandler(require_https=False,
+                                        allow_private_hosts=True)
         new = h.redirect_request(
             self._req(), None, 302, "Found", {},
             "http://cdn.example.com/file.deb",

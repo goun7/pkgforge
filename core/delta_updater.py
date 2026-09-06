@@ -162,6 +162,7 @@ def download_with_delta(
     *,
     require_https: bool = True,
     expected_sha256: str | None = None,
+    allow_private_hosts: bool = False,
 ) -> tuple[Path, bool]:
     """Download a file using delta if a local previous version exists.
 
@@ -174,6 +175,7 @@ def download_with_delta(
             this SHA-256 or the delta path is rejected and the full download
             fallback is used. Callers that know the target hash should always
             pass it — remote deltas are untrusted input.
+        allow_private_hosts: Permit intranet/non-public hosts (SSRF opt-in).
 
     Returns:
         (final_path, used_delta)
@@ -182,7 +184,8 @@ def download_with_delta(
 
     if old_file is None or not old_file.is_file() or not is_xdelta3_available():
         # No delta possible — full download
-        result = download_package(url, dest_file.parent, require_https=require_https)
+        result = download_package(url, dest_file.parent, require_https=require_https,
+                                  allow_private_hosts=allow_private_hosts)
         return result, False
 
     # Try to download delta first (URL pattern: same URL + .xdelta suffix)
@@ -192,7 +195,8 @@ def download_with_delta(
 
         try:
             download_package(delta_url, Path(tmpdir),
-                           require_https=require_https)
+                           require_https=require_https,
+                           allow_private_hosts=allow_private_hosts)
             # If we got here, delta was downloaded
             if apply_delta(old_file, delta_file, dest_file,
                            expected_sha256=expected_sha256):
@@ -202,7 +206,8 @@ def download_with_delta(
             log.info("Delta indirilemedi, tam dosya indiriliyor: %s (%s)", url, exc)
 
     # Fallback to full download
-    result = download_package(url, dest_file.parent, require_https=require_https)
+    result = download_package(url, dest_file.parent, require_https=require_https,
+                              allow_private_hosts=allow_private_hosts)
     return result, False
 
 

@@ -4,7 +4,16 @@ from __future__ import annotations
 import urllib.error
 from types import SimpleNamespace
 
+import pytest
+
 from core.upstream_tracker import check_upstream_update
+
+
+@pytest.fixture(autouse=True)
+def _sahte_host_guvenligi(monkeypatch):
+    # SSRF guard test hostuna takilmamali (ag zaten sahte)
+    monkeypatch.setattr("core.downloader.assert_public_host",
+                        lambda *a, **k: None)
 
 
 class _Resp:
@@ -35,7 +44,7 @@ def test_no_url_and_non_http():
 
 
 def test_first_check_no_update(monkeypatch):
-    monkeypatch.setattr("urllib.request.urlopen",
+    monkeypatch.setattr("core.downloader._open_url",
                         lambda req, timeout=10: _Resp(
                             {"ETag": chr(34) + "abc" + chr(34),
                              "Last-Modified": "dun",
@@ -47,14 +56,14 @@ def test_first_check_no_update(monkeypatch):
 
 
 def test_etag_change_flags_update(monkeypatch):
-    monkeypatch.setattr("urllib.request.urlopen",
+    monkeypatch.setattr("core.downloader._open_url",
                         lambda req, timeout=10: _Resp({"ETag": "yeni"}))
     r = check_upstream_update(_rec(etag="eski", last_mod="dun"))
     assert r.has_update is True and "ETag" in r.detail
 
 
 def test_lastmod_change_flags_update(monkeypatch):
-    monkeypatch.setattr("urllib.request.urlopen",
+    monkeypatch.setattr("core.downloader._open_url",
                         lambda req, timeout=10: _Resp(
                             {"Last-Modified": "bugun"}))
     r = check_upstream_update(_rec(etag="", last_mod="eski-gun"))
@@ -64,6 +73,6 @@ def test_lastmod_change_flags_update(monkeypatch):
 def test_url_error_yields_error_status(monkeypatch):
     def boom(req, timeout=10):
         raise urllib.error.URLError("ulasilamadi")
-    monkeypatch.setattr("urllib.request.urlopen", boom)
+    monkeypatch.setattr("core.downloader._open_url", boom)
     r = check_upstream_update(_rec())
     assert r.status == "error" and r.has_update is False

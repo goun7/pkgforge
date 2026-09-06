@@ -21,6 +21,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from core.downloader import assert_public_host
+
 log = logging.getLogger(__name__)
 
 # GitHub org and repo for community plugins
@@ -74,16 +76,18 @@ def _sha256_file(path: Path) -> str:
 
 
 def _download_file(url: str, dest: Path, timeout: int = 30) -> None:
-    """Download a URL to a local path (HTTPS only)."""
+    """Download a URL to a local path (HTTPS only, public hosts only)."""
     _require_https(url)
+    assert_public_host(urllib.parse.urlparse(url).hostname)
     req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
     with urllib.request.urlopen(req, timeout=timeout) as resp, open(dest, "wb") as f:  # nosec B310
         shutil.copyfileobj(resp, f)
 
 
 def _fetch_json(url: str, timeout: int = 10) -> dict:
-    """Fetch JSON from a URL (HTTPS only)."""
+    """Fetch JSON from a URL (HTTPS only, public hosts only)."""
     _require_https(url)
+    assert_public_host(urllib.parse.urlparse(url).hostname)
     req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
         return json.loads(resp.read().decode("utf-8"))

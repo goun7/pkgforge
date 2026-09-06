@@ -115,7 +115,7 @@ class _Indirici:
         self.delta_calisir = delta_calisir
         self.cagrilar = []
 
-    def __call__(self, url, hedef_dizin, require_https=True):
+    def __call__(self, url, hedef_dizin, require_https=True, **k):
         self.cagrilar.append((url, require_https))
         p = Path(hedef_dizin) / ("delta.xdelta" if url.endswith(".xdelta")
                                  else "final.pkg.tar.zst")

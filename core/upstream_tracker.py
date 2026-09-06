@@ -61,7 +61,14 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
         )
 
     try:
+        from core.downloader import _open_url, assert_public_host
         from core.retry import RetryConfig, retry_with_backoff
+
+        parsed = urllib.parse.urlparse(record.source_url)
+        # F2.3: HEAD kontrolu de SSRF yuzeyi — intranet URL'ler reddedilir.
+        # Kayitli URL kullanicinin kendi gecmisinden gelse bile, zararli bir
+        # .deb'in icine gomulu intranet URL sonradan sorgulanabilirdi.
+        assert_public_host(parsed.hostname)
 
         def _do_head():
             req = urllib.request.Request(
@@ -69,7 +76,7 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
                 method="HEAD",
                 headers={"User-Agent": f"PkgForge/{APP_VERSION}"},
             )
-            return urllib.request.urlopen(req, timeout=10)  # nosec B310
+            return _open_url(req, timeout=10)
 
         retry_config = RetryConfig(
             max_retries=2,

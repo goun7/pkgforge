@@ -318,7 +318,8 @@ def test_check_upstream_head_paths(monkeypatch):
     ])
     def sahte_urlopen(req, timeout=0):
         return next(yanitlar)
-    monkeypatch.setattr(UT.urllib.request, "urlopen", sahte_urlopen)
+    monkeypatch.setattr("core.downloader._open_url", sahte_urlopen)
+    monkeypatch.setattr("core.downloader.assert_public_host", lambda *a, **k: None)
     kayit = _kayit(http_etag="ESKI-ETAG", http_last_modified="D1")
     r = UT.check_upstream_update(kayit)
     assert r.status == "checked" and r.has_update is True
@@ -344,7 +345,8 @@ def test_check_upstream_head_paths(monkeypatch):
     # URLError yolu (124-126+)
     def hata(req, timeout=0):
         raise urllib.error.URLError("sunucu erisilemiyor")
-    monkeypatch.setattr(UT.urllib.request, "urlopen", hata)
+    monkeypatch.setattr("core.downloader._open_url", hata)
+    monkeypatch.setattr("core.downloader.assert_public_host", lambda *a, **k: None)
     kayit5 = _kayit(http_etag="X")
     r5 = UT.check_upstream_update(kayit5)
     assert r5.status != "checked" and not r5.has_update

@@ -54,7 +54,7 @@ def _happy(monkeypatch, tmp_path):
 def test_convert_url_download_fail(capsys, monkeypatch, tmp_path):
     monkeypatch.setattr(cli, "discover_tools", _tools)
 
-    def boom(url, require_https=True, response_info=None):
+    def boom(url, require_https=True, response_info=None, **k):
         raise RuntimeError("ag yok")
     monkeypatch.setattr(cli, "download_package", boom)
     rc = cli._cmd_convert(_args(tmp_path, "https://ornek.test/x.deb"))
@@ -66,7 +66,7 @@ def test_convert_url_download_ok(capsys, monkeypatch, tmp_path):
     f = tmp_path / "indirilen.deb"
     f.write_bytes(b"D")
     monkeypatch.setattr(cli, "download_package",
-                        lambda url, require_https=True, response_info=None: f)
+                        lambda url, require_https=True, response_info=None, **k: f)
     rc = cli._cmd_convert(_args(tmp_path, "https://ornek.test/x.deb"))
     assert rc == 0
     assert db.added[0]["source_url"].startswith("https://")
@@ -79,7 +79,7 @@ def test_convert_url_delta(capsys, monkeypatch, tmp_path):
     f.write_bytes(b"D")
     monkeypatch.setattr(DU, "find_local_previous", lambda n, **k: None)
 
-    def fake_dl(url, dest, old_pkg=None, require_https=True):
+    def fake_dl(url, dest, old_pkg=None, require_https=True, **k):
         Path(dest).write_bytes(b"D")
         return Path(dest), False
     monkeypatch.setattr(DU, "download_with_delta", fake_dl)

@@ -47,7 +47,8 @@ class TestRoadmapModules(unittest.TestCase):
 
         with patch("core.downloader._open_url", return_value=mock_ctx):
             info: dict[str, str] = {}
-            download_package("https://example.com/test.deb", self.temp_dir, response_info=info)
+            download_package("https://example.com/test.deb", self.temp_dir, response_info=info,
+                             allow_private_hosts=True)
 
         self.assertEqual(info["etag"], "abc123")
         self.assertEqual(info["last_modified"], "Tue, 01 Jan 2026 00:00:00 GMT")
@@ -63,7 +64,8 @@ class TestRoadmapModules(unittest.TestCase):
 
         with patch("core.downloader._open_url", return_value=mock_ctx):
             # No response_info → should work fine
-            path = download_package("https://example.com/test.deb", self.temp_dir)
+            path = download_package("https://example.com/test.deb", self.temp_dir,
+                                    allow_private_hosts=True)
             self.assertTrue(path.is_file())
 
     def test_upstream_tracker_no_url(self):
@@ -103,7 +105,8 @@ class TestRoadmapModules(unittest.TestCase):
         mock_ctx.__exit__ = MagicMock(return_value=False)
         mock_ctx.headers = mock_resp.headers
 
-        with patch("core.upstream_tracker.urllib.request.urlopen", return_value=mock_ctx):
+        with patch("core.downloader._open_url", return_value=mock_ctx), \
+                patch("core.downloader.assert_public_host"):
             res = check_upstream_update(rec)
 
         self.assertTrue(res.has_update)
@@ -130,7 +133,8 @@ class TestRoadmapModules(unittest.TestCase):
         mock_ctx.__exit__ = MagicMock(return_value=False)
         mock_ctx.headers = mock_resp.headers
 
-        with patch("core.upstream_tracker.urllib.request.urlopen", return_value=mock_ctx):
+        with patch("core.downloader._open_url", return_value=mock_ctx), \
+                patch("core.downloader.assert_public_host"):
             res = check_upstream_update(rec)
 
         self.assertTrue(res.has_update)
@@ -157,7 +161,8 @@ class TestRoadmapModules(unittest.TestCase):
         mock_ctx.__exit__ = MagicMock(return_value=False)
         mock_ctx.headers = mock_resp.headers
 
-        with patch("core.upstream_tracker.urllib.request.urlopen", return_value=mock_ctx):
+        with patch("core.downloader._open_url", return_value=mock_ctx), \
+                patch("core.downloader.assert_public_host"):
             res = check_upstream_update(rec)
 
         self.assertFalse(res.has_update)
@@ -183,7 +188,8 @@ class TestRoadmapModules(unittest.TestCase):
         mock_ctx.__exit__ = MagicMock(return_value=False)
         mock_ctx.headers = mock_resp.headers
 
-        with patch("core.upstream_tracker.urllib.request.urlopen", return_value=mock_ctx):
+        with patch("core.downloader._open_url", return_value=mock_ctx), \
+                patch("core.downloader.assert_public_host"):
             res = check_upstream_update(rec)
 
         self.assertFalse(res.has_update)  # First check → not an update

@@ -81,7 +81,7 @@ def test_download_with_delta_bad_hash_falls_back(monkeypatch, tmp_path):
     dest = tmp_path / "yeni.deb"
     monkeypatch.setattr(DU.shutil, "which", lambda n: "/usr/bin/x3")
 
-    def fake_dl(url, parent, require_https=True):
+    def fake_dl(url, parent, require_https=True, **k):
         if url.endswith(".xdelta"):
             (parent / "delta.xdelta").write_bytes(b"D")
             return parent / "delta.xdelta"
@@ -119,7 +119,7 @@ def test_find_local_previous_picks_newest(tmp_path):
 def test_download_full_when_no_old(monkeypatch, tmp_path):
     calls = {}
 
-    def fake_dl(url, parent, require_https=True):
+    def fake_dl(url, parent, require_https=True, **k):
         calls["url"] = url
         return parent / "sonuc.deb"
     monkeypatch.setattr("core.downloader.download_package", fake_dl)
@@ -135,7 +135,7 @@ def test_download_with_delta_success(monkeypatch, tmp_path):
     dest = tmp_path / "yeni.deb"
     monkeypatch.setattr(DU.shutil, "which", lambda n: "/usr/bin/x3")
 
-    def fake_dl(url, parent, require_https=True):
+    def fake_dl(url, parent, require_https=True, **k):
         if url.endswith(".xdelta"):
             (parent / "delta.xdelta").write_bytes(b"D")
             return parent / "delta.xdelta"
@@ -159,7 +159,7 @@ def test_download_delta_fallback_on_error(monkeypatch, tmp_path):
     dest = tmp_path / "yeni.deb"
     monkeypatch.setattr(DU.shutil, "which", lambda n: "/usr/bin/x3")
 
-    def fake_dl(url, parent, require_https=True):
+    def fake_dl(url, parent, require_https=True, **k):
         if url.endswith(".xdelta"):
             raise RuntimeError("404")
         dest.write_bytes(b"B")

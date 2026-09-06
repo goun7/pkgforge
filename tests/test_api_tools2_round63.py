@@ -24,7 +24,7 @@ def senkron(monkeypatch):
         except Exception as exc:  # noqa: BLE001
             kayit.append((event_name, {"ok": False, "hata": str(exc)}))
 
-    monkeypatch.setattr(AS, "_run_thread", sahte)
+    monkeypatch.setattr(AS.transport, "_run_thread", sahte)
     return kayit
 
 

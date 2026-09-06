@@ -9,8 +9,8 @@ import core.plugins as PLG
 import core.plugins.marketplace as MP
 
 
-def _args(action, name=None, force=False, version="latest"):
-    return NS(plugin_action=action, name=name, force=force, version=version)
+def _args(action, name=None, force=False, version="latest", yes=True):
+    return NS(plugin_action=action, name=name, force=force, version=version, yes=yes)
 
 
 def test_plugin_install_success_and_fail(capsys, monkeypatch):

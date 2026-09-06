@@ -5,7 +5,9 @@ Downloads .deb or .rpm packages directly from HTTP/HTTPS URLs into temporary sto
 
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -17,6 +19,58 @@ from i18n import tr
 log = logging.getLogger(__name__)
 
 
+def _is_non_public_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """True for loopback/private/link-local/reserved/multicast — i.e. not Internet."""
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+def assert_public_host(hostname: str | None, *, allow_private_hosts: bool = False) -> None:
+    """SSRF guard: refuse hosts that resolve to non-public addresses.
+
+    A converter that installs packages as root must not fetch from
+    attacker-influenced intranet addresses (169.254.169.254 cloud metadata,
+    localhost admin panels, LAN routers). Literal IPs are checked directly;
+    DNS names are resolved and every answer is checked (TOCTOU-noted:
+    resolution happens per request, which also keeps balancer rotation working).
+
+    Raises:
+        ValueError: host is missing, unresolvable, or non-public (unless
+            *allow_private_hosts* explicitly opts in for intranet use).
+    """
+    if not hostname:
+        raise ValueError(tr("downloader.ssrf_bos_host"))
+    if allow_private_hosts:
+        return
+    try:
+        literal = ipaddress.ip_address(hostname.strip("[]"))
+    except ValueError:
+        literal = None
+    candidates: list[str] = [str(literal)] if literal is not None else []
+    if literal is None:
+        try:
+            infos = socket.getaddrinfo(hostname, None, family=socket.AF_UNSPEC,
+                                       type=socket.SOCK_STREAM)
+        except OSError as exc:
+            raise ValueError(
+                tr("downloader.ssrf_cozulemedi", host=hostname)) from exc
+        candidates = list({str(info[4][0]) for info in infos})
+    for cand in candidates:
+        try:
+            ip = ipaddress.ip_address(cand.strip("[]"))
+        except ValueError:
+            continue
+        if _is_non_public_ip(ip):
+            raise ValueError(
+                tr("downloader.ssrf_ozel_ag_reddedildi", host=hostname))
+
+
 class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Redirect handler that re-validates the URL scheme on every hop.
 
@@ -26,9 +80,10 @@ class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
     user-supplied URL only.
     """
 
-    def __init__(self, require_https: bool = True):
+    def __init__(self, require_https: bool = True, allow_private_hosts: bool = False):
         super().__init__()
         self._require_https = require_https
+        self._allow_private_hosts = allow_private_hosts
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
         parsed = urllib.parse.urlparse(newurl)
@@ -41,6 +96,10 @@ class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
                 "Güvenlik: HTTPS indirme http:// adresine yönlendirilemez "
                 "(MITM koruması). Yönlendirme reddedildi."
             )
+        # F2.3: her atlamada SSRF kontrolu — ilk URL temiz olsa bile
+        # yönlendirme intranet'e donebilir.
+        assert_public_host(parsed.hostname,
+                           allow_private_hosts=self._allow_private_hosts)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -49,6 +108,7 @@ def _open_url(
     *,
     timeout: int = 30,
     require_https: bool = True,
+    allow_private_hosts: bool = False,
 ):
     """Open *req* through an opener that guards redirects.
 
@@ -58,12 +118,14 @@ def _open_url(
     patch it without touching global urllib state.
     """
     opener = urllib.request.build_opener(
-        _SchemeGuardRedirectHandler(require_https=require_https)
+        _SchemeGuardRedirectHandler(require_https=require_https,
+                                    allow_private_hosts=allow_private_hosts)
     )
     return opener.open(req, timeout=timeout)  # nosec B310
 
 
-def _validate_download_url(url: str, require_https: bool) -> urllib.parse.ParseResult:
+def _validate_download_url(url: str, require_https: bool,
+                           allow_private_hosts: bool = False) -> urllib.parse.ParseResult:
     """URL semasini dogrular; HTTPS zorunluysa plain http reddedilir.
 
     Guvenlik: paketler kok olarak kurulacagi icin MITM degisimi engellenmeli;
@@ -77,6 +139,7 @@ def _validate_download_url(url: str, require_https: bool) -> urllib.parse.ParseR
             "Güvenlik: yalnızca HTTPS bağlantıları kabul edilir. "
             "http'yi etkinleştirmek için ayarlardan 'allow_insecure_http' seçeneğini açın."
         )
+    assert_public_host(parsed.hostname, allow_private_hosts=allow_private_hosts)
     return parsed
 
 
@@ -110,6 +173,7 @@ def download_package(
     require_https: bool = True,
     expected_sha256: str | None = None,
     response_info: dict[str, str] | None = None,
+    allow_private_hosts: bool = False,
 ) -> Path:
     """Download a package file from a URL.
 
@@ -125,11 +189,14 @@ def download_package(
         response_info: Optional dict to receive HTTP response metadata
             (``etag``, ``last_modified``, ``content_length``). Used by
             the upstream tracker to detect future updates.
+        allow_private_hosts: When True, permit downloads from loopback,
+            LAN and other non-public addresses (intranet mirrors). Default
+            False — SSRF protection for a tool that installs as root.
 
     Returns:
         Path to the downloaded file.
     """
-    parsed = _validate_download_url(url, require_https)
+    parsed = _validate_download_url(url, require_https, allow_private_hosts)
     filename = _download_filename(url, parsed)
 
     if dest_dir is None:
@@ -148,7 +215,8 @@ def download_package(
     def _do_download():
         nonlocal downloaded_bytes
         downloaded_bytes = 0
-        with _open_url(req, timeout=30, require_https=require_https) as resp:
+        with _open_url(req, timeout=30, require_https=require_https,
+                      allow_private_hosts=allow_private_hosts) as resp:
             content_length = resp.headers.get("Content-Length")
             if content_length and int(content_length) > max_bytes:
                 raise ValueError(tr("downloader.dosya_boyutu_cok_buyuk", var0=int(content_length) / (1024*1024)))

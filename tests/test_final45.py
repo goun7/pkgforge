@@ -18,9 +18,9 @@ ARACLAR = NS(bsdtar="bsdtar", file_cmd="file", readelf="readelf",
 # --- 792: kalici depo sentinel'i -------------------------------------------------
 
 def test_restore_queue_false_sentinel(monkeypatch):
-    monkeypatch.setattr(AS, "_queue_items", {})
-    monkeypatch.setattr(AS, "_queue_seq", 0)
-    monkeypatch.setattr(AS, "_queue_store", False)   # denendi-ve-basarısız
+    monkeypatch.setattr(AS.handlers_queue, "_queue_items", {})
+    monkeypatch.setattr(AS.handlers_queue, "_queue_seq", 0)
+    monkeypatch.setattr(AS.handlers_queue, "_queue_store", False)   # denendi-ve-basarısız
     assert AS.restore_queue() == 0                    # 791-792
 
 
@@ -28,16 +28,16 @@ def test_restore_queue_false_sentinel(monkeypatch):
 
 def test_scheduler_tick_valid_last_run(monkeypatch):
     olaylar = []
-    monkeypatch.setattr(AS, "_event", lambda m, p: olaylar.append(p))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: olaylar.append(p))
     ayarlar = {}
-    monkeypatch.setattr(AS, "load_settings", lambda: dict(ayarlar))
-    monkeypatch.setattr(AS, "save_settings", lambda s: ayarlar.update(s))
+    monkeypatch.setattr(AS.handlers_queue, "load_settings", lambda: dict(ayarlar))
+    monkeypatch.setattr(AS.handlers_queue, "save_settings", lambda s: ayarlar.update(s))
     # son calisma 10 saat once -> due
     eski = time.strftime("%Y-%m-%d %H:%M:%S",
                          time.localtime(time.time() - 10 * 3600))
     durum = {"enabled": True, "last_run": eski, "interval_hours": 2,
              "task": "bakim"}
-    monkeypatch.setattr(AS, "_schedule_state", lambda: dict(durum))
+    monkeypatch.setattr(AS.handlers_queue, "_schedule_state", lambda: dict(durum))
 
     cagri = {"n": 0}
 
@@ -67,10 +67,10 @@ def test_serve_parse_continue_then_dispatch(monkeypatch):
     monkeypatch.setattr(sys, "stdin", SahteStdin())
     monkeypatch.setattr(select, "select",
                         lambda *a: ([sys.stdin], [], []))
-    monkeypatch.setattr(AS, "_send", lambda o: gonderilen.append(o))
-    monkeypatch.setattr(AS, "_error",
+    monkeypatch.setattr(AS.transport, "_send", lambda o: gonderilen.append(o))
+    monkeypatch.setattr(AS.transport, "_error",
                         lambda rid, kod, msg: hatalar.append(kod))
-    monkeypatch.setattr(AS, "_ensure_qapp",
+    monkeypatch.setattr(AS.transport, "_ensure_qapp",
                         lambda: NS(processEvents=lambda: None))
 
     AS.serve()                                                     # 1344-1348
@@ -95,13 +95,13 @@ def test_serve_http_keyboard_interrupt_cleanup(monkeypatch):
 
     monkeypatch.setattr("http.server.ThreadingHTTPServer", SahteSunucu)
     eski = (AS._ensure_qapp, AS._ensure_scheduler, AS.restore_queue)
-    AS._ensure_qapp = lambda: None
-    AS._ensure_scheduler = lambda: None
-    AS.restore_queue = lambda: 0
+    AS.transport._ensure_qapp = lambda: None
+    AS.handlers_queue._ensure_scheduler = lambda: None
+    AS.handlers_queue.restore_queue = lambda: 0
     try:
         AS.serve_http(port=1, token="t", host="127.0.0.1")          # 1607-1611
     finally:
-        AS._ensure_qapp, AS._ensure_scheduler, AS.restore_queue = eski
+        AS._ensure_qapp, AS._ensure_scheduler, AS.handlers_queue.restore_queue = eski
     assert kapandi["evet"] is True
 
 

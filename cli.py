@@ -129,6 +129,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 file_path, used_delta = download_with_delta(
                     target, dest, old_pkg,
                     require_https=not load_setting("allow_insecure_http", False),
+                    allow_private_hosts=bool(load_setting("allow_private_hosts", False)),
                 )
                 if used_delta:
                     print(tr("cli.download_complete").format(name=file_path.name) + " (delta)")
@@ -137,6 +138,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             else:
                 file_path = download_package(
                     target, require_https=not load_setting("allow_insecure_http", False),
+                    allow_private_hosts=bool(load_setting("allow_private_hosts", False)),
                     response_info=http_info,
                 )
                 print(tr("cli.download_complete").format(name=file_path.name))
@@ -1565,6 +1567,23 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
         # Support name==version syntax
         if "==" in name:
             name, version = name.split("==", 1)
+        # F2.3: uzak kod onayi — marketplace kodu yuklenir yuklenmez
+        # calistigi icin sessiz kurulum yok; --yes veya acik evet gerekli.
+        confirmed = getattr(args, "yes", False)
+        if not confirmed:
+            if sys.stdin.isatty():
+                print(tr("cli.plugin_confirm_remote").format(
+                    name=name, url="https://github.com/goun7/pkgforge-plugins"))
+                try:
+                    answer = input("[y/N] ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    answer = ""
+                confirmed = answer in ("y", "yes", "e", "evet")
+            else:
+                confirmed = False
+        if not confirmed:
+            print(tr("cli.plugin_need_confirm"))
+            return 1
         print(f"📦 Plugin indiriliyor: {name} v{version}")
         try:
             path = install_plugin(name, version=version, force=force)

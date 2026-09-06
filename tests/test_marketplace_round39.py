@@ -61,6 +61,8 @@ def test_user_agent_sha_download_fetch(monkeypatch, tmp_path):
             return b""
     monkeypatch.setattr(MP.urllib.request, "urlopen",
                         lambda req, timeout=30: SahteYanit())
+    # SSRF guard test hostuna takilmamali (ag zaten sahte)
+    monkeypatch.setattr(MP, "assert_public_host", lambda *a, **k: None)
     MP._download_file("https://s/x.py", hedef)                     # 80-81
     assert hedef.read_bytes() == b"PLUGIN_KODU"
 

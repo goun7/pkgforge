@@ -27,7 +27,8 @@ def test_https_downgrade_blocked_with_require_https():
 
 
 def test_http_allowed_when_require_https_false():
-    h = _SchemeGuardRedirectHandler(require_https=False)
+    h = _SchemeGuardRedirectHandler(require_https=False,
+                                    allow_private_hosts=True)
     out = h.redirect_request(_req(), None, 302, "Found", {},
                              "http://x/y.deb")
     assert isinstance(out, urllib.request.Request)
@@ -35,7 +36,8 @@ def test_http_allowed_when_require_https_false():
 
 
 def test_https_redirect_allowed_when_require_https():
-    h = _SchemeGuardRedirectHandler(require_https=True)
+    h = _SchemeGuardRedirectHandler(require_https=True,
+                                    allow_private_hosts=True)
     out = h.redirect_request(_req(), None, 301, "Moved", {},
                              "https://mirror.test/paket.deb")
     assert isinstance(out, urllib.request.Request)
