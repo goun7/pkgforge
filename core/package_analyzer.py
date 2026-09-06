@@ -270,6 +270,22 @@ def _analyze_rpm(file_path: Path, tools: ToolPaths) -> PackageMetadata:
         log.warning("rpm2cpio basarisiz (rc=%s): %s",
                     file_list_result.returncode,
                     (file_list_result.stderr or b"")[:200])
+        # F2.4: bazi rpm2cpio derlemeleri (örn. Ubuntu) payload'i reddeder
+        # ("use rpm2archive instead"). Varsa onunla dene, yoksa bos liste.
+        import shutil as _shutil
+
+        if _shutil.which("rpm2archive"):
+            file_list_result = safe_run(
+                ["rpm2archive", str(file_path)],
+                timeout=30,
+                text=False,
+            )
+            if file_list_result.returncode != 0:
+                log.warning("rpm2archive de basarisiz (rc=%s)",
+                            file_list_result.returncode)
+    if file_list_result.returncode != 0:
+        # Hicbir cikarma yolu calismadi — liste bos kalir, analiz devam eder.
+        pass
     else:
         tar_result = safe_run(
             [tools.bsdtar, "-tf", "-"] if tools.bsdtar
