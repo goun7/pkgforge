@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload Coverage Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report-py${{ matrix.python-version }}
           path: htmlcov/
@@ -287,7 +287,7 @@ jobs:
           pnpm build
       - name: Visual tour (12 pages + screenshots)
         run: python3 desktop/scripts/visual-tour.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: visual-tour-screens
           path: docs/screens/
@@ -342,7 +342,7 @@ jobs:
           cd desktop/src-tauri/target/release/bundle/deb
           sha256sum *.deb > SHA256SUMS
           cat SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pkgforge-desktop-deb
           path: desktop/src-tauri/target/release/bundle/deb/
