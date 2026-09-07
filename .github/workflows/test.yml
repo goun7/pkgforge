@@ -270,6 +270,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Stub sidecar resource (build artifact, not in git)
+        # tauri.conf `resources` references the PyInstaller sidecar which is
+        # produced by desktop/scripts/build-sidecar.sh at packaging time.
+        # cargo check only needs the path to exist.
+        run: mkdir -p desktop/src-tauri/resources && touch desktop/src-tauri/resources/pkgforge-sidecar
       - name: Cargo check
         working-directory: desktop/src-tauri
         run: cargo check --all-features
@@ -399,13 +404,18 @@ jobs:
           python -m pip install --upgrade pip --break-system-packages
           pip install -r requirements.txt --break-system-packages
           pip install pytest pytest-timeout --break-system-packages
+      - name: Non-root builder user (makepkg refuses root)
+        # GitHub container jobs run as root; makepkg aborts for root.
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
       - name: Doctor + dry-run convert (real makepkg)
         env:
           # Unprivileged CI container cannot create user namespaces;
           # trusted hello fixture, sandbox explicitly off (see PKGFORGE_NO_SANDBOX).
           PKGFORGE_NO_SANDBOX: "1"
         run: |
-          python main.py doctor --tools
-          python main.py convert utest/hello_1.0.0-1_amd64.deb --dry-run
+          su -p builder -c "python main.py doctor --tools"
+          su -p builder -c "python main.py convert utest/hello_1.0.0-1_amd64.deb --dry-run"
       - name: Pure-logic subset
         run: python -m pytest tests/test_security_pure_logic.py tests/test_maps.py -q -p no:cacheprovider
