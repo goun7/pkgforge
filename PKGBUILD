@@ -38,7 +38,7 @@ provides=('pkgforge')
 conflicts=('pkgforge')
 # NOTE: sha256 verified against the published v2.1.0 tag tarball (2026-09-07).
 source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('fce743a4ffe8d488f34e949391c13176b98bbb4e97437b3b7e8ec5e143bbf67e')
+sha256sums=('604bbbdae833bcd16bed291a271fe981efb2b04aacb889c7c57905f4d7ad1a86')
 
 prepare() {
     cd "$srcdir/pkgforge-$pkgver"
