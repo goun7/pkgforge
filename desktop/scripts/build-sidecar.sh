@@ -12,9 +12,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."   # repo root
 
-VENV_PY=".venv/bin/python"
-if [ ! -x "$VENV_PY" ]; then
-  echo "error: $VENV_PY not found — create the venv first" >&2
+VENV_PY="${VENV_PY:-.venv/bin/python}"
+if ! command -v "$VENV_PY" >/dev/null 2>&1; then
+  echo "error: $VENV_PY not found — create the venv first (or set VENV_PY)" >&2
   exit 1
 fi
 
