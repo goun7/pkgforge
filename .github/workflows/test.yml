@@ -415,7 +415,7 @@ jobs:
           # trusted hello fixture, sandbox explicitly off (see PKGFORGE_NO_SANDBOX).
           PKGFORGE_NO_SANDBOX: "1"
         run: |
-          su -p builder -c "python main.py doctor --tools"
-          su -p builder -c "python main.py convert utest/hello_1.0.0-1_amd64.deb --dry-run"
+          su -p builder -c "export HOME=/home/builder && python main.py doctor --tools"
+          su -p builder -c "export HOME=/home/builder && python main.py convert utest/hello_1.0.0-1_amd64.deb --dry-run"
       - name: Pure-logic subset
         run: python -m pytest tests/test_security_pure_logic.py tests/test_maps.py -q -p no:cacheprovider
