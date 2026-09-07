@@ -400,6 +400,10 @@ jobs:
           pip install -r requirements.txt --break-system-packages
           pip install pytest pytest-timeout --break-system-packages
       - name: Doctor + dry-run convert (real makepkg)
+        env:
+          # Unprivileged CI container cannot create user namespaces;
+          # trusted hello fixture, sandbox explicitly off (see PKGFORGE_NO_SANDBOX).
+          PKGFORGE_NO_SANDBOX: "1"
         run: |
           python main.py doctor --tools
           python main.py convert utest/hello_1.0.0-1_amd64.deb --dry-run

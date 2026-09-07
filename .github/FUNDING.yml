@@ -1,6 +1,6 @@
-# GitHub Sponsors etkinleştiğinde bu dosya otomatik olarak "Sponsor"
-# butonunu repoda gösterir. custom girdisi Polar (MoR) yansıtıcısıdır —
-# hesap açıldığında yalnızca URL güncellenir.
-github: [goun7]
+# Sponsorluk kanallari:
+# - Giveth (kripto, aktif): https://giveth.io/project/pkgforge
+# - GitHub Sponsors: henuz acilmadi (acilinca `github: [goun7]` eklenecek).
+#   Bos `github:` satiri yaniltici Sponsor butonu gosterdigi icin kaldirildi.
 custom:
   - "https://giveth.io/project/pkgforge"

@@ -149,11 +149,11 @@ Onkosul: GitHub hesabi + 2FA acik + Turkiye'den basvuru (Stripe Connect TR IBAN 
 Polar MoR'dur: global KDV/satis vergisi yukunu ustlenir; status 2026-09'da online.
 
 1. `polar.sh` → **Get Started** → GitHub hesabinla giris yap.
-2. Organizasyon olustur: isim `goun7` (URL `polar.sh/goun7` olur; `.github/FUNDING.yml` ve `config.DONATE_URL` zaten bu URL'yi isaret ediyor).
+2. Organizasyon olustur: isim `goun7` (URL `polar.sh/goun7` olur; hesap acilinca `.github/FUNDING.yml` ve `config.DONATE_URL` bu URL'ye cevrilecek — su an Giveth'i isaret ediyor).
 3. **Settings → Payouts → Stripe Connect Express** bagla: odeme alici olarak 20/B istisna hesabi IBAN'ini gir. (Polar'in kestigi %5 + $0.50 islem ucreti disinda TR'ye ek aracilik ucreti c magazines; banka tarafi %15 stopaj ayri uygulanir — mali musavirle teyit et.)
 4. **Products → Create product** → Aşama 1 icin bagis-nitelikli urun: or. "PkgForge Backer" aylik abonelik ($5 / $25 / $100 uc urun veya tek urunde 3 fiyat katmani). Fayda (benefit) olarak lisans anahtari EKLEME (Aşama 3'e kadar); karsilik olarak isim/logo/tesekkur yaz.
 5. Urun checkout linkini ac, test kartiyla 1 $'lik deneme satisi yap → webhook/e-posta akisini dogrula → test urununu arsivle.
-6. Magaza sayfasi (`polar.sh/goun7`) herkese acik mi diye kontrol et; README/FUNDING linkleri zaten buna bakiyor.
+6. Magaza sayfasi (`polar.sh/goun7`) herkese acik mi diye kontrol et; acilinca README/FUNDING linklerini buna cevir.
 7. Aşama 3'e gecince (esik sonrasi): ayni panele don, ucretli urunlere "License Key" benefit ekle + **Webhooks** menusunden odeme bildirimini kendi dogrulayicina bagla. O gune kadar webhook kodu yazma.
 
 ## Ek C — Mali musavir gorusmesi kontrol listesi (tek gorusme, 30 dk)

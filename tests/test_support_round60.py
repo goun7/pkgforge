@@ -34,7 +34,9 @@ def test_funding_yml_valid():
     import yaml  # type: ignore[import-untyped]
 
     data = yaml.safe_load((KOK / ".github" / "FUNDING.yml").read_text())  # type: ignore[attr-defined]
-    assert data["github"] == ["goun7"]
+    # GitHub Sponsors henuz acilmadi: `github:` satiri bilerek yok (yaniltici
+    # Sponsor butonu gostermemek icin; acilinca `github: [goun7]` eklenecek).
+    assert "github" not in data
     # Polar.sh yok: hesap acilmadi (acilinca geri eklenecek). Giveth canli.
     assert any("giveth.io" in u for u in data["custom"])
     assert not any("polar.sh" in u for u in data["custom"])

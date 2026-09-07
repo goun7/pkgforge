@@ -498,6 +498,13 @@ def build_sandbox_cmd(
     """Build a (program, args) tuple for running cmd inside bubblewrap sandbox if available."""
     if not tools.bwrap:
         return cmd[0], cmd[1:]
+    if os.environ.get("PKGFORGE_NO_SANDBOX") == "1":
+        # Bilincli kacak: konteyner/kisitli cekirdeklerde user namespace
+        # acilamaz (bwrap "Operation not permitted"). CI smoke ve benzeri
+        # guvenilir-girdi senaryolari icin; UYAR, sandbox'siz devam et.
+        # Supheli paketlerde KULLANMA.
+        log.warning("PKGFORGE_NO_SANDBOX=1: derleme sandbox'siz calisiyor")
+        return cmd[0], cmd[1:]
 
     bwrap_cmd: list[str] = [
         "--unshare-pid",

@@ -269,6 +269,21 @@ class TestBuildSandboxCmd(unittest.TestCase):
         self.assertEqual(prog, "echo")
         self.assertEqual(args, ["hi"])
 
+    def test_no_sandbox_env_bypass(self):
+        import os
+
+        from config import ToolPaths
+        from core.security import build_sandbox_cmd
+        tools = ToolPaths(bwrap="/usr/bin/bwrap")
+        os.environ["PKGFORGE_NO_SANDBOX"] = "1"
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                prog, args = build_sandbox_cmd(["echo", "hi"], Path(td), tools)
+        finally:
+            del os.environ["PKGFORGE_NO_SANDBOX"]
+        self.assertEqual(prog, "echo")
+        self.assertEqual(args, ["hi"])
+
     def test_bwrap_wraps_command(self):
         from config import ToolPaths
         from core.security import build_sandbox_cmd
