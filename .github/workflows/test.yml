@@ -270,11 +270,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
-      - name: Stub sidecar resource (build artifact, not in git)
-        # tauri.conf `resources` references the PyInstaller sidecar which is
-        # produced by desktop/scripts/build-sidecar.sh at packaging time.
-        # cargo check only needs the path to exist.
-        run: mkdir -p desktop/src-tauri/resources && touch desktop/src-tauri/resources/pkgforge-sidecar
+      - name: Stub sidecar binary (build artifact, not in git)
+        # externalBin requires binaries/pkgforge-sidecar-<triple> at bundle
+        # time. cargo check only validates the path exists; the genuine
+        # PyInstaller binary is produced by scripts/build-sidecar.sh and
+        # verified by the desktop-build job (S1).
+        run: mkdir -p desktop/src-tauri/binaries && touch "desktop/src-tauri/binaries/pkgforge-sidecar-x86_64-unknown-linux-gnu"
       - name: Cargo check
         working-directory: desktop/src-tauri
         run: cargo check --all-features

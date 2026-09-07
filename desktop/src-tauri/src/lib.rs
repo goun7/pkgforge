@@ -169,6 +169,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![sidecar::rpc_call])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
