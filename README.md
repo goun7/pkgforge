@@ -31,6 +31,22 @@ $ pkgforge convert hello_1.0.0-1_amd64.deb --dry-run
 
 ---
 
+## 🖥️ Screenshots (Tauri desktop, dark theme)
+
+| Convert | Security |
+|---|---|
+| ![Convert](docs/screens/convert.png) | ![Security](docs/screens/security.png) |
+
+| Installed | Settings |
+|---|---|
+| ![Installed](docs/screens/installed.png) | ![Settings](docs/screens/settings.png) |
+
+> Captured headlessly via `desktop/scripts/visual-tour.py` (12/12 pages
+> render-checked). Backend-dependent panels show their empty states here;
+> connected screenshots require the Tauri runtime.
+
+---
+
 ## 🎯 Key Features
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
