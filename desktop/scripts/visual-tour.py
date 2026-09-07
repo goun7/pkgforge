@@ -82,7 +82,7 @@ def main() -> int:
                 try:
                     page.click(sel, timeout=1500)
                     break
-                except Exception:  # noqa: BLE001 - tour overlay may be absent
+                except Exception:  # noqa: BLE001, S110 - tour overlay may be absent
                     pass
             page.wait_for_timeout(500)
             for name, want_title in PAGES:
