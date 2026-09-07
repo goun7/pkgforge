@@ -188,7 +188,10 @@ def stream_split(
                     remaining_file = total - bytes_seen
                     remaining_part = part_size - written
                     need = min(remaining_part, remaining_file, DEFAULT_CHUNK_SIZE)
-                    if need <= 0:
+                    if need <= 0:  # pragma: no cover - savunma: dongu
+                        # kosulu (written < part_size and bytes_seen < total)
+                        # need'i her zaman pozitif tutar; negatif/degisen
+                        # dosya boyuna karsi emniyet supabi.
                         break
                     chunk = f_in.read(need)
                     if not chunk:

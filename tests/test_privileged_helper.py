@@ -173,3 +173,55 @@ def test_helper_write_batch_rejects_bad_path(tmp_path):
         capture_output=True, check=False, timeout=15)
     assert r.returncode == 6
     assert b"izin verilen dizinlerde degil" in r.stderr
+
+
+# --- S3: argv validasyon matrisleri (privileged.py raise dallari) ---------
+
+def test_unit_name_validation_matrix():
+    from core.privileged import _check_unit_name
+
+    _check_unit_name("pkgforge-auto-update.timer")  # gecerli
+    for kotu in ("", "a;b", "x y", "u$nit", "../x"):
+        with pytest.raises(ValueError):
+            _check_unit_name(kotu)
+
+
+def test_snapshot_argv_rejects_bad_op():
+    from core.privileged import privileged_snapshot_argv
+
+    with pytest.raises(ValueError, match="snapshot islemi"):
+        privileged_snapshot_argv("pkexec", "format-c:", "/")
+
+
+def test_snapshot_argv_rejects_bad_target():
+    from core.privileged import privileged_snapshot_argv
+
+    with pytest.raises(ValueError, match="hedef"):
+        privileged_snapshot_argv("pkexec", "take-btrfs", "")
+    with pytest.raises(ValueError, match="hedef"):
+        privileged_snapshot_argv("pkexec", "take-btrfs", "../kacis")
+    with pytest.raises(ValueError, match="hedef"):
+        privileged_snapshot_argv("pkexec", "take-btrfs", "relatif/yol")
+
+
+def test_snapshot_argv_zfs_shape_rules():
+    from core.privileged import privileged_snapshot_argv
+
+    with pytest.raises(ValueError, match="dataset@snap"):
+        privileged_snapshot_argv("pkexec", "take-zfs", "havuz")
+    with pytest.raises(ValueError, match="dataset"):
+        privileged_snapshot_argv("pkexec", "take-zfs", "havuz$@snap")
+    with pytest.raises(ValueError, match="pkgforge-"):
+        privileged_snapshot_argv("pkexec", "take-zfs", "havuz@diger-ad")
+    ok = privileged_snapshot_argv("pkexec", "take-zfs", "havuz/ds@pkgforge-01")
+    assert ok[0] == "pkexec" and "take-zfs" in ok
+
+
+def test_install_pkg_argv_snapshot_flag():
+    from core.privileged import privileged_install_pkg_argv
+
+    argv = privileged_install_pkg_argv("pkexec", "/tmp/x.pkg.tar.zst",
+                                       snapshot="snap-1")
+    assert argv[-3:] == ["--snapshot", "snap-1", "/tmp/x.pkg.tar.zst"]
+    argv2 = privileged_install_pkg_argv("pkexec", "/tmp/x.pkg.tar.zst")
+    assert "--snapshot" not in argv2

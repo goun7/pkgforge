@@ -11,7 +11,10 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEB_FIXTURE = PROJECT_ROOT / "utest" / "hello_1.0.0-1_amd64.deb"
-RPM_FIXTURE = PROJECT_ROOT / ".test_home" / "rpmbuild" / "RPMS" / "x86_64" / "hello-1.0.0-1.x86_64.rpm"
+_RPM_BUILD_OUT = (PROJECT_ROOT / ".test_home" / "rpmbuild" / "RPMS"
+                  / "x86_64" / "hello-1.0.0-1.x86_64.rpm")
+_RPM_COMMITTED = PROJECT_ROOT / "utest" / "fixtures" / "hello-1.0.0-1.x86_64.rpm"
+RPM_FIXTURE = _RPM_BUILD_OUT if _RPM_BUILD_OUT.is_file() else _RPM_COMMITTED
 
 
 class TestSignal(unittest.TestCase):

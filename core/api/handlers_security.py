@@ -39,11 +39,6 @@ def handle_security_provenance(params):
     return prov.to_dict() if prov else None
 
 
-def _run_thread(fn, event_name):
-    """Transport'taki paylasilan implementasyona delege et (tek kaynak)."""
-    transport._run_thread(fn, event_name)
-
-
 def _run_security_thread(fn, event_name="event/security_done"):
     """Backwards-compatible alias for security ops."""
     transport._run_security_thread(fn, event_name)

@@ -402,10 +402,9 @@ def collect_script_interpreters(root_dir: Path, tools: ToolPaths) -> set[str]:
         if not head.startswith(b"#!"):
             continue
         checked += 1
-        try:
-            first_line = head.split(b"\n", 1)[0].decode("utf-8", errors="replace")
-        except ValueError:
-            continue
+        # errors="replace" ile decode asla ValueError yukseltmez; ham bayt
+        # her zaman islenebilir metne donusur (bilerek try/except yok).
+        first_line = head.split(b"\n", 1)[0].decode("utf-8", errors="replace")
         parts = first_line[2:].strip().split()
         if not parts:
             continue

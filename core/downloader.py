@@ -69,6 +69,10 @@ def assert_public_host(hostname: str | None, *, allow_private_hosts: bool = Fals
         if _is_non_public_ip(ip):
             raise ValueError(
                 tr("downloader.ssrf_ozel_ag_reddedildi", host=hostname))
+        return
+    # Hicbir aday dogrulanamadi (örn. cozumleyici anlamsiz kayit dondu):
+    # fail-closed — dogrulanamayan host'a inilmez.
+    raise ValueError(tr("downloader.ssrf_cozulemedi", host=hostname))
 
 
 class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
