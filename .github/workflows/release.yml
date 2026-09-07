@@ -16,7 +16,7 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -47,7 +47,7 @@ jobs:
       id-token: write # SLSA provenance attestation (keyless, OIDC)
       attestations: write # persist the attestation to the repo
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -101,7 +101,7 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       VENV_PY: python3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
