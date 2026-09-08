@@ -102,7 +102,7 @@ _TV_GNU_RE = re.compile(
 )
 
 
-def _parse_tv_line(line: str):
+def _parse_tv_line(line: str) -> tuple[str, int, str] | None:
     """Return (perms, size, path) from a `tar -tv` line, or None."""
     m = _TV_BSDTAR_RE.match(line) or _TV_GNU_RE.match(line)
     if m is None:

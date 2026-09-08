@@ -508,7 +508,7 @@ def main() -> int:
             if getattr(args, "dbus", False):
                 import threading as _threading
 
-                def _start_dbus():
+                def _start_dbus() -> None:
                     from core.dbus_service import start_default
 
                     try:

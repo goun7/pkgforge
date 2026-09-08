@@ -8,10 +8,12 @@ Supports multi-package queue, language switching, and theme changes.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import QSize, Qt, QThread, pyqtSlot
-from PyQt6.QtGui import QIcon, QPainter, QPixmap
+from PyQt6.QtGui import QCloseEvent, QIcon, QPainter, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (
     QApplication,
@@ -152,7 +154,7 @@ class MainWindow(QMainWindow):
         accent = get_colors().TEAL
         icon_size = QSize(20, 20)
 
-        def _make_header_btn(svg: str, tooltip: str, handler) -> QPushButton:
+        def _make_header_btn(svg: str, tooltip: str, handler: Callable[..., None]) -> QPushButton:
             btn = QPushButton()
             btn.setObjectName("headerBtn")
             btn.setFixedSize(44, 44)
@@ -409,7 +411,7 @@ class MainWindow(QMainWindow):
         self._pipeline_thread.start()
 
     @pyqtSlot(list)
-    def _on_queue_changed(self, items: list) -> None:
+    def _on_queue_changed(self, items: list[Any]) -> None:
         """Rebuild queue sidebar list."""
         # Clear existing items
         while self._queue_list_layout.count() > 1:
@@ -681,12 +683,12 @@ class MainWindow(QMainWindow):
         self._updates_btn.setEnabled(False)
         self._status_bar.showMessage(tr("updates.checking"))
 
-        def _do_check():
+        def _do_check() -> list[Any]:
             from core.upstream_tracker import check_all_installed_updates
 
             return check_all_installed_updates()
 
-        def _on_done(results) -> None:
+        def _on_done(results: list[Any]) -> None:
             self._updates_btn.setEnabled(True)
             self._status_bar.showMessage(tr("status.ready"))
             if not results:
@@ -770,7 +772,9 @@ class MainWindow(QMainWindow):
 
     # ── Close event ──────────────────────────────────────────────
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent | None) -> None:
+        if event is None:
+            return
         if self._pipeline_thread and self._pipeline_thread.isRunning():
             reply = QMessageBox.question(
                 self,

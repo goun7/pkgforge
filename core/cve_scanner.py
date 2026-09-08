@@ -11,8 +11,9 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
-from config import APP_VERSION
+from config import APP_VERSION, ToolPaths
 from i18n import tr
 
 log = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
     return result
 
 
-def scan_package(pkg_path, tools) -> dict:
+def scan_package(pkg_path: Path, tools: ToolPaths) -> dict:
     """Extract dependencies from a package and scan them for CVEs.
 
     Args:
@@ -126,7 +127,6 @@ def scan_package(pkg_path, tools) -> dict:
     Returns:
         scan_dependencies() result with 'package' set to the file name.
     """
-    from pathlib import Path
 
     from core.package_analyzer import analyze_package
 

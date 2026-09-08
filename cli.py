@@ -161,7 +161,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
 
     from core.cli_bridge import convert_deb_sync, convert_rpm_sync
 
-    def _print_line(line: str):
+    def _print_line(line: str) -> None:
         print(f"  {line}")
 
     if is_deb:

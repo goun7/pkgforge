@@ -10,6 +10,7 @@ import logging
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from typing import Any
 
 from config import APP_VERSION
 from core.history_db import HistoryDB, HistoryRecord
@@ -70,7 +71,7 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
         # .deb'in icine gomulu intranet URL sonradan sorgulanabilirdi.
         assert_public_host(parsed.hostname)
 
-        def _do_head():
+        def _do_head() -> Any:
             req = urllib.request.Request(
                 record.source_url,
                 method="HEAD",
