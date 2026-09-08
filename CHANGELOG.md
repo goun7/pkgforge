@@ -64,9 +64,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **docs**: README sayıları ölçülen gerçeklere çekildi (2521 test:
   2514 passed + 5 skip + 2 çevresel fail; %99 kapsama; 95 dosya mypy).
 
-## [Unreleased]
 
-### Added
+### 2.1.0 öncesi birikmiş notlar (tarihsel, tek Unreleased'e birleşti)
+
+#### Added
 - **feat(deps)**: `core/maps.py` — Debian→Arch ad eşleştirme (`debian_dep_to_arch`,
   `DEB_DEP_MAP`: libc6→glibc, libstdc++6→gcc-libs, ...), lisans çözümleyici
   (`arch_license`: bilinen token→SPDX, bilinmeyen→dürüst `LicenseRef-<pkg>-unknown`),
@@ -88,7 +89,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - **test(i18n)**: anahtar-parite kilidi — lang_tr/lang_en anahtar kümeleri
   ve değer doluluğu her test koşusunda doğrulanır (5 test).
 
-### Changed
+#### Changed
 - **refactor(i18n)**: core/ içindeki 78 kullanıcı-yönelimli Türkçe log mesajı
   (34 dosya) tr() anahtarlarına taşındı; lang_tr/lang_en 545'er anahtar.
 - **fix(ci)**: bandit adımındaki `|| true` kaldırıldı — güvenlik kapısı artık gerçek.
@@ -99,7 +100,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   test sayısı 2428 collected'a güncellendi; progress.md'deki Tur-47..51
   Launch iddiaları dürüst düzeltme kayıtlarıyla netleştirildi.
 
-### Fixed
+#### Fixed
 - **fix(packaging)**: üretilen her paket sistematik namcap ERROR alıyordu
   (`license=('custom')` → `unknown-spdx-license-identifier`; betik paketlerinde
   ek `dependency-detected-not-included`). Artık bilinen lisans SPDX'e çevrilir,
@@ -204,7 +205,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   (profil hata yolları/radio geçişi/sync.import/sync.config/dbus başlat ve
   yok durumu). 571→578 test.
 
-### Fixed
+#### Fixed
 - **fix(desktop)**: abonelik unmount yarışı — `onEvent().then(push)` deseni
   erken unmount'ta sızıyordu; `rpc.ts`'de yeni `eventBinder()` ile 10 sayfa
   güvenli desene migrate edildi (33 çağrı noktası). Handler catch'lerinde

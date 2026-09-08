@@ -102,6 +102,11 @@ exclude_also = ["pragma: no cover"]
 ignore_missing_imports = true
 python_version = "3.10"
 
+# F0-devami: ruff davranisi varsayilan kurallardir; surum pini
+# requirements-dev.txt (ruff==x.y.z) + CI kurulumlarindadir. Bu bolum,
+# kural degisikligi gerektiginde tek adres olmasi icin vardir.
+[tool.ruff]
+
 [tool.mutmut]
 # Kritik moduller: installer (Faz 5 kampanyasi %99.1) + security (Tur-65 kampanyasi).
 # Calistirma: rm -rf mutants && .venv/bin/mutmut run  (test degisince mutants/ silinmeli).
