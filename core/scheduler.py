@@ -161,7 +161,7 @@ def hours_guard(value: Any) -> float:
     return v
 
 
-def install_timer(interval_hours: float | None = None, dry_run: bool = False) -> object:
+def install_timer(interval_hours: float | None = None, dry_run: bool = False) -> dict:
     """Write user systemd units under HOME; dry_run returns paths+content."""
     st = state()
     raw = st["interval_hours"] if interval_hours is None else interval_hours

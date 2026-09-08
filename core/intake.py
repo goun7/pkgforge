@@ -377,7 +377,7 @@ def find_top_level_dir(names: list[str]) -> str | None:
     return None
 
 
-def _source_build_commands(build_system: str, binary_name: str | None = None):
+def _source_build_commands(build_system: str, binary_name: str | None = None) -> tuple[list[str], str, str]:
     """Build sistemine gore (makedepends, build, install) komutlarini dondurur."""
     if build_system == "cmake":
         return (

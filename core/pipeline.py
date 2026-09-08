@@ -12,6 +12,7 @@ import logging
 import os
 import shutil
 import threading
+from collections.abc import Callable
 from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -1136,7 +1137,7 @@ class ConversionPipeline(QObject):
             done_event.wait()
 
     @staticmethod
-    def _on_rm_error(func, path, exc_info):
+    def _on_rm_error(func: Callable[..., Any], path: str, exc_info: object) -> None:
         """makepkg salt-okunur/root sahipli dosya birakabilir; yolun kendisine ve
         ebeveynine yazma izni verip silmeyi yeniden dene (EACCES temizligi)."""
         try:

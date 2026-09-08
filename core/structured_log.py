@@ -27,6 +27,7 @@ import sys
 import time
 import uuid
 from datetime import datetime, timezone
+from types import TracebackType
 from typing import ClassVar
 
 # ---- request-id context ----------------------------------------------------
@@ -78,7 +79,7 @@ class request_context:
         self._token = _request_id_var.set(self.id)
         return self.id
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None) -> None:
         if self._token is not None:
             _request_id_var.reset(self._token)
             self._token = None

@@ -107,7 +107,7 @@ def _own_uid() -> int:
     return os.getuid()
 
 
-def _caller_uid(conn, sender):
+def _caller_uid(conn: Any, sender: str) -> int | None:
     """Resolve the Unix UID behind a bus name; None when undeterminable."""
     if not sender:
         return None

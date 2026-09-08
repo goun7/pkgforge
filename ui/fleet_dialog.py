@@ -5,6 +5,8 @@ backend durumu, politika seviyesi, profiller, gecmis/age/senkron ozeti.
 """
 from __future__ import annotations
 
+from typing import Any
+
 from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from i18n import tr
@@ -39,10 +41,10 @@ class FleetDialog(QDialog):
         from core.fleet import get_fleet_status
         self._summary.setText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             return get_fleet_status()
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._render(res)
 
         def _err(msg: str) -> None:

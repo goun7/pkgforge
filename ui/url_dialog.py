@@ -91,7 +91,7 @@ class UrlDialog(QDialog):
             self.file_downloaded.emit(downloaded_file)
             self.accept()
 
-        def _on_error(err_msg: str):
+        def _on_error(err_msg: str) -> None:
             self._download_btn.setEnabled(True)
             self._download_btn.setText(tr("url.download_btn"))
             msg = tr("url.error").format(error=err_msg)

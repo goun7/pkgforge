@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import shutil
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -69,7 +70,7 @@ class HistoryDB:
         return conn
 
     @contextmanager
-    def _conn(self):
+    def _conn(self) -> Iterator[sqlite3.Connection]:
         """Islem-baglami + garantili kapanis (sqlite 'with' kapatmaz)."""
         c = self._get_connection()
         try:

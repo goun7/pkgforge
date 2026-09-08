@@ -244,7 +244,7 @@ def build_policy_text() -> str:
     return NL.join(parts)
 
 
-def install_polkit_assets(dry_run=True):
+def install_polkit_assets(dry_run: bool = True) -> dict[str, object]:
     """Install policy + helper copy targets (root required).
 
     dry_run=True (default) returns the exact write plan without touching

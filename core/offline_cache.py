@@ -22,7 +22,9 @@ import json
 import logging
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from i18n import tr
 
@@ -122,9 +124,9 @@ class OfflineCache:
         self,
         namespace: str,
         key: str,
-        fetch_func,
+        fetch_func: Callable[[], Any],
         force_refresh: bool = False,
-    ):
+    ) -> Any:
         """Get from cache or fetch from network.
 
         Args:

@@ -6,7 +6,7 @@ Shows a spinner animation and status text during long operations.
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QPen
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from ui.styles import get_colors
@@ -15,7 +15,7 @@ from ui.styles import get_colors
 class SpinnerWidget(QWidget):
     """Animated spinner widget."""
 
-    def __init__(self, size: int = 24, color: str | None = None, parent=None):
+    def __init__(self, size: int = 24, color: str | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._size = size
         self._color = color or get_colors().TEAL
@@ -24,19 +24,19 @@ class SpinnerWidget(QWidget):
         self._timer.timeout.connect(self._rotate)
         self.setFixedSize(size, size)
 
-    def _rotate(self):
+    def _rotate(self) -> None:
         self._angle = (self._angle + 10) % 360
         self.update()
 
-    def start(self):
+    def start(self) -> None:
         self._timer.start(50)
         self.show()
 
-    def stop(self):
+    def stop(self) -> None:
         self._timer.stop()
         self.hide()
 
-    def paintEvent(self, event):
+    def paintEvent(self, event: QPaintEvent | None) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -55,12 +55,12 @@ class SpinnerWidget(QWidget):
 class LoadingIndicator(QWidget):
     """Composite loading indicator with spinner + text."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._setup_ui()
         self.hide()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
@@ -74,17 +74,17 @@ class LoadingIndicator(QWidget):
 
         layout.addStretch()
 
-    def start(self, text: str = ""):
+    def start(self, text: str = "") -> None:
         """Start the loading indicator with optional text."""
         self._label.setText(text)
         self._spinner.start()
         self.show()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the loading indicator."""
         self._spinner.stop()
         self.hide()
 
-    def update_text(self, text: str):
+    def update_text(self, text: str) -> None:
         """Update the status text."""
         self._label.setText(text)

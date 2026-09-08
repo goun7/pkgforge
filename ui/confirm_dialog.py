@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from i18n import tr
@@ -27,7 +28,7 @@ class ConfirmDialog(QDialog):
         confirm_text: str | None = None,
         cancel_text: str | None = None,
         danger: bool = False,
-        parent=None,
+        parent: QWidget | None = None,
     ):
         super().__init__(parent)
         confirm_text = confirm_text or tr("common.confirm")
@@ -75,7 +76,7 @@ def confirm_action(
     message: str,
     confirm_text: str | None = None,
     danger: bool = False,
-    parent=None,
+    parent: QWidget | None = None,
 ) -> bool:
     """Show a confirmation dialog and return True if confirmed.
 

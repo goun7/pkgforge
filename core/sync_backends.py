@@ -11,6 +11,7 @@ import logging
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ def _run(cmd: list[str]) -> None:
             f"{' '.join(cmd[:3])} basarisiz: {res.stderr[:200]!r}")
 
 
-def get_backend(name: str, **cfg) -> SyncBackend:
+def get_backend(name: str, **cfg: Any) -> SyncBackend:
     """Factory: return a backend instance by name."""
     name = (name or "").lower().strip()
     if name == "git":
