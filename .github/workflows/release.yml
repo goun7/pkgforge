@@ -16,8 +16,10 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
       - name: Install Qt system libs (PyQt6 needs GL/EGL)
@@ -47,9 +49,11 @@ jobs:
       id-token: write # SLSA provenance attestation (keyless, OIDC)
       attestations: write # persist the attestation to the repo
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
@@ -68,26 +72,26 @@ jobs:
           cat SHA256SUMS
 
       - name: SBOM (SPDX + CycloneDX)
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.9.0
         with:
           path: ./
           format: spdx-json
           output-file: dist/pkgforge.spdx.json
 
       - name: SBOM (CycloneDX)
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.9.0
         with:
           path: ./
           format: cyclonedx-json
           output-file: dist/pkgforge.cyclonedx.json
 
       - name: Attest build provenance (SLSA, Sigstore)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
-          subject-path: "dist/*.whl, dist/*.tar.gz"
+          subject-path: "dist/*.whl, dist/*.tar.gz, dist/SHA256SUMS, dist/pkgforge.spdx.json, dist/pkgforge.cyclonedx.json"
 
       - name: Upload dist artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pkgforge-dist
           path: dist/
@@ -101,8 +105,10 @@ jobs:
       QT_QPA_PLATFORM: offscreen
       VENV_PY: python3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
       - name: Install Python build deps
@@ -116,14 +122,14 @@ jobs:
             libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
             librsvg2-dev binutils file
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable@2026-09-08
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
         with:
           workspaces: desktop/src-tauri
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -137,7 +143,7 @@ jobs:
         working-directory: desktop
         run: pnpm tauri build
       - name: Upload desktop artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pkgforge-desktop-deb
           path: desktop/src-tauri/target/release/bundle/deb/
@@ -146,22 +152,30 @@ jobs:
   publish:
     needs: [build, desktop]
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Download dist artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: pkgforge-dist
           path: dist/
       - name: Download desktop artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: pkgforge-desktop-deb
           path: desktop-deb/
 
+      - name: Attest final release bundle (incl. desktop .deb)
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: "desktop-deb/*.deb, desktop-deb/SHA256SUMS"
+
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             dist/*.whl
