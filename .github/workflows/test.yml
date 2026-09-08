@@ -76,10 +76,10 @@ jobs:
           git diff --staged --quiet || git commit -m "Update coverage badge [skip ci]"
           git push
 
-      - name: Type Check (mypy, lenient imports)
+      - name: Type Check (mypy strict, lenient imports)
         run: |
           pip install mypy
-          mypy core/ --ignore-missing-imports --no-error-summary
+          mypy core/ cli.py main.py config.py ui/ --ignore-missing-imports --strict --no-error-summary
 
       - name: Security Scan (Bandit)
         run: |

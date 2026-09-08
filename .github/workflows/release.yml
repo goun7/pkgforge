@@ -34,8 +34,8 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Ruff (pinned, CI-parity)
         run: python -m ruff check .
-      - name: Mypy (core+cli+main+config)
-        run: python -m mypy core/ cli.py main.py config.py --ignore-missing-imports --no-error-summary
+      - name: Mypy (strict, core+cli+main+config+ui)
+        run: python -m mypy core/ cli.py main.py config.py ui/ --ignore-missing-imports --strict --no-error-summary
       - name: Bandit (core+entry points)
         run: python -m bandit -r core/ cli.py main.py config.py -ll --skip B101,B311
       - name: Full test suite (no coverage, fail-fast off)

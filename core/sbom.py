@@ -20,6 +20,7 @@ import logging
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 from config import APP_NAME, APP_VERSION, ToolPaths, extract_package_name
 from core.security import safe_run
@@ -65,7 +66,7 @@ class SBOMDocument:
     symlink_count: int = 0
     dir_count: int = 0
     # Build toolchain receipt (F5.15): tool versions + debtap-db date.
-    build_receipt: dict = field(default_factory=dict)
+    build_receipt: dict[str, Any] = field(default_factory=dict)
 
     def summary(self) -> str:
         lines = [
@@ -82,7 +83,7 @@ class SBOMDocument:
                 lines.append(f"     ... ve {len(self.dependencies) - 10} tane daha")
         return "\n".join(lines)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a JSON-compatible dict."""
         d = asdict(self)
         d["files"] = [asdict(f) for f in self.files]
@@ -145,7 +146,7 @@ def _detect_file_type(path: Path) -> str:
 
 
 def _fill_sbom_metadata(
-    sbom: SBOMDocument, pkg_path: Path, pkginfo: dict, tools: ToolPaths,
+    sbom: SBOMDocument, pkg_path: Path, pkginfo: dict[str, str], tools: ToolPaths,
 ) -> None:
     """Paket kimligi (.PKGINFO) + F5.15 arac makbuzunu doldurur.
 
@@ -354,7 +355,7 @@ class SBOMDiff:
             lines.append("  ✅ Fark yok — paketler aynı")
         return "\n".join(lines)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to JSON-compatible dict."""
         return asdict(self)
 

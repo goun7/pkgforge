@@ -719,7 +719,7 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     @pyqtSlot(dict)
-    def _apply_settings(self, settings: dict) -> None:
+    def _apply_settings(self, settings: dict[str, Any]) -> None:
         # Language change
         new_lang = settings.get("language", get_language())
         if new_lang != get_language():

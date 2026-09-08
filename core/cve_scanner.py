@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Any, cast
 
 from config import APP_VERSION, ToolPaths
 from i18n import tr
@@ -21,7 +22,7 @@ log = logging.getLogger(__name__)
 OSV_QUERY_URL = "https://api.osv.dev/v1/query"
 
 
-def _query_osv(dep_name: str, timeout: int = 10) -> list[dict]:
+def _query_osv(dep_name: str, timeout: int = 10) -> list[dict[str, Any]]:
     """Query OSV.dev for vulnerabilities affecting a single dependency.
 
     Returns a list of raw vuln dicts (empty on any failure).
@@ -39,7 +40,7 @@ def _query_osv(dep_name: str, timeout: int = 10) -> list[dict]:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
-        return data.get("vulns", [])
+        return cast(list[dict[str, Any]], data.get("vulns", []))
     except urllib.error.URLError as exc:
         log.warning(tr("cve.osv_sorgusu_basarisiz_s_s"), dep_name, exc)
         raise
@@ -48,7 +49,7 @@ def _query_osv(dep_name: str, timeout: int = 10) -> list[dict]:
         return []
 
 
-def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
+def scan_dependencies(deps: list[str], offline: bool = False) -> dict[str, Any]:
     """Scan a list of dependency names for known vulnerabilities.
 
     Args:
@@ -59,7 +60,7 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
         Dict: package, deps_scanned, vulns[{id, summary, severity, affected_dep}],
         count, offline.
     """
-    result: dict = {
+    result: dict[str, Any] = {
         "package": "",
         "deps_scanned": 0,
         "vulns": [],
@@ -78,7 +79,7 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
         return result
 
     seen_ids: set[str] = set()
-    vulns: list[dict] = []
+    vulns: list[dict[str, Any]] = []
     hit_network_error = False
 
     for dep in clean:
@@ -117,7 +118,7 @@ def scan_dependencies(deps: list[str], offline: bool = False) -> dict:
     return result
 
 
-def scan_package(pkg_path: Path, tools: ToolPaths) -> dict:
+def scan_package(pkg_path: Path, tools: ToolPaths) -> dict[str, Any]:
     """Extract dependencies from a package and scan them for CVEs.
 
     Args:

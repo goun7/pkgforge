@@ -10,7 +10,7 @@ lint:
 	$(PY) -m ruff check . 2>/dev/null || ruff check .
 
 typecheck:
-	$(PY) -m mypy core/ cli.py main.py config.py --ignore-missing-imports --no-error-summary
+	$(PY) -m mypy core/ cli.py main.py config.py ui/ --ignore-missing-imports --strict --no-error-summary
 
 security:
 	$(PY) -m bandit -r core/ cli.py main.py config.py -ll --skip B101,B311

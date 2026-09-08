@@ -101,6 +101,7 @@ exclude_also = ["pragma: no cover"]
 [tool.mypy]
 ignore_missing_imports = true
 python_version = "3.10"
+strict = true
 
 # F0-devami: ruff davranisi varsayilan kurallardir; surum pini
 # requirements-dev.txt (ruff==x.y.z) + CI kurulumlarindadir. Bu bolum,
