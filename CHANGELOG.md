@@ -4,6 +4,30 @@ All notable changes to PkgForge will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] (v2.2.0 hedefi — 100/100 kapanışı)
+
+### Added
+- **desktop**: `externalBin` sidecar migrasyonu (shell plugin, triple-suffixed
+  binary, capability scope `["serve"]`); CI'da gerçek `tauri build` + `.deb`
+  artifact; release'e desktop `.deb` eki.
+- **qa**: headless visual tour (`desktop/scripts/visual-tour.py`, 12 sayfa) +
+  CI `visual-qa` job'u + README ekran görüntüleri.
+- **test**: S3 kapatma paketi (46 eksik → kabul listeli azınlık), `.rpm`
+  fixture canlı, hypothesis fuzz hedefleri (`test_s6_fuzz.py`), CSP e2e kilitleri.
+- **ci**: action SHA-pinning, attest kapsamı (SBOM+SHA256SUMS+desktop),
+  `release` environment, least-privilege checkout'lar, supply-chain job'u.
+- **docs**: `SECURITY.md`, ADR-004/005, `docs/BENCHMARK_PARITY.md`,
+  `docs/COVERAGE_GAPS.md` rewrite.
+
+### Changed
+- **typing**: `disallow-untyped-defs` basamak 1 (aşamalı; ikiz oturumla paralel).
+- **i18n**: CLI kullanıcı-yolu tam tr/en (987 anahtar).
+
+### Fixed
+- **fix(rpc)**: `plugin.install` metodu METHODS'a bağlandı (desktop 404 alıyordu).
+- **fix(provenance)**: `BuildProvenance.to_dict` yokluğu (mypy buldu; production AttributeError).
+- **fix(compat)**: epoch'suz fallback, pacman-yok guard'ları, rpm2archive yedeği.
+
 ## [2.1.0] - 2026-09-07
 
 ### Added

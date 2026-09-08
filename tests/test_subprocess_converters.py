@@ -91,6 +91,7 @@ class TestNativeDebConverterSubprocess(unittest.TestCase):
 
 
 @unittest.skipUnless(RPM_FIXTURE.is_file(), "hello .rpm fixture missing")
+@unittest.skipUnless(__import__("shutil").which("makepkg"), "makepkg gerekli (Arch-only derleme)")
 class TestRpmConverterSubprocess(unittest.TestCase):
 
     def test_real_rpm_conversion(self):

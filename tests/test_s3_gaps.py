@@ -248,10 +248,13 @@ def test_system_install_pkg_snapshot_fallback(monkeypatch, tmp_path):
                         lambda fn, ev: ran.setdefault("fn", fn))
     pkg = tmp_path / "p.pkg.tar.zst"
     pkg.write_bytes(b"P")
-    import config
+    # Gercek araclar degil: ubuntu CI'da pkexec/pacman yok; snapshot
+    # dalina ulasmak icin yeterli.
+    from types import SimpleNamespace as _NS
 
-    tools = config.discover_tools()
-    monkeypatch.setattr(HS, "discover_tools", lambda: tools)
+    monkeypatch.setattr(HS, "discover_tools",
+                        lambda: _NS(pkexec="/usr/bin/pkexec",
+                                    pacman="/usr/bin/pacman"))
     out = HS.handle_system_install_pkg({"pkg_path": str(pkg)})
     assert out.get("started") is True and "fn" in ran
 
@@ -556,13 +559,16 @@ def test_rpm_extract_failure_paths(monkeypatch, tmp_path):
     assert m2.file_list == []
 
 
-def test_check_installed_found_branch():
+def test_check_installed_found_branch(monkeypatch):
     import core.package_analyzer as PA
-    from config import discover_tools
 
+    def sahte_qi(cmd, timeout=10, **k):
+        return NS(returncode=0, stdout="Name : pacman\nVersion : 7.0.0-1\n",
+                  stderr="")
+    monkeypatch.setattr(PA, "safe_run", sahte_qi)
     meta = PA.PackageMetadata(file_path=Path("/x"), package_type="deb",
                               name="pacman")
-    PA._check_installed(meta, discover_tools())
+    PA._check_installed(meta, NS(pacman="/usr/bin/pacman"))
     assert meta.already_installed is True
     assert meta.installed_version != ""
 
@@ -642,10 +648,13 @@ def test_system_install_pkg_snapshot_success(monkeypatch, tmp_path):
                         lambda fn, ev: ran.setdefault("fn", fn))
     pkg = tmp_path / "p.pkg.tar.zst"
     pkg.write_bytes(b"P")
-    import config
+    # Gercek araclar degil: ubuntu CI'da pkexec/pacman yok; snapshot
+    # dalina ulasmak icin yeterli.
+    from types import SimpleNamespace as _NS
 
-    tools = config.discover_tools()
-    monkeypatch.setattr(HS, "discover_tools", lambda: tools)
+    monkeypatch.setattr(HS, "discover_tools",
+                        lambda: _NS(pkexec="/usr/bin/pkexec",
+                                    pacman="/usr/bin/pacman"))
     out = HS.handle_system_install_pkg({"pkg_path": str(pkg)})
     assert out.get("started") is True and "fn" in ran
 
