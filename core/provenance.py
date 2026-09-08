@@ -54,7 +54,7 @@ class BuildProvenance:
     build_duration_ms: int = 0
 
     # Build toolchain receipt (F5.15)
-    tool_versions: dict = field(default_factory=dict)
+    tool_versions: dict[str, Any] = field(default_factory=dict)
     debtap_db_date: str = ""
 
     # Package metadata
@@ -87,7 +87,7 @@ class BuildProvenance:
         """Compute and set the self-referential hash."""
         self.provenance_hash = self.compute_hash()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """JSON-serializable view (same shape save_provenance writes)."""
         from dataclasses import asdict
 
@@ -248,7 +248,7 @@ class InTotoStatement:
     subject: list[dict[str, Any]] = field(default_factory=list)
     predicate: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "_type": self._type,
             "predicateType": self.predicate_type,

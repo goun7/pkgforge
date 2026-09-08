@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 from config import queue_db_path
 
@@ -44,7 +45,7 @@ class QueueStore:
     def close(self) -> None:
         self._conn.close()
 
-    def load_restorable(self) -> list[dict]:
+    def load_restorable(self) -> list[dict[str, Any]]:
         """Items to restore on startup, coerced to 'pending'.
 
         Items whose source file no longer exists are skipped so a restart
@@ -52,7 +53,7 @@ class QueueStore:
         """
         cur = self._conn.execute(
             "SELECT id, path, name, status, priority FROM queue")
-        out: list[dict] = []
+        out: list[dict[str, Any]] = []
         for (iid, path, name, status, priority) in cur.fetchall():
             if status not in _RESTORE_AS_PENDING:
                 continue
@@ -64,7 +65,7 @@ class QueueStore:
             })
         return out
 
-    def upsert(self, item: dict) -> None:
+    def upsert(self, item: dict[str, Any]) -> None:
         self._conn.execute(
             "INSERT INTO queue (id, path, name, status, priority, message)"
             " VALUES (?, ?, ?, ?, ?, ?)"

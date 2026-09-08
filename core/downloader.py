@@ -98,7 +98,7 @@ class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
         msg: str,
         headers: Any,
         newurl: str,
-    ) -> urllib.request.Request | None:  # type: ignore[override]
+    ) -> urllib.request.Request | None:
         parsed = urllib.parse.urlparse(newurl)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(

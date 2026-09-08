@@ -19,7 +19,7 @@ import random
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ def retry_download(
         from config import APP_VERSION
         req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
-            return resp.read()
+            return cast(bytes, resp.read())
 
     config = RetryConfig(
         max_retries=max_retries,
@@ -137,7 +137,7 @@ def retry_aur_rpc(
     url: str,
     max_retries: int = 2,
     timeout: int = 15,
-) -> dict:
+) -> dict[str, Any]:
     """Make an AUR RPC call with retry.
 
     Args:
@@ -152,11 +152,11 @@ def retry_aur_rpc(
     import urllib.error
     import urllib.request
 
-    def _do_rpc() -> dict:
+    def _do_rpc() -> dict[str, Any]:
         from config import APP_VERSION
         req = urllib.request.Request(url, headers={"User-Agent": f"PkgForge/{APP_VERSION}"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
-            return json.loads(resp.read())
+            return cast(dict[str, Any], json.loads(resp.read()))
 
     config = RetryConfig(
         max_retries=max_retries,

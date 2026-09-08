@@ -24,8 +24,8 @@ _http_mode = False
 # client gets its own queue. Publishing is best-effort and never blocks the
 # conversion pipeline.
 _sse_lock = threading.Lock()
-_sse_history: deque = deque(maxlen=100)
-_sse_subscribers: list = []
+_sse_history: deque[dict[str, Any]] = deque(maxlen=100)
+_sse_subscribers: list[queue.Queue[dict[str, Any]]] = []
 def _sse_publish(method: str, params: object) -> None:
     """Broadcast a push event to SSE subscribers + the ring buffer."""
     payload = {"method": method, "params": params}
@@ -38,18 +38,18 @@ def _sse_publish(method: str, params: object) -> None:
                 pass
 
 
-def _sse_subscribe() -> queue.Queue:
-    q: queue.Queue = queue.Queue(maxsize=256)
+def _sse_subscribe() -> queue.Queue[dict[str, Any]]:
+    q: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=256)
     with _sse_lock:
         _sse_subscribers.append(q)
     return q
 
 
-def _sse_unsubscribe(q: queue.Queue) -> None:
+def _sse_unsubscribe(q: queue.Queue[dict[str, Any]]) -> None:
     with _sse_lock:
         if q in _sse_subscribers:
             _sse_subscribers.remove(q)
-def _send(obj: dict) -> None:
+def _send(obj: dict[str, Any]) -> None:
     with _write_lock:
         sys.stdout.write(json.dumps(obj, ensure_ascii=False) + "\n")
         sys.stdout.flush()
@@ -80,7 +80,7 @@ def _ensure_qapp() -> Any:
     return app
 # ── Faz 1 / A2: security panel ──────────────────────────────────
 
-def _require_pkg_file(params: dict) -> Path:
+def _require_pkg_file(params: dict[str, Any]) -> Path:
     """Resolve and validate a package path param, raising if missing."""
     path = Path(params.get("pkg_path", ""))
     if not path.is_file():

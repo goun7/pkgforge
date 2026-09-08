@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 from config import profile_config_dir, settings_file
 
@@ -107,7 +107,7 @@ def load_settings() -> dict[str, Any]:
     path = settings_file()
     if path.is_file():
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
         except (json.JSONDecodeError, OSError) as exc:
             log.warning("Ayarlar okunamadı: %s", exc)
     return {}

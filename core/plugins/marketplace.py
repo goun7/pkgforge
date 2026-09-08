@@ -20,6 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Any, cast
 
 from core.downloader import assert_public_host
 
@@ -84,13 +85,13 @@ def _download_file(url: str, dest: Path, timeout: int = 30) -> None:
         shutil.copyfileobj(resp, f)
 
 
-def _fetch_json(url: str, timeout: int = 10) -> dict:
+def _fetch_json(url: str, timeout: int = 10) -> dict[str, Any]:
     """Fetch JSON from a URL (HTTPS only, public hosts only)."""
     _require_https(url)
     assert_public_host(urllib.parse.urlparse(url).hostname)
     req = urllib.request.Request(url, headers={"User-Agent": _get_user_agent()})
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
-        return json.loads(resp.read().decode("utf-8"))
+        return cast(dict[str, Any], json.loads(resp.read().decode("utf-8")))
 
 
 def fetch_available_plugins(offline: bool = False) -> list[dict[str, str]]:

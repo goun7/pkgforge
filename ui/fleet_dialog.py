@@ -52,7 +52,7 @@ class FleetDialog(QDialog):
 
         run_in_background(_op, _done, _err)
 
-    def _render(self, res: dict) -> None:
+    def _render(self, res: dict[str, Any]) -> None:
         backends = res.get("backends", {})
         lines = []
         for name in res.get("backend_names", []):

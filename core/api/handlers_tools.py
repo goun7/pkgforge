@@ -9,14 +9,14 @@ from i18n import load_settings, save_settings
 
 
 # -- C1: D-Bus service bridge ------------------------------------
-def handle_dbus_set_policy(params: dict) -> dict:
+def handle_dbus_set_policy(params: dict[str, Any]) -> dict[str, Any]:
     s = load_settings()
     s["dbus_allow_mutations"] = bool(params.get("allow_mutations", False))
     save_settings(s)
     return {"ok": True, "allow_mutations": s["dbus_allow_mutations"]}
 
 
-def handle_dbus_start(params: dict) -> dict:
+def handle_dbus_start(params: dict[str, Any]) -> dict[str, Any]:
     from core.dbus_service import start_default
 
     # Quick op (spawns its own serve thread); result/error via done event.
@@ -24,7 +24,7 @@ def handle_dbus_start(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_install_rehearse(params: dict) -> dict:
+def handle_install_rehearse(params: dict[str, Any]) -> dict[str, Any]:
     """F5.14: konteyner ici kurulum provasi (dosya-liste diffi)."""
     from core.install_rehearsal import rehearse_install
 
@@ -34,7 +34,7 @@ def handle_install_rehearse(params: dict) -> dict:
     return rehearse_install(Path(path))
 
 
-def handle_tools_rpm_to_deb(params: dict) -> dict:
+def handle_tools_rpm_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi: RPM -> DEB donusumu (CLI rpm-to-deb karsiligi)."""
     from core.rpm_to_deb_converter import is_rpm_to_deb_available, rpm_to_deb
 
@@ -57,7 +57,7 @@ def handle_tools_rpm_to_deb(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_tools_abi_check(params: dict) -> dict:
+def handle_tools_abi_check(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi: ABI/sembol uyumluluk taramasi (CLI abi-check)."""
     from dataclasses import asdict
 
@@ -79,7 +79,7 @@ def handle_tools_abi_check(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_tools_audit(params: dict) -> dict:
+def handle_tools_audit(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi: gecmis denetim izi (CLI audit karsiligi)."""
     from dataclasses import asdict
 
@@ -131,7 +131,7 @@ def handle_tools_audit(params: dict) -> dict:
     }
 
 
-def handle_tools_scan_image(params: dict) -> dict:
+def handle_tools_scan_image(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi Faz 2: OCI imaj/arşiv taramasi (CLI scan-image)."""
     from core.malware_scanner import scan_oci_image
 
@@ -146,7 +146,7 @@ def handle_tools_scan_image(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_tools_attest(params: dict) -> dict:
+def handle_tools_attest(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi Faz 2: SLSA/in-toto attestation (CLI attest)."""
     from core.provenance import (
         create_attestation,
@@ -189,7 +189,7 @@ def handle_tools_attest(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_tools_publish(params: dict) -> dict:
+def handle_tools_publish(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi Faz 2: AUR paketi hazirla/yayinla (CLI publish)."""
     from core.aur_publish import prepare_aur_package, push_to_aur
 
@@ -226,14 +226,14 @@ def handle_tools_publish(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_tools_snapshot_status(params: dict) -> dict:
+def handle_tools_snapshot_status(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi Faz 2: snapshot-cleanup servis durumu (senkron)."""
     from core.snapshot_cleanup import get_cleanup_status
 
     return get_cleanup_status()
 
 
-def handle_tools_snapshot_install(params: dict) -> dict:
+def handle_tools_snapshot_install(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi Faz 2: snapshot-cleanup servisi kur (CLI --install)."""
     from core.snapshot_cleanup import install_cleanup_service
 
@@ -247,7 +247,7 @@ def handle_tools_snapshot_install(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_tools_snapshot_remove(params: dict) -> dict:
+def handle_tools_snapshot_remove(params: dict[str, Any]) -> dict[str, Any]:
     """Feature Tezgahi Faz 2: snapshot-cleanup servisini kaldir (CLI --remove)."""
     from core.snapshot_cleanup import remove_cleanup_service
 
@@ -259,7 +259,7 @@ def handle_tools_snapshot_remove(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_fleet_status(params: dict) -> dict:
+def handle_fleet_status(params: dict[str, Any]) -> dict[str, Any]:
     """Fleet konsolu: tek-cagri agregasyon (senkron, salt-okunur)."""
     from core.fleet import get_fleet_status
 

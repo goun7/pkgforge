@@ -24,7 +24,7 @@ import os
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from i18n import tr
 
@@ -57,7 +57,7 @@ class OfflineCache:
         safe_key = hashlib.sha256(key.encode()).hexdigest()[:16]
         return self.cache_dir / namespace / f"{safe_key}.json"
 
-    def get(self, namespace: str, key: str) -> dict | None:
+    def get(self, namespace: str, key: str) -> dict[str, Any] | None:
         """Get a cached value if it exists and hasn't expired.
 
         Args:
@@ -73,16 +73,20 @@ class OfflineCache:
 
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                log.debug("Cache bozuk (dict degil): %s/%s", namespace, key)
+                return None
             # Check TTL
             if time.time() - data.get("_cached_at", 0) > self.ttl:
                 log.debug("Cache expired: %s/%s", namespace, key)
                 return None
-            return data.get("value")
+            value = data.get("value")
+            return cast(dict[str, Any], value) if isinstance(value, dict) else None
         except (json.JSONDecodeError, OSError) as exc:
             log.debug("Cache read error: %s", exc)
             return None
 
-    def put(self, namespace: str, key: str, value: dict | list | str | float) -> None:
+    def put(self, namespace: str, key: str, value: dict[str, Any] | list[Any] | str | float) -> None:
         """Store a value in the cache.
 
         Args:
@@ -197,7 +201,7 @@ class OfflineCache:
                     count += 1
         return count
 
-    def stats(self) -> dict:
+    def stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_entries = 0
         total_size = 0

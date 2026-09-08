@@ -9,7 +9,7 @@ from config import discover_tools
 from core.api import transport
 
 
-def handle_security_verify(params: dict) -> dict:
+def handle_security_verify(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.package_signing import verify_signature
@@ -18,19 +18,19 @@ def handle_security_verify(params: dict) -> dict:
     return asdict(verify_signature(path))
 
 
-def handle_security_keys(params: dict) -> list:
+def handle_security_keys(params: dict[str, Any]) -> list[Any]:
     from core.package_signing import list_keys
 
     return list_keys()
 
 
-def handle_security_sigstore_status(params: dict) -> dict:
+def handle_security_sigstore_status(params: dict[str, Any]) -> dict[str, Any]:
     from core.sigstore import get_sigstore_status
 
     return get_sigstore_status()
 
 
-def handle_security_provenance(params: dict) -> dict | None:
+def handle_security_provenance(params: dict[str, Any]) -> dict[str, Any] | None:
     from core.provenance import find_provenance, load_provenance
 
     path = Path(params.get("pkg_path", ""))
@@ -46,7 +46,7 @@ def _run_security_thread(fn: Callable[[], object], event_name: str = "event/secu
     transport._run_security_thread(fn, event_name)
 
 
-def handle_security_sign(params: dict) -> dict:
+def handle_security_sign(params: dict[str, Any]) -> dict[str, Any]:
     from core.package_signing import sign_package
 
     path = transport._require_pkg_file(params)
@@ -61,7 +61,7 @@ def handle_security_sign(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_security_sbom(params: dict) -> dict:
+def handle_security_sbom(params: dict[str, Any]) -> dict[str, Any]:
     from core.sbom import generate_sbom
 
     path = transport._require_pkg_file(params)
@@ -76,7 +76,7 @@ def handle_security_sbom(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_security_quality(params: dict) -> dict:
+def handle_security_quality(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.quality_score import score_package
@@ -94,7 +94,7 @@ def handle_security_quality(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_security_provenance_create(params: dict) -> dict:
+def handle_security_provenance_create(params: dict[str, Any]) -> dict[str, Any]:
     from core.provenance import create_provenance, save_provenance
 
     source_file = Path(params.get("source_file", ""))
@@ -117,7 +117,7 @@ def handle_security_provenance_create(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_security_cve_scan(params: dict) -> dict:
+def handle_security_cve_scan(params: dict[str, Any]) -> dict[str, Any]:
     from core.cve_scanner import scan_package
 
     pkg_path = transport._require_pkg_file(params)

@@ -10,27 +10,27 @@ from i18n import tr
 
 # ── Faz 1 / A4: delta updater ───────────────────────────────────
 
-def handle_delta_status(params: dict) -> dict:
+def handle_delta_status(params: dict[str, Any]) -> dict[str, Any]:
     from core.delta_updater import get_auto_update_status
 
     return get_auto_update_status()
 
 
-def handle_delta_enable(params: dict) -> dict:
+def handle_delta_enable(params: dict[str, Any]) -> dict[str, Any]:
     # Enabling the systemd timer requires privilege escalation; the desktop
     # UI triggers pkexec via its own privileged helper in a later phase.
     return {"ok": False, "requires_privilege": True,
             "message": "Delta auto-update etkinleştirme yetkili işlem gerektiriyor (pkexec)"}
 
 
-def handle_delta_disable(params: dict) -> dict:
+def handle_delta_disable(params: dict[str, Any]) -> dict[str, Any]:
     return {"ok": False, "requires_privilege": True,
             "message": "Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)"}
 
 
 # ── Faz 1 / A1: export centers ──────────────────────────────────
 
-def handle_export_oci(params: dict) -> dict:
+def handle_export_oci(params: dict[str, Any]) -> dict[str, Any]:
     from core.oci_builder import build_oci_image
 
     path = transport._require_pkg_file(params)
@@ -46,7 +46,7 @@ def handle_export_oci(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_export_appimage_to_deb(params: dict) -> dict:
+def handle_export_appimage_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     from core.appimage_converter import appimage_to_deb
 
     appimage = Path(params.get("appimage_path", ""))
@@ -62,7 +62,7 @@ def handle_export_appimage_to_deb(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_export_flatpak_list(params: dict) -> list:
+def handle_export_flatpak_list(params: dict[str, Any]) -> list[Any]:
     from dataclasses import asdict
 
     from core.flatpak_converter import list_installed_apps
@@ -70,7 +70,7 @@ def handle_export_flatpak_list(params: dict) -> list:
     return [asdict(app) for app in list_installed_apps()]
 
 
-def handle_export_flatpak_to_deb(params: dict) -> dict:
+def handle_export_flatpak_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     from core.flatpak_converter import flatpak_to_deb
 
     app_id = params.get("app_id", "")
@@ -89,7 +89,7 @@ def handle_export_flatpak_to_deb(params: dict) -> dict:
 
 # ── Faz 1 / A3: dependency graph ────────────────────────────────
 
-def handle_graph_build(params: dict) -> dict:
+def handle_graph_build(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.dep_graph import build_dep_graph, build_file_dep_graph
@@ -113,7 +113,7 @@ def handle_graph_build(params: dict) -> dict:
 
 # ── Faz 1 / A5: from-source PKGBUILD ────────────────────────────
 
-def handle_source_generate(params: dict) -> dict:
+def handle_source_generate(params: dict[str, Any]) -> dict[str, Any]:
     import tempfile
 
     from core.from_source import generate_pkgbuild_from_source
@@ -168,7 +168,7 @@ def handle_source_generate(params: dict) -> dict:
 
 # ── Faz 1 / A6: system tools ────────────────────────────────────
 
-def handle_system_cross_check(params: dict) -> dict:
+def handle_system_cross_check(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.cross_check import cross_check_package
@@ -185,13 +185,13 @@ def handle_system_cross_check(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_system_snapshot_status(params: dict) -> dict:
+def handle_system_snapshot_status(params: dict[str, Any]) -> dict[str, Any]:
     from core.snapshot_cleanup import get_cleanup_status
 
     return get_cleanup_status()
 
 
-def handle_system_snapshot_install(params: dict) -> dict:
+def handle_system_snapshot_install(params: dict[str, Any]) -> dict[str, Any]:
     """Snapshot temizlik servisini kurar; pkexec ekranda yetki ister."""
     from core.snapshot_cleanup import install_cleanup_service
 
@@ -205,7 +205,7 @@ def handle_system_snapshot_install(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_system_snapshot_remove(params: dict) -> dict:
+def handle_system_snapshot_remove(params: dict[str, Any]) -> dict[str, Any]:
     """Snapshot temizlik servisini kaldirir; pkexec ekranda yetki ister."""
     from core.snapshot_cleanup import remove_cleanup_service
 
@@ -217,7 +217,7 @@ def handle_system_snapshot_remove(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_system_open_path(params: dict) -> dict:
+def handle_system_open_path(params: dict[str, Any]) -> dict[str, Any]:
     """Dosya yoneticisinde yolun bulundugu klasoru acar (sonuc bandi 'Klasoru Ac')."""
     import subprocess
 
@@ -230,7 +230,7 @@ def handle_system_open_path(params: dict) -> dict:
     return {"ok": True}
 
 
-def handle_system_install_pkg(params: dict) -> dict:
+def handle_system_install_pkg(params: dict[str, Any]) -> dict[str, Any]:
     """Donusturulmus .pkg.tar.zst paketini pkexec + pacman -U ile kurar.
 
     Faz 14: rota, konsolide privileged helper'in install-pkg alt-komutuna
@@ -272,7 +272,7 @@ def handle_system_install_pkg(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_system_verify_rollback(params: dict) -> dict:
+def handle_system_verify_rollback(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.rollback_verify import verify_rollback
@@ -284,7 +284,7 @@ def handle_system_verify_rollback(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_system_benchmark(params: dict) -> dict:
+def handle_system_benchmark(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.benchmark import run_benchmarks

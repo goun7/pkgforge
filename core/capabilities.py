@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 CAPABILITIES = {
     "http": {
@@ -73,18 +74,18 @@ CAPABILITIES = {
 _ARTIFACT = Path(__file__).resolve().parent.parent / "capabilities.json"
 
 
-def http_reader_methods() -> frozenset:
+def http_reader_methods() -> frozenset[str]:
     """Methods callable with the read-only HTTP token."""
     http = CAPABILITIES["http"]
     assert isinstance(http, dict)
-    return frozenset(http["reader"])
+    return frozenset(str(m) for m in http["reader"])
 
 
 def polkit_actions() -> list[tuple[str, str, str]]:
     """(action_id, title, description) triples for policy generation."""
     raw = CAPABILITIES["polkit"]
-    actions: list = raw.get("actions", []) if isinstance(raw, dict) else []
-    return [tuple(a) for a in actions]  # type: ignore[misc]
+    actions: list[Any] = raw.get("actions", []) if isinstance(raw, dict) else []
+    return [tuple(a) for a in actions]
 
 
 def helper_system_path() -> str:
@@ -113,7 +114,7 @@ def artifact_matches() -> bool:
     if not _ARTIFACT.is_file():
         return False
     try:
-        return json.loads(_ARTIFACT.read_text(encoding="utf-8")) == CAPABILITIES
+        return bool(json.loads(_ARTIFACT.read_text(encoding="utf-8")) == CAPABILITIES)
     except (json.JSONDecodeError, OSError):
         return False
 

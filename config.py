@@ -82,7 +82,12 @@ OFFLINE_MODE: bool = False
 # Size limits (re-export from core.constants for backward compatibility).
 # These are imported by core.pipeline and others via "from config import ...",
 # so they must stay even though config.py does not use them directly.
-from core.constants import MAX_PACKAGE_SIZE_MB, WARN_PACKAGE_SIZE_MB  # noqa: F401
+from core.constants import (
+    MAX_PACKAGE_SIZE_MB as MAX_PACKAGE_SIZE_MB,  # noqa: PLC0414 — intentional re-export
+)
+from core.constants import (
+    WARN_PACKAGE_SIZE_MB as WARN_PACKAGE_SIZE_MB,  # noqa: PLC0414 — intentional re-export
+)
 
 # Supported architectures (Arch naming)
 SUPPORTED_ARCHES = frozenset({"x86_64", "any"})

@@ -53,7 +53,7 @@ class HistoryDialog(QDialog):
         self.setAcceptDrops(True)
         self._db = HistoryDB()
         self._tools = discover_tools()
-        self._all_records: list = []
+        self._all_records: list[Any] = []
         self._setup_ui()
         self._load_data()
 
@@ -210,7 +210,7 @@ class HistoryDialog(QDialog):
 
         self._populate_table(filtered)
 
-    def _populate_table(self, records: list) -> None:
+    def _populate_table(self, records: list[Any]) -> None:
         """Fill the table with the given records."""
         self._table.setSortingEnabled(False)
         self._table.setRowCount(len(records))

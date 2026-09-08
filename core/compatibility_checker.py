@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from config import ToolPaths
 from core.dep_resolver import parse_needed_sonames, parse_objdump_sonames
@@ -83,7 +84,7 @@ class CompatibilityReport:
             return "B"
         return "A"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the report for the JSON-RPC sidecar / desktop UI."""
         return {
             "overall": self.overall.value,

@@ -12,6 +12,7 @@ import shlex
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ def find_rehearsal_runtime() -> str | None:
     return None
 
 
-def _container_file_list(runtime: str, package_path: Path) -> tuple[bool, str, list]:
+def _container_file_list(runtime: str, package_path: Path) -> tuple[bool, str, list[str]]:
     """Best-effort: install the package in a disposable container and list files.
 
     Returns (ok, message, file_list). Only podman/docker are driven directly;
@@ -62,7 +63,7 @@ def _container_file_list(runtime: str, package_path: Path) -> tuple[bool, str, l
     return True, "Prova tamamlandi", files
 
 
-def rehearse_install(package_path: Path | str) -> dict:
+def rehearse_install(package_path: Path | str) -> dict[str, Any]:
     """Simulate installing a package in a container; return a file-list diff.
 
     Returns a dict with ok/available/runtime/reason/file_count/files.

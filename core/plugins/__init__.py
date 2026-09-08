@@ -26,7 +26,7 @@ from config import ToolPaths
 log = logging.getLogger(__name__)
 
 # Registry of converter plugins
-_REGISTRY: dict[str, type] = {}
+_REGISTRY: dict[str, type[ConverterPlugin]] = {}
 
 
 class ConverterPlugin(ABC):

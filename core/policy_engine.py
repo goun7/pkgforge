@@ -34,7 +34,7 @@ _BLOCK_AT = {
 SETTINGS_KEY = "compat_policy"
 
 
-def policy_from_settings(settings: dict | None = None) -> PolicyLevel:
+def policy_from_settings(settings: dict[str, Any] | None = None) -> PolicyLevel:
     """Read the active policy level from settings (default: standard)."""
     if settings is None:
         import i18n

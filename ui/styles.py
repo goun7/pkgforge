@@ -8,6 +8,8 @@ Three theme modes:
 
 from __future__ import annotations
 
+from typing import cast
+
 from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QApplication
 
@@ -116,7 +118,7 @@ def is_dark_theme() -> bool:
 
 def get_theme_name() -> str:
     """Get the active theme name from settings."""
-    return load_setting("theme", "dark")
+    return cast(str, load_setting("theme", "dark"))
 
 
 def get_colors(theme: str | None = None) -> Colors:

@@ -13,6 +13,7 @@ import logging
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from config import extract_package_name
 from core.security import safe_run, sha256_hash
@@ -226,7 +227,7 @@ def _find_systemctl() -> str | None:
     return None
 
 
-def _auto_update_units(interval_hours: int) -> tuple:
+def _auto_update_units(interval_hours: int) -> tuple[Path, str, Path, str, Path, str]:
     """Auto-update biriminin (script, service, timer) iceriklerini uretir.
 
     Timer plani — Faz 14: interval_hours takvime gercek yansir.
@@ -290,7 +291,7 @@ WantedBy=timers.target
     )
 
 
-def _write_and_enable_units(units: tuple) -> tuple[bool, str]:
+def _write_and_enable_units(units: tuple[Path, str, Path, str, Path, str]) -> tuple[bool, str]:
     """Unit dosyalarini yazar ve timer'i TEK yetkili diyalogda acar.
 
     service-deploy: manifest + daemon-reload + enable + start hepsi helper
@@ -378,7 +379,7 @@ def remove_auto_update() -> tuple[bool, str]:
         return False, tr("delta.kaldirma_basarisiz_exc", exc=exc)
 
 
-def get_auto_update_status() -> dict:
+def get_auto_update_status() -> dict[str, Any]:
     """Get current auto-update service status.
 
     F5.16: delta guncellemeler DENEYSEL'dir ve varsayilan olarak kapalidir;

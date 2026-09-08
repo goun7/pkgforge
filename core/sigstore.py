@@ -15,6 +15,7 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from core.security import safe_run
 from i18n import tr
@@ -190,7 +191,7 @@ def verify_with_sigstore(
         return SigstoreResult(success=False, message=tr("sigstore.dogrulama_basarisiz_stderr", stderr=stderr[:200]))
 
 
-def get_sigstore_status() -> dict:
+def get_sigstore_status() -> dict[str, Any]:
     """Check Sigstore tool availability.
 
     Returns:

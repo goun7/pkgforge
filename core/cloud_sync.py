@@ -22,6 +22,7 @@ import urllib.request
 import zipfile
 from contextlib import closing
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 import config
 from config import APP_VERSION, PROFILE_NAME_RE
@@ -58,7 +59,7 @@ def _profile_names() -> list[str]:
     return names
 
 
-def export_backup(output_path: str | None = None) -> dict:
+def export_backup(output_path: str | None = None) -> dict[str, Any]:
     """Bundle all profiles' settings/history into one zip archive."""
     stamp = time.strftime("%Y%m%d-%H%M%S")
     if output_path:
@@ -106,7 +107,7 @@ def export_backup(output_path: str | None = None) -> dict:
     return {"ok": True, "path": str(out), "size": out.stat().st_size}
 
 
-def import_backup(backup_path: str) -> dict:
+def import_backup(backup_path: str) -> dict[str, Any]:
     """Restore a PkgForge backup bundle into the current config root."""
     p = Path(backup_path).expanduser()
     if not p.is_file():
@@ -152,7 +153,7 @@ def import_backup(backup_path: str) -> dict:
     return {"ok": True, "restored": restored}
 
 
-def restore_drill() -> dict:
+def restore_drill() -> dict[str, Any]:
     """F5.17: export -> izole import -> hash dogrulama tatbikati.
 
     Gercek yapilandirmaya dokunmadan yedek/geri-yukleme yolunun uctan uca
@@ -266,7 +267,7 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
     return url, headers
 
 
-def webdav_push() -> dict:
+def webdav_push() -> dict[str, Any]:
     """Upload a fresh backup bundle to the configured WebDAV server."""
     url, headers = _webdav_target()
     bundle_path = export_backup()["path"]
@@ -284,7 +285,7 @@ def webdav_push() -> dict:
     return {"ok": True, "remote": url + _REMOTE_NAME, "size": len(blob)}
 
 
-def webdav_pull() -> dict:
+def webdav_pull() -> dict[str, Any]:
     """Download the remote bundle and restore it over local state."""
     url, headers = _webdav_target()
     req = urllib.request.Request(url + _REMOTE_NAME, method="GET", headers=headers)

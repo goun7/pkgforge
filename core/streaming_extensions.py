@@ -19,6 +19,7 @@ import os
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from core.streaming import DEFAULT_CHUNK_SIZE, chunked_read
 
@@ -31,7 +32,7 @@ class IntegrityReport:
     blake2b: str = ""
     chunks: int = 0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -68,7 +69,7 @@ class TarEntry:
     typeflag: str = ""  # '0' regular, '5' dir, etc.
     is_dir: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -138,7 +139,7 @@ def stream_tar_index(
 
 
 def stream_manifest_writer(
-    entries: list[dict],
+    entries: list[dict[str, Any]],
     output: Path,
 ) -> int:
     """Stream-write a JSON manifest: bytes flushed as we go.
@@ -173,7 +174,7 @@ def stream_split(
     base = base_name or src.name
     parts: list[Path] = []
     sha256 = hashlib.sha256()
-    part_hashes: list[dict] = []
+    part_hashes: list[dict[str, Any]] = []
     total = src.stat().st_size
     bytes_seen = 0
 

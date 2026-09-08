@@ -35,7 +35,7 @@ class AURPackage:
     version: str
 
 
-def _extract_pkg_info(pkg_path: Path) -> dict:
+def _extract_pkg_info(pkg_path: Path) -> dict[str, str]:
     """Extract package name and version from a .pkg.tar.zst file."""
     info: dict[str, str] = {"name": "", "version": ""}
 

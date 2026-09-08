@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import logging
 import shutil
+from typing import Any
 
 log = logging.getLogger(__name__)
 
 
-def get_fleet_status() -> dict:
+def get_fleet_status() -> dict[str, Any]:
     """Aggregate a fleet/enterprise console overview in a single call.
 
     Never raises: every external dependency (binaries, DB, settings) is

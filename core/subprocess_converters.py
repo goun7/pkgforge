@@ -35,12 +35,12 @@ class Signal:
     """
 
     def __init__(self) -> None:
-        self._callbacks: list[Callable] = []
+        self._callbacks: list[Callable[..., None]] = []
 
-    def connect(self, callback: Callable) -> None:
+    def connect(self, callback: Callable[..., None]) -> None:
         self._callbacks.append(callback)
 
-    def disconnect(self, callback: Callable) -> None:
+    def disconnect(self, callback: Callable[..., None]) -> None:
         self._callbacks = [cb for cb in self._callbacks if cb is not callback]
 
     def emit(self, *args: object) -> None:

@@ -4,12 +4,13 @@ from __future__ import annotations
 import json
 import sys
 import threading
+from typing import Any
 
 from core.api import handlers_queue, transport
 from core.api.registry import METHODS
 
 
-def _dispatch(msg: dict) -> dict:
+def _dispatch(msg: dict[str, Any]) -> dict[str, Any]:
     """Dispatch one JSON-RPC request and return the response object.
 
     Returns the response dict (never raises) so both the stdio loop and the
@@ -37,13 +38,13 @@ _MAIN_THREAD_METHODS = frozenset({
 })
 
 
-def _dispatch_blocking(msg: dict) -> None:
+def _dispatch_blocking(msg: dict[str, Any]) -> None:
     """Bir handler'i stdin dongusunun disinda calistirir; yanit id ile eslestigi
     icin siralama onemsizdir, _send zaten _write_lock ile serilestirilir."""
     transport._send(_dispatch(msg))
 
 
-def _route_request(msg: dict) -> None:
+def _route_request(msg: dict[str, Any]) -> None:
     """Bir istegi yonlendirir: pipeline el-sikma metodlari Qt signal affinity
     icin main thread'de senkron, diger handler'lar worker thread'de calisir ki
     yavas bir cagri stdin dongusunu ve Qt event dagitimini tikamasin."""

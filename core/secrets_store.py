@@ -140,7 +140,7 @@ class SecretStore:
 
         coll = DBusAddress(COLLECTION_DEFAULT, bus_name=SERVICE,
                            interface="org.freedesktop.secrets.Collection")
-        props: dict[str, tuple] = {
+        props: dict[str, tuple[str, object]] = {
             "org.freedesktop.Secret.Item.Label": ("s", self.label),
             "org.freedesktop.Secret.Item.Attributes": ("a{ss}", self.attributes),
         }

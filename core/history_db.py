@@ -319,7 +319,7 @@ class HistoryDB:
         except sqlite3.Error as exc:
             log.error("%s", tr("history.log_clear_failed", exc=exc))
 
-    def restore_records(self, records: list[dict]) -> int:
+    def restore_records(self, records: list[dict[str, Any]]) -> int:
         """Faz 9 (5.7): bulk re-insert records (undo of clear_history).
 
         Preserves the original timestamp when present; falls back to now.

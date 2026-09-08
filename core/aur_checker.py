@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from config import APP_VERSION, AUR_RPC_URL, AUR_SEARCH_URL
 from i18n import tr
@@ -91,7 +91,7 @@ def check_aur(package_name: str, local_version: str = "", offline: bool = False)
         return AurResult(status="error", detail=str(exc))
 
 
-def search_aur(query: str, limit: int = 25, offline: bool = False) -> list[dict]:
+def search_aur(query: str, limit: int = 25, offline: bool = False) -> list[dict[str, Any]]:
     """Search the AUR RPC API for packages matching a query.
 
     Args:
@@ -115,7 +115,7 @@ def search_aur(query: str, limit: int = 25, offline: bool = False) -> list[dict]
         with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
 
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         for pkg in data.get("results", [])[: max(1, limit)]:
             results.append({
                 "name": pkg.get("Name", ""),

@@ -6,6 +6,7 @@ import queue
 import sys
 import time
 from collections import deque
+from typing import Any
 
 from config import APP_VERSION
 from core import http_assets
@@ -21,7 +22,7 @@ _HTTP_RATE_LIMIT = 60  # requests per minute per client IP
 # F5.1: single source of truth lives in core/capabilities.py.
 
 _READ_METHODS = _http_reader_methods()
-_http_rate: dict[str, deque] = {}
+_http_rate: dict[str, deque[float]] = {}
 
 
 def _rate_limited(ip: str, now: float) -> bool:
@@ -52,13 +53,13 @@ def _resolve_client_ip(socket_ip: str, xff_header: str,
     return socket_ip
 
 
-def build_openapi_schema() -> dict:
+def build_openapi_schema() -> dict[str, Any]:
     """Minimal OpenAPI 3 description of the JSON-RPC surface (F4.8).
 
     Method names and doc summaries are public metadata by design; executing
     methods still requires the operator/read tokens enforced in do_POST.
     """
-    paths: dict = {}
+    paths: dict[str, Any] = {}
     for name in sorted(METHODS):
         handler = METHODS[name]
         doc = (getattr(handler, "__doc__", None) or "").strip()
@@ -125,7 +126,7 @@ def _make_http_handler(token: str, read_token: str, trusted_proxy: bool) -> type
     from http.server import BaseHTTPRequestHandler
 
     class Handler(BaseHTTPRequestHandler):
-        def _reply(self, code: int, obj: dict) -> None:
+        def _reply(self, code: int, obj: dict[str, Any]) -> None:
             body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
@@ -160,7 +161,7 @@ def _make_http_handler(token: str, read_token: str, trusted_proxy: bool) -> type
             self.end_headers()
             self.wfile.write(body)
 
-        def _sse_write(self, ev: dict) -> None:
+        def _sse_write(self, ev: dict[str, Any]) -> None:
             data = json.dumps(ev, ensure_ascii=False)
             self.wfile.write(f"event: message\ndata: {data}\n\n".encode())
             self.wfile.flush()

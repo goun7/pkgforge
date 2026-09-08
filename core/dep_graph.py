@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from config import extract_package_name
 from core.security import safe_run
@@ -110,7 +111,7 @@ class DepGraph:
         _draw(root)
         return "\n".join(lines)
 
-    def stats(self) -> dict:
+    def stats(self) -> dict[str, Any]:
         """Get summary statistics."""
         total = len(self.nodes)
         installed = sum(1 for n in self.nodes.values() if n.is_installed)

@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
+from typing import cast
 
 log = logging.getLogger(__name__)
 
@@ -269,7 +270,7 @@ def _detect_binary_name(repo_dir: Path, proj_name: str) -> str:
             data = json.loads(pkg_json.read_text(encoding="utf-8", errors="ignore"))
             bin_field = data.get("bin", {})
             if isinstance(bin_field, dict) and bin_field:
-                return next(iter(bin_field.keys()))
+                return cast(str, next(iter(bin_field.keys())))
             elif isinstance(bin_field, str):
                 return bin_field
         except (OSError, ValueError):

@@ -9,7 +9,7 @@ from core.api import transport
 from i18n import tr
 
 
-def handle_plugin_install(params: dict) -> dict:
+def handle_plugin_install(params: dict[str, Any]) -> dict[str, Any]:
     from core.plugins import reload_plugins
     from core.plugins.marketplace import install_plugin
 
@@ -26,7 +26,7 @@ def handle_plugin_install(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_plugin_uninstall(params: dict) -> dict:
+def handle_plugin_uninstall(params: dict[str, Any]) -> dict[str, Any]:
     from core.plugins import reload_plugins
     from core.plugins.marketplace import is_valid_plugin_name, uninstall_plugin
 
@@ -40,7 +40,7 @@ def handle_plugin_uninstall(params: dict) -> dict:
     return {"ok": True}
 
 
-def handle_plugin_update(params: dict) -> dict:
+def handle_plugin_update(params: dict[str, Any]) -> dict[str, Any]:
     from core.plugins import reload_plugins
     from core.plugins.marketplace import update_plugin
 
@@ -58,7 +58,7 @@ def handle_plugin_update(params: dict) -> dict:
 
 # ── Faz 2 / B5: package comparison ──────────────────────────────
 
-def handle_compare_diff(params: dict) -> dict:
+def handle_compare_diff(params: dict[str, Any]) -> dict[str, Any]:
     from core.sbom import diff_sboms, generate_sbom
 
     old_path = Path(params.get("old_path", ""))
@@ -92,7 +92,7 @@ def _validate_aur_name(name: str) -> None:
         raise ValueError(f"Invalid AUR package name: {name!r}")
 
 
-def handle_aur_search(params: dict) -> dict:
+def handle_aur_search(params: dict[str, Any]) -> dict[str, Any]:
     from core.aur_checker import search_aur
 
     query = str(params.get("query", ""))
@@ -105,7 +105,7 @@ def handle_aur_search(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_aur_info(params: dict) -> dict:
+def handle_aur_info(params: dict[str, Any]) -> dict[str, Any]:
     from dataclasses import asdict
 
     from core.aur_checker import check_aur
@@ -120,7 +120,7 @@ def handle_aur_info(params: dict) -> dict:
     return {"started": True}
 
 
-def handle_aur_build(params: dict) -> dict:
+def handle_aur_build(params: dict[str, Any]) -> dict[str, Any]:
     import subprocess as _sp
     import tempfile
 

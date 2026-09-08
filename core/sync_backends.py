@@ -68,7 +68,7 @@ class SyncBackend:
     def is_available(self) -> bool:
         return False
 
-    def push(self, blob: bytes, remote_name: str) -> dict:
+    def push(self, blob: bytes, remote_name: str) -> dict[str, Any]:
         raise NotImplementedError
 
     def pull(self, remote_name: str) -> bytes:
@@ -87,7 +87,7 @@ class GitBackend(SyncBackend):
     def is_available(self) -> bool:
         return shutil.which("git") is not None and bool(self.repo_url)
 
-    def push(self, blob: bytes, remote_name: str) -> dict:
+    def push(self, blob: bytes, remote_name: str) -> dict[str, Any]:
         if not self.is_available():
             raise SyncBackendError("git kurulu degil ya da repo_url bos")
         import tempfile
@@ -131,7 +131,7 @@ class RcloneBackend(SyncBackend):
     def is_available(self) -> bool:
         return shutil.which("rclone") is not None and bool(self.remote)
 
-    def push(self, blob: bytes, remote_name: str) -> dict:
+    def push(self, blob: bytes, remote_name: str) -> dict[str, Any]:
         if not self.is_available():
             raise SyncBackendError("rclone kurulu degil ya da remote bos")
         import tempfile

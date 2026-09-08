@@ -16,7 +16,7 @@ SERVICE_UNIT = "pkgforge.service"
 TIMER_UNIT = "pkgforge.timer"
 
 
-def state() -> dict:
+def state() -> dict[str, Any]:
     from i18n import load_settings
 
     s = load_settings()
@@ -28,7 +28,7 @@ def state() -> dict:
     }
 
 
-def is_due(st: dict, now: float | None = None) -> bool:
+def is_due(st: dict[str, Any], now: float | None = None) -> bool:
     """True when the schedule should fire right now."""
     if not st.get("enabled"):
         return False
@@ -39,7 +39,7 @@ def is_due(st: dict, now: float | None = None) -> bool:
     except (ValueError, OverflowError, OSError):
         return True
     current = time.time() if now is None else now
-    return (current - last) >= st["interval_hours"] * 3600
+    return bool((current - last) >= st["interval_hours"] * 3600)
 
 
 def mark_ran() -> str:
@@ -52,7 +52,7 @@ def mark_ran() -> str:
     return stamp
 
 
-def _task_check_updates() -> dict:
+def _task_check_updates() -> dict[str, Any]:
     from core.upstream_tracker import check_all_installed_updates
 
     results = check_all_installed_updates()
@@ -60,19 +60,19 @@ def _task_check_updates() -> dict:
     return {"ok": True, "detail": str(len(updates)) + " guncelleme bulundu"}
 
 
-def _task_sync_push() -> dict:
+def _task_sync_push() -> dict[str, Any]:
     from core.cloud_sync import webdav_push
 
     return webdav_push()
 
 
-def _task_backup_export() -> dict:
+def _task_backup_export() -> dict[str, Any]:
     from core.cloud_sync import export_backup
 
     return export_backup()
 
 
-def _task_restore_drill() -> dict:
+def _task_restore_drill() -> dict[str, Any]:
     from core.cloud_sync import restore_drill
 
     return restore_drill()
@@ -88,7 +88,7 @@ TASKS = {
 KNOWN_TASKS = ", ".join(sorted(TASKS))
 
 
-def run_task(task: str) -> dict:
+def run_task(task: str) -> dict[str, Any]:
     fn = TASKS.get(task)
     if fn is None:
         return {"ok": False,
@@ -101,7 +101,7 @@ def run_task(task: str) -> dict:
         return {"ok": False, "detail": str(exc)}
 
 
-def run_due(force: bool = False) -> dict:
+def run_due(force: bool = False) -> dict[str, Any]:
     st = state()
     if not force and not is_due(st):
         return {"ran": False, "reason": "zamani gelmedi"}
@@ -161,7 +161,7 @@ def hours_guard(value: Any) -> float:
     return v
 
 
-def install_timer(interval_hours: float | None = None, dry_run: bool = False) -> dict:
+def install_timer(interval_hours: float | None = None, dry_run: bool = False) -> dict[str, Any]:
     """Write user systemd units under HOME; dry_run returns paths+content."""
     st = state()
     raw = st["interval_hours"] if interval_hours is None else interval_hours

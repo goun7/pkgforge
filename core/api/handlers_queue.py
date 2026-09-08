@@ -14,11 +14,11 @@ from i18n import load_settings, save_settings, tr
 # ── Faz 2 / B6: batch conversion queue ──────────────────────────
 
 _queue_lock = threading.Lock()
-_queue_items: dict = {}   # id -> {id, path, status, priority, message}
+_queue_items: dict[str, dict[str, Any]] = {}   # id -> {id, path, status, priority, message}
 _queue_seq = 0
 _queue_running = False
 # Live batch pipelines keyed by item_id (F4.3 honesty fix).
-_active_pipelines: dict = {}
+_active_pipelines: dict[str, Any] = {}
 
 # F5.12: durable backing for the queue. Best-effort — a DB failure must never
 # break the in-memory hot path.
@@ -41,7 +41,7 @@ def _get_queue_store() -> Any:
         return _queue_store or None
 
 
-def _persist_item(item: dict) -> None:
+def _persist_item(item: dict[str, Any]) -> None:
     store = _get_queue_store()
     if store is None:
         return
@@ -157,7 +157,7 @@ def _set_item(item_id: str, **fields: object) -> None:
             _persist_item(_queue_items[item_id])
 
 
-def handle_queue_add(params: dict) -> dict:
+def handle_queue_add(params: dict[str, Any]) -> dict[str, Any]:
     global _queue_seq
     paths = params.get("paths", [])
     if isinstance(paths, str):
@@ -183,14 +183,14 @@ def handle_queue_add(params: dict) -> dict:
     return {"added": added}
 
 
-def handle_queue_list(params: dict) -> list:
+def handle_queue_list(params: dict[str, Any]) -> list[Any]:
     with _queue_lock:
         items = list(_queue_items.values())
     items.sort(key=lambda it: (-it["priority"], it["id"]))
     return items
 
 
-def handle_queue_priority(params: dict) -> dict:
+def handle_queue_priority(params: dict[str, Any]) -> dict[str, Any]:
     item_id = params.get("id", "")
     with _queue_lock:
         if item_id not in _queue_items:
@@ -200,7 +200,7 @@ def handle_queue_priority(params: dict) -> dict:
     return {"ok": True}
 
 
-def handle_queue_remove(params: dict) -> dict:
+def handle_queue_remove(params: dict[str, Any]) -> dict[str, Any]:
     item_id = params.get("id", "")
     with _queue_lock:
         _queue_items.pop(item_id, None)
@@ -208,7 +208,7 @@ def handle_queue_remove(params: dict) -> dict:
     return {"ok": True}
 
 
-def handle_queue_clear(params: dict) -> dict:
+def handle_queue_clear(params: dict[str, Any]) -> dict[str, Any]:
     status = params.get("status", "")
     with _queue_lock:
         if not status:
@@ -250,7 +250,7 @@ def _queue_dispatch(parallel: int, do_install: bool = False) -> None:
         transport._event("event/queue_done", {"ok": True})
 
 
-def handle_queue_cancel(params: dict) -> dict:
+def handle_queue_cancel(params: dict[str, Any]) -> dict[str, Any]:
     """Cancel one (item_id) or all running batch pipelines."""
     item_id = str(params.get("item_id", "")).strip()
     with _queue_lock:
@@ -266,7 +266,7 @@ def handle_queue_cancel(params: dict) -> dict:
     return {"cancelled": cancelled}
 
 
-def handle_queue_start(params: dict) -> dict:
+def handle_queue_start(params: dict[str, Any]) -> dict[str, Any]:
     global _queue_running
     do_install = bool(params.get("install", False))
     parallel = max(1, min(4, int(params.get("parallel", 1))))
@@ -289,13 +289,13 @@ def handle_queue_start(params: dict) -> dict:
 _scheduler_started = False
 
 
-def _schedule_state() -> dict:
+def _schedule_state() -> dict[str, Any]:
     from core.scheduler import state as sched_state
 
     return sched_state()
 
 
-def handle_schedule_get(params: dict) -> dict:
+def handle_schedule_get(params: dict[str, Any]) -> dict[str, Any]:
     st = _schedule_state()
     next_run = ""
     if st["enabled"]:
@@ -313,7 +313,7 @@ def handle_schedule_get(params: dict) -> dict:
     return st
 
 
-def handle_schedule_set(params: dict) -> dict:
+def handle_schedule_set(params: dict[str, Any]) -> dict[str, Any]:
     s = load_settings()
     if "enabled" in params:
         s["schedule_enabled"] = bool(params["enabled"])
@@ -357,17 +357,17 @@ def _ensure_scheduler() -> None:
 
 
 # -- C2: multi-profile management -------------------------------
-def _profile_name(params: dict) -> str:
+def _profile_name(params: dict[str, Any]) -> str:
     return str(params.get("name", "")).strip()
 
 
-def handle_profile_create(params: dict) -> dict:
+def handle_profile_create(params: dict[str, Any]) -> dict[str, Any]:
     from core.profiles import create_profile
 
     return create_profile(_profile_name(params))
 
 
-def handle_profile_switch(params: dict) -> dict:
+def handle_profile_switch(params: dict[str, Any]) -> dict[str, Any]:
     from core.profiles import switch_profile
 
     result = switch_profile(_profile_name(params))
@@ -381,27 +381,27 @@ def handle_profile_switch(params: dict) -> dict:
     return result
 
 
-def handle_profile_delete(params: dict) -> dict:
+def handle_profile_delete(params: dict[str, Any]) -> dict[str, Any]:
     from core.profiles import delete_profile
 
     return delete_profile(_profile_name(params))
 
 
 # -- C3: backup & cloud sync ------------------------------------
-def handle_sync_export(params: dict) -> dict:
+def handle_sync_export(params: dict[str, Any]) -> dict[str, Any]:
     from core.cloud_sync import export_backup
 
     output = str(params.get("output_path", "")).strip()
     return export_backup(output or None)
 
 
-def handle_sync_import(params: dict) -> dict:
+def handle_sync_import(params: dict[str, Any]) -> dict[str, Any]:
     from core.cloud_sync import import_backup
 
     return import_backup(str(params.get("backup_path", "")))
 
 
-def handle_schedule_timer_install(params: dict) -> dict:
+def handle_schedule_timer_install(params: dict[str, Any]) -> dict[str, Any]:
     """Install systemd user timer units (dry_run preview by default)."""
     from core.scheduler import install_timer
 
@@ -410,14 +410,14 @@ def handle_schedule_timer_install(params: dict) -> dict:
         dry_run=bool(params.get("dry_run", True)))
 
 
-def handle_schedule_run(params: dict) -> dict:
+def handle_schedule_run(params: dict[str, Any]) -> dict[str, Any]:
     """Run the scheduled task immediately (force unless told otherwise)."""
     from core.scheduler import run_due
 
     return run_due(force=bool(params.get("force", False)))
 
 
-def handle_sync_config(params: dict) -> dict:
+def handle_sync_config(params: dict[str, Any]) -> dict[str, Any]:
     s = load_settings()
     if "sync_url" in params:
         s["sync_url"] = str(params["sync_url"]).strip()
@@ -454,14 +454,14 @@ def handle_sync_config(params: dict) -> dict:
     return out
 
 
-def handle_sync_push(params: dict) -> dict:
+def handle_sync_push(params: dict[str, Any]) -> dict[str, Any]:
     from core.cloud_sync import webdav_push
 
     transport._run_thread(webdav_push, "event/sync_done")
     return {"started": True}
 
 
-def handle_sync_pull(params: dict) -> dict:
+def handle_sync_pull(params: dict[str, Any]) -> dict[str, Any]:
     from core.cloud_sync import webdav_pull
 
     transport._run_thread(webdav_pull, "event/sync_done")
