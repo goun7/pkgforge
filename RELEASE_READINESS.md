@@ -8,8 +8,8 @@
 
 | Alan | Durum | Kanıt |
 |---|---|---|
-| Test suit'i | **2522 test: 2517 passed, 5 skipped, 0 failed** | `pytest tests/ -q` (junit) |
-| Kapsama | **%99** — 12 772 ifade, 133 eksik (`core/`+`ui/`+`i18n/`) | `--cov-fail-under=99` geçiyor |
+| Test suit'i | **2576 test: 2572 passed, 4 skipped, 0 failed** | `pytest tests/ -q` (junit) |
+| Kapsama | **%99** — 12 806 ifade, 47 eksik (`core/`+`ui/`+`i18n/`) | `--cov-fail-under=99` geçiyor |
 | mypy | **0 hata** / 95 dosya (`core/`+`cli`+`main`+`config`, import takibi) | `make verify` |
 | ruff | **0 hata** (0.16.4, CI-parite) | `ruff check .` |
 | bandit | **temiz** (`-ll`, core+entry points) | CI-parite |
@@ -18,7 +18,7 @@
 | Repo | **PUBLIC**, master korumalı (force-push/silme yasak) | `gh repo view` |
 | Release boru hattı | gate (ruff+mypy+bandit+tam suit) → build → SBOM (SPDX+CycloneDX) + SLSA provenance + SHA256SUMS | `release.yml` |
 
-## Bilinen başarısızlık: yok (local 2522/2522)
+## Bilinen başarısızlık: yok (local 2576/2576)
 
 Eskiden "pre-existing" sanılan 2 delta-timer testi bayat mock çıktı
 (Faz-14 argv değişimine uyarlandı); ubuntu CI'daki kalan farklar

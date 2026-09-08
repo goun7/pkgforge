@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-2522%20collected-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-2576%20collected-brightgreen)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
@@ -226,9 +226,9 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-09-07, `make verify`): **2522 tests: 2517 passed,
+Current status (measured 2026-09-07, `make verify`): **2576 tests: 2572 passed,
 5 skipped, 0 failed** · coverage **99%** on `core/`+`ui/`+`i18n/`
-(12 772 statements, 133 missed) · mypy: 0 errors in 95 files
+(12 806 statements, 47 missed) · mypy: 0 errors in 95 files
 (`core/`+`cli.py`+`main.py`+`config.py`, imports followed) · bandit CI-parity:
 clean (-ll 0 Medium/0 High) · i18n parity 987/987 (tr/en) · mini mutation 3/3 KILLED.
 Wheel build verified (`pkgforge==2.1.0`) and E2E smoke-tested from a
