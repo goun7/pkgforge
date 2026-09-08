@@ -4,7 +4,7 @@ All notable changes to PkgForge will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased] (v2.2.0 hedefi — 100/100 kapanışı)
+## [2.2.0] - 2026-09-09
 
 ### Added
 - **desktop**: `externalBin` sidecar migrasyonu (shell plugin, triple-suffixed

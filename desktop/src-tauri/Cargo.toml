@@ -1,6 +1,6 @@
 [package]
 name = "pkgforge-desktop"
-version = "2.1.0"
+version = "2.2.0"
 description = "PkgForge desktop UI (Tauri + Python sidecar)"
 authors = ["goun7"]
 edition = "2021"
