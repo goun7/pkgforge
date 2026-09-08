@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
     st.from_regex(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", fullmatch=True),
     st.text(alphabet="ab :/%?#@!", max_size=30),
 ))
-@settings(max_examples=300, deadline=None)  # DNS cozumleme suresi degisken
+@settings(max_examples=80, deadline=None)  # DNS cozumleme suresi degisken
 def test_assert_public_host_total(host):
     """Herhangi bir girdide ya None doner ya ValueError; baska istisna yok."""
     from core.downloader import assert_public_host

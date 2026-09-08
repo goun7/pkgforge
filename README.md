@@ -226,9 +226,9 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-09-08, `make verify`): **2576 tests: 2572 passed,
+Current status (measured 2026-09-09, `make verify`): **2576 tests: 2572 passed,
 4 skipped, 0 failed** · coverage **99%** on `core/`+`ui/`+`i18n/`
-(12 806 statements, 47 missed) · mypy: 0 errors in 113 files
+(12 835 statements, 50 missed) · mypy --strict: 0 errors in 113 files
 (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`, imports followed) · bandit CI-parity:
 clean (-ll 0 Medium/0 High) · i18n parity 987/987 (tr/en) · mini mutation 3/3 KILLED.
 Wheel build verified (`pkgforge==2.1.0`) and E2E smoke-tested from a

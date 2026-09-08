@@ -9,8 +9,8 @@
 | Alan | Durum | Kanıt |
 |---|---|---|
 | Test suit'i | **2576 test: 2572 passed, 4 skipped, 0 failed** | `pytest tests/ -q` (junit) |
-| Kapsama | **%99** — 12 806 ifade, 47 eksik (`core/`+`ui/`+`i18n/`) | `--cov-fail-under=99` geçiyor |
-| mypy | **0 hata** / 113 dosya (`core/`+`cli`+`main`+`config`+`ui/`, import takibi) | `make verify` |
+| Kapsama | **%99** — 12 835 ifade, 50 eksik (`core/`+`ui/`+`i18n/`) | `--cov-fail-under=99` geçiyor |
+| mypy --strict | **0 hata** / 113 dosya | `make verify` |
 | ruff | **0 hata** (0.16.4, CI-parite) | `ruff check .` |
 | bandit | **temiz** (`-ll`, core+entry points) | CI-parite |
 | i18n | **987/987** tr/en parite; CLI kullanıcı-yolu tam çeviri | `--lang en` duman testi |
