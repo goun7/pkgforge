@@ -387,6 +387,9 @@ jobs:
       - name: Cargo check
         working-directory: desktop/src-tauri
         run: cargo check --all-features
+      - name: Clippy (warnings denied)
+        working-directory: desktop/src-tauri
+        run: cargo clippy --all-features -- -D warnings
 
   keyring-live:
     # F5.6: validate jeepney marshalling against a REAL Secret Service.
