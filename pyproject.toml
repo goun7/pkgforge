@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=84.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -32,7 +32,7 @@ Changelog = "https://github.com/goun7/pkgforge/blob/master/CHANGELOG.md"
 [project.optional-dependencies]
 gui = ["PyQt6>=6.5.0"]
 api = ["fastapi>=0.141.1", "uvicorn[standard]>=0.30.0", "pydantic>=2.13.5"]
-dev = ["pytest>=7.0", "pytest-cov>=4.0", "pytest-timeout>=2.0", "hypothesis>=6.0", "mypy>=1.0", "bandit>=1.7"]
+dev = ["pytest>=9.1.1", "pytest-cov>=7.1.0", "pytest-timeout>=2.4.0", "hypothesis>=6.167.1", "mypy>=1.0", "bandit>=1.9.4"]
 
 [project.scripts]
 pkgforge = "main:main"
