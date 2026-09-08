@@ -22,7 +22,7 @@ PyQt6>=6.5.0; python_version>="3.10"
 # bandit>=1.7
 # ── Optional: REST API (pkgforge serve-api) ────────────────────
 # Preferred install: pip install 'pkgforge[api]'  (pyproject extra)
-fastapi>=0.111.0
+fastapi>=0.141.1
 uvicorn[standard]>=0.30.0
 pydantic>=2.13.5
 
