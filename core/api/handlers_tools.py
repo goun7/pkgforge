@@ -2,20 +2,21 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from core.api import transport
 from i18n import load_settings, save_settings
 
 
 # -- C1: D-Bus service bridge ------------------------------------
-def handle_dbus_set_policy(params):
+def handle_dbus_set_policy(params: dict) -> dict:
     s = load_settings()
     s["dbus_allow_mutations"] = bool(params.get("allow_mutations", False))
     save_settings(s)
     return {"ok": True, "allow_mutations": s["dbus_allow_mutations"]}
 
 
-def handle_dbus_start(params):
+def handle_dbus_start(params: dict) -> dict:
     from core.dbus_service import start_default
 
     # Quick op (spawns its own serve thread); result/error via done event.
@@ -23,7 +24,7 @@ def handle_dbus_start(params):
     return {"started": True}
 
 
-def handle_install_rehearse(params):
+def handle_install_rehearse(params: dict) -> dict:
     """F5.14: konteyner ici kurulum provasi (dosya-liste diffi)."""
     from core.install_rehearsal import rehearse_install
 
@@ -33,7 +34,7 @@ def handle_install_rehearse(params):
     return rehearse_install(Path(path))
 
 
-def handle_tools_rpm_to_deb(params):
+def handle_tools_rpm_to_deb(params: dict) -> dict:
     """Feature Tezgahi: RPM -> DEB donusumu (CLI rpm-to-deb karsiligi)."""
     from core.rpm_to_deb_converter import is_rpm_to_deb_available, rpm_to_deb
 
@@ -43,7 +44,7 @@ def handle_tools_rpm_to_deb(params):
     out_raw = params.get("output_dir", "")
     out_dir = Path(out_raw) if out_raw else Path.cwd()
 
-    def _op():
+    def _op() -> Any:
         if not is_rpm_to_deb_available():
             return {"ok": False,
                     "message": "rpm2cpio veya dpkg-deb bulunamadi",
@@ -56,7 +57,7 @@ def handle_tools_rpm_to_deb(params):
     return {"started": True}
 
 
-def handle_tools_abi_check(params):
+def handle_tools_abi_check(params: dict) -> dict:
     """Feature Tezgahi: ABI/sembol uyumluluk taramasi (CLI abi-check)."""
     from dataclasses import asdict
 
@@ -66,7 +67,7 @@ def handle_tools_abi_check(params):
     if not pkg_path.is_file():
         raise FileNotFoundError(f"Paket bulunamadi: {pkg_path}")
 
-    def _op():
+    def _op() -> Any:
         report = check_abi_compatibility(pkg_path)
         d = asdict(report)
         d["passed"] = report.passed
@@ -78,7 +79,7 @@ def handle_tools_abi_check(params):
     return {"started": True}
 
 
-def handle_tools_audit(params):
+def handle_tools_audit(params: dict) -> dict:
     """Feature Tezgahi: gecmis denetim izi (CLI audit karsiligi)."""
     from dataclasses import asdict
 
@@ -130,7 +131,7 @@ def handle_tools_audit(params):
     }
 
 
-def handle_tools_scan_image(params):
+def handle_tools_scan_image(params: dict) -> dict:
     """Feature Tezgahi Faz 2: OCI imaj/arşiv taramasi (CLI scan-image)."""
     from core.malware_scanner import scan_oci_image
 
@@ -138,14 +139,14 @@ def handle_tools_scan_image(params):
     if not image_path.exists():
         raise FileNotFoundError(f"Goruntu bulunamadi: {image_path}")
 
-    def _op():
+    def _op() -> Any:
         return scan_oci_image(image_path)
 
     transport._run_thread(_op, "event/scan_image_done")
     return {"started": True}
 
 
-def handle_tools_attest(params):
+def handle_tools_attest(params: dict) -> dict:
     """Feature Tezgahi Faz 2: SLSA/in-toto attestation (CLI attest)."""
     from core.provenance import (
         create_attestation,
@@ -159,7 +160,7 @@ def handle_tools_attest(params):
         raise FileNotFoundError(f"Paket bulunamadi: {pkg_path}")
     signer_key = params.get("key", "") or ""
 
-    def _op():
+    def _op() -> Any:
         prov_path = find_provenance(pkg_path)
         if not prov_path:
             return {"ok": False,
@@ -188,7 +189,7 @@ def handle_tools_attest(params):
     return {"started": True}
 
 
-def handle_tools_publish(params):
+def handle_tools_publish(params: dict) -> dict:
     """Feature Tezgahi Faz 2: AUR paketi hazirla/yayinla (CLI publish)."""
     from core.aur_publish import prepare_aur_package, push_to_aur
 
@@ -199,7 +200,7 @@ def handle_tools_publish(params):
     out_dir = Path(out_raw) if out_raw else Path.cwd()
     aur_url = params.get("aur_url", "") or ""
 
-    def _op():
+    def _op() -> Any:
         ok, msg, aur_pkg = prepare_aur_package(pkg_path, out_dir)
         if not ok or not aur_pkg:
             return {"ok": False, "message": msg}
@@ -225,20 +226,20 @@ def handle_tools_publish(params):
     return {"started": True}
 
 
-def handle_tools_snapshot_status(params):
+def handle_tools_snapshot_status(params: dict) -> dict:
     """Feature Tezgahi Faz 2: snapshot-cleanup servis durumu (senkron)."""
     from core.snapshot_cleanup import get_cleanup_status
 
     return get_cleanup_status()
 
 
-def handle_tools_snapshot_install(params):
+def handle_tools_snapshot_install(params: dict) -> dict:
     """Feature Tezgahi Faz 2: snapshot-cleanup servisi kur (CLI --install)."""
     from core.snapshot_cleanup import install_cleanup_service
 
     max_age = int(params.get("max_age_days", 7))
 
-    def _op():
+    def _op() -> Any:
         ok, msg = install_cleanup_service(max_age_days=max_age)
         return {"ok": ok, "message": msg}
 
@@ -246,11 +247,11 @@ def handle_tools_snapshot_install(params):
     return {"started": True}
 
 
-def handle_tools_snapshot_remove(params):
+def handle_tools_snapshot_remove(params: dict) -> dict:
     """Feature Tezgahi Faz 2: snapshot-cleanup servisini kaldir (CLI --remove)."""
     from core.snapshot_cleanup import remove_cleanup_service
 
-    def _op():
+    def _op() -> Any:
         ok, msg = remove_cleanup_service()
         return {"ok": ok, "message": msg}
 
@@ -258,7 +259,7 @@ def handle_tools_snapshot_remove(params):
     return {"started": True}
 
 
-def handle_fleet_status(params):
+def handle_fleet_status(params: dict) -> dict:
     """Fleet konsolu: tek-cagri agregasyon (senkron, salt-okunur)."""
     from core.fleet import get_fleet_status
 

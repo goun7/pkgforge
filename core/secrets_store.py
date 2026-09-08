@@ -10,6 +10,7 @@ surface an error — plaintext fallback storage is forbidden (SEC).
 from __future__ import annotations
 
 import os
+from typing import Any
 
 SERVICE = "org.freedesktop.secrets"
 SERVICE_PATH = "/org/freedesktop/secrets"
@@ -88,12 +89,12 @@ class SecretStore:
 
     # -- internals ---------------------------------------------------------
 
-    def _conn(self):
+    def _conn(self) -> Any:
         from jeepney.io.blocking import open_dbus_connection
 
         return open_dbus_connection()
 
-    def _open_session(self, conn) -> str:
+    def _open_session(self, conn: Any) -> str:
         from jeepney import DBusAddress, new_method_call
 
         svc = DBusAddress(SERVICE_PATH, bus_name=SERVICE,
@@ -116,7 +117,7 @@ class SecretStore:
                 f"OpenSession: gecersiz oturum yolu {session!r}")
         return session
 
-    def _search_items(self, conn) -> tuple[list[str], list[str]]:
+    def _search_items(self, conn: Any) -> tuple[list[str], list[str]]:
         from jeepney import DBusAddress, new_method_call
 
         svc = DBusAddress(SERVICE_PATH, bus_name=SERVICE,
@@ -134,7 +135,7 @@ class SecretStore:
             locked = []
         return [str(x) for x in unlocked], [str(x) for x in locked]
 
-    def _create_item(self, conn, session: str) -> str:
+    def _create_item(self, conn: Any, session: str) -> str:
         from jeepney import DBusAddress, new_method_call
 
         coll = DBusAddress(COLLECTION_DEFAULT, bus_name=SERVICE,
@@ -158,7 +159,7 @@ class SecretStore:
                 "Kilitli koleksiyon: etkileşimli prompt gerekli")
         return item
 
-    def _get_secret(self, conn, session: str, item: str) -> bytes:
+    def _get_secret(self, conn: Any, session: str, item: str) -> bytes:
         from jeepney import DBusAddress, new_method_call
 
         addr = DBusAddress(item, bus_name=SERVICE,

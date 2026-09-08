@@ -9,18 +9,18 @@ from config import APP_NAME, APP_VERSION, discover_tools
 from i18n import load_settings, save_settings
 
 
-def handle_app_version(params):
+def handle_app_version(params: dict) -> dict:
     return {"name": APP_NAME, "version": APP_VERSION}
 
 
-def handle_app_doctor(params):
+def handle_app_doctor(params: dict) -> dict:
     """F5.22: one-shot system diagnosis (read-only)."""
     from core.doctor import run_doctor
 
     return run_doctor()
 
 
-def handle_tools_status(params):
+def handle_tools_status(params: dict) -> dict:
     tools = discover_tools()
     return {
         "has_pacman": bool(tools.pacman),
@@ -31,18 +31,18 @@ def handle_tools_status(params):
     }
 
 
-def handle_settings_get(params):
+def handle_settings_get(params: dict) -> dict:
     return load_settings()
 
 
-def handle_settings_set(params):
+def handle_settings_set(params: dict) -> dict:
     settings = load_settings()
     settings.update(params or {})
     save_settings(settings)
     return {"ok": True}
 
 
-def handle_system_health(params):
+def handle_system_health(params: dict) -> dict:
     from core.history_db import HistoryDB
 
     db = HistoryDB()
@@ -67,7 +67,7 @@ def handle_system_health(params):
     }
 
 
-def handle_stats_wrapped(params):
+def handle_stats_wrapped(params: dict) -> dict:
     """F5.24: annual conversion report (read-only)."""
     from core.stats_wrapped import build_wrapped
 
@@ -75,21 +75,21 @@ def handle_stats_wrapped(params):
     return build_wrapped(year=int(year) if year else None)
 
 
-def handle_policy_evaluate(params):
+def handle_policy_evaluate(params: dict) -> dict:
     """F5.19: evaluate a compatibility report against the active policy."""
     from core.policy_engine import evaluate
 
     return evaluate(params.get("report"))
 
 
-def handle_policy_get(params):
+def handle_policy_get(params: dict) -> dict:
     """F5.19: read the active compat policy level (read-only)."""
     from core.policy_engine import policy_from_settings
 
     return {"level": policy_from_settings().value}
 
 
-def handle_policy_set(params):
+def handle_policy_set(params: dict) -> dict:
     """F5.19: set the compat policy level (standard | strict)."""
     from core.policy_engine import SETTINGS_KEY, PolicyLevel
 

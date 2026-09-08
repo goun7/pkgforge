@@ -16,6 +16,7 @@ import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from config import ToolPaths
 
@@ -129,7 +130,7 @@ def _check_aur(name: str) -> tuple[bool, str]:
         cache = get_cache()
         rpc_url = f"https://aur.archlinux.org/rpc/v5/info/{name}"
 
-        def _fetch_aur():
+        def _fetch_aur() -> Any:
             return retry_aur_rpc(rpc_url, max_retries=2, timeout=10)
 
         data = cache.get_or_fetch("aur", name, _fetch_aur)

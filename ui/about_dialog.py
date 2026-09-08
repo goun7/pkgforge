@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from config import APP_NAME, APP_VERSION, DONATE_URL
@@ -23,14 +24,14 @@ from ui.styles import get_colors
 class AboutDialog(QDialog):
     """About dialog showing project information."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("about.title"))
         self.setMinimumWidth(420)
         self.setModal(True)
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 

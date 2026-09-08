@@ -6,6 +6,7 @@ Provides a GUI input dialog for users to enter HTTP/HTTPS links to .deb or .rpm 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
@@ -81,12 +82,12 @@ class UrlDialog(QDialog):
         self._download_btn.setEnabled(False)
         self._download_btn.setText(tr("url.downloading"))
 
-        def _do_download():
+        def _do_download() -> Any:
             return download_package(
                 url, require_https=not load_setting("allow_insecure_http", False)
             )
 
-        def _on_done(downloaded_file):
+        def _on_done(downloaded_file: Any) -> None:
             self.file_downloaded.emit(downloaded_file)
             self.accept()
 

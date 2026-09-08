@@ -10,6 +10,7 @@ from __future__ import annotations
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 SERVICE_UNIT = "pkgforge.service"
 TIMER_UNIT = "pkgforge.timer"
@@ -27,7 +28,7 @@ def state() -> dict:
     }
 
 
-def is_due(st: dict, now=None) -> bool:
+def is_due(st: dict, now: float | None = None) -> bool:
     """True when the schedule should fire right now."""
     if not st.get("enabled"):
         return False
@@ -87,7 +88,7 @@ TASKS = {
 KNOWN_TASKS = ", ".join(sorted(TASKS))
 
 
-def run_task(task):
+def run_task(task: str) -> dict:
     fn = TASKS.get(task)
     if fn is None:
         return {"ok": False,
@@ -100,7 +101,7 @@ def run_task(task):
         return {"ok": False, "detail": str(exc)}
 
 
-def run_due(force=False):
+def run_due(force: bool = False) -> dict:
     st = state()
     if not force and not is_due(st):
         return {"ran": False, "reason": "zamani gelmedi"}
@@ -135,7 +136,7 @@ def service_unit_text() -> str:
     return chr(10).join(lines)
 
 
-def timer_unit_text(interval_hours) -> str:
+def timer_unit_text(interval_hours: float) -> str:
     secs = max(3600, int(float(interval_hours) * 3600))
     lines = [
         "[Unit]",
@@ -153,14 +154,14 @@ def timer_unit_text(interval_hours) -> str:
     return chr(10).join(lines)
 
 
-def hours_guard(value):
+def hours_guard(value: Any) -> float:
     v = float(value)
     if v < 1:
         raise ValueError("Aralik en az 1 saat olmali")
     return v
 
 
-def install_timer(interval_hours=None, dry_run=False):
+def install_timer(interval_hours: float | None = None, dry_run: bool = False) -> object:
     """Write user systemd units under HOME; dry_run returns paths+content."""
     st = state()
     raw = st["interval_hours"] if interval_hours is None else interval_hours

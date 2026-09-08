@@ -6,6 +6,7 @@ Uc sekme; her biri ilgili core fonksiyonunu arka planda calistirir.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QDialog,
@@ -28,7 +29,7 @@ from ui.background_worker import run_in_background
 class ToolsDialog(QDialog):
     """Feature Tezgahi: RPM->DEB, ABI, Audit + Faz 2 aracları."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("tools.title"))
         self.resize(680, 520)
@@ -82,7 +83,7 @@ class ToolsDialog(QDialog):
         self._rpm_btn.setEnabled(False)
         self._rpm_result.setText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             if not is_rpm_to_deb_available():
                 return {"ok": False, "message": tr("tools.rpm_tools_missing"),
                         "deb_path": ""}
@@ -90,7 +91,7 @@ class ToolsDialog(QDialog):
             return {"ok": ok, "message": msg,
                     "deb_path": str(deb) if deb else ""}
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._rpm_btn.setEnabled(True)
             icon = "✅" if res["ok"] else "❌"
             text = f"{icon} {res['message']}"
@@ -139,10 +140,10 @@ class ToolsDialog(QDialog):
         self._abi_btn.setEnabled(False)
         self._abi_result.setPlainText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             return check_abi_compatibility(Path(pkg))
 
-        def _done(report) -> None:
+        def _done(report: Any) -> None:
             self._abi_btn.setEnabled(True)
             head = tr("tools.abi_passed") if report.passed else tr("tools.abi_failed")
             self._abi_result.setPlainText(f"{head}\n\n{report.summary()}")
@@ -173,7 +174,7 @@ class ToolsDialog(QDialog):
         self._audit_btn.setEnabled(False)
         self._audit_detail.setPlainText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             records = HistoryDB().get_history(limit=100)
             status_counts: dict[str, int] = {}
             type_counts: dict[str, int] = {}
@@ -189,7 +190,7 @@ class ToolsDialog(QDialog):
                     "type_counts": type_counts, "integrity": integrity,
                     "records": records}
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._audit_btn.setEnabled(True)
             self._audit_summary.setText(
                 tr("tools.audit_summary", total=res["total"],
@@ -244,10 +245,10 @@ class ToolsDialog(QDialog):
         self._scan_btn.setEnabled(False)
         self._scan_result.setPlainText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             return scan_oci_image(Path(img))
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._scan_btn.setEnabled(True)
             head = tr("tools.scan_clean") if res["clean"] else tr("tools.scan_findings")
             lines = [head, res["detail"], ""]
@@ -302,7 +303,7 @@ class ToolsDialog(QDialog):
         self._attest_btn.setEnabled(False)
         self._attest_result.setText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             pkg_path = Path(pkg)
             prov_path = find_provenance(pkg_path)
             if not prov_path:
@@ -316,7 +317,7 @@ class ToolsDialog(QDialog):
             subject = att.subject[0].get("name", "") if att.subject else ""
             return {"ok": True, "path": str(att_path), "subject": subject}
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._attest_btn.setEnabled(True)
             if res["ok"]:
                 self._attest_result.setText(
@@ -366,14 +367,14 @@ class ToolsDialog(QDialog):
         self._publish_btn.setEnabled(False)
         self._publish_result.setText(tr("tools.running"))
 
-        def _op():
+        def _op() -> Any:
             ok, msg, aur_pkg = prepare_aur_package(Path(pkg), Path.cwd())
             if not ok or not aur_pkg:
                 return {"ok": False, "message": msg}
             return {"ok": True, "message": msg, "name": aur_pkg.name,
                     "pkgbuild": str(aur_pkg.pkgbuild)}
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._publish_btn.setEnabled(True)
             icon = "✅" if res["ok"] else "❌"
             text = f"{icon} {res['message']}"
@@ -426,11 +427,11 @@ class ToolsDialog(QDialog):
         from core.snapshot_cleanup import install_cleanup_service
         self._snap_install_btn.setEnabled(False)
 
-        def _op():
+        def _op() -> Any:
             ok, msg = install_cleanup_service(max_age_days=7)
             return {"ok": ok, "message": msg}
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._snap_install_btn.setEnabled(True)
             icon = "✅" if res["ok"] else "❌"
             self._snapshot_status.setText(f"{icon} {res['message']}")
@@ -455,11 +456,11 @@ class ToolsDialog(QDialog):
             return
         self._snap_remove_btn.setEnabled(False)
 
-        def _op():
+        def _op() -> Any:
             ok, msg = remove_cleanup_service()
             return {"ok": ok, "message": msg}
 
-        def _done(res) -> None:
+        def _done(res: Any) -> None:
             self._snap_remove_btn.setEnabled(True)
             icon = "✅" if res["ok"] else "❌"
             self._snapshot_status.setText(f"{icon} {res['message']}")

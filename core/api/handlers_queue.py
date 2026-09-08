@@ -6,6 +6,7 @@ import logging
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 from core.api import transport
 from i18n import load_settings, save_settings, tr
@@ -21,11 +22,11 @@ _active_pipelines: dict = {}
 
 # F5.12: durable backing for the queue. Best-effort — a DB failure must never
 # break the in-memory hot path.
-_queue_store = None
+_queue_store: Any = None
 _queue_store_lock = threading.Lock()
 
 
-def _get_queue_store():
+def _get_queue_store() -> Any:
     global _queue_store
     with _queue_store_lock:
         if _queue_store is None:
@@ -40,7 +41,7 @@ def _get_queue_store():
         return _queue_store or None
 
 
-def _persist_item(item) -> None:
+def _persist_item(item: dict) -> None:
     store = _get_queue_store()
     if store is None:
         return
@@ -50,7 +51,7 @@ def _persist_item(item) -> None:
         pass
 
 
-def _persist_remove(item_id) -> None:
+def _persist_remove(item_id: str) -> None:
     store = _get_queue_store()
     if store is None:
         return
@@ -60,7 +61,7 @@ def _persist_remove(item_id) -> None:
         pass
 
 
-def _persist_clear(status="") -> None:
+def _persist_clear(status: str = "") -> None:
     store = _get_queue_store()
     if store is None:
         return
@@ -97,7 +98,7 @@ def restore_queue() -> int:
     return restored
 
 
-def _make_pipeline(path, item_id, do_install=False):
+def _make_pipeline(path: Path, item_id: str, do_install: bool = False) -> Any:
     """Build a ConversionPipeline whose events are tagged with item_id.
 
     F4.3 honesty: batch is CONVERSION-ONLY by default. The decision gate is
@@ -117,46 +118,46 @@ def _make_pipeline(path, item_id, do_install=False):
     # thread-safe state (_event -> write lock, dict under _queue_lock).
     direct = Qt.ConnectionType.DirectConnection
 
-    def _track_finished(result):
+    def _track_finished(result: Any) -> None:
         _active_pipelines.pop(item_id, None)
         _set_item(item_id, status="done" if result.success else "error",
                   message=result.message)
 
     p.step_changed.connect(
-        lambda step, status: transport._event("event/step_changed", {"step": step, "status": status, "item_id": item_id}), type=direct)
+        lambda step, status: transport._event("event/step_changed", {"step": step, "status": status, "item_id": item_id}), type=direct)  # type: ignore[call-arg]
     p.progress.connect(
-        lambda v: transport._event("event/progress", {"value": v, "item_id": item_id}), type=direct)
+        lambda v: transport._event("event/progress", {"value": v, "item_id": item_id}), type=direct)  # type: ignore[call-arg]
     p.log_message.connect(
-        lambda msg, level: transport._event("event/log", {"message": msg, "level": level, "item_id": item_id}), type=direct)
+        lambda msg, level: transport._event("event/log", {"message": msg, "level": level, "item_id": item_id}), type=direct)  # type: ignore[call-arg]
     p.compatibility_ready.connect(
-        lambda report: transport._event("event/compatibility_ready", {"report": report.to_dict(), "item_id": item_id}), type=direct)
+        lambda report: transport._event("event/compatibility_ready", {"report": report.to_dict(), "item_id": item_id}), type=direct)  # type: ignore[call-arg]
     if do_install:
-        p.compatibility_ready.connect(lambda report: p.approve_install(), type=direct)
+        p.compatibility_ready.connect(lambda report: p.approve_install(), type=direct)  # type: ignore[call-arg]
     else:
         pkg_label = Path(path).name
         p._skip_install_message = tr("api.pkg_label_donusturuldu_kurulum", pkg_label=pkg_label)
         p.compatibility_ready.connect(
-            lambda report: p.dismiss_install(), type=direct)
-    p.finished.connect(_track_finished, type=direct)
+            lambda report: p.dismiss_install(), type=direct)  # type: ignore[call-arg]
+    p.finished.connect(_track_finished, type=direct)  # type: ignore[call-arg]  # type: ignore[call-arg]
     p.finished.connect(
         lambda result: transport._event("event/finished", {
             "success": result.success,
             "message": result.message,
             "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
             "item_id": item_id,
-        }), type=direct)
+        }), type=direct)  # type: ignore[call-arg]
     _active_pipelines[item_id] = p
     return p
 
 
-def _set_item(item_id, **fields):
+def _set_item(item_id: str, **fields: object) -> None:
     with _queue_lock:
         if item_id in _queue_items:
             _queue_items[item_id].update(fields)
             _persist_item(_queue_items[item_id])
 
 
-def handle_queue_add(params):
+def handle_queue_add(params: dict) -> dict:
     global _queue_seq
     paths = params.get("paths", [])
     if isinstance(paths, str):
@@ -182,14 +183,14 @@ def handle_queue_add(params):
     return {"added": added}
 
 
-def handle_queue_list(params):
+def handle_queue_list(params: dict) -> list:
     with _queue_lock:
         items = list(_queue_items.values())
     items.sort(key=lambda it: (-it["priority"], it["id"]))
     return items
 
 
-def handle_queue_priority(params):
+def handle_queue_priority(params: dict) -> dict:
     item_id = params.get("id", "")
     with _queue_lock:
         if item_id not in _queue_items:
@@ -199,7 +200,7 @@ def handle_queue_priority(params):
     return {"ok": True}
 
 
-def handle_queue_remove(params):
+def handle_queue_remove(params: dict) -> dict:
     item_id = params.get("id", "")
     with _queue_lock:
         _queue_items.pop(item_id, None)
@@ -207,7 +208,7 @@ def handle_queue_remove(params):
     return {"ok": True}
 
 
-def handle_queue_clear(params):
+def handle_queue_clear(params: dict) -> dict:
     status = params.get("status", "")
     with _queue_lock:
         if not status:
@@ -219,7 +220,7 @@ def handle_queue_clear(params):
     return {"ok": True}
 
 
-def _queue_dispatch(parallel, do_install=False):
+def _queue_dispatch(parallel: int, do_install: bool = False) -> None:
     """Worker: process pending queue items by priority until none remain."""
     global _queue_running
     parallel = max(1, min(4, int(parallel)))
@@ -249,7 +250,7 @@ def _queue_dispatch(parallel, do_install=False):
         transport._event("event/queue_done", {"ok": True})
 
 
-def handle_queue_cancel(params):
+def handle_queue_cancel(params: dict) -> dict:
     """Cancel one (item_id) or all running batch pipelines."""
     item_id = str(params.get("item_id", "")).strip()
     with _queue_lock:
@@ -265,7 +266,7 @@ def handle_queue_cancel(params):
     return {"cancelled": cancelled}
 
 
-def handle_queue_start(params):
+def handle_queue_start(params: dict) -> dict:
     global _queue_running
     do_install = bool(params.get("install", False))
     parallel = max(1, min(4, int(params.get("parallel", 1))))
@@ -288,13 +289,13 @@ def handle_queue_start(params):
 _scheduler_started = False
 
 
-def _schedule_state():
+def _schedule_state() -> dict:
     from core.scheduler import state as sched_state
 
     return sched_state()
 
 
-def handle_schedule_get(params):
+def handle_schedule_get(params: dict) -> dict:
     st = _schedule_state()
     next_run = ""
     if st["enabled"]:
@@ -312,7 +313,7 @@ def handle_schedule_get(params):
     return st
 
 
-def handle_schedule_set(params):
+def handle_schedule_set(params: dict) -> dict:
     s = load_settings()
     if "enabled" in params:
         s["schedule_enabled"] = bool(params["enabled"])
@@ -324,7 +325,7 @@ def handle_schedule_set(params):
     return {"ok": True}
 
 
-def _scheduler_tick():
+def _scheduler_tick() -> None:
     """Daemon loop: run the scheduled task when its interval elapses."""
     while True:
         try:
@@ -348,7 +349,7 @@ def _scheduler_tick():
         time.sleep(60)
 
 
-def _ensure_scheduler():
+def _ensure_scheduler() -> None:
     global _scheduler_started
     if not _scheduler_started:
         _scheduler_started = True
@@ -356,17 +357,17 @@ def _ensure_scheduler():
 
 
 # -- C2: multi-profile management -------------------------------
-def _profile_name(params) -> str:
+def _profile_name(params: dict) -> str:
     return str(params.get("name", "")).strip()
 
 
-def handle_profile_create(params):
+def handle_profile_create(params: dict) -> dict:
     from core.profiles import create_profile
 
     return create_profile(_profile_name(params))
 
 
-def handle_profile_switch(params):
+def handle_profile_switch(params: dict) -> dict:
     from core.profiles import switch_profile
 
     result = switch_profile(_profile_name(params))
@@ -380,27 +381,27 @@ def handle_profile_switch(params):
     return result
 
 
-def handle_profile_delete(params):
+def handle_profile_delete(params: dict) -> dict:
     from core.profiles import delete_profile
 
     return delete_profile(_profile_name(params))
 
 
 # -- C3: backup & cloud sync ------------------------------------
-def handle_sync_export(params):
+def handle_sync_export(params: dict) -> dict:
     from core.cloud_sync import export_backup
 
     output = str(params.get("output_path", "")).strip()
     return export_backup(output or None)
 
 
-def handle_sync_import(params):
+def handle_sync_import(params: dict) -> dict:
     from core.cloud_sync import import_backup
 
     return import_backup(str(params.get("backup_path", "")))
 
 
-def handle_schedule_timer_install(params):
+def handle_schedule_timer_install(params: dict) -> dict:
     """Install systemd user timer units (dry_run preview by default)."""
     from core.scheduler import install_timer
 
@@ -409,14 +410,14 @@ def handle_schedule_timer_install(params):
         dry_run=bool(params.get("dry_run", True)))
 
 
-def handle_schedule_run(params):
+def handle_schedule_run(params: dict) -> dict:
     """Run the scheduled task immediately (force unless told otherwise)."""
     from core.scheduler import run_due
 
     return run_due(force=bool(params.get("force", False)))
 
 
-def handle_sync_config(params):
+def handle_sync_config(params: dict) -> dict:
     s = load_settings()
     if "sync_url" in params:
         s["sync_url"] = str(params["sync_url"]).strip()
@@ -453,14 +454,14 @@ def handle_sync_config(params):
     return out
 
 
-def handle_sync_push(params):
+def handle_sync_push(params: dict) -> dict:
     from core.cloud_sync import webdav_push
 
     transport._run_thread(webdav_push, "event/sync_done")
     return {"started": True}
 
 
-def handle_sync_pull(params):
+def handle_sync_pull(params: dict) -> dict:
     from core.cloud_sync import webdav_pull
 
     transport._run_thread(webdav_pull, "event/sync_done")

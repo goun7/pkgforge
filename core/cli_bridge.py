@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Callable
 from pathlib import Path
 
 from config import ToolPaths, discover_tools
@@ -39,7 +40,7 @@ def convert_deb_sync(
     output_dir: Path,
     tools: ToolPaths | None = None,
     *,
-    progress_callback=None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> ConversionResult:
     """Convert a .deb package synchronously using subprocess (no PyQt6)."""
     from core.subprocess_converters import NativeDebConverterSubprocess
@@ -50,11 +51,11 @@ def convert_deb_sync(
     converter = NativeDebConverterSubprocess(tools)
     done_event = threading.Event()
 
-    def on_line(line: str):
+    def on_line(line: str) -> None:
         if progress_callback:
             progress_callback(line)
 
-    def on_done(success: bool, msg: str, pkg: object):
+    def on_done(success: bool, msg: str, pkg: object) -> None:
         result.success = success
         result.message = msg
         result.output_pkg = pkg if isinstance(pkg, Path) else None
@@ -71,10 +72,10 @@ def convert_deb_sync(
 def convert_rpm_sync(
     rpm_path: Path,
     output_dir: Path,
-    meta=None,
+    meta: object = None,
     tools: ToolPaths | None = None,
     *,
-    progress_callback=None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> ConversionResult:
     """Convert an .rpm package synchronously using subprocess (no PyQt6)."""
     from core.subprocess_converters import RpmConverterSubprocess
@@ -85,11 +86,11 @@ def convert_rpm_sync(
     converter = RpmConverterSubprocess(tools)
     done_event = threading.Event()
 
-    def on_line(line: str):
+    def on_line(line: str) -> None:
         if progress_callback:
             progress_callback(line)
 
-    def on_done(success: bool, msg: str, pkg: object):
+    def on_done(success: bool, msg: str, pkg: object) -> None:
         result.success = success
         result.message = msg
         result.output_pkg = pkg if isinstance(pkg, Path) else None

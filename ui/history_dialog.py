@@ -11,8 +11,10 @@ import csv
 import io
 import logging
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -155,15 +157,21 @@ class HistoryDialog(QDialog):
 
     # ── Drag & Drop ─────────────────────────────────────────────
 
-    def dragEnterEvent(self, event) -> None:
-        if event.mimeData().hasUrls():
-            for url in event.mimeData().urls():
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is not None and mime.hasUrls():
+            for url in mime.urls():
                 if url.toLocalFile().lower().endswith(".csv"):
                     event.acceptProposedAction()
                     return
 
-    def dropEvent(self, event) -> None:
-        for url in event.mimeData().urls():
+    def dropEvent(self, event: QDropEvent | None) -> None:
+        mime = event.mimeData() if event is not None else None
+        if mime is None:
+            return
+        for url in mime.urls():
             path = url.toLocalFile()
             if path.lower().endswith(".csv"):
                 self._import_csv(Path(path))
@@ -323,7 +331,7 @@ class HistoryDialog(QDialog):
     def _show_error(self, err: str) -> None:
         QMessageBox.critical(self, tr("common.error"), err)
 
-    def _on_uninstall_done(self, pkg_name: str, res) -> None:
+    def _on_uninstall_done(self, pkg_name: str, res: Any) -> None:
         if res.returncode == 0:
             QMessageBox.information(self, tr("common.success"), tr("history.msg_uninstalled").format(name=pkg_name))
             self._load_data()
@@ -361,7 +369,7 @@ class HistoryDialog(QDialog):
                 on_error=self._show_error,
             )
 
-    def _on_rollback_done(self, pkg_name: str, res) -> None:
+    def _on_rollback_done(self, pkg_name: str, res: Any) -> None:
         if res.returncode == 0:
             QMessageBox.information(self, tr("common.success"), tr("history.msg_rolled_back").format(name=pkg_name))
             self._load_data()

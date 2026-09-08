@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from config import discover_tools
 from core.api import transport
@@ -9,27 +10,27 @@ from i18n import tr
 
 # ── Faz 1 / A4: delta updater ───────────────────────────────────
 
-def handle_delta_status(params):
+def handle_delta_status(params: dict) -> dict:
     from core.delta_updater import get_auto_update_status
 
     return get_auto_update_status()
 
 
-def handle_delta_enable(params):
+def handle_delta_enable(params: dict) -> dict:
     # Enabling the systemd timer requires privilege escalation; the desktop
     # UI triggers pkexec via its own privileged helper in a later phase.
     return {"ok": False, "requires_privilege": True,
             "message": "Delta auto-update etkinleştirme yetkili işlem gerektiriyor (pkexec)"}
 
 
-def handle_delta_disable(params):
+def handle_delta_disable(params: dict) -> dict:
     return {"ok": False, "requires_privilege": True,
             "message": "Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)"}
 
 
 # ── Faz 1 / A1: export centers ──────────────────────────────────
 
-def handle_export_oci(params):
+def handle_export_oci(params: dict) -> dict:
     from core.oci_builder import build_oci_image
 
     path = transport._require_pkg_file(params)
@@ -37,7 +38,7 @@ def handle_export_oci(params):
     tag = params.get("tag") or None
     output_file = Path(params["output_file"]) if params.get("output_file") else None
 
-    def _op():
+    def _op() -> Any:
         ok, msg, out = build_oci_image(path, tools, tag=tag, output_file=output_file)
         return {"ok": ok, "message": msg, "output_path": str(out) if out else ""}
 
@@ -45,7 +46,7 @@ def handle_export_oci(params):
     return {"started": True}
 
 
-def handle_export_appimage_to_deb(params):
+def handle_export_appimage_to_deb(params: dict) -> dict:
     from core.appimage_converter import appimage_to_deb
 
     appimage = Path(params.get("appimage_path", ""))
@@ -53,7 +54,7 @@ def handle_export_appimage_to_deb(params):
         raise FileNotFoundError(f"AppImage not found: {appimage}")
     out_dir = Path(params.get("output_dir", "."))
 
-    def _op():
+    def _op() -> Any:
         ok, msg, deb = appimage_to_deb(appimage, out_dir)
         return {"ok": ok, "message": msg, "deb_path": str(deb) if deb else ""}
 
@@ -61,7 +62,7 @@ def handle_export_appimage_to_deb(params):
     return {"started": True}
 
 
-def handle_export_flatpak_list(params):
+def handle_export_flatpak_list(params: dict) -> list:
     from dataclasses import asdict
 
     from core.flatpak_converter import list_installed_apps
@@ -69,7 +70,7 @@ def handle_export_flatpak_list(params):
     return [asdict(app) for app in list_installed_apps()]
 
 
-def handle_export_flatpak_to_deb(params):
+def handle_export_flatpak_to_deb(params: dict) -> dict:
     from core.flatpak_converter import flatpak_to_deb
 
     app_id = params.get("app_id", "")
@@ -78,7 +79,7 @@ def handle_export_flatpak_to_deb(params):
     branch = params.get("branch", "stable")
     out_dir = Path(params.get("output_dir", "."))
 
-    def _op():
+    def _op() -> Any:
         ok, msg, deb = flatpak_to_deb(app_id, out_dir, branch=branch)
         return {"ok": ok, "message": msg, "deb_path": str(deb) if deb else ""}
 
@@ -88,7 +89,7 @@ def handle_export_flatpak_to_deb(params):
 
 # ── Faz 1 / A3: dependency graph ────────────────────────────────
 
-def handle_graph_build(params):
+def handle_graph_build(params: dict) -> dict:
     from dataclasses import asdict
 
     from core.dep_graph import build_dep_graph, build_file_dep_graph
@@ -96,7 +97,7 @@ def handle_graph_build(params):
     path = transport._require_pkg_file(params)
     show_files = bool(params.get("files", False))
 
-    def _op():
+    def _op() -> Any:
         graph = build_file_dep_graph(path) if show_files else build_dep_graph(path)
         return {
             "root": graph.root,
@@ -112,7 +113,7 @@ def handle_graph_build(params):
 
 # ── Faz 1 / A5: from-source PKGBUILD ────────────────────────────
 
-def handle_source_generate(params):
+def handle_source_generate(params: dict) -> dict:
     import tempfile
 
     from core.from_source import generate_pkgbuild_from_source
@@ -123,7 +124,7 @@ def handle_source_generate(params):
         raise ValueError("repo_url is required")
     out_dir = Path(params.get("output_dir", ".")).resolve()
 
-    def _op():
+    def _op() -> Any:
         with tempfile.TemporaryDirectory(prefix="pkgforge_src_") as tmpdir:
             tmp = Path(tmpdir)
             transport._event("event/source_progress", {"step": "clone"})
@@ -167,7 +168,7 @@ def handle_source_generate(params):
 
 # ── Faz 1 / A6: system tools ────────────────────────────────────
 
-def handle_system_cross_check(params):
+def handle_system_cross_check(params: dict) -> dict:
     from dataclasses import asdict
 
     from core.cross_check import cross_check_package
@@ -177,26 +178,26 @@ def handle_system_cross_check(params):
         raise ValueError("package_name is required")
     local_version = params.get("local_version", "")
 
-    def _op():
+    def _op() -> Any:
         return asdict(cross_check_package(name, local_version))
 
     transport._run_thread(_op, "event/cross_check_done")
     return {"started": True}
 
 
-def handle_system_snapshot_status(params):
+def handle_system_snapshot_status(params: dict) -> dict:
     from core.snapshot_cleanup import get_cleanup_status
 
     return get_cleanup_status()
 
 
-def handle_system_snapshot_install(params):
+def handle_system_snapshot_install(params: dict) -> dict:
     """Snapshot temizlik servisini kurar; pkexec ekranda yetki ister."""
     from core.snapshot_cleanup import install_cleanup_service
 
     max_age = int(params.get("max_age_days", 7))
 
-    def _op():
+    def _op() -> Any:
         ok, msg = install_cleanup_service(max_age_days=max_age)
         return {"ok": ok, "message": msg}
 
@@ -204,11 +205,11 @@ def handle_system_snapshot_install(params):
     return {"started": True}
 
 
-def handle_system_snapshot_remove(params):
+def handle_system_snapshot_remove(params: dict) -> dict:
     """Snapshot temizlik servisini kaldirir; pkexec ekranda yetki ister."""
     from core.snapshot_cleanup import remove_cleanup_service
 
-    def _op():
+    def _op() -> Any:
         ok, msg = remove_cleanup_service()
         return {"ok": ok, "message": msg}
 
@@ -216,7 +217,7 @@ def handle_system_snapshot_remove(params):
     return {"started": True}
 
 
-def handle_system_open_path(params):
+def handle_system_open_path(params: dict) -> dict:
     """Dosya yoneticisinde yolun bulundugu klasoru acar (sonuc bandi 'Klasoru Ac')."""
     import subprocess
 
@@ -229,7 +230,7 @@ def handle_system_open_path(params):
     return {"ok": True}
 
 
-def handle_system_install_pkg(params):
+def handle_system_install_pkg(params: dict) -> dict:
     """Donusturulmus .pkg.tar.zst paketini pkexec + pacman -U ile kurar.
 
     Faz 14: rota, konsolide privileged helper'in install-pkg alt-komutuna
@@ -260,7 +261,7 @@ def handle_system_install_pkg(params):
     except Exception:  # noqa: BLE001
         snap = ""
 
-    def _op():
+    def _op() -> Any:
         argv = privileged_install_pkg_argv(tools.pkexec, str(pkg), snapshot=snap)
         res = safe_run(argv, timeout=600)
         if res.returncode == 0:
@@ -271,26 +272,26 @@ def handle_system_install_pkg(params):
     return {"started": True}
 
 
-def handle_system_verify_rollback(params):
+def handle_system_verify_rollback(params: dict) -> dict:
     from dataclasses import asdict
 
     from core.rollback_verify import verify_rollback
 
-    def _op():
+    def _op() -> Any:
         return asdict(verify_rollback())
 
     transport._run_thread(_op, "event/system_done")
     return {"started": True}
 
 
-def handle_system_benchmark(params):
+def handle_system_benchmark(params: dict) -> dict:
     from dataclasses import asdict
 
     from core.benchmark import run_benchmarks
 
     quick = bool(params.get("quick", False))
 
-    def _op():
+    def _op() -> Any:
         report = run_benchmarks(quick=quick)
         d = asdict(report)
         d["passed"] = report.passed

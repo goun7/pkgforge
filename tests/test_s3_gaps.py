@@ -648,3 +648,20 @@ def test_system_install_pkg_snapshot_success(monkeypatch, tmp_path):
     monkeypatch.setattr(HS, "discover_tools", lambda: tools)
     out = HS.handle_system_install_pkg({"pkg_path": str(pkg)})
     assert out.get("started") is True and "fn" in ran
+
+
+# --- provenance: gercek nesne to_dict regresyonu -------------------------------------
+
+def test_provenance_real_object_to_dict(tmp_path):
+    """BuildProvenance.to_dict yoklugu production AttributeError'ydu (mypy buldu)."""
+    from core.provenance import create_provenance, load_provenance, save_provenance
+
+    src = tmp_path / "p.deb"
+    src.write_bytes(b"P")
+    out = tmp_path / "p.pkg.tar.zst"
+    prov = create_provenance(source_file=src, output_file=out)
+    d = prov.to_dict()
+    assert d["source_file"] == str(src)
+    save_provenance(prov, tmp_path / "p.pkg.tar.zst.provenance.json")
+    yuklenen = load_provenance(tmp_path / "p.pkg.tar.zst.provenance.json")
+    assert yuklenen is not None and yuklenen.to_dict()["source_file"] == str(src)

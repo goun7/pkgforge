@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from config import discover_tools
 from core.api import transport
 from i18n import tr
 
 
-def handle_plugin_install(params):
+def handle_plugin_install(params: dict) -> dict:
     from core.plugins import reload_plugins
     from core.plugins.marketplace import install_plugin
 
@@ -16,7 +17,7 @@ def handle_plugin_install(params):
     version = params.get("version", "latest")
     force = bool(params.get("force", False))
 
-    def _op():
+    def _op() -> Any:
         path = install_plugin(name, version=version, force=force)
         reload_plugins()
         return {"ok": True, "path": str(path)}
@@ -25,7 +26,7 @@ def handle_plugin_install(params):
     return {"started": True}
 
 
-def handle_plugin_uninstall(params):
+def handle_plugin_uninstall(params: dict) -> dict:
     from core.plugins import reload_plugins
     from core.plugins.marketplace import is_valid_plugin_name, uninstall_plugin
 
@@ -39,13 +40,13 @@ def handle_plugin_uninstall(params):
     return {"ok": True}
 
 
-def handle_plugin_update(params):
+def handle_plugin_update(params: dict) -> dict:
     from core.plugins import reload_plugins
     from core.plugins.marketplace import update_plugin
 
     name = params.get("name", "")
 
-    def _op():
+    def _op() -> Any:
         ok, msg, _path = update_plugin(name)
         if ok:
             reload_plugins()
@@ -57,7 +58,7 @@ def handle_plugin_update(params):
 
 # ── Faz 2 / B5: package comparison ──────────────────────────────
 
-def handle_compare_diff(params):
+def handle_compare_diff(params: dict) -> dict:
     from core.sbom import diff_sboms, generate_sbom
 
     old_path = Path(params.get("old_path", ""))
@@ -68,7 +69,7 @@ def handle_compare_diff(params):
         raise FileNotFoundError(f"New package not found: {new_path}")
     tools = discover_tools()
 
-    def _op():
+    def _op() -> Any:
         old_sbom = generate_sbom(old_path, tools, include_hashes=True)
         new_sbom = generate_sbom(new_path, tools, include_hashes=True)
         diff = diff_sboms(old_sbom, new_sbom)
@@ -91,20 +92,20 @@ def _validate_aur_name(name: str) -> None:
         raise ValueError(f"Invalid AUR package name: {name!r}")
 
 
-def handle_aur_search(params):
+def handle_aur_search(params: dict) -> dict:
     from core.aur_checker import search_aur
 
     query = str(params.get("query", ""))
     limit = int(params.get("limit", 25))
 
-    def _op():
+    def _op() -> Any:
         return search_aur(query, limit=limit)
 
     transport._run_thread(_op, "event/aur_search_done")
     return {"started": True}
 
 
-def handle_aur_info(params):
+def handle_aur_info(params: dict) -> dict:
     from dataclasses import asdict
 
     from core.aur_checker import check_aur
@@ -112,21 +113,21 @@ def handle_aur_info(params):
     name = str(params.get("name", ""))
     _validate_aur_name(name)
 
-    def _op():
+    def _op() -> Any:
         return asdict(check_aur(name))
 
     transport._run_thread(_op, "event/aur_info_done")
     return {"started": True}
 
 
-def handle_aur_build(params):
+def handle_aur_build(params: dict) -> dict:
     import subprocess as _sp
     import tempfile
 
     name = str(params.get("name", ""))
     _validate_aur_name(name)
 
-    def _op():
+    def _op() -> Any:
         transport._event("event/aur_build_progress", {"name": name, "step": "clone"})
         workdir = Path(tempfile.mkdtemp(prefix=f"pkgforge-aur-{name}-"))
         clone_url = f"https://aur.archlinux.org/{name}.git"

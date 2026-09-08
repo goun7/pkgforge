@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+from typing import Any
 
 from i18n import tr
 
@@ -150,7 +151,7 @@ def _bench_sha256(test_file: Path | None) -> BenchmarkResult | None:
     return r
 
 
-def _bench_mime(test_file: Path | None, tools) -> BenchmarkResult | None:
+def _bench_mime(test_file: Path | None, tools: Any) -> BenchmarkResult | None:
     """Benc 3: MIME dogrulama hizi."""
     if not (test_file and test_file.is_file()):
         return None
@@ -170,7 +171,7 @@ def _bench_mime(test_file: Path | None, tools) -> BenchmarkResult | None:
     return r
 
 
-def _bench_analysis(test_file: Path | None, tools) -> BenchmarkResult | None:
+def _bench_analysis(test_file: Path | None, tools: Any) -> BenchmarkResult | None:
     """Benc 4: paket analizi hizi (ar araci gerekir)."""
     if not (test_file and test_file.is_file() and tools.ar):
         return None
@@ -190,7 +191,7 @@ def _bench_analysis(test_file: Path | None, tools) -> BenchmarkResult | None:
     return r
 
 
-def _bench_security(test_file: Path | None, tools) -> BenchmarkResult | None:
+def _bench_security(test_file: Path | None, tools: Any) -> BenchmarkResult | None:
     """Benc 5: guvenlik kontrolleri toplami."""
     if not (test_file and test_file.is_file()):
         return None

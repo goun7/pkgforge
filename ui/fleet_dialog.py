@@ -5,7 +5,7 @@ backend durumu, politika seviyesi, profiller, gecmis/age/senkron ozeti.
 """
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
+from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from i18n import tr
 from ui.background_worker import run_in_background
@@ -14,7 +14,7 @@ from ui.background_worker import run_in_background
 class FleetDialog(QDialog):
     """Fleet konsolu: tek-cagri fleet.status ozeti."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("fleet.title"))
         self.resize(560, 460)

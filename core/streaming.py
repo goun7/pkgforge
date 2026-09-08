@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def stream_copy(
     src: Path,
     dst: Path,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
-    progress_callback=None,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> int:
     """Copy a file using streaming (constant memory).
 
@@ -82,7 +83,7 @@ def stream_copy(
 def chunked_read(
     file_path: Path,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
-):
+) -> Iterator[bytes]:
     """Generator that yields chunks of a file.
 
     Args:

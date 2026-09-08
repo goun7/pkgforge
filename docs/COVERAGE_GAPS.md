@@ -1,31 +1,37 @@
-# Coverage Gap Raporu — Tur-54
-## Tarih: 31 Ağustos 2026
-## Toplam: %99 (11950 statement, 26 missed)
+# Coverage Durumu — S3 (ölçülen, gerekçeli)
 
-### Missed Lines Detayı
+Tarih: 2026-09-07 · Toplam: %99 (12 769 ifade, 46 eksik)
+Yöntem: `pytest tests/ --cov=core --cov=ui --cov=i18n`.
+Eski Tur-54 raporu (`%99, 26 eksik`) emeklidir — kod o zamandan beri büyüdü.
 
-| Dosya | Stmts | Miss | Cover | Missed Lines | Notlar |
-|-------|-------|------|-------|-------------|--------|
-| core/benchmark.py | 183 | 4 | 98% | 137, 154, 174, 194 | Benchmark edge-case yolları |
-| core/delta_updater.py | 215 | 1 | 99% | 319 | Timer disable error path |
-| core/dep_graph.py | 240 | 1 | 99% | 340 | Graph traversal edge case |
-| core/doctor.py | 51 | 4 | 92% | 60-65 | Sistem komutu hata yolları |
-| core/intake.py | 186 | 1 | 99% | 294 | Metadata extraction fallback |
-| core/pipeline.py | 708 | 8 | 99% | 160-161, 413, 458, 525-528 | Multi-step error paths |
-| ui/main_window.py | 513 | 6 | 99% | 605-617 | Modal dialog interaction |
-| ui/result_dialog.py | 265 | 1 | 99% | 227 | Launch button edge case |
+## Kapatılanlar (S3)
 
-### Değerlendirme
-- **core/doctor.py (%92)** en düşük coverage'a sahip modül. Sistem komutlarına bağımlı
-  hata yollarını test etmek zordur; `pragma: no cover` veya mock test eklenebilir.
-- **ui/main_window.py (605-617)** modal dialog akışı — GUI testlerinde etkileşim
-  gerektiren satırlar. Mevcut testler flag-gated olduğu için bu satırlar covered değil.
-- **core/pipeline.py (525-528)** multi-step conversion error recovery — nadir tetiklenen
-  hata yolu. Integration test ile覆盖 edilebilir.
-- Diğer tüm missed line'lar edge-case/error-path kategorisinde ve kabul edilebilir düzeyde.
+privileged validasyon matrisi · streaming rapor/header/split-join kenarları ·
+workspace bozuk-TOML/çözüm dalları · api_v2 manifest çapraz-kontrol ·
+safe_run boş-komut · epoch iki yön · benchmark yok-dosya guard'ları ·
+shebang kenarları (+ölü ValueError dalı silindi) · SSRF fail-closed sıkılaştırma ·
+cloud bozuk-db · signing chmod-hatası · delta/dep_graph/installer/intake/
+cleanup beklenen-hata dalları · handlers_system snapshot başarı+fallback ·
+pipeline sha/cancel/temp dalları · subprocess thread-spawn · result/tools
+dialog dalları · doctor polkit 3 dal · dep_graph ldd · workspace cwd/root ·
+cloud kötü-üye · signing rationale · rpm çıkarma hata dalları · compat
+pacman-yok guard'ları · streaming kısa-okuma · snapshot başarı dalı.
 
-### Öneriler
-1. core/doctor.py için subprocess mock testleri ekle (4 satır → %100)
-2. ui/main_window.py modal akış için monkeypatch test ekle (6 satır → %100)  
-3. core/pipeline.py error recovery için targeted test ekle (8 satır → %100)
-4. Kalanlar için `# pragma: no cover` ile işaretle (kabul edilen risk)
+## Bilinçli kabul listesi (kapatılmayacak — gerekçesiyle)
+
+| Dosya: satırlar | Neden kabul |
+|---|---|
+| `snapshot_manager.py` 29 satır | Gerçek btrfs/zfs + root + pkexec ister; CI/dev makinede yıkıcı |
+| `package_analyzer.py` 270-284 | `rpm2archive` fallback yalnızca ubuntu rpm derlemesinde çalışır (Arch'ta ölü dal; CI matrix'i kapsar) |
+| `api_v2.py` 139-142, 193-194 | Gerçek `cosign` binary'si + bloklayan `run()` server'ı |
+| `compatibility_checker.py` 216, 305 | `pacman` yokluğu — non-Arch'ta hep açık (guard'ların kendisi testli) |
+| `streaming_extensions.py` 192 | Savunma-ölü: döngü koşulu `need>0` garantiler (`pragma: no cover` gerekçeli) |
+| `ui/main_window.py` 608-620 | Onaylı-kurulum modal sorusu — flag-gated (açmak event-loop kilitler) |
+| `ui/history_dialog.py` 324 | Modal hata kutusu |
+
+## Skip'ler (4)
+
+- `rpm_to_deb` guard dalı: iki araç da kuruluysa erişilemez (doğru davranış)
+- `secrets_store` live: yerelde Secret Service yok (CI `keyring-live` kapsar)
+- `sync_backends` age ×2: `age` CLI kurulu değil (kabul)
+- `.rpm` fixture skibi KAPANDI — `utest/fixtures` yedeğiyle canlı

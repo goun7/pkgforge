@@ -119,7 +119,7 @@ def _http_validate_bind(host: str, token: str, insecure_http_lan: bool) -> None:
             " ya da onde TLS sonlandiran bir reverse proxy kullanin)")
 
 
-def _make_http_handler(token: str, read_token: str, trusted_proxy: bool):
+def _make_http_handler(token: str, read_token: str, trusted_proxy: bool) -> type:
     """serve_http icin istek isleyici sinifini uret (kimlik kapsami kapali)."""
     import hmac
     from http.server import BaseHTTPRequestHandler
@@ -253,7 +253,7 @@ def _make_http_handler(token: str, read_token: str, trusted_proxy: bool):
                 return
             self._reply(200, _dispatch(msg))
 
-        def log_message(self, fmt, *args) -> None:
+        def log_message(self, fmt: object, *args: object) -> None:
             pass  # silence per-request logging
 
     return Handler

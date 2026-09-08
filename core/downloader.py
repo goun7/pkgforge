@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 from config import APP_VERSION, MAX_PACKAGE_SIZE_MB, create_temp_dir
 from i18n import tr
@@ -89,7 +90,15 @@ class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
         self._require_https = require_https
         self._allow_private_hosts = allow_private_hosts
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:  # type: ignore[override]
         parsed = urllib.parse.urlparse(newurl)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(
@@ -113,7 +122,7 @@ def _open_url(
     timeout: int = 30,
     require_https: bool = True,
     allow_private_hosts: bool = False,
-):
+) -> Any:
     """Open *req* through an opener that guards redirects.
 
     The redirect guard re-validates the URL scheme on every 3xx hop so an
@@ -216,7 +225,7 @@ def download_package(
     # Retry with exponential backoff for network errors
     from core.retry import RetryConfig, retry_with_backoff
 
-    def _do_download():
+    def _do_download() -> None:
         nonlocal downloaded_bytes
         downloaded_bytes = 0
         with _open_url(req, timeout=30, require_https=require_https,

@@ -292,7 +292,7 @@ class ResultDialog(QDialog):
         # parameter absorbs it so it cannot clobber the captured widget refs —
         # without it, pressing Enter/Space on this focused button crashed the
         # whole app (AttributeError inside Qt's event dispatch -> abort()).
-        def toggle(_checked: bool = False, w=preview, b=toggle_btn) -> None:
+        def toggle(_checked: bool = False, w: QLabel = preview, b: QPushButton = toggle_btn) -> None:
             vis = not w.isVisible()
             w.setVisible(vis)
             b.setText(("▼ " if vis else "▶ ") + tr("result.files_title", count=len(files)))
@@ -414,7 +414,7 @@ class ResultDialog(QDialog):
             details_widget.setVisible(False)
 
             # Leading _checked absorbs clicked(bool); see note on toggle() above.
-            def toggle_details(_checked: bool = False, w=details_widget, b=details_btn, c=check) -> None:
+            def toggle_details(_checked: bool = False, w: QLabel = details_widget, b: QPushButton = details_btn, c: CheckResult = check) -> None:
                 vis = not w.isVisible()
                 w.setVisible(vis)
                 prefix = "▼" if vis else "▶"

@@ -6,7 +6,7 @@ core/api_server.py bunlari import edip METHODS'a kaydeder (facade).
 from __future__ import annotations
 
 
-def handle_history_list(params):
+def handle_history_list(params: dict) -> list:
     from core.history_db import HistoryDB
 
     db = HistoryDB()
@@ -25,38 +25,38 @@ def handle_history_list(params):
     ]
 
 
-def handle_plugin_list(params):
+def handle_plugin_list(params: dict) -> list:
     from core.plugins.marketplace import list_installed_plugins
 
     return list_installed_plugins()
 
 
-def handle_plugin_available(params):
+def handle_plugin_available(params: dict) -> list:
     from core.plugins.marketplace import fetch_available_plugins
 
     offline = bool(params.get("offline", False))
     return fetch_available_plugins(offline=offline)
 
 
-def handle_plugin_audit(params):
+def handle_plugin_audit(params: dict) -> list:
     from core.plugins.marketplace import audit_plugins
 
     return audit_plugins()
 
 
-def handle_profile_list(params):
+def handle_profile_list(params: dict) -> list:
     from core.profiles import list_profiles
 
     return list_profiles()
 
 
-def handle_profile_current(params):
+def handle_profile_current(params: dict) -> dict:
     from core.profiles import current_profile
 
     return {"name": current_profile()}
 
 
-def handle_dbus_status(params):
+def handle_dbus_status(params: dict) -> dict:
     from core.dbus_service import service_status
 
     return service_status()

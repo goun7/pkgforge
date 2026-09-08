@@ -17,6 +17,7 @@ import subprocess
 import threading
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from config import ToolPaths
 from core.security import safe_run
@@ -33,7 +34,7 @@ class Signal:
     Connects callbacks and emits them in the caller's thread.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._callbacks: list[Callable] = []
 
     def connect(self, callback: Callable) -> None:
@@ -42,7 +43,7 @@ class Signal:
     def disconnect(self, callback: Callable) -> None:
         self._callbacks = [cb for cb in self._callbacks if cb is not callback]
 
-    def emit(self, *args) -> None:
+    def emit(self, *args: object) -> None:
         for cb in self._callbacks:
             try:
                 cb(*args)
@@ -55,7 +56,7 @@ class Signal:
 class NativeDebConverterSubprocess:
     """Converts .deb files natively using subprocess (no PyQt6)."""
 
-    def __init__(self, tools: ToolPaths, parent=None):
+    def __init__(self, tools: ToolPaths, parent: object = None) -> None:
         self._tools = tools
         self._cancelled = False
         self.output_line = Signal()
@@ -66,10 +67,10 @@ class NativeDebConverterSubprocess:
         t = threading.Thread(target=self._do_convert, args=(deb_path, output_dir), daemon=True)
         t.start()
 
-    def cancel(self):
+    def cancel(self) -> None:
         self._cancelled = True
 
-    def _emit(self, msg: str):
+    def _emit(self, msg: str) -> None:
         self.output_line.emit(msg)
 
     def _do_convert(self, deb_path: Path, output_dir: Path) -> None:
@@ -129,7 +130,7 @@ class NativeDebConverterSubprocess:
             log.error(tr("subconv.native_deb_donusum_hatasi_s"), exc)
             self.finished.emit(False, tr("subconv.donusum_hatasi_exc_2", exc=exc), None)
 
-    def _extract_data_tar(self, deb_path: Path, dest_dir: Path):
+    def _extract_data_tar(self, deb_path: Path, dest_dir: Path) -> None:
         """Extract data.tar.* from DEB."""
         ar_res = safe_run(
             [self._tools.ar, "t", str(deb_path)], timeout=30,
@@ -168,7 +169,7 @@ class NativeDebConverterSubprocess:
                 tr("subconv.cerik_cikarilamadi_stderr_decode", stderr_decode=stderr.decode('utf-8', errors='replace'))
             )
 
-    def _generate_pkgbuild(self, meta, resolved_deps, license_id: str = ""):
+    def _generate_pkgbuild(self, meta: Any, resolved_deps: Any, license_id: str = "") -> str:
         """Generate PKGBUILD content."""
         import re
         name = (re.sub(r"[^a-z0-9@._+-]", "-",
@@ -203,7 +204,7 @@ package() {{
 }}
 """
 
-    def _run_makepkg(self, build_dir: Path, output_dir: Path):
+    def _run_makepkg(self, build_dir: Path, output_dir: Path) -> None:
         """Run makepkg via subprocess."""
         pkg_out = build_dir / "pkgout"
         pkg_out.mkdir(parents=True, exist_ok=True)
@@ -269,20 +270,20 @@ package() {{
 class RpmConverterSubprocess:
     """Converts .rpm files using subprocess (no PyQt6)."""
 
-    def __init__(self, tools: ToolPaths, parent=None):
+    def __init__(self, tools: ToolPaths, parent: object = None) -> None:
         self._tools = tools
         self._cancelled = False
         self.output_line = Signal()
         self.finished = Signal()
 
-    def convert(self, rpm_path: Path, output_dir: Path, meta=None) -> None:
+    def convert(self, rpm_path: Path, output_dir: Path, meta: Any = None) -> None:
         t = threading.Thread(target=self._do_convert, args=(rpm_path, output_dir, meta), daemon=True)
         t.start()
 
-    def cancel(self):
+    def cancel(self) -> None:
         self._cancelled = True
 
-    def _emit(self, msg: str):
+    def _emit(self, msg: str) -> None:
         self.output_line.emit(msg)
 
     def _rpm_extract(self, rpm_path: Path, pkg_dir: Path) -> tuple[bool, str]:
@@ -326,7 +327,7 @@ class RpmConverterSubprocess:
             return False, tr("subconv.guvenlik_tehlikeli_dosya_errors", errors=errors[:3])
         return True, ""
 
-    def _rpm_makepkg_build(self, meta, output_dir: Path) -> tuple[bool, str]:
+    def _rpm_makepkg_build(self, meta: Any, output_dir: Path) -> tuple[bool, str]:
         """PKGBUILD uret ve sandbox icinde makepkg ile paketi kur.
 
         makepkg ciktisi satir satir akisa yansitilir.
@@ -394,7 +395,7 @@ class RpmConverterSubprocess:
                 break
         return pkg_file
 
-    def _do_convert(self, rpm_path: Path, output_dir: Path, meta=None):
+    def _do_convert(self, rpm_path: Path, output_dir: Path, meta: Any = None) -> None:
         try:
             from core.package_analyzer import analyze_package
             if meta is None:
@@ -432,7 +433,7 @@ class RpmConverterSubprocess:
         except Exception as exc:  # noqa: BLE001
             self.finished.emit(False, tr("subconv.donusum_hatasi_exc", exc=exc), None)
 
-    def _generate_pkgbuild(self, meta, src_dir, license_id: str = ""):
+    def _generate_pkgbuild(self, meta: Any, src_dir: Path, license_id: str = "") -> str:
         from config import RPM_DEP_MAP
         from core.dep_resolver import resolve_runtime_dependencies
         from core.maps import arch_license

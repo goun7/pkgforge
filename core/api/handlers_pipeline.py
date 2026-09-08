@@ -7,7 +7,7 @@ from pathlib import Path
 from core.api import transport
 
 
-def handle_pipeline_start(params):
+def handle_pipeline_start(params: dict) -> dict:
     from core import intake
     from core.pipeline import ConversionPipeline
 
@@ -49,25 +49,25 @@ def handle_pipeline_start(params):
     return {"started": True}
 
 
-def handle_pipeline_cancel(params):
+def handle_pipeline_cancel(params: dict) -> dict:
     if transport._pipeline:
         transport._pipeline.cancel()
     return {"ok": True}
 
 
-def handle_pipeline_approve(params):
+def handle_pipeline_approve(params: dict) -> dict:
     if transport._pipeline:
         transport._pipeline.approve_install()
     return {"ok": True}
 
 
-def handle_pipeline_dismiss(params):
+def handle_pipeline_dismiss(params: dict) -> dict:
     if transport._pipeline:
         transport._pipeline.dismiss_install(params.get("message", ""))
     return {"ok": True}
 
 
-def handle_history_uninstall(params):
+def handle_history_uninstall(params: dict) -> dict:
     from core.security import is_valid_package_name
 
     name = params.get("name", "")
@@ -78,7 +78,7 @@ def handle_history_uninstall(params):
     return {"ok": True, "requires_privilege": True, "package": name}
 
 
-def handle_history_rollback(params):
+def handle_history_rollback(params: dict) -> dict:
     from core.history_db import HistoryDB
     from core.security import is_valid_package_name
 
@@ -93,7 +93,7 @@ def handle_history_rollback(params):
     return {"ok": True, "requires_privilege": True, "backup": backups[0].backup_pkg}
 
 
-def handle_history_clear(params):
+def handle_history_clear(params: dict) -> dict:
     from core.history_db import HistoryDB
 
     db = HistoryDB()
@@ -101,7 +101,7 @@ def handle_history_clear(params):
     return {"ok": True}
 
 
-def handle_history_restore(params):
+def handle_history_restore(params: dict) -> dict:
     """Faz 9 (5.7): undo of history.clear — re-insert saved records."""
     from core.history_db import HistoryDB
 

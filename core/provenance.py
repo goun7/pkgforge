@@ -87,6 +87,12 @@ class BuildProvenance:
         """Compute and set the self-referential hash."""
         self.provenance_hash = self.compute_hash()
 
+    def to_dict(self) -> dict:
+        """JSON-serializable view (same shape save_provenance writes)."""
+        from dataclasses import asdict
+
+        return asdict(self)
+
 
 def create_provenance(
     *,
@@ -97,7 +103,7 @@ def create_provenance(
     output_file: Path | str = "",
     output_sha256: str = "",
     tools: ToolPaths | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> BuildProvenance:
     """Create a new BuildProvenance record with build environment info."""
     prov = BuildProvenance()
