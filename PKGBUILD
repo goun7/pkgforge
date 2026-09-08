@@ -1,6 +1,6 @@
 # Maintainer: goun7 <https://github.com/goun7/pkgforge>
 pkgname=pkgforge
-pkgver=2.1.0
+pkgver=2.2.0
 pkgrel=1
 pkgdesc="Modern .deb/.rpm package converter, safety analyzer, and lifecycle manager for Arch Linux"
 arch=('any')
@@ -38,7 +38,7 @@ provides=('pkgforge')
 conflicts=('pkgforge')
 # NOTE: sha256 verified against the published v2.1.0 tag tarball (2026-09-07).
 source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('604bbbdae833bcd16bed291a271fe981efb2b04aacb889c7c57905f4d7ad1a86')
+sha256sums=('68c3f8734582ba17ab62805b9d547ad6fba86dcd9c20f3ab6b1036531479cf6b')
 
 prepare() {
     cd "$srcdir/pkgforge-$pkgver"
