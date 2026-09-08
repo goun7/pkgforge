@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from core.security import safe_run
 from core.snapshot_manager import detect_backend
@@ -236,7 +237,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
         return False, tr("snapclean.kaldirma_basarisiz_exc", exc=exc)
 
 
-def get_cleanup_status() -> dict:
+def get_cleanup_status() -> dict[str, Any]:
     """Get current cleanup service status."""
     systemctl = None
     for path in ["/usr/bin/systemctl", "/bin/systemctl", "/usr/sbin/systemctl"]:

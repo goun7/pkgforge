@@ -12,6 +12,7 @@ import json
 import shutil
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 from core.package_signing import is_gpg_available
 from core.sigstore import get_sigstore_status
@@ -33,17 +34,17 @@ class WizardResult:
     """Full wizard output: status of tools + chosen method + steps."""
 
     method: str  # "pgp" | "sigstore" | "skip"
-    tools_available: dict = field(default_factory=dict)
+    tools_available: dict[str, Any] = field(default_factory=dict)
     steps: list[WizardStep] = field(default_factory=list)
     config_path: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["steps"] = [asdict(s) for s in self.steps]
         return d
 
 
-def _env_status() -> dict:
+def _env_status() -> dict[str, Any]:
     """Snapshot of available signing tools in current environment."""
     return {
         "gpg": {"available": is_gpg_available(),
