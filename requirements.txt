@@ -7,7 +7,7 @@
 
 # ── GUI (optional) ─────────────────────────────────────────────
 # Install for: pkgforge gui
-PyQt6>=6.5.0; python_version>="3.10"
+PyQt6>=6.11.0; python_version>="3.10"
 
 # ── Optional: D-Bus service bridge (C1) ───────────────────────
 # Pure-Python; install to enable `pkgforge serve --dbus` / dbus.start
