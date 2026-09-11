@@ -31,7 +31,7 @@ Changelog = "https://github.com/goun7/pkgforge/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 gui = ["PyQt6>=6.11.0"]
-api = ["fastapi>=0.141.1", "uvicorn[standard]>=0.30.0", "pydantic>=2.13.5"]
+api = ["fastapi>=0.141.1", "uvicorn[standard]>=0.52.4", "pydantic>=2.13.5"]
 dev = ["pytest>=9.1.1", "pytest-cov>=7.1.0", "pytest-timeout>=2.4.0", "hypothesis>=6.167.1", "mypy>=1.0", "bandit>=1.9.4"]
 
 [project.scripts]
