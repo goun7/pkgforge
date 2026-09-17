@@ -37,7 +37,7 @@ describe("Dialog (Faz 10 1.3)", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("closes on backdrop mousedown; content clicks do not close", () => {
+  it("closes on backdrop click; content clicks do not close", () => {
     const onClose = vi.fn();
     render(
       <Dialog open onClose={onClose} title="T">
@@ -46,7 +46,7 @@ describe("Dialog (Faz 10 1.3)", () => {
     );
     fireEvent.click(screen.getByText("icerik"));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByRole("dialog").parentElement!);
+    fireEvent.click(screen.getByRole("dialog").parentElement!);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

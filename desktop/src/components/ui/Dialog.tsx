@@ -70,7 +70,10 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onMouseDown={(e) => {
+      onClick={(e) => {
+        // Sadece backdrop'in kendisine tiklayinca kapat (panel icine degil).
+        // onClick: fareyi ve dokunmatik cihazlari kapsar (onMouseDown yalnizca
+        // fare calistirir).
         if (e.target === e.currentTarget) onClose();
       }}
     >

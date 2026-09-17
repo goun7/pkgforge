@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { PackageOpen } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLang, getLang } from "../lib/lang";
@@ -59,25 +59,27 @@ export function DropZone({
   hint,
   browse = defaultBrowse,
 }: DropZoneProps) {
-  const busy = useRef(false);
+  const [busy, setBusy] = useState(false);
   const t = tFor(useLang());
 
   const handleBrowse = async () => {
-    if (disabled || busy.current) return;
-    busy.current = true;
+    if (disabled || busy) return;
+    setBusy(true);
     try {
       const paths = filterAcceptedPaths(await browse());
       if (paths.length) onPaths(paths);
     } finally {
-      busy.current = false;
+      setBusy(false);
     }
   };
 
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={busy ? -1 : 0}
       aria-label={t("dropzoneAria")}
+      aria-busy={busy}
+      aria-disabled={disabled || busy}
       onClick={handleBrowse}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") handleBrowse();
@@ -87,7 +89,7 @@ export function DropZone({
         dragging
           ? "border-[var(--brand-ember)] bg-[var(--brand-ember)]/5 shadow-[var(--glow-brand)]"
           : "border-[var(--border-strong)] bg-[var(--bg-surface)] hover:border-[var(--brand-blue)]",
-        disabled && "cursor-not-allowed opacity-50",
+        (disabled || busy) && "cursor-not-allowed opacity-50",
       )}
     >
       <div

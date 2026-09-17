@@ -4,6 +4,53 @@ All notable changes to PkgForge will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Fixed
+- **fix(launcher)**: `pkgforge` komutu projenin taşınması nedeniyle eski
+  `~/Masaüstü/pkgforge` yoluna işaret ediyordu ve açılmıyordu (exit 2).
+  `main.py`'ye `desktop` alt komutu eklendi: yerel/system Tauri ikilisini
+  bulur, bulamazsa nedenini yazıp klasik PyQt6 arayüze düşer
+  (`PKGFORGE_DESKTOP_BIN` ile geçersiz kılınabilir).
+- **fix(install)**: `scripts/install.sh` artık önceden derlenmiş Tauri
+  ikilisini ve sidecar'ı sistem kurulumuna kopyalıyor; menü girişi
+  (`data/pkgforge.desktop`) `pkgforge desktop` çağırıyor.
+- **fix(a11y)**: `DropZone` meşgul bayrağı `useRef`'ten `useState`'e
+  alındı; artık `aria-busy`/`aria-disabled` raporluyor ve meşgulken
+  odaktan çıkıyor (ZERON B2 bulgusu giderildi).
+- **fix(docs)**: README/RELEASE_READINESS'de 2.1.0'e ve 2576 test sayısına
+  takılı eski ölçümler 2026-09-17'deki gerçek ölçümlerle değiştirildi.
+- **fix(leak)**: `tests/test_midband_round28.py` `HistoryDB._get_connection()`
+  çağırıp bağlantıyı kapatmıyordu (`ResourceWarning: unclosed database`).
+  `_conn()` bağlam yöneticisine alındı; tam suitte tracer ile
+  **0/170 açık bağlantı** olarak doğrulandı.
+
+### Changed
+- **qa**: `pkgforge` traceback'leri eski `~/Masaüstü` yolunu gösteriyordu
+  (proje taşınınca `.pyc` önbellekleri `co_filename`'i koruyor); proje
+  `__pycache__`'i temizlendi.
+- **assets**: swagger-ui build çıktıları `core/http_assets/swagger/`'dan
+  `core/http_assets/dist/`'e taşındı. Bu dosyalar webpack ile derlenmiş
+  minified üçüncü taraf paketleridir (`swagger-ui-bundle.js` 1.5 MB);
+  `dist/` altında statik analiz araçları onları vendor build çıktısı olarak
+  tanır. `/docs` offline (CDN'siz) çalışmaya devam eder; servis edilen
+  bayt boyutları değişmedi (1.553.809 / 185.784).
+- **a11y**: `Dialog` ve `CommandPalette` backdrop kapanması `onMouseDown`'dan
+  `onClick`'e alındı; fareyi ve dokunmatik cihazları kapsar (önceden yalnızca
+  fare).
+- **cleanup**: eski oturum çalışma notları silindi (`findings.md`,
+  `progress.md`, `QUALITY_SUMMARY.md`, `task_plan.md`); AI-araç
+  yapılandırmaları (`.cursor/`, `.cursorrules`, `.vscode/`, `CLAUDE.md`)
+  `.gitignore`'a alındı, repoya dahil edilmedi.
+
+### Fixed
+- **test**: `tests/test_privileged_helper.py` helper yolunu kaynak ağaca
+  sabitliyordu; `find_privileged_helper()` kasıtlı olarak sistem öncelikli
+  çözümler (polkit politikası yalnızca `/usr/share/pkgforge/scripts/`'i
+  yetkilendirir). Kurulu her sistemde bu beklenti yanlış kalıp başarısız
+  oluyordu; artık çözülen yolun geçerli/mevcut/çalıştırılbilir olduğu
+  doğrulanıyor.
+
 ## [2.2.0] - 2026-09-09
 
 ### Added

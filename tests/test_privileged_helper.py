@@ -1,7 +1,9 @@
 """Faz 5 (F5.4) — konsolide yetkili yardimci + komut ureticileri."""
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,18 +18,31 @@ from core.privileged import (
 
 HELPER = Path(__file__).resolve().parent.parent / "scripts" / "pkgforge-privileged.sh"
 
+# find_privileged_helper() bilincli olarak SISTEM once siralar: polkit
+# politikasi yalnizca /usr/share/pkgforge/scripts/ yolunu yetkilendirir.
+# Bu yuzden kurulu bir sistemde PRIVILEGED_HELPER kaynak yolu DEGIL, sistem
+# yoludur — ve bu dogrudur. Test source-path'e sabitlenirse her basarili
+# kurulumda yanlis kalip basarisiz olurdu.
+SYSTEM_HELPER = Path("/usr/share/pkgforge/scripts/pkgforge-privileged.sh")
+VENV_HELPER = Path(sys.prefix) / "share" / "pkgforge" / "scripts" / \
+    "pkgforge-privileged.sh"
+
 
 # --- komut uretici (birim) testleri --------------------------------------
 
 def test_helper_script_exists_and_executable():
     assert HELPER.is_file()
-    assert PRIVILEGED_HELPER == HELPER
+    # Cozulen helper bilinen gecerli adaylardan biri olmali ve gercekten
+    # diskte bulunup calistirilabilir olmali (kurulu ya da kaynak agaci).
+    assert PRIVILEGED_HELPER in (SYSTEM_HELPER, VENV_HELPER, HELPER)
+    assert PRIVILEGED_HELPER.is_file()
+    assert os.access(PRIVILEGED_HELPER, os.X_OK)
 
 
 def test_write_argv_shape():
     argv = privileged_write_argv("pkexec", "/etc/systemd/system/x.service")
     assert argv[0] == "pkexec"
-    assert argv[1] == str(HELPER)
+    assert argv[1] == str(PRIVILEGED_HELPER)
     assert argv[2:] == ["write-file", "/etc/systemd/system/x.service"]
 
 

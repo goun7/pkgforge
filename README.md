@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-2576%20collected-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-2582%20collected-brightgreen)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
@@ -93,9 +93,9 @@ sudo ./scripts/uninstall.sh
 ### Option 2: pip / wheel
 
 ```bash
-pip install dist/pkgforge-2.1.0-py3-none-any.whl   # after: pip wheel . --no-deps -w dist/
-# or from a checkout:
-pip install .
+pip install .                                    # from a checkout
+# or build a wheel first:
+pip wheel . --no-deps -w dist/ && pip install dist/pkgforge-*.whl
 ```
 
 > **AUR note:** An AUR package is planned but **not yet published**. Until it
@@ -149,13 +149,17 @@ pkgforge publish package.pkg.tar.zst             # Publish to AUR
 pkgforge verify-rollback                         # Test rollback mechanism
 pkgforge --clear-cache                           # Clear offline cache
 
-# GUI (legacy PyQt6, frozen — requires PyQt6)
-pkgforge gui
+# GUI (primary: Tauri desktop — see below)
+pkgforge desktop
+pkgforge gui          # legacy PyQt6 (frozen; security fixes only)
 ```
 
 > **UI decision (2026-09-05):** the primary interface is the Tauri desktop
-> (`desktop/`) + Python sidecar. PyQt6 (`pkgforge gui`) is frozen: no new
-> features, security fixes only; removal planned for v3.0.
+> (`desktop/`) + Python sidecar, opened with `pkgforge desktop`. PyQt6
+> (`pkgforge gui`) is frozen: no new features, security fixes only; removal
+> planned for v3.0. `pkgforge desktop` finds a locally built binary (source
+> tree, `$PKGFORGE_DESKTOP_BIN`, or the system install); if it cannot, it
+> prints the reason and falls back to the legacy GUI.
 
 ---
 
@@ -172,8 +176,9 @@ cd desktop && pnpm tauri build
 
 ## 🖼️ Legacy PyQt6 GUI (frozen)
 
-> Launch via `pkgforge gui` (requires `sudo pacman -S python-pyqt6`) or your
-> application launcher. No new features are added here.
+> Launch via `pkgforge desktop` (primary; falls back to PyQt6 if the Tauri
+> binary is missing) or directly `pkgforge gui` (requires
+> `sudo pacman -S python-pyqt6`). No new features are added here.
 
 ---
 
@@ -226,13 +231,20 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-09-09, `make verify`): **2576 tests: 2572 passed,
-4 skipped, 0 failed** · coverage **99%** on `core/`+`ui/`+`i18n/`
-(12 835 statements, 50 missed) · mypy --strict: 0 errors in 113 files
-(`core/`+`cli.py`+`main.py`+`config.py`+`ui/`, imports followed) · bandit CI-parity:
-clean (-ll 0 Medium/0 High) · i18n parity 987/987 (tr/en) · mini mutation 3/3 KILLED.
-Wheel build verified (`pkgforge==2.1.0`) and E2E smoke-tested from a
-fresh venv (`pkgforge health` + real-deb `convert --dry-run`).
+Current status (measured 2026-09-17, `make verify` + `pnpm test`):
+**2582 tests collected: 2577 passed, 4 skipped, 0 failed** · coverage
+**99.61%** on `core/`+`ui/`+`i18n/` (12 835 statements, 50 missed) ·
+mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
+imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
+i18n parity 993/993 (tr/en) · desktop: 582/582 vitest, tsc 0 errors.
+Real `tauri build --no-bundle` + PyInstaller sidecar built and
+`pkgforge desktop` launched end-to-end on this machine.
+
+> **What the numbers do not prove.** High coverage is necessary but not
+> sufficient: this release still shipped a launcher that could not open,
+> because the failure was in the *install/build* layer that unit tests do
+> not exercise. Verified install + real launch is the only trustworthy
+> end-to-end gate — see `docs/RELEASE_READINESS.md`.
 
 ---
 

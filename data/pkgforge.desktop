@@ -2,7 +2,7 @@
 Name=PkgForge
 GenericName=Package Converter
 Comment=Convert and install .deb and .rpm packages on Arch Linux
-Exec=pkgforge gui %f
+Exec=pkgforge desktop %f
 Icon=pkgforge
 Terminal=false
 Type=Application

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -164,6 +165,68 @@ def _check_pyqt6() -> bool:
         print(tr("main.auto_161"))
         print(tr("main.auto_180"))
         return False
+
+
+# ── Desktop app launcher ────────────────────────────────────────
+
+# Tauri 2 shell binary (sidecar triple suffix is stripped by the bundler).
+_DESKTOP_BIN_NAME = "pkgforge-desktop"
+
+
+def _find_desktop_binary() -> Path | None:
+    """Locate the Tauri desktop binary across every install layout.
+
+    Returns None when it is not installed; callers must then degrade to the
+    PyQt6 GUI with a notice instead of failing silently.
+    """
+    root = Path(__file__).resolve().parent
+    candidates: list[Path] = []
+    env_bin = os.environ.get("PKGFORGE_DESKTOP_BIN", "")
+    if env_bin:
+        candidates.append(Path(env_bin).expanduser())
+    # Source tree (dev build output of `pnpm tauri build`).
+    candidates.append(root / "desktop/src-tauri/target/release" / _DESKTOP_BIN_NAME)
+    candidates.append(root / "desktop/src-tauri/target/debug" / _DESKTOP_BIN_NAME)
+    # System layouts written by scripts/install.sh and distro packages.
+    for layout in (
+        (root.parent / "desktop",),  # relocated next to the python tree
+        ("/usr/lib/pkgforge/desktop",),
+        ("/usr/lib/pkgforge/bin",),
+        ("/usr/lib/pkgforge",),
+        ("/usr/local/lib/pkgforge/desktop",),
+    ):
+        candidates.append(Path(*layout, _DESKTOP_BIN_NAME))
+    for cand in candidates:
+        if cand.is_file():
+            return cand
+    on_path = shutil.which(_DESKTOP_BIN_NAME)
+    return Path(on_path) if on_path else None
+
+
+def _launch_desktop(binary: Path, extra_args: list[str]) -> int:
+    """Run the Tauri shell with the environment it requires.
+
+    Source-tree runs force the live Python sidecar (PKGFORGE_SIDECAR=python)
+    so a stale bundled binary can never shadow the current code; a system
+    install keeps the default (bundled sidecar).
+    """
+    root = Path(__file__).resolve().parent
+    env = dict(os.environ)
+    env["PKGFORGE_ROOT"] = str(root)
+    venv_py = root / ".venv/bin/python"
+    if venv_py.is_file():
+        env["PKGFORGE_PYTHON"] = str(venv_py)
+    if "target" in binary.parts:
+        env.setdefault("PKGFORGE_SIDECAR", "python")
+    # webkit2gtk DMABUF renderer renders blank/minimized windows on some
+    # Wayland setups; disabled unless the caller overrides it.
+    env.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+    log.info("Masaüstü uygulaması başlatılıyor: %s", binary)
+    try:
+        return subprocess.call([str(binary), *extra_args], env=env)
+    except OSError as exc:
+        print(tr("main.desktop_launch_failed").format(exc=exc))
+        return 1
 
 
 # ── Main ─────────────────────────────────────────────────────────
@@ -376,6 +439,10 @@ def main() -> int:
     # gui subcommand
     subparsers.add_parser("gui", help=tr("cli.gui_help"))
 
+    # desktop subcommand — primary UI (Tauri), PyQt6'ye degrade olur
+    desktop_parser = subparsers.add_parser("desktop", help=tr("cli.desktop_help"))
+    desktop_parser.add_argument("files", nargs="*", help=tr("cli.desktop_files"))
+
     # serve subcommand (JSON-RPC sidecar for the desktop UI)
     serve_parser = subparsers.add_parser("serve", help=tr("cli.serve_help"))
     serve_parser.add_argument("--http", action="store_true",
@@ -547,6 +614,15 @@ def main() -> int:
         else:
             print(tr("main.auto_181"))
         return 0
+    if args.command == "desktop":
+        binary = _find_desktop_binary()
+        if binary is not None:
+            return _launch_desktop(binary, list(getattr(args, "files", []) or []))
+        # Tauri ikilisi yok: nedeni ve cozumu soyle, PyQt6'ya dus.
+        print(tr("main.desktop_missing"))
+        print(tr("main.desktop_build_hint"))
+        print(tr("main.desktop_fallback"))
+        args.command = "gui"
     if args.command and args.command != "gui":
         from cli import run_cli
         return run_cli(args)

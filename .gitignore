@@ -72,3 +72,9 @@ desktop/.act3.log
 .spec-work/.conv-final/
 .spec-work/
 glm53.md
+
+# AI coding-tool config (proje disinda; repoya dahil edilmez)
+.cursor/
+.cursorrules
+.vscode/
+CLAUDE.md

@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "returnCode": 0,
+  "outputHash": "3266f4cce466ec5c8ab9b6cc4b258b8af09ff8e4d184fe43873277f98b5c0aa6",
+  "outputTail": "100%\nui/tools_dialog.py                    351      0   100%\nui/url_dialog.py                       54      0   100%\n-----------------------------------------------------------------\nTOTAL                               12835     52    99%\nRequired test coverage of 99% reached. Total coverage: 99.59%",
+  "command": "make verify",
+  "timestamp": "2026-09-17T21:55:57.107Z",
+  "diffHash": "bd2af2cf3172bcc80b1b865841ca72b3e5c41a30cf313c5a0b7fa9759fda68ac",
+  "poeTag": "[PoE rc=0 out=3266f4cce466ec5c diff=bd2af2cf3172bcc8 time=2026-09-17T21:55:57.107Z]"
+}

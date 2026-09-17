@@ -71,6 +71,25 @@ exec python3 "$INSTALL_DIR/main.py" "\$@"
 EOF
 chmod 755 /usr/local/bin/pkgforge
 
+# 2b. Modern Tauri UI (optional): copy a prebuilt binary when the caller
+#     built one (`cd desktop && pnpm tauri build --no-bundle`). Absent, the
+#     `pkgforge desktop` launcher degrades to the PyQt6 UI with a notice.
+if [ -x "$PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop" ]; then
+    echo "🖥️  Installing modern desktop UI: $INSTALL_DIR/desktop/"
+    mkdir -p "$INSTALL_DIR/desktop"
+    cp "$PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop" \
+       "$INSTALL_DIR/desktop/pkgforge-desktop"
+    chmod 755 "$INSTALL_DIR/desktop/pkgforge-desktop"
+    # Sidecar name is triple-suffixed in the build tree; the runtime looks
+    # for the bare name next to the executable (Tauri strips it at bundle time).
+    for sc in "$PROJECT_DIR"/desktop/src-tauri/binaries/pkgforge-sidecar-*; do
+        [ -x "$sc" ] || continue
+        cp "$sc" "$INSTALL_DIR/desktop/pkgforge-sidecar"
+        chmod 755 "$INSTALL_DIR/desktop/pkgforge-sidecar"
+        break
+    done
+fi
+
 # 3. Desktop launcher entry
 echo "🖥️  Installing desktop entry: /usr/share/applications/pkgforge.desktop"
 mkdir -p /usr/share/applications
@@ -121,5 +140,5 @@ update-desktop-database /usr/share/applications 2>/dev/null || true
 gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 
 echo "✅ PkgForge v$VERSION has been successfully installed on your system!"
-echo "   Launch GUI: pkgforge gui (or from your Application Launcher)"
+echo "   Launch GUI: pkgforge desktop (or from your Application Launcher)"
 echo "   Run CLI:    pkgforge"

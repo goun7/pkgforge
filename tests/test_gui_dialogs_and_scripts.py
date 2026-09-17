@@ -28,7 +28,10 @@ class TestInstallerAndCompletions(unittest.TestCase):
         self.assertTrue(desktop_file.is_file())
         content = desktop_file.read_text(encoding="utf-8")
         self.assertIn("Name=PkgForge", content)
-        self.assertIn("Exec=pkgforge gui %f", content)
+        # Menü girişi birincil arayüzü (Tauri) açar; o yoksa `pkgforge desktop`
+        # klasik PyQt6 arayüzüne düşer — "Exec=pkgforge gui" değildir.
+        self.assertIn("Exec=pkgforge desktop %f", content)
+        self.assertNotIn("Exec=pkgforge gui", content)
 
 
 class TestHistoryCSVImport(unittest.TestCase):

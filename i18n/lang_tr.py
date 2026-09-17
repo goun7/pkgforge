@@ -1036,4 +1036,10 @@ STRINGS: dict[str, str] = {
     "cli.health_excellent": '🟢 Mükemmel',
     "cli.health_good": '🟡 İyi',
     "cli.health_poor": '🔴 Sorunlu',
+    "cli.desktop_help": 'Birincil masaüstü arayüzünü (Tauri) başlat; yoksa klasik arayüze düşer',
+    "cli.desktop_files": 'Açılacak paket dosyaları (isteğe bağlı)',
+    "main.desktop_missing": '⚠️ Modern (Tauri) masaüstü uygulaması bulunamadı.',
+    "main.desktop_build_hint": '   Derlemek için: cd desktop && pnpm install && pnpm tauri build --no-bundle',
+    "main.desktop_fallback": '   Bunun yerine klasik arayüz (PyQt6) başlatılıyor...',
+    "main.desktop_launch_failed": '❌ Masaüstü uygulaması başlatılamadı: {exc}',
 }

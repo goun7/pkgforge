@@ -1036,4 +1036,10 @@ STRINGS: dict[str, str] = {
     "cli.health_excellent": '🟢 Excellent',
     "cli.health_good": '🟡 Good',
     "cli.health_poor": '🔴 Needs attention',
+    "cli.desktop_help": 'Launch the primary (Tauri) desktop UI; falls back to the classic UI if absent',
+    "cli.desktop_files": 'Package files to open (optional)',
+    "main.desktop_missing": '⚠️ The modern (Tauri) desktop app was not found.',
+    "main.desktop_build_hint": '   Build it with: cd desktop && pnpm install && pnpm tauri build --no-bundle',
+    "main.desktop_fallback": '   Starting the classic (PyQt6) interface instead...',
+    "main.desktop_launch_failed": '❌ Failed to launch the desktop app: {exc}',
 }

@@ -154,7 +154,10 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start justify-center bg-black/60 p-4 pt-[15vh]"
-      onMouseDown={(e) => {
+      onClick={(e) => {
+        // Sadece backdrop'in kendisine tiklayinca kapat (panel icine degil).
+        // onClick: fareyi ve dokunmatik cihazlari kapsar (onMouseDown yalnizca
+        // fare calistirir).
         if (e.target === e.currentTarget) onClose();
       }}
     >

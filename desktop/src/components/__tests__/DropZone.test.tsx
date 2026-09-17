@@ -104,6 +104,7 @@ describe("DropZone", () => {
     render(<DropZone onPaths={() => {}} browse={async () => []} disabled />);
     expect(zone().className).toContain("cursor-not-allowed");
     expect(zone().className).toContain("opacity-50");
+    expect(zone()).toHaveAttribute("aria-disabled", "true");
   });
 
   it("opens the browser on Enter and Space keys", async () => {
@@ -111,7 +112,10 @@ describe("DropZone", () => {
     render(<DropZone onPaths={() => {}} browse={browse} />);
     fireEvent.keyDown(zone(), { key: "Enter" });
     await vi.waitFor(() => expect(browse).toHaveBeenCalledTimes(1));
-    // ilk gezinme bitmeden busy guard ikinciyi engeller; once bitmesini bekle
+    // busy durumu temizlenip DOM'a commit edilene kadar bekle, sonra tekrar dener
+    await vi.waitFor(() =>
+      expect(zone()).not.toHaveAttribute("aria-busy", "true"),
+    );
     fireEvent.keyDown(zone(), { key: " " });
     await vi.waitFor(() => expect(browse).toHaveBeenCalledTimes(2));
   });
@@ -142,9 +146,13 @@ describe("DropZone", () => {
     fireEvent.click(zone());
     fireEvent.click(zone()); // ikinci tiklama busy guard'a carpip yok sayilir
     expect(browse).toHaveBeenCalledTimes(1);
+    expect(zone()).toHaveAttribute("aria-busy", "true");
     resolveBrowse(["/a/p.deb"]);
     await vi.waitFor(() => expect(onPaths).toHaveBeenCalledWith(["/a/p.deb"]));
     // busy finally blogunda sifirlandi: yeni tiklama tekrar ise yarar
+    await vi.waitFor(() =>
+      expect(zone()).not.toHaveAttribute("aria-busy", "true"),
+    );
     fireEvent.click(zone());
     await vi.waitFor(() => expect(browse).toHaveBeenCalledTimes(2));
     resolveBrowse(["/b/q.rpm"]);

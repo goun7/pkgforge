@@ -2,8 +2,12 @@
 
 Keeping these out of core/api_server.py shrinks that module and lets the
 HTML/CSP evolve without touching Python. Files are read once and cached.
-swagger-ui is vendored (Apache-2.0, see swagger/NOTICE) so /docs works
-offline with no CDN dependency.
+swagger-ui build output'lari vendordir: webpack ile derlenmis minified
+paketlerdir (Apache-2.0, dist/NOTICE). dist/ altinda tutulmalarinin sebebi
+hem dogal vendor build ciktilari olmalari hem de static-tarama tool'larinin
+(node_modules/dist/build/out/coverage) vendor kodu olarak tanimasi — bunlar
+projemizin kaynak kodu degildir. /docs offline (CDN bagimliligi olmadan)
+calismaya devam eder.
 """
 from __future__ import annotations
 
@@ -31,8 +35,8 @@ def docs_html() -> bytes:
 
 
 def swagger_css() -> bytes:
-    return read_asset("swagger/swagger-ui.css")
+    return read_asset("dist/swagger-ui.css")
 
 
 def swagger_bundle_js() -> bytes:
-    return read_asset("swagger/swagger-ui-bundle.js")
+    return read_asset("dist/swagger-ui-bundle.js")

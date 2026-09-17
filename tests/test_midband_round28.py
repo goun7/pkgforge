@@ -57,13 +57,13 @@ def test_upgrade_adds_missing_columns(tmp_path):
     baglan.commit()
     baglan.close()
     db = HistoryDB(yol)                        # 105 + 107 ALTER
-    try:
+    # _conn() baglami garantili kapatir; _get_connection()'i direk cagirma
+    # (baglanti sizer: ResourceWarning: unclosed database).
+    with db._conn() as baglan:
         kolonlar = [r["name"] for r in
-                    db._get_connection().execute(
+                    baglan.execute(
                         "PRAGMA table_info(conversions)").fetchall()]
-        assert "source_url" in kolonlar and "backup_pkg" in kolonlar
-    finally:
-        pass
+    assert "source_url" in kolonlar and "backup_pkg" in kolonlar
 
 
 def test_init_db_failure_logged(tmp_path):

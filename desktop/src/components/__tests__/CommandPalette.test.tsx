@@ -155,13 +155,13 @@ describe("CommandPalette keyboard navigation", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("closes on backdrop mousedown but not on dialog mousedown", () => {
+  it("closes on backdrop click but not on dialog click", () => {
     const onClose = vi.fn();
     const { container } = render(<CommandPalette open onClose={onClose} commands={[mkCmd("a", "Convert")]} />);
     const backdrop = container.firstChild as HTMLElement; // sabit overlay
-    fireEvent.mouseDown(backdrop);
+    fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
-    fireEvent.mouseDown(screen.getByRole("dialog"));
+    fireEvent.click(screen.getByRole("dialog"));
     expect(onClose).toHaveBeenCalledTimes(1); // degismez
   });
 

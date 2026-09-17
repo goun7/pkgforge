@@ -170,7 +170,14 @@ def _run(cmd: list[str]) -> None:
 
 
 def get_backend(name: str, **cfg: Any) -> SyncBackend:
-    """Factory: return a backend instance by name."""
+    """Factory: return a backend instance by name.
+
+    "webdav" bilincli olarak blob soyutlamasina dahil degildir: WebDAV
+    senkronizasyonu butun-yedek duzeyinde ``core.cloud_sync`` tarafindan
+    yonetilir (webdav_push/webdav_pull global ayarlardan okur), buradaki
+    push/pull(blob, remote_name) sozlesmesine uymaz. Bu, test edilen bir
+    tasarim karardir, gizli bir degil.
+    """
     name = (name or "").lower().strip()
     if name == "git":
         return GitBackend(cfg.get("repo_url", ""), cfg.get("branch", "main"))
