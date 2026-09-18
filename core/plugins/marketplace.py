@@ -94,7 +94,9 @@ def _fetch_json(url: str, timeout: int = 10) -> dict[str, Any]:
         return cast(dict[str, Any], json.loads(resp.read().decode("utf-8")))
 
 
-def fetch_available_plugins(offline: bool = False) -> list[dict[str, str]]:
+def fetch_available_plugins(
+    offline: bool = False,
+) -> list[dict[str, str]]:
     """Fetch list of available plugins from GitHub releases.
 
     Args:
@@ -108,7 +110,20 @@ def fetch_available_plugins(offline: bool = False) -> list[dict[str, str]]:
         return []
     try:
         data = _fetch_json(PLUGIN_INDEX_URL)
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+    except urllib.error.HTTPError as exc:
+        # 404 = plugin deposu henüz kurulmamis. Bos liste dondurmek yerine
+        # kullanicinin nedenini bilmesini sagla: aksi halde boş marketplace
+        # ekranı "calismiyor" izlenimi birakiyordu (gerçek durum: repo yok).
+        if exc.code == 404:
+            log.warning(
+                "Plugin marketplace deposu bulunamadi (%s). Topluluk "
+                "eklentileri yakinda; yerlesik converter'lar zaten "
+                "kullanilabilir.", PLUGIN_INDEX_URL,
+            )
+        else:
+            log.warning("Plugin index fetch failed: %s", exc)
+        return []
+    except (urllib.error.URLError, json.JSONDecodeError) as exc:
         log.warning("Plugin index fetch failed: %s", exc)
         return []
 
@@ -173,6 +188,14 @@ def install_plugin(
             break
 
     if not plugin_info:
+        # Bos liste genellikle plugin deposunun henutz kurulmamis olmasindan
+        # gelir; kullanicinin "neden bos?" sorusunu netcevapla.
+        if not available:
+            raise FileNotFoundError(
+                f"Plugin marketplace'te su an kullanilabilir eklenti yok "
+                f"('{name}' aranamadi). Topluluk eklentileri yakinda; "
+                f"yerlesik converter'lar (deb, rpm, appimage) zaten kurulu."
+            )
         raise FileNotFoundError(
             f"Plugin '{name}' not found in marketplace. "
             f"Available: {[p['name'] for p in available]}"

@@ -282,6 +282,7 @@ export const dict = {
     dropzoneAria: "Paket bırakma alanı",
     dropzoneTitle: "Paket dosyalarını buraya bırakın",
     dropzoneHint: "veya seçmek için tıklayın",
+    dropzonePickError: "Dosya seçici açılamadı. Dosya izinlerini kontrol edin.",
     dropBrowseTitle: "Paket seç",
     dropFilterPackages: "Paketler",
     // --- Faz 7: Onay dialoglari ---
@@ -933,6 +934,7 @@ export const dict = {
     dropzoneAria: "Package drop zone",
     dropzoneTitle: "Drop package files here",
     dropzoneHint: "or click to browse",
+    dropzonePickError: "The file picker could not be opened. Check file permissions.",
     dropBrowseTitle: "Select packages",
     dropFilterPackages: "Packages",
     // --- Faz 7: Confirm dialogs ---

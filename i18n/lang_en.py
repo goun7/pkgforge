@@ -186,6 +186,7 @@ STRINGS: dict[str, str] = {
 
     # ── Settings ─────────────────────────────────────────────────
     "settings.title": "Settings",
+    "settings.features": "Features",
     "settings.language": "Interface Language",
     "settings.theme": "Theme",
     "settings.theme_dark": "Dark Theme",

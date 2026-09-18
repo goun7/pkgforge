@@ -21,6 +21,9 @@ export function filterAcceptedPaths(paths: string[]): string[] {
 export interface DropZoneProps {
   /** Called with real filesystem paths (from native dialog or native drag-drop). */
   onPaths: (paths: string[]) => void;
+  /** Called when the file picker itself fails (plugin/dialog error); the page
+   * shows a toast. Without this the user got no feedback on rejection. */
+  onError?: (message: string) => void;
   /** Whether a native drag is currently hovering (set by the page from Tauri events). */
   dragging?: boolean;
   disabled?: boolean;
@@ -54,6 +57,7 @@ const TYPE_HINTS = [".deb", ".rpm", ".tar.gz", ".zip", "AppImage", ".pkg.tar.zst
 
 export function DropZone({
   onPaths,
+  onError,
   dragging = false,
   disabled = false,
   hint,
@@ -68,6 +72,13 @@ export function DropZone({
     try {
       const paths = filterAcceptedPaths(await browse());
       if (paths.length) onPaths(paths);
+    } catch (err) {
+      // Native dialog/plugin hatasinda kullaniciyi sessizce birakma:
+      // hatayi sayfaya bildir (sayfa toast ile gosterir). Onceden catch
+      // yoktu — promise reject olursa kullanici hicbir geri bildirim
+      // almiyordu.
+      console.error("DropZone: dosya secici basarisi", err);
+      onError?.(t("dropzonePickError"));
     } finally {
       setBusy(false);
     }

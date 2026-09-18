@@ -83,7 +83,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(theme_group)
 
         # ── Features ─────────────────────────────────────────────
-        features_group = QGroupBox("✨ " + tr("settings.title"))
+        features_group = QGroupBox(tr("settings.features"))
         features_layout = QVBoxLayout(features_group)
 
         # AUR check

@@ -107,8 +107,10 @@ def test_install_already_installed(pazar):
 
 
 def test_install_not_found(pazar, monkeypatch):
+    # fetch_available_plugins -> list() ile bos liste; artik marketplace
+    # bos oldugunda kullaniciya nedeni aciklayan mesaj doner.
     monkeypatch.setattr(MP, "fetch_available_plugins", list)
-    with pytest.raises(FileNotFoundError, match="bulunamadı|not found"):
+    with pytest.raises(FileNotFoundError, match="bulunamadı|not found|kullanilabilir eklenti yok"):
         MP.install_plugin("yok-eki")                               # 170-174
 
 

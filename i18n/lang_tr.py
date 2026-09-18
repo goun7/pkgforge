@@ -186,6 +186,7 @@ STRINGS: dict[str, str] = {
 
     # ── Ayarlar ──────────────────────────────────────────────────
     "settings.title": "Ayarlar",
+    "settings.features": "Özellikler",
     "settings.language": "Arayüz Dili",
     "settings.theme": "Tema",
     "settings.theme_dark": "Koyu Tema",
