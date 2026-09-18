@@ -259,8 +259,8 @@ PkgForge ücretsiz ve açık kaynaklıdır ve öyle kalır — dönüştürücü
 arayüzü ve güvenlik taraması dahil her özellik GPL-3.0 altında, paywall'suz.
 Size zaman kazandırıyorsa sponsorluk projenin aktif bakımını destekler.
 
-- **GitHub Sponsors:** `github.com/sponsors/goun7` (pending activation)
-- **Polar.sh:** `polar.sh/goun7` (pending activation)
+- **GitHub Sponsors:** `github.com/sponsors/goun7` (Türkiye'de 20/B istisna hesabı veya şahıs şirketi kurulana dek kapalı)
+- **Polar.sh:** `polar.sh/goun7` (aynı nedenle kapalı)
 
 Kripto ödeme bilinçli olarak kabul edilmez. Gelir modeli için
 `acik-kaynak-gelir-modeli.md`'ye bakın.

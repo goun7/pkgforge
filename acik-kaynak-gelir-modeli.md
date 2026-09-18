@@ -25,7 +25,13 @@ Baglayici ilkeler:
 - Lisans: **GPL-3.0-or-later**, tek telif sahibi goun7. Bu, gelecek surumleri yeniden lisanslama hakkini sakli tutar; yayinlanmis GPL surumler geri alinamaz.
 - Dagitim: AUR `pkgforge` 2.2.0-4 (2026-09-18'de gonderildi; Tauri desktop + Python sidecar dahil). 0 oy, 0 popularity — yeni. GitHub: 2 star, 4 acik issue. Odak **benimseyis**, gelir degil.
 - UI karari (2026-09-05, kullanici onayi): **Tauri birincil, PyQt6 donduruldu.** Gerekce: 2 GUI = 2 kat test/bakim (38 test dosyasi PyQt'ye bagli, 582 vitest Tauri'de); tek maintainer tasiyamaz. PyQt kodu bu surumde silinmez (suite'yi kizartir); yeni ozellik PyQt'ye eklenmez, sadece guvenlik duzeltmesi yapilir; kaldirma v3.0'da planlanir. Ayrica bkz. `ARCHITECTURE.md`.
-- **Sponsorluk kanallari acilmamis.** 2026-09-18 itibariyla Giveth `Raised: 0`, GitHub Sponsors profili ve Polar magazasi pasif. Bu belgenin TEK eylem maddesi budur (Ek A).
+- **Sponsorluk kanallari acilmamistir ve 2026-09-18 karariyla askiya alinmistir.**
+  Giveth `Raised: 0` durumunda; GitHub Sponsors profili ve Polar magazasi pasif.
+  **Onkosul eksik:** GitHub Sponsors odeme icin Stripe Connect uzerinden banka
+  hesabi ister; Turkiye'de hasilatin yasal olarak degerlendirilebilmesi icin once
+  GVK Mukerrer 20/B istisna hesabi veya sahis sirketi kurulmalidir. Bu kurulana
+  dek sponsorluk kanallari acilmaz. **Su an hicbir eylem maddesi yoktur** — urun
+  tamamen ucretsizdir, odeme kanali yok, gelir beklentisi sifir.
 
 ## 3. Sponsorluk (tek katman, pasif)
 
@@ -83,6 +89,7 @@ Biri pkgforge'u kapali urunune gommek isterse ticari lisans pazarligi yapilir. T
 | Tarih | Karar | Gerekce |
 |---|---|---|
 | 2026-09-18 | **3-asamali plan kaldirildi; tek katman pasif sponsorluk** | Esik erisilemez (debtap 331 oy/13 yil); hosted mimariye ters (PEXT 2025); para kalite getirmez (Alami 2024) |
+| 2026-09-18 | **Sponsorluk kanallari askiya alindi** (kullanici karari) | GitHub Sponsors/Polar odeme icin TR banka hesabi ister; once 20/B istisna hesabi veya sahis sirketi sart. O kurulana dek urun tamamen ucretsiz, odeme kanali yok |
 | 2026-09-18 | Mali musavir gorusmesi donduruldu (Ek C kaldirildi) | Sifir gelirde vergi yuku yok |
 | 2026-09-05 | Tek dosya: bu belge yetkili; eski iki belge hukumsuz | Daginkligi bitir |
 | 2026-09-05 | Tauri birincil, PyQt donduruldu (v3.0'da kaldirma) | Bakim yuku; 38 test dosyasi bagimliligi |
@@ -100,7 +107,12 @@ Biri pkgforge'u kapali urunune gommek isterse ticari lisans pazarligi yapilir. T
 
 ---
 
-## Ek A — GitHub Sponsors acilisi (adim adim, ~30 dk + onay bekleme)
+## Ek A — GitHub Sponsors acilisi (ASKIDA, 2026-09-18)
+
+> **Onkosul eksik.** GitHub Sponsors odeme icin Stripe Connect uzerinden bir banka
+> hesabi ister; Turkiye'de hasilatin yasal deger kazanmasi icin once GVK Mukerrer
+> 20/B istisna hesabi veya sahis sirketi kurulmalidir. Bu adimlar yalnizca o
+> kurulduktan sonra izlenir. O gune kadar urun tamamen ucretsizdir.
 
 Onkosul: GitHub hesabi + 2FA acik + Turkiye'den basvuru (Stripe Connect TR IBAN odemesi desteklenir; Turkiye destekli bolgelerde — dogrulandi).
 
@@ -113,7 +125,10 @@ Onkosul: GitHub hesabi + 2FA acik + Turkiye'den basvuru (Stripe Connect TR IBAN 
 7. Her surum notuna tek satir ekle ("Surdurulebilirlik icin sponsor olabilirsiniz").
 8. Odeme: aylik (ayin 5'i civari), bireysel sponsorlukta %0 kesinti. Gelen tutar banka hesabina duser; banka %15 stopaji otomatik keser. Yil sonunda mali musavire tabloyu ver (gelir olusursa).
 
-## Ek B — Polar.sh acilisi (adim adim, ~30 dk)
+## Ek B — Polar.sh acilisi (ASKIDA, 2026-09-18)
+
+> **Onkosul eksik** (Ek A ile ayni neden). Polar da odeme alici olarak TR banka
+> hesabi ister; 20/B istisna hesabi veya sahis sirketi kurulmadan acilmaz.
 
 Polar MoR'dir: global KDV/satis vergisi yukunu ustlenir; status 2026-09'da online.
 
