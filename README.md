@@ -250,20 +250,20 @@ Real `tauri build --no-bundle` + PyInstaller sidecar built and
 
 ## 💖 Support / Destek
 
-PkgForge is free and open-source. If it saves you time, consider supporting
-its development — sponsorship keeps the project actively maintained.
+PkgForge is free and open-source, and it will stay that way — every feature,
+including the converter, CLI, desktop UI and security scanning, is GPL-3.0
+with no paywall. If it saves you time, sponsorship helps keep the project
+actively maintained.
 
-PkgForge ücretsiz ve açık kaynaklıdır. Size zaman kazandırıyorsa gelişimini
-desteklemeyi düşünebilirsiniz.
+PkgForge ücretsiz ve açık kaynaklıdır ve öyle kalır — dönüştürücü, CLI, masaüstü
+arayüzü ve güvenlik taraması dahil her özellik GPL-3.0 altında, paywall'suz.
+Size zaman kazandırıyorsa sponsorluk projenin aktif bakımını destekler.
 
-- **Giveth (crypto):** [giveth.io/project/pkgforge](https://giveth.io/project/pkgforge)
+- **GitHub Sponsors:** `github.com/sponsors/goun7` (pending activation)
+- **Polar.sh:** `polar.sh/goun7` (pending activation)
 
-### 🪙 Direct crypto donations / Direkt kripto bağışı
-
-- **Solana (SOL):** `H39cdtoNKeef14fzK7T6ruj53wYXVx5sRh3hrbbLkbuy`
-- **EVM / Base (ETH, USDC):** `0xf6Cf772B361F3F08A5B809f21e6ec5fC525b7497`
-- **Bitcoin (BTC):** `bc1qajsqt2cgs5lal7esxwk2sxmpd9g2mzpltax0r3`
-- **Sui (SUI):** `0xe92e3602e5d2a75c9d1f1340277ef8ebbe93dedfb553bf411b2114455b12a761`
+Kripto ödeme bilinçli olarak kabul edilmez. Gelir modeli için
+`acik-kaynak-gelir-modeli.md`'ye bakın.
 
 ---
 

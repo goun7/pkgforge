@@ -33,13 +33,14 @@ def test_donate_url_constants():
 def test_funding_yml_valid():
     import yaml  # type: ignore[import-untyped]
 
+    # FUNDING.yml su an tamamen yorumdan olusur (GitHub Sponsors/Polar
+    # acilmadi; kripto checkout bilincli olarak yok, karar gunlugu 2026-09-18).
+    # Bu yuzden YAML gosterimi None'dir; odeme hedefi sozde yok.
     data = yaml.safe_load((KOK / ".github" / "FUNDING.yml").read_text())  # type: ignore[attr-defined]
-    # GitHub Sponsors henuz acilmadi: `github:` satiri bilerek yok (yaniltici
-    # Sponsor butonu gostermemek icin; acilinca `github: [goun7]` eklenecek).
-    assert "github" not in data
-    # Polar.sh yok: hesap acilmadi (acilinca geri eklenecek). Giveth canli.
-    assert any("giveth.io" in u for u in data["custom"])
-    assert not any("polar.sh" in u for u in data["custom"])
+    assert data is None
+    icerik = (KOK / ".github" / "FUNDING.yml").read_text()
+    assert "giveth.io" not in icerik
+    assert "polar.sh" not in icerik
 
 
 def test_issue_templates_exist():

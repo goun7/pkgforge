@@ -6,8 +6,8 @@ Tarih: 2026-08-27  Durum: ONAYLI (kullanici: 'Hepsini onerdigin sirayla otonom g
 
 F5.18 fleet sync backends (webdav/git/rclone-s3 + age sifreleme) ve F5.19 politika
 motoru hazir. Bu alt sistem, o yapitaslarini tek bir 'Fleet Konsolu'nda birlestirip
-coklu-makine yonetiminin GUI yuzunu acar. Open Core gelir modelinin (Asama 3: ekip/
-kurumsal politika profilleri + bulut senkron backend) teknik temelidir.
+coklu-makine yonetiminin GUI yuzunu acar. Tum bilesenler GPL ve ucretsizdir; ucretli
+hosted katman 2026-09-18'de kaldirildi (bkz. acik-kaynak-gelir-modeli.md Bolum 4).
 
 ## Kapsam
 

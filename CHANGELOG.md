@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed — gelir stratejisi sadeleştirme (2026-09-18)
+- **Gelir modeli**: 3-aşamalı plan (sponsorluk → eşik → open core) tek
+  katman pasif sponsorluğa indirgendi. 500/ay kurulum eşiği erişilemezdi
+  (debtap 13 yılda 331 oy); Aşama 3 hosted katman mimariye ters (kullanıcı
+  kendi sync URL'ini getirir). Kanıt: PEXT 2025 (hosted %40 daha hızlı,
+  open core yavaş) + Alami et al. 2024 (sürdürülebilirlik kalite getirmez).
+  Ayrıntı: `acik-kaynak-gelir-modeli.md` Bölüm 4.
+- **Kripto ödeme kaldırıldı**: Giveth linki, 4 kripto cüzdan adresi ve
+  `custom:` FUNDING.yml girdisi silindi — karar günlüğündeki "kripto
+  checkout yok" ilkesiyle çelişiyordu. `DONATE_URL` artık
+  `github.com/sponsors/goun7` (hesap açılınca). README "donations"
+  terminolojisi "Sponsor" olarak düzeltildi.
+- **Eski belgeler silindi**: `MONETIZATION_PLAN.md` ve
+  `Açık Kaynak Gelir Modelleri Araştırması.md` tek yetkili belgede
+  birleştirilmişti; artık gereksiz.
+
 ### Fixed
 - **fix(launcher)**: `pkgforge` komutu projenin taşınması nedeniyle eski
   `~/Masaüstü/pkgforge` yoluna işaret ediyordu ve açılmıyordu (exit 2).

@@ -13,8 +13,9 @@ APP_VERSION = "2.2.0"
 APP_ID = "org.pkgforge.app"
 
 # Destek (FUNDING.yml ile ayni hedef; GitHub Sponsors/Polar acilinca buraya eklenecek).
+# Kripto checkout bilincli olarak yok (karar gunlugu 2026-09-18; Giveth kaldirildi).
 REPO_URL = "https://github.com/goun7/pkgforge"
-DONATE_URL = "https://giveth.io/project/pkgforge"
+DONATE_URL = "https://github.com/sponsors/goun7"
 
 # Settings
 CONFIG_DIR = Path.home() / ".config" / "pkgforge"
