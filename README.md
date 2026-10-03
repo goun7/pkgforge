@@ -5,11 +5,11 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![Tests](https://img.shields.io/badge/tests-2582%20collected-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#)
-[![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#)
-[![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#)
+[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#-running-tests)
+[![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#-running-tests)
+[![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#-security-architecture)
 [![Desktop](https://img.shields.io/badge/desktop-582%20vitest%20tests-brightgreen)](desktop/)
-[![Ruff](https://img.shields.io/badge/ruff-0%20errors-brightgreen)](#)
+[![Ruff](https://img.shields.io/badge/ruff-0%20errors-brightgreen)](#-running-tests)
 
 **PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **Tauri desktop app**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
 
@@ -270,3 +270,35 @@ Kripto ödeme bilinçli olarak kabul edilmez. Gelir modeli için
 ## 📜 License
 
 Distributed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later). See [LICENSE](LICENSE) for details.
+
+---
+
+## Akademik Kaynaklar (2024-2026)
+
+- **[1] Arch Linux'de Tekrarlanabilir Derlemeler ve Bağımsız Doğrulayıcı** — *Reproducible Builds and Insights from an Independent Verifier for Arch Linux* — Drexel et al., arXiv 2025.
+  Arch paketlerinin bağımsız ve tekrarlanabilir olarak doğrulanması; pkgforge'in `--verify-build` tekrlanabilir-derleme denetimi ve tedarik zinciri saldırılarını azaltma hedefi için temel.
+  [arXiv:2505.21642](https://arxiv.org/abs/2505.21642)
+
+- **[2] Fonksiyonel Paket Yönetimi Büyük Ölçekte Tekrarlanabilir Derlemeyi Etkinleştirir mi? Evet** — *Does Functional Package Management Enable Reproducible Builds at Scale? Yes* — Malka et al., arXiv 2025.
+  Kaynaktan yeniden derleme ile bit-birörten (bitwise-identical) paket üretiminin ölçeklenebilirliği; pkgforge'in `PKGBUILD`/`makepkg` tabanlı derleme hattının güvenilir dayanağı.
+  [arXiv:2501.15919](https://arxiv.org/abs/2501.15919)
+
+- **[3] Betik Dili Ekosistemlerinde Yazılım Paketi Tekrarlanabilirliği (SoK)** — *SoK: Towards Reproducibility for Software Packages in Scripting Language Ecosystems* — Pohl et al., arXiv 2025.
+  Dağıtılan ikili dosyalar ile kaynak kod arasındaki kopukluğun istismarı; pkgforge'in `.provenance.json` (SLSA) çıktısı ile dönüştürülmüş paketlere kaynak izi taşımasının gerekçesi.
+  [arXiv:2503.21705](https://arxiv.org/abs/2503.21705)
+
+- **[4] Linux Dağıtımlarında Kötücül Yazılım Önleme Üzerine Bir İnceleme** — *A Study of Malware Prevention in Linux Distributions* — Vu et al., arXiv 2024.
+  XZ Utils arka kapısı sonrası paket depolarında kötücül yazılım tespiti ve önleme; pkgforge'in ClamAV kötücül yazılım taraması ve 12 katmanlı güvenlik mimarisinin akademik karşılığı.
+  [arXiv:2411.11017](https://arxiv.org/abs/2411.11017)
+
+- **[5] Ayrıcalıksız Konteyner Görüntüsü Derlemesi İçin Sıfır-Tutarlılıkta Root Emülasyonu** — *Zero-consistency root emulation for unprivileged container image build* — Priedhorsky et al., arXiv 2024.
+  seccomp süzgeci ile ayrıcalıklı sistem çağrılarının yakalanıp root yetkisi olmadan derleme yapılması; pkgforge'in `bwrap` (Bubblewrap) sandbox'ı ile ayrıcalıksız derleme yaklaşımı.
+  [arXiv:2405.06085](https://arxiv.org/abs/2405.06085)
+
+- **[6] Ayrıcalıksız Linux Primitifleri ile Kod İzolasyonu (Sandlock)** — *Sandlock: Confining AI Agent Code with Unprivileged Linux Primitives* — Wang et al., arXiv 2026.
+  Container/microVM görüntü yönetimi ve başlangıç maliyeti olmadan zayıf-garantili yöntemlerin yerine geçen izolasyon; pkgforge'in `--unshare-net` ile çalışan Bubblewrap sandbox tasarımının modern referansı.
+  [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)
+
+- **[7] Herkes için Linux: Standardizasyon Ana Akım Benimsenmeyi Sağlayabilir mi?** — *Linux for Everyone: Can Standardization Drive Mainstream Adoption?* — Nandha et al., arXiv 2025.
+  Dağıtım parçalanması ve standart paketleme deneyimi eksikliği; `.deb`/`.rpm` ile Arch `.pkg.tar.zst` arasındaki dönüştürme gerekliliğinin kökenindeki ekosistem sorunu.
+  [arXiv:2503.23068](https://arxiv.org/abs/2503.23068)
