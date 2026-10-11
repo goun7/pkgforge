@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "22adfd3c7b3d1bdd3498f728497396a993c67482bdfe058d8f4a0141466510e8",
-  "outputTail": "0%\ncore/upstream_tracker.py               72      0   100%\ncore/workspace.py                      45      0   100%\n-----------------------------------------------------------------\nTOTAL                               10346     48    99%\nRequired test coverage of 99.0% reached. Total coverage: 99.54%",
-  "command": ".venv/bin/python -m pytest tests/ -q --cov=core",
-  "timestamp": "2026-10-10T22:00:06.857Z",
-  "diffHash": "fb4c63ef083ec043cd3c1e38df918d803eb893d09b17cfb4cc18657b7621ceee",
-  "poeTag": "[PoE rc=0 out=22adfd3c7b3d1bdd diff=fb4c63ef083ec043 time=2026-10-10T22:00:06.857Z]",
-  "parentSealHash": "a8941772a5bbf479ce238f1bf696c7df89d8ea4d8624f089973e9bbd6b33b9b1",
-  "commitAtSealTime": "c981683eeedf7b97bb981008b52460843a7f9583",
-  "sealHash": "34fb9848f9f30baa49797407a7aec43b2f477d230ba377ca65257c6ee4b07ec3"
+  "outputHash": "b701e7dd8d0f0fd498c8169c56e853fee0a80dbdcc9c7fda669fb3106e46d96b",
+  "outputTail": "........................................................................ [100%]",
+  "command": ".venv/bin/python -m pytest tests/test_cli_serve_signing_dallar.py -p no:warnings -q",
+  "timestamp": "2026-10-11T18:22:07.738Z",
+  "diffHash": "35464192ccd65ab152926c54c98385936a0eff0fbb0dbdb3607b45e6d361e11f",
+  "poeTag": "[PoE rc=0 out=b701e7dd8d0f0fd4 diff=35464192ccd65ab1 time=2026-10-11T18:22:07.738Z]",
+  "parentSealHash": "0dc85d1d05884a9915c02f868d911ebd04333e946027c1049a147a086536766d",
+  "commitAtSealTime": "19092af522f24287d576071b0475133d08725d1b",
+  "sealHash": "62d5383c412f5c920c7125f164c61166727e64d447dd591bc0d4707499d4a4fe"
 }
