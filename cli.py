@@ -816,9 +816,13 @@ def _cmd_sbom(args: argparse.Namespace) -> int:
     print(tr("cli.auto_050").format(pkg_path.name))
     sbom = generate_sbom(pkg_path, tools, include_hashes=not no_hashes)
 
-    # Save to file
-    sbom_path = out_dir / f"{pkg_path.name}.spdx.json"
-    save_sbom(sbom, sbom_path)
+    # Save to file. Default keeps the historic name/shape; --format emits a
+    # standards-conformant document under an extension that matches its schema.
+    fmt = getattr(args, "format", "internal") or "internal"
+    suffix = {"internal": ".spdx.json", "spdx": ".spdx.json",
+              "cyclonedx": ".cdx.json"}[fmt]
+    sbom_path = out_dir / f"{pkg_path.name}{suffix}"
+    save_sbom(sbom, sbom_path, fmt)
 
     # Print summary
     print(sbom.summary())

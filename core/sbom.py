@@ -68,6 +68,121 @@ class SBOMDocument:
     # Build toolchain receipt (F5.15): tool versions + debtap-db date.
     build_receipt: dict[str, Any] = field(default_factory=dict)
 
+    def serial_uuid(self) -> str:
+        """Deterministic UUID for this BOM (CycloneDX serialNumber).
+
+        uuid5 over package identity so two builds of the same content share a
+        serial number, instead of every document colliding on the nil UUID.
+        """
+        import uuid
+
+        key = (f"{self.package_name}|{self.package_version}|{self.total_files}|"
+               + ",".join(f.sha256 for f in self.files[:20]))
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, key))
+
+    def to_spdx_dict(self) -> dict[str, Any]:
+        """Serialize as an SPDX 2.3 JSON document (conformant, tool-ingestable).
+
+        The internal `to_dict()` shape is PkgForge-specific; consumers such as
+        Dependency-Track or grype require the SPDX field names below.
+        """
+        def _file_id(i: int) -> str:
+            return f"SPDXRef-File-{i}"
+
+        files = [
+            {
+                "SPDXID": _file_id(i),
+                "fileName": f.path,
+                "checksums": ([{
+                    "algorithm": "SHA256",
+                    "checksumValue": f.sha256,
+                }] if f.sha256 else []),
+                "licenseConcluded": "NOASSERTION",
+                "licenseDeclared": "NOASSERTION",
+                "copyrightText": "NOASSERTION",
+            }
+            for i, f in enumerate(self.files)
+        ]
+        pkg: dict[str, Any] = {
+            "SPDXID": "SPDXRef-Package",
+            "name": self.package_name or "unknown",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": True,
+            "licenseConcluded": "NOASSERTION",
+            "licenseDeclared": "NOASSERTION",
+            "copyrightText": "NOASSERTION",
+            "primaryPackagePurpose": "CONTAINER",
+            "hasFiles": [_file_id(i) for i in range(len(self.files))],
+        }
+        if self.package_version:
+            pkg["versionInfo"] = self.package_version
+        if self.package_description:
+            pkg["description"] = self.package_description
+        creators = [f"Tool: {self.tool_name}-{self.tool_version}"]
+        return {
+            "spdxVersion": "SPDX-2.3",
+            "dataLicense": "CC0-1.0",
+            "SPDXID": "SPDXRef-DOCUMENT",
+            "name": self.document_name or f"pkgforge-{self.package_name or 'sbom'}",
+            "documentNamespace": self.document_namespace or (
+                "https://pkgforge.invalid/sbom/"
+                f"{self.package_name or 'package'}-{self.package_version or '0'}"
+            ),
+            "creationInfo": {
+                "created": self.created,
+                "creators": creators,
+                "licenseListVersion": "3.24",
+            },
+            "packages": [pkg],
+            "files": files,
+            "relationships": (
+                [{
+                    "spdxElementId": "SPDXRef-DOCUMENT",
+                    "relationshipType": "DESCRIBES",
+                    "relatedSpdxElement": "SPDXRef-Package",
+                }]
+                + [
+                    {
+                        "spdxElementId": "SPDXRef-Package",
+                        "relationshipType": "CONTAINS",
+                        "relatedSpdxElement": _file_id(i),
+                    }
+                    for i in range(len(self.files))
+                ]
+            ),
+        }
+
+    def to_cyclonedx_dict(self) -> dict[str, Any]:
+        """Serialize as a CycloneDX 1.6 JSON BOM (conformant, tool-ingestable)."""
+        components: list[dict[str, Any]] = []
+        for f in self.files:
+            comp: dict[str, Any] = {"type": "file", "name": f.path}
+            if f.sha256:
+                comp["hashes"] = [{"alg": "SHA-256", "content": f.sha256}]
+            components.append(comp)
+        for soname in self.dependencies:
+            components.append({"type": "library", "name": soname})
+        doc: dict[str, Any] = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.6",
+            "serialNumber": "urn:uuid:" + self.serial_uuid(),
+            "version": 1,
+            "metadata": {
+                "timestamp": self.created,
+                "tools": [{"vendor": self.tool_name,
+                           "name": self.tool_name, "version": self.tool_version}],
+                "component": {
+                    "type": "application",
+                    "name": self.package_name or "unknown",
+                    "description": self.package_description,
+                },
+            },
+            "components": components,
+        }
+        if self.package_version:
+            doc["metadata"]["component"]["version"] = self.package_version
+        return doc
+
     def summary(self) -> str:
         lines = [
             f"  📦 Paket:    {self.package_name} {self.package_version} ({self.package_arch})",
@@ -296,13 +411,26 @@ def generate_sbom(
     return sbom
 
 
-def save_sbom(sbom: SBOMDocument, output_path: Path) -> Path:
+_SBOM_FORMATS = {
+    "internal": lambda s: s.to_dict(),
+    "spdx": lambda s: s.to_spdx_dict(),
+    "cyclonedx": lambda s: s.to_cyclonedx_dict(),
+}
+
+
+def save_sbom(sbom: SBOMDocument, output_path: Path,
+              fmt: str = "internal") -> Path:
     """Write the SBOM document to a JSON file.
+
+    ``fmt`` selects the schema: PkgForge's own shape (default, keeps existing
+    consumers working) or a standards-conformant "spdx"/"cyclonedx" document.
+    Unknown values fall back to internal rather than raising, since SBOM writing
+    must never abort a conversion.
 
     Returns the path written.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    data = sbom.to_dict()
+    data = _SBOM_FORMATS.get(fmt, _SBOM_FORMATS["internal"])(sbom)
     output_path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False),
         encoding="utf-8",

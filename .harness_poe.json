@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "20a5ee2711b4e34e762dfd45e55dde8df87a0fc574d858aabbd14706d3b2592a",
+  "outputHash": "24be1ffc31c8b046ab6c061cc95482349b2bd739ea0fcf6e9208342ce3d16015",
   "outputTail": "abilities_main_block_runpy\n  <frozen runpy>:130: RuntimeWarning: 'core.capabilities' found in sys.modules after import of package 'core', but prior to execution of 'core.capabilities'; this may result in unpredictable behaviour\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
   "command": "./.venv/bin/python -m pytest tests/ -q",
-  "timestamp": "2026-10-12T20:38:39.258Z",
-  "diffHash": "bb83c943c6ecc62a18936f53cd4273939634cce603480ab5c57b344c438ed8d7",
-  "poeTag": "[PoE rc=0 out=20a5ee2711b4e34e diff=bb83c943c6ecc62a time=2026-10-12T20:38:39.258Z]",
-  "parentSealHash": "ac45e62c945bda2d163f2653f13b5bc708e36f61b24291f07bac2e9d0d9a2bdb",
-  "commitAtSealTime": "bcfdcf8aaa03c3e9d7d69dc102db68a9ce74d5ce",
-  "sealHash": "0ed4bd5280b2ba3eae4232a375f1a2b28a091725185f89ecaaa1eaba7cb15d6c"
+  "timestamp": "2026-10-12T20:57:27.316Z",
+  "diffHash": "4ba46a5049bb75cb7110616d3de8309484a41890f2d56fa49900dfefa748ad6c",
+  "poeTag": "[PoE rc=0 out=24be1ffc31c8b046 diff=4ba46a5049bb75cb time=2026-10-12T20:57:27.316Z]",
+  "parentSealHash": "4312082b9f48217e15a867b07f5eb91d863ca38b95bd07c34adab7c50320cc01",
+  "commitAtSealTime": "49fb0f8e584a8aec564784e5b451c94238aeb80b",
+  "sealHash": "e95a112b3fa5817c08b2157be1b507d4311ffaa74a21d00efaae70447f3e6ec7"
 }

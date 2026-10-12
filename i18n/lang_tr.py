@@ -442,6 +442,7 @@ STRINGS: dict[str, str] = {
     "cli.arg_sbom_pkg": "SBOM oluşturulacak .pkg.tar.zst dosyası",
     "cli.arg_sbom_no_hashes": "SHA-256 hash hesaplamasını atla (daha hızlı)",
     "cli.arg_sbom_diff": "İki paket arasındaki SBOM farklarını göster",
+    "cli.arg_sbom_format": "SBOM şeması: internal (PkgForge, varsayılan), spdx (SPDX 2.3 JSON) veya cyclonedx (CycloneDX 1.6 JSON)",
     "cli.attest_help": "Paket için SLSA provenance attestasyonu oluştur",
     "cli.arg_attest_pkg": "Atestasyon oluşturulacak .pkg.tar.zst dosyası",
     "cli.arg_attest_key": "GPG imza anahtarı (opsiyonel)",

@@ -93,8 +93,9 @@ def test_sbom_guards(capsys, monkeypatch, tmp_path):
     sbom = NS(summary=lambda: "SPDM ozet")
     saved = {}
 
-    def fake_save(s, path):
+    def fake_save(s, path, fmt="internal"):
         saved["path"] = Path(path)
+        saved["fmt"] = fmt
         return Path(path)
     monkeypatch.setattr(SB, "discover_tools", lambda: NS()) if hasattr(
         SB, "discover_tools") else None
@@ -105,3 +106,5 @@ def test_sbom_guards(capsys, monkeypatch, tmp_path):
     out = capsys.readouterr().out
     assert rc3 == 0 and "ozet" in out
     assert saved["path"].name == "p.pkg.tar.zst.spdx.json"
+    # `format` alani olmayan eski Namespace cagrisi internal'e duser
+    assert saved["fmt"] == "internal"

@@ -414,6 +414,8 @@ def main() -> int:
     sbom_parser.add_argument("--output-dir", "-o", help=tr("cli.arg_output_dir"))
     sbom_parser.add_argument("--no-hashes", action="store_true", help=tr("cli.arg_sbom_no_hashes"))
     sbom_parser.add_argument("--diff", nargs=2, metavar=("OLD", "NEW"), help=tr("cli.arg_sbom_diff"))
+    sbom_parser.add_argument("--format", choices=["internal", "spdx", "cyclonedx"],
+                             default="internal", help=tr("cli.arg_sbom_format"))
 
     # attest subcommand
     attest_parser = subparsers.add_parser("attest", help=tr("cli.attest_help"))
