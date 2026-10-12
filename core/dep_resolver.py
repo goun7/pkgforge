@@ -263,8 +263,14 @@ import re as _re
 from core.security import safe_run
 from i18n import tr
 
-_NEEDED_RE = _re.compile(r"NEEDED\)\s+Shared library:\s+\[([^\]]+)\]")
+# readelf -d prints the *description* in the caller's locale ("Shared library:"
+# vs "Paylaşımlı kitaplık:"), so only the "(NEEDED)"/"(RUNPATH)" tag and the
+# bracketed value are stable. Matching the label literally made every non-English
+# locale parse zero sonames, silently disabling dependency resolution.
+_NEEDED_RE = _re.compile(r"\(NEEDED\)[^\[]*\[([^\]]+)\]")
+_RPATH_RE = _re.compile(r"\((?:RPATH|RUNPATH)\)[^\[]*\[(.*?)\]")
 _OBJDUMP_NEEDED_RE = _re.compile(r"^\s*NEEDED\s+(\S+)\s*$", _re.MULTILINE)
+_OBJDUMP_RPATH_RE = _re.compile(r"^\s*(?:RPATH|RUNPATH)\s+(\S+)\s*$", _re.MULTILINE)
 _ELF_MAGIC = b"\x7fELF"
 
 
@@ -273,9 +279,25 @@ def parse_needed_sonames(readelf_output: str) -> list[str]:
     return _NEEDED_RE.findall(readelf_output)
 
 
+def parse_rpath_dirs(readelf_output: str) -> list[str]:
+    """Extract DT_RPATH/DT_RUNPATH directories from ``readelf -d`` output."""
+    dirs: list[str] = []
+    for blob in _RPATH_RE.findall(readelf_output):
+        dirs.extend(d for d in blob.split(":") if d)
+    return dirs
+
+
 def parse_objdump_sonames(objdump_output: str) -> list[str]:
     """Extract NEEDED sonames from ``objdump -p`` output."""
     return _OBJDUMP_NEEDED_RE.findall(objdump_output)
+
+
+def parse_objdump_rpath_dirs(objdump_output: str) -> list[str]:
+    """Extract RPATH/RUNPATH directories from ``objdump -p`` output."""
+    dirs: list[str] = []
+    for blob in _OBJDUMP_RPATH_RE.findall(objdump_output):
+        dirs.extend(d for d in blob.split(":") if d)
+    return dirs
 
 
 def is_elf_file(path: Path) -> bool:

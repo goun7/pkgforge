@@ -222,6 +222,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     # Compatibility grade + "what will change" preview (best-effort, never fatal)
     try:
         from core.compatibility_checker import (
+            CheckSeverity,
             describe_script_hook,
             run_compatibility_checks,
         )
@@ -233,6 +234,16 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             preview_meta.maintainer_scripts,
         )
         print(tr("cli.grade").format(grade=report.grade, overall=report.overall.value))
+        # The grade alone is not actionable — pipeline check logs do not reach
+        # the terminal, so name the checks that pulled it down.
+        for check in report.checks:
+            if check.severity is CheckSeverity.PASS:
+                continue
+            print(tr("cli.compat_reason").format(
+                severity=check.severity.value, name=check.name,
+                message=check.message))
+            for detail in check.details[:3]:
+                print(f"    {detail}")
         preview_files = [f for f in preview_meta.file_list if not f.endswith("/")]
         if preview_files:
             print(tr("cli.files_preview").format(count=len(preview_files)))

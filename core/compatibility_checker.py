@@ -16,12 +16,27 @@ from pathlib import Path
 from typing import Any
 
 from config import ToolPaths
-from core.dep_resolver import parse_needed_sonames, parse_objdump_sonames
+from core.dep_resolver import (
+    parse_needed_sonames,
+    parse_objdump_rpath_dirs,
+    parse_objdump_sonames,
+    parse_rpath_dirs,
+)
 from core.maps import debian_dep_to_arch
 from core.security import is_valid_package_name, safe_run
 from i18n import tr
 
 log = logging.getLogger(__name__)
+
+# `file --mime-type` output for ELF artifacts worth dependency analysis.
+# x-pie-executable MUST be listed: modern toolchains (and all Arch packages)
+# build PIE by default, and omitting it silently excluded every real binary
+# from the shared-library check, making it report "all libraries present".
+_ELF_ANALYSABLE_MIMES = frozenset({
+    "application/x-executable",
+    "application/x-pie-executable",
+    "application/x-sharedlib",
+})
 
 
 class CheckSeverity(Enum):
@@ -373,23 +388,110 @@ def _list_package_elf_files(
     return files, ""
 
 
+def _loader_search_dirs() -> set[str]:
+    """Directories the dynamic loader searches for sonames on this system.
+
+    glibc always searches the compiled-in defaults, then whatever ld.so.conf
+    lists. A library shipped into a directory outside this set is present on
+    disk but invisible to the linker, which is the classic converted-.deb
+    breakage (Debian's /usr/lib/x86_64-linux-gnu is searched on Debian, not on
+    Arch).
+    """
+    dirs = {"/usr/lib", "/lib"}
+    try:
+        lines = Path("/etc/ld.so.conf").read_text(
+            encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return dirs
+    for line in lines:
+        entry = line.strip()
+        if not entry or entry.startswith("#"):
+            continue
+        if entry.startswith("include "):
+            dirs |= _read_ld_conf_paths_from_glob(entry.split(None, 1)[1])
+        else:
+            dirs.add(entry)
+    return dirs
+
+
+def _read_ld_conf_paths_from_glob(pattern: str) -> set[str]:
+    """Expand an ld.so.conf ``include`` glob and collect the directories it names."""
+    from glob import glob as _glob
+
+    dirs: set[str] = set()
+    for path in _glob(pattern):
+        try:
+            text = Path(path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            entry = line.strip()
+            if entry and not entry.startswith("#") and not entry.startswith("include "):
+                dirs.add(entry)
+    return dirs
+
+
+def _shipped_lib_dirs(tmpdir: Path) -> dict[str, list[Path]]:
+    """Map soname -> extracted locations for libraries the package ships itself.
+
+    Keys are basenames (as the loader sees them); values are paths inside
+    *tmpdir*, so the caller can judge *where* the library would land, not just
+    that it exists.
+    """
+    out: dict[str, list[Path]] = {}
+    for p in tmpdir.rglob("*"):
+        if not p.is_file():
+            continue
+        name = p.name
+        if name.endswith(".so") or ".so." in name:
+            out.setdefault(name, []).append(p)
+    return out
+
+
+def _lib_reachable(
+    lib_path: Path,
+    elf_path: Path,
+    tmpdir: Path,
+    rpath: list[str],
+    loader_dirs: set[str],
+) -> bool:
+    """Can the loader actually find *lib_path* for *elf_path* at runtime?
+
+    True if the library's would-be install directory is a loader search dir, or
+    the ELF names that directory in RPATH/RUNPATH (absolute entry, or a
+    ``$ORIGIN``-relative one that resolves onto it).
+    """
+    install_dir = "/" + str(lib_path.relative_to(tmpdir).parent)
+    if install_dir in loader_dirs:
+        return True
+    if not rpath:
+        return False
+    origin = str(elf_path.parent)
+    for entry in rpath:
+        if entry.startswith("$ORIGIN"):
+            resolved = os.path.normpath(origin + entry[len("$ORIGIN"):])
+            if resolved == str(lib_path.parent):
+                return True
+        elif entry in install_dir or entry == install_dir:
+            return True
+    return False
+
+
 def _analyze_elf_dependencies(
     elf_to_check: list[Path], tmpdir: Path, tools: ToolPaths,
-) -> tuple[list[str], list[str], int]:
+) -> tuple[list[str], list[str], int, list[str]]:
     """Statik DT_NEEDED + glibc analizi; ldd CALISTIRILMAZ (PT_INTERP riski).
 
-    (missing_libs, glibc_issues, checked_count) doner.
+    (missing_libs, glibc_issues, checked_count, unreachable_libs) doner.
     """
     missing_libs: list[str] = []
     glibc_issues: list[str] = []
+    unreachable: list[str] = []
     checked_count = 0
 
     system_libs = _system_lib_sonames()
-    shipped_libs = {
-        p.name
-        for p in tmpdir.rglob("*")
-        if p.is_file() and (p.name.endswith(".so") or ".so." in p.name)
-    }
+    shipped = _shipped_lib_dirs(tmpdir)
+    loader_dirs = _loader_search_dirs()
 
     for elf_path in elf_to_check[:15]:
         checked_count += 1
@@ -397,18 +499,30 @@ def _analyze_elf_dependencies(
             if tools.readelf:
                 res = safe_run([tools.readelf, "-d", str(elf_path)], timeout=10)
                 sonames = parse_needed_sonames(res.stdout)
+                rpath = parse_rpath_dirs(res.stdout)
             else:
                 res = safe_run([tools.objdump, "-p", str(elf_path)], timeout=10)
                 sonames = parse_objdump_sonames(res.stdout)
+                rpath = parse_objdump_rpath_dirs(res.stdout)
         except Exception as exc:  # noqa: BLE001
             log.debug("NEEDED okunamadi (%s): %s", elf_path.name, exc)
             continue
 
         for soname in sonames:
-            if soname in system_libs or soname in shipped_libs:
+            if soname in system_libs:
                 continue
-            if soname not in missing_libs:
-                missing_libs.append(soname)
+            candidates = shipped.get(soname, [])
+            if not candidates:
+                if soname not in missing_libs:
+                    missing_libs.append(soname)
+                continue
+            # Shipped is not the same as loadable: a library in a directory the
+            # linker never searches (and not named by RPATH) still fails to open.
+            if not any(_lib_reachable(c, elf_path, tmpdir, rpath, loader_dirs)
+                       for c in candidates):
+                note = f"{soname} ({elf_path.name})"
+                if note not in unreachable:
+                    unreachable.append(note)
 
         req_glibc = _elf_max_glibc(elf_path, tools)
         if req_glibc:
@@ -418,13 +532,15 @@ def _analyze_elf_dependencies(
                 if issue not in glibc_issues:
                     glibc_issues.append(issue)
 
-    return missing_libs, glibc_issues, checked_count
+    return missing_libs, glibc_issues, checked_count, unreachable
 
 
 def _shared_lib_result(
     missing_libs: list[str], glibc_issues: list[str], checked_count: int,
+    unreachable: list[str] | None = None,
 ) -> CheckResult:
     """Analiz sonucunu CheckResult'a cevirir (oncelik: glibc > eksik > temiz)."""
+    unreachable = unreachable or []
     if glibc_issues:
         return CheckResult(
             name="Shared Library Kontrolu",
@@ -432,12 +548,18 @@ def _shared_lib_result(
             message=f"glibc uyumsuzlugu tespit edildi ({len(glibc_issues)} sorun)",
             details=glibc_issues + [f"Eksik: {lib}" for lib in missing_libs],
         )
-    if missing_libs:
+    if missing_libs or unreachable:
+        parts: list[str] = []
+        if missing_libs:
+            parts.append(tr("compat.libs_eksik", count=len(missing_libs)))
+        if unreachable:
+            parts.append(tr("compat.libs_erisilemez", count=len(unreachable)))
         return CheckResult(
             name="Shared Library Kontrolu",
             severity=CheckSeverity.WARNING,
-            message=f"{len(missing_libs)} eksik kutuphane tespit edildi",
-            details=[f"Eksik: {lib}" for lib in missing_libs],
+            message=" — ".join(parts),
+            details=[f"Eksik: {lib}" for lib in missing_libs]
+            + [tr("compat.libs_erisilemez_detail", note=n) for n in unreachable],
         )
     return CheckResult(
         name="Shared Library Kontrolu",
@@ -483,6 +605,7 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
     tmpdir = Path(tempfile.mkdtemp(prefix="pkgforge_ldd_"))
     missing_libs: list[str] = []
     glibc_issues: list[str] = []
+    unreachable: list[str] = []
     checked_count = 0
 
     try:
@@ -511,17 +634,18 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
                     timeout=5,
                 )
                 mime = file_result.stdout.strip()
-                if "application/x-executable" in mime or "application/x-sharedlib" in mime:
+                # Substring match: `file --mime-type` may append "; charset=...".
+                if any(kind in mime for kind in _ELF_ANALYSABLE_MIMES):
                     elf_to_check.append(elf_abs)
 
-        missing_libs, glibc_issues, checked_count = _analyze_elf_dependencies(
-            elf_to_check, tmpdir, tools)
+        missing_libs, glibc_issues, checked_count, unreachable = (
+            _analyze_elf_dependencies(elf_to_check, tmpdir, tools))
     except Exception as exc:  # noqa: BLE001
         log.warning("Shared library analizi hatasi: %s", exc)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-    return _shared_lib_result(missing_libs, glibc_issues, checked_count)
+    return _shared_lib_result(missing_libs, glibc_issues, checked_count, unreachable)
 
 
 def _system_lib_sonames() -> set[str]:
