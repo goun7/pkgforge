@@ -38,5 +38,10 @@
     "undici": "8.11.2",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "source-map-js@<1.2.2": ">=1.2.2"
+    }
   }
 }

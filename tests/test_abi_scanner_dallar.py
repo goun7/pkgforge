@@ -16,12 +16,14 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-import core.abi_scanner  # noqa: E402
-from core.abi_scanner import (  # noqa: E402
-    _collect_elf_binaries, _extract_pkg_for_abi, _get_objcopy,
+import core.abi_scanner
+from core.abi_scanner import (
+    _collect_elf_binaries,
+    _extract_pkg_for_abi,
+    _get_objcopy,
     _ldd_missing_libs,
 )
-from core.constants import TIMEOUT_FAST, TIMEOUT_MEDIUM  # noqa: E402
+from core.constants import TIMEOUT_FAST, TIMEOUT_MEDIUM
 
 _ELF_HEADER = b"\x7fELF"
 
@@ -114,7 +116,6 @@ def test_collect_elf_bos_klasor(tmp_path):
 def test_collect_elf_okunamayan_dosya_atlanir(tmp_path):
     """ORTAM: IOError'da _is_elf_binary False doner -> atlanir (crash YOK)."""
     e = _write_elf(tmp_path / "app")
-    real_open = open
 
     class _Boom:
         def __init__(self, *a, **k):

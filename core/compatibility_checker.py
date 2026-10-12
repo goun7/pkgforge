@@ -106,6 +106,7 @@ def run_compatibility_checks(
     file_list: list[str],
     depends: list[str],
     tools: ToolPaths,
+    maintainer_scripts: list[str] | None = None,
 ) -> CompatibilityReport:
     """Run all compatibility checks on a converted package.
 
@@ -114,6 +115,7 @@ def run_compatibility_checks(
         file_list: List of file paths the package will install.
         depends:   List of dependency package names.
         tools:     Discovered tool paths.
+        maintainer_scripts: Hooks shipped by the source package, if any.
     """
     report = CompatibilityReport()
 
@@ -132,6 +134,9 @@ def run_compatibility_checks(
     if tools.ldd:
         so_result = _check_shared_libraries(pkg_path, tools)
         report.checks.append(so_result)
+
+    # 5. Maintainer scripts dropped by the conversion
+    report.checks.append(_check_maintainer_scripts(maintainer_scripts or []))
 
     log.info(
         tr("compat.uyumluluk_raporu_d_kontrol_d"),
@@ -591,3 +596,45 @@ def _version_gt(ver_a: str, ver_b: str) -> bool:
         if a < b:
             return False
     return len(a_parts) > len(b_parts)
+
+# ── Maintainer scripts ───────────────────────────────────────────
+
+#: Debian/OpenSuse script name -> the Arch .INSTALL hook it would map to.
+_SCRIPT_HOOK_MAP = {
+    "preinst": "pre_install / pre_upgrade",
+    "postinst": "post_install / post_upgrade",
+    "prerm": "pre_remove",
+    "postrm": "post_remove",
+}
+
+
+def describe_script_hook(name: str) -> str:
+    """Return the Arch .INSTALL hook a Debian/RPM maintainer script maps to."""
+    return _SCRIPT_HOOK_MAP.get(name, "?")
+
+
+def _check_maintainer_scripts(scripts: list[str]) -> CheckResult:
+    """Report source-package maintainer scripts the conversion cannot carry.
+
+    Arch runs no postinst/postrm: the equivalent is an .INSTALL hook, which a
+    converted package cannot have because its logic is Debian/RPM-specific.
+    Silently dropping it is how a converted app ends up "installed but broken",
+    so this is surfaced as a warning rather than left invisible.
+    """
+    name = tr("compat.scripts.name")
+    if not scripts:
+        return CheckResult(
+            name=name,
+            severity=CheckSeverity.PASS,
+            message=tr("compat.scripts.temiz"),
+        )
+    return CheckResult(
+        name=name,
+        severity=CheckSeverity.WARNING,
+        message=tr("compat.scripts.dusuruldu", count=len(scripts),
+                    scripts=", ".join(scripts)),
+        details=[
+            tr("compat.scripts.hook", script=s, hook=describe_script_hook(s))
+            for s in scripts
+        ],
+    )

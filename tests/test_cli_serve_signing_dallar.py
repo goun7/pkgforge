@@ -7,16 +7,15 @@ Kural-4: saf in-memory — uvicorn runner MONKEYPATCH (gercek sunucu YOK),
 """
 import argparse
 import json
+import re
 import sys
-from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, ".")
-import core.api_v2  # noqa: E402
-import core.signing_wizard as sw  # noqa: E402
-from cli import _cmd_serve_api, _cmd_signing_setup  # noqa: E402
-
+import core.api_v2
+import core.signing_wizard as sw
+from cli import _cmd_serve_api, _cmd_signing_setup
 
 # == yardimcilar ===================================================================================
 
@@ -346,10 +345,8 @@ def test_signing_setup_adim_sayilari(env_status, capsys, method, expected_count)
                 "sigstore": {"cosign_available": True, "cosign_version": "2.2.0"}})
     _cmd_signing_setup(_ns(method=method))
     out = capsys.readouterr().out
-    # adim numaralari "  N. " biçiminde; en buyuk sirayi say
-    marks = [ln for ln in out.splitlines() if ln.strip().startswith(("1.", "2.", "3.", "4."))
-             and "$" in out]
-    assert sum(1 for ln in out.splitlines() if ln.strip().startswith(f"{expected_count}.")) >= 1
+    adimlar = [ln for ln in out.splitlines() if re.match(r"^\s*\d+\.\s", ln)]
+    assert len(adimlar) == expected_count
 
 
 # == _cmd_signing_setup: --save-config dallari ======================================================
@@ -441,5 +438,5 @@ def test_signing_setup_json_blogu_to_dict_ile_uyusur(env_status, capsys, tmp_pat
     _cmd_signing_setup(_ns(save_config=str(target)))
     out = capsys.readouterr().out
     # stdout'taki JSON blogu dosyadaki degerle ayni method'u tasir
-    assert f'"method": "pgp"' in out
+    assert '"method": "pgp"' in out
     assert json.loads(target.read_text(encoding="utf-8"))["method"] == "pgp"

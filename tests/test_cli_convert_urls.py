@@ -107,7 +107,7 @@ def test_convert_resolve_deps_and_grade(capsys, monkeypatch, tmp_path):
     f.write_bytes(b"R")
     monkeypatch.setattr(PA, "analyze_package",
                         lambda p, t: NS(file_list=[], depends=[], name="n",
-                                        version="1"))
+                                        version="1", maintainer_scripts=[]))
     import core.compatibility_checker as CC
     monkeypatch.setattr(CC, "run_compatibility_checks",
                         lambda *a, **k: NS(grade="A", overall=NS(value="pass"),

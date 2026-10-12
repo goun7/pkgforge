@@ -14,14 +14,18 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-import core.dbus_service  # noqa: E402
-import core.doctor  # noqa: E402
-import core.privileged  # noqa: E402
-import core.scheduler  # noqa: E402
-import core.secrets_store  # noqa: E402
-from core.doctor import (  # noqa: E402
-    _check_dbus, _check_keyring, _check_polkit, _check_scheduler,
-    _check_storage, _check_tools,
+import core.dbus_service
+import core.doctor
+import core.privileged
+import core.scheduler
+import core.secrets_store
+from core.doctor import (
+    _check_dbus,
+    _check_keyring,
+    _check_polkit,
+    _check_scheduler,
+    _check_storage,
+    _check_tools,
 )
 
 _POLICY = "/usr/share/polkit-1/actions/org.pkgforge.helper.policy"
@@ -366,7 +370,7 @@ def test_scheduler_ok(monkeypatch):
 def test_scheduler_tasks_sayisi(monkeypatch, tasks, expected):
     """ORTAM: len(TASKS) rapor edilir."""
     monkeypatch.setattr(core.scheduler, "TASKS", tasks)
-    monkeypatch.setattr(core.scheduler, "state", lambda: {})
+    monkeypatch.setattr(core.scheduler, "state", dict)
     assert _check_scheduler()["tasks"] == expected
 
 

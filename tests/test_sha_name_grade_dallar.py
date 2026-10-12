@@ -19,9 +19,8 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-from core.pipeline import _sha256_of  # noqa: E402
-from core.quality_score import _grade, _name_from_filename  # noqa: E402
-
+from core.pipeline import _sha256_of
+from core.quality_score import _grade, _name_from_filename
 
 # == _sha256_of =======================================================================================
 

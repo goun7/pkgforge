@@ -18,11 +18,11 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-import core.dep_graph  # noqa: E402
-import core.dep_resolver  # noqa: E402
-from core.dep_graph import _extract_for_graph  # noqa: E402
-from core.dep_resolver import _check_pacman, _check_pacman_installed  # noqa: E402
-from core.downloader import _download_filename  # noqa: E402
+import core.dep_graph
+import core.dep_resolver
+from core.dep_graph import _extract_for_graph
+from core.dep_resolver import _check_pacman, _check_pacman_installed
+from core.downloader import _download_filename
 
 
 def _cp(stdout: str = "", stderr: str = "", rc: int = 0) -> subprocess.CompletedProcess:

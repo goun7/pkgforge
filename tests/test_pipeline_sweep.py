@@ -46,7 +46,8 @@ def _meta(**kw):
     base = {"name": "hello", "version": "1.0.0", "arch": "x86_64",
             "arch_mapped": "x86_64", "arch_compatible": True,
             "already_installed": False, "installed_version": "",
-            "file_list": [], "package_type": "deb", "depends": []}
+            "file_list": [], "package_type": "deb", "depends": [],
+            "maintainer_scripts": []}
     base.update(kw)
     return NS(**base)
 

@@ -619,6 +619,7 @@ class ConversionPipeline(QObject):
             meta.file_list,
             meta.depends,
             self._tools,
+            meta.maintainer_scripts,
         )
         self._result.compatibility = report
 

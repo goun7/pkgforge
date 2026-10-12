@@ -78,3 +78,11 @@ glm53.md
 .cursorrules
 .vscode/
 CLAUDE.md
+
+# Yerel calisma artiklari (npx zeron / hypothesis cache) — repoya girmemeli.
+# node_modules globu desktop/node_modules icin de gecerli; utest fikirlerini
+# etkilemez (yukardaki !utest negasyonlari bu bloktan once gelir ama örüntüler
+# utest/* ile eslesmez).
+node_modules/
+.hypothesis/
+.zeron-chain.json

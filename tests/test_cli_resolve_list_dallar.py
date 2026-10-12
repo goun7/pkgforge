@@ -11,9 +11,8 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-from cli import _cmd_list  # noqa: E402
-from core.history_db import HistoryDB  # noqa: E402
-
+from cli import _cmd_list
+from core.history_db import HistoryDB
 
 # _resolve_pkg_file module-icinde (nested) — packaging() icinde test edilemez,
 # ama ayni govdeyi bagimsiz test ederiz:
@@ -148,7 +147,6 @@ def test_bos_name(tmp_path):
 
 def test_expanduser(monkeypatch, tmp_path):
     """ORTAM: ~ -> expanduser."""
-    import os
     monkeypatch.setenv("HOME", str(tmp_path))
     f = tmp_path / "t.pkg.tar.zst"
     f.write_bytes(b"x")

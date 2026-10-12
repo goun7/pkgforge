@@ -20,7 +20,8 @@ def qapp():
 def _meta():
     return NS(name="demo", version="1.0", arch="x86_64",
               arch_mapped="x86_64", arch_compatible=True,
-              already_installed=False, file_list=[], depends=[])
+              already_installed=False, file_list=[], depends=[],
+              maintainer_scripts=[])
 
 
 def _report(sev):

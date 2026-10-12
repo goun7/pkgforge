@@ -46,6 +46,9 @@ class PackageMetadata:
     conflicts: list[str] = field(default_factory=list)
     installed_size_kb: int = 0
     file_list: list[str] = field(default_factory=list)
+    # Maintainer scripts shipped by the source package (preinst/postinst/
+    # prerm/postrm). Arch has no equivalent hook set, so these never run.
+    maintainer_scripts: list[str] = field(default_factory=list)
 
     # Existing installation info
     already_installed: bool = False
@@ -110,6 +113,8 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
         stderr = extract_result.stderr
         stderr_str = stderr.decode("utf-8", errors="replace") if isinstance(stderr, bytes) else str(stderr)
         raise RuntimeError(tr("analyzer.control_tar_cikarilamadi_stderr", stderr_str=stderr_str))
+
+    _extract_deb_maintainer_scripts(control_tar, extract_result.stdout, meta, tools)
 
     # Determine tar flags for decompression
     tar_flags = _tar_flags_for(control_tar)
@@ -203,6 +208,36 @@ def _set_deb_field(key: str, value: str, meta: PackageMetadata) -> None:
             meta.installed_size_kb = int(value)
         except ValueError:
             pass
+
+
+_DEB_SCRIPT_NAMES = ("preinst", "postinst", "prerm", "postrm")
+
+
+def _extract_deb_maintainer_scripts(
+    control_tar: str, control_bytes: bytes | str, meta: PackageMetadata,
+    tools: ToolPaths,
+) -> None:
+    """Record which maintainer scripts the source .deb ships.
+
+    Reuses the control.tar bytes already read for the control file, so an
+    analysis performs one `ar p` per package, not two.
+
+    The conversion drops these scripts (Arch has no postinst/postrm), so callers
+    must be told instead of seeing a clean-looking package.
+    """
+    tar_result = safe_run(
+        [tools.bsdtar, "-tf", "-"] if tools.bsdtar
+        else ["tar", f"-t{_tar_flags_for(control_tar)}f", "-"],
+        input=control_bytes,
+        timeout=30,
+    )
+    if tar_result.returncode != 0:
+        return
+
+    stdout = tar_result.stdout
+    stdout_text = stdout.decode("utf-8", errors="replace") if isinstance(stdout, bytes) else stdout
+    found = {line.strip().removeprefix("./") for line in stdout_text.splitlines()}
+    meta.maintainer_scripts = [n for n in _DEB_SCRIPT_NAMES if n in found]
 
 
 def _extract_deb_file_list(

@@ -17,8 +17,11 @@ import pytest
 
 sys.path.insert(0, ".")
 sys.path.insert(0, "src")
-from core.sbom import (  # noqa: E402
-    SBOMDocument, _detect_file_type, _fill_runtime_deps, _parse_tv_line,
+from core.sbom import (
+    SBOMDocument,
+    _detect_file_type,
+    _fill_runtime_deps,
+    _parse_tv_line,
     _summarize_file_counts,
 )
 
@@ -44,7 +47,7 @@ def test_bsd_dizin():
 
 def test_bsd_symlink():
     line = "lrwxrwxrwx 1 root root 5 Jan 1 12:00 pkg/link -> real"
-    perms, size, path = _parse_tv_line(line)
+    perms, _size, _path = _parse_tv_line(line)
     assert perms == "lrwxrwxrwx"
 
 
@@ -125,7 +128,7 @@ def test_gnu_tarih():
 
 
 def test_gnu_tarih_sadece_format():
-    """ORTAM-OGRENDI: \d{4}-\d{2}-\d{2} SADECE format denetler —
+    r"""ORTAM-OGRENDI: \d{4}-\d{2}-\d{2} SADECE format denetler —
     '2026-13-45' takvim-gecersiz olsa da regex eslesir (calendar
     validation YOK). Quirk characterization pin'lendi."""
     r = _parse_tv_line("-rw-r--r-- root 1 2026-13-45 12:00 x")
@@ -391,7 +394,6 @@ def test_offline_dep_resolver_cagrilmaz(monkeypatch):
 
 def test_online_stub(monkeypatch):
     """ORTAM: offline=False -> resolve_runtime_dependencies cagrilir."""
-    import core.sbom as sbom_mod
     cagri = {"n": 0, "arg": None}
 
     def sahte_resolve(kok, tools):
@@ -464,7 +466,7 @@ def test_tools_aktarilir(monkeypatch):
     assert gorulen["tools"] is tp
 
 
-@pytest.mark.parametrize("offline", [True, True, False, False])
+@pytest.mark.parametrize("offline", [True, False])
 def test_offline_matrix(monkeypatch, offline):
     sayac = {"n": 0}
 

@@ -221,12 +221,16 @@ def _cmd_convert(args: argparse.Namespace) -> int:
 
     # Compatibility grade + "what will change" preview (best-effort, never fatal)
     try:
-        from core.compatibility_checker import run_compatibility_checks
+        from core.compatibility_checker import (
+            describe_script_hook,
+            run_compatibility_checks,
+        )
         from core.package_analyzer import analyze_package
 
         preview_meta = analyze_package(file_path, tools)
         report = run_compatibility_checks(
-            Path(pkg_path), preview_meta.file_list, preview_meta.depends, tools
+            Path(pkg_path), preview_meta.file_list, preview_meta.depends, tools,
+            preview_meta.maintainer_scripts,
         )
         print(tr("cli.grade").format(grade=report.grade, overall=report.overall.value))
         preview_files = [f for f in preview_meta.file_list if not f.endswith("/")]
@@ -234,6 +238,10 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             print(tr("cli.files_preview").format(count=len(preview_files)))
             for f in preview_files[:10]:
                 print(f"    {f}")
+        for dropped in preview_meta.maintainer_scripts:
+            print(tr("compat.scripts.hook").format(
+                script=dropped, hook=describe_script_hook(dropped),
+            ))
     except Exception as exc:
         print(tr("cli.auto_compat_preview_skipped").format(exc=exc), file=sys.stderr)
         log.warning("Uyumluluk önizleme hatası", exc_info=True)

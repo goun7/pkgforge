@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "b701e7dd8d0f0fd498c8169c56e853fee0a80dbdcc9c7fda669fb3106e46d96b",
-  "outputTail": "........................................................................ [100%]",
-  "command": ".venv/bin/python -m pytest tests/test_cli_serve_signing_dallar.py -p no:warnings -q",
-  "timestamp": "2026-10-11T18:22:07.738Z",
-  "diffHash": "35464192ccd65ab152926c54c98385936a0eff0fbb0dbdb3607b45e6d361e11f",
-  "poeTag": "[PoE rc=0 out=b701e7dd8d0f0fd4 diff=35464192ccd65ab1 time=2026-10-11T18:22:07.738Z]",
-  "parentSealHash": "0dc85d1d05884a9915c02f868d911ebd04333e946027c1049a147a086536766d",
-  "commitAtSealTime": "19092af522f24287d576071b0475133d08725d1b",
-  "sealHash": "62d5383c412f5c920c7125f164c61166727e64d447dd591bc0d4707499d4a4fe"
+  "outputHash": "4304d45ac316406a208311ba77dcce7521ca59d492ef3676bfe348f9dd62dd94",
+  "outputTail": "abilities_main_block_runpy\n  <frozen runpy>:130: RuntimeWarning: 'core.capabilities' found in sys.modules after import of package 'core', but prior to execution of 'core.capabilities'; this may result in unpredictable behaviour\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+  "command": "./.venv/bin/python -m pytest tests/ -q",
+  "timestamp": "2026-10-12T20:02:37.568Z",
+  "diffHash": "0fd70eb2a8ac413988051fbd28b0eb9dab4e60f4da1b581bdf32ea008a1ccc25",
+  "poeTag": "[PoE rc=0 out=4304d45ac316406a diff=0fd70eb2a8ac4139 time=2026-10-12T20:02:37.568Z]",
+  "parentSealHash": "dd6d98c8591488bc38232f3d13fff5776cbc3f2282984dd444963b8399e1f064",
+  "commitAtSealTime": "5d1114cace3561e4273828037fc998716e0b8f35",
+  "sealHash": "5504c199ae47cf9df2e1edc3e97d5622e78d6816187f26935881e0a3860a2206"
 }

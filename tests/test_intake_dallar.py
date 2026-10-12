@@ -8,7 +8,6 @@ Kural-4: saf in-memory — arsivler stdlib tarfile ile tmp_path'te uretilir,
          network/subprocess YOK; Path.iterdir hata yolu monkeypatch.
 """
 import io
-import re
 import sys
 import tarfile
 from pathlib import Path
@@ -16,9 +15,15 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-from core.intake import (  # noqa: E402
-    FileType, IntakeResult, _basenames, _classify_dir, _classify_tarball,
-    _has_tarball_suffix, _is_arch_pkg_name, _sanitize_name,
+from core.intake import (
+    FileType,
+    IntakeResult,
+    _basenames,
+    _classify_dir,
+    _classify_tarball,
+    _has_tarball_suffix,
+    _is_arch_pkg_name,
+    _sanitize_name,
     _source_build_commands,
 )
 

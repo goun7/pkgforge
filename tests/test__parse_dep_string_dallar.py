@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Dal-kesen (branch-cutting) unit testler — ``core.dep_resolver._parse_dep_string``.
 
 Hedef: ``pkgforge/core/dep_resolver.py:63`` module-level ``_parse_dep_string`` (13 satır).
