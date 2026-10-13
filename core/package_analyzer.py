@@ -86,7 +86,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     meta = PackageMetadata(file_path=file_path, package_type="deb")
 
     if not tools.ar:
-        raise RuntimeError("'ar' aracı bulunamadı — binutils paketi gerekli")
+        raise RuntimeError(tr("analyzer.ar_araci_gerekli"))
 
     # List archive members to find control.tar.*
     ar_result = safe_run([tools.ar, "t", str(file_path)])
@@ -100,7 +100,7 @@ def _analyze_deb(file_path: Path, tools: ToolPaths) -> PackageMetadata:
             control_tar = m
             break
     if not control_tar:
-        raise RuntimeError(".deb arşivinde control.tar bulunamadı")
+        raise RuntimeError(tr("analyzer.deb_control_tar_yok"))
 
     # Extract control file content
     # ar p <file> control.tar.* | tar -xO ./control  (or just control)
@@ -287,7 +287,7 @@ def _analyze_rpm(file_path: Path, tools: ToolPaths) -> PackageMetadata:
     meta = PackageMetadata(file_path=file_path, package_type="rpm")
 
     if not tools.rpm2cpio:
-        raise RuntimeError("rpm2cpio bulunamadı — rpmextract paketi gerekli")
+        raise RuntimeError(tr("analyzer.rpm2cpio_gerekli"))
 
     # Read RPM header for basic metadata
     _parse_rpm_header(file_path, meta)
@@ -355,7 +355,7 @@ def _parse_rpm_header(file_path: Path, meta: PackageMetadata) -> None:
         header = f.read(96)
 
     if len(header) < 4 or header[:4] != b"\xed\xab\xee\xdb":
-        raise ValueError("Geçersiz RPM dosyası: magic bytes eşleşmiyor")
+        raise ValueError(tr("analyzer.rpm_magic_gecersiz"))
 
     rpm_cmd = shutil.which("rpm")
     if rpm_cmd:

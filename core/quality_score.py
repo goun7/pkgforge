@@ -131,22 +131,22 @@ def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) ->
         abi = check_abi_compatibility(pkg_path)
         if abi.passed:
             report.checks.append(QualityCheck(
-                name="ABI Uyumluluğu", category="security",
+                name=tr("quality.name_abi"), category="security",
                 passed=True, score=10, max_score=10,
                 detail=tr("quality.abi_binary_count_elf", abi_binary_count=abi.binary_count),
             ))
         else:
             report.checks.append(QualityCheck(
-                name="ABI Uyumluluğu", category="security",
+                name=tr("quality.name_abi"), category="security",
                 passed=False, score=max(0, 10 - abi.error_count * 2), max_score=10,
                 detail=f"{abi.error_count} uyumsuzluk tespit edildi",
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="ABI Uyumluluğu", category="security",
+            name=tr("quality.name_abi"), category="security",
             passed=True, score=5, max_score=10,
-            detail="Tarama yapılamadı (varsayılan puan)",
+            detail=tr("quality.det_scan_missing"),
         ))
 
     # ClamAV scan (10 pts)
@@ -157,22 +157,22 @@ def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) ->
             ok = scan_result.clean
             msg = scan_result.detail
             report.checks.append(QualityCheck(
-                name="Malware Taraması", category="security",
+                name=tr("quality.name_malware"), category="security",
                 passed=ok, score=10 if ok else 0, max_score=10,
                 detail="Temiz" if ok else f"Tespit: {msg[:50]}",
             ))
         else:
             report.checks.append(QualityCheck(
-                name="Malware Taraması", category="security",
+                name=tr("quality.name_malware"), category="security",
                 passed=True, score=5, max_score=10,
-                detail="ClamAV kurulu değil",
+                detail=tr("quality.det_clamav_yok"),
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Malware Taraması", category="security",
+            name=tr("quality.name_malware"), category="security",
             passed=True, score=5, max_score=10,
-            detail="Tarama başarısız",
+            detail=tr("quality.det_scan_failed"),
         ))
 
     # Path traversal (5 pts)
@@ -187,23 +187,23 @@ def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) ->
             file_list = res.stdout.strip().splitlines()
             offending = check_path_traversal(file_list)
             report.checks.append(QualityCheck(
-                name="Path Traversal", category="security",
+                name=tr("quality.name_traversal"), category="security",
                 passed=len(offending) == 0,
                 score=5 if not offending else 0, max_score=5,
                 detail=f"{len(offending)} ihlal" if offending else "Temiz",
             ))
         else:
             report.checks.append(QualityCheck(
-                name="Path Traversal", category="security",
+                name=tr("quality.name_traversal"), category="security",
                 passed=True, score=3, max_score=5,
-                detail="Dosya listesi alınamadı",
+                detail=tr("quality.det_filelist_failed"),
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Path Traversal", category="security",
+            name=tr("quality.name_traversal"), category="security",
             passed=True, score=3, max_score=5,
-            detail="Kontrol başarısız",
+            detail=tr("quality.det_check_failed"),
         ))
 
 
@@ -219,23 +219,23 @@ def _compatibility_checks(pkginfo: dict[str, str], report: QualityReport) -> Non
             resolved_pct = resolve_report.resolved_count / resolve_report.total if resolve_report.total else 1
             score = int(15 * resolved_pct)
             report.checks.append(QualityCheck(
-                name="Bağımlılık Çözümleme", category="compatibility",
+                name=tr("quality.name_deps"), category="compatibility",
                 passed=resolve_report.all_resolved,
                 score=score, max_score=15,
                 detail=tr("quality.resolve_report_resolved_count", resolve_report_resolved_count=resolve_report.resolved_count, resolve_report_total=resolve_report.total),
             ))
         else:
             report.checks.append(QualityCheck(
-                name="Bağımlılık Çözümleme", category="compatibility",
+                name=tr("quality.name_deps"), category="compatibility",
                 passed=True, score=10, max_score=15,
-                detail="Bağımlılık yok veya okunamadı",
+                detail=tr("quality.det_deps_none"),
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Bağımlılık Çözümleme", category="compatibility",
+            name=tr("quality.name_deps"), category="compatibility",
             passed=True, score=8, max_score=15,
-            detail="Kontrol başarısız",
+            detail=tr("quality.det_check_failed"),
         ))
 
     # Architecture match (10 pts)
@@ -246,16 +246,16 @@ def _compatibility_checks(pkginfo: dict[str, str], report: QualityReport) -> Non
         system_arch = platform.machine()
         arch_ok = arch in (system_arch, "any", "")
         report.checks.append(QualityCheck(
-            name="Mimari Uyumluluğu", category="compatibility",
+            name=tr("quality.name_arch"), category="compatibility",
             passed=arch_ok, score=10 if arch_ok else 0, max_score=10,
             detail=f"Paket: {arch}, Sistem: {system_arch}" if arch else "Mimari bilinmiyor",
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Mimari Uyumluluğu", category="compatibility",
+            name=tr("quality.name_arch"), category="compatibility",
             passed=True, score=5, max_score=10,
-            detail="Kontrol başarısız",
+            detail=tr("quality.det_check_failed"),
         ))
 
 
@@ -264,7 +264,7 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
     # Package name (5 pts)
     name_ok = bool(report.package_name and len(report.package_name) > 1)
     report.checks.append(QualityCheck(
-        name="Paket Adı", category="metadata",
+        name=tr("quality.name_pkgname"), category="metadata",
         passed=name_ok, score=5 if name_ok else 0, max_score=5,
         detail=report.package_name or "Eksik",
     ))
@@ -274,16 +274,16 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         version = pkginfo.get("pkgver", "")
         ver_ok = bool(version)
         report.checks.append(QualityCheck(
-            name="Sürüm", category="metadata",
+            name=tr("quality.name_version"), category="metadata",
             passed=ver_ok, score=5 if ver_ok else 0, max_score=5,
             detail=version or "Eksik",
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Sürüm", category="metadata",
+            name=tr("quality.name_version"), category="metadata",
             passed=False, score=0, max_score=5,
-            detail="Okunamadı",
+            detail=tr("quality.det_unreadable"),
         ))
 
     # Description (5 pts)
@@ -291,16 +291,16 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         desc = pkginfo.get("desc", "")
         desc_ok = bool(desc and len(desc) > 5)
         report.checks.append(QualityCheck(
-            name="Açıklama", category="metadata",
+            name=tr("quality.name_desc"), category="metadata",
             passed=desc_ok, score=5 if desc_ok else 0, max_score=5,
             detail=desc[:60] if desc else "Eksik veya çok kısa",
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Açıklama", category="metadata",
+            name=tr("quality.name_desc"), category="metadata",
             passed=False, score=0, max_score=5,
-            detail="Okunamadı",
+            detail=tr("quality.det_unreadable"),
         ))
 
     # License (5 pts)
@@ -308,16 +308,16 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         license_id = pkginfo.get("license", "")
         lic_ok = bool(license_id)
         report.checks.append(QualityCheck(
-            name="Lisans", category="metadata",
+            name=tr("quality.name_license"), category="metadata",
             passed=lic_ok, score=5 if lic_ok else 0, max_score=5,
             detail=license_id or "Bilinmiyor",
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Lisans", category="metadata",
+            name=tr("quality.name_license"), category="metadata",
             passed=False, score=0, max_score=5,
-            detail="Okunamadı",
+            detail=tr("quality.det_unreadable"),
         ))
 
     # Homepage (5 pts)
@@ -325,16 +325,16 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         url = pkginfo.get("url", "")
         url_ok = bool(url and url.startswith("http"))
         report.checks.append(QualityCheck(
-            name="Web Sitesi", category="metadata",
+            name=tr("quality.name_url"), category="metadata",
             passed=url_ok, score=5 if url_ok else 0, max_score=5,
             detail=url[:60] if url else "Belirtilmemiş",
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Web Sitesi", category="metadata",
+            name=tr("quality.name_url"), category="metadata",
             passed=False, score=0, max_score=5,
-            detail="Okunamadı",
+            detail=tr("quality.det_unreadable"),
         ))
 
 
@@ -351,7 +351,7 @@ def _size_checks(pkg_path: Path, report: QualityReport) -> None:
     else:
         size_score = 1
     report.checks.append(QualityCheck(
-        name="Paket Boyutu", category="size",
+        name=tr("quality.name_size"), category="size",
         passed=pkg_size_mb < 500,
         score=size_score, max_score=10,
         detail=f"{pkg_size_mb:.1f} MB",
@@ -374,23 +374,23 @@ def _size_checks(pkg_path: Path, report: QualityReport) -> None:
             else:
                 f_score = 1
             report.checks.append(QualityCheck(
-                name="Dosya Sayısı", category="size",
+                name=tr("quality.name_filecount"), category="size",
                 passed=file_count < 5000,
                 score=f_score, max_score=10,
                 detail=f"{file_count} dosya",
             ))
         else:
             report.checks.append(QualityCheck(
-                name="Dosya Sayısı", category="size",
+                name=tr("quality.name_filecount"), category="size",
                 passed=True, score=5, max_score=10,
-                detail="Sayılamadı",
+                detail=tr("quality.det_uncountable"),
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Dosya Sayısı", category="size",
+            name=tr("quality.name_filecount"), category="size",
             passed=True, score=5, max_score=10,
-            detail="Kontrol başarısız",
+            detail=tr("quality.det_check_failed"),
         ))
 
     # Compression ratio (5 pts)
@@ -404,22 +404,22 @@ def _size_checks(pkg_path: Path, report: QualityReport) -> None:
             ratio = pkg_path.stat().st_size / max(uncompressed_est, 1)
             comp_ok = ratio < 0.5  # should compress reasonably
             report.checks.append(QualityCheck(
-                name="Sıkıştırma Oranı", category="size",
+                name=tr("quality.name_ratio"), category="size",
                 passed=comp_ok, score=5 if comp_ok else 2, max_score=5,
                 detail=f"Oran: {ratio:.2f}",
             ))
         else:
             report.checks.append(QualityCheck(
-                name="Sıkıştırma Oranı", category="size",
+                name=tr("quality.name_ratio"), category="size",
                 passed=True, score=3, max_score=5,
-                detail="Hesaplanamadı",
+                detail=tr("quality.det_uncomputable"),
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
         report.checks.append(QualityCheck(
-            name="Sıkıştırma Oranı", category="size",
+            name=tr("quality.name_ratio"), category="size",
             passed=True, score=3, max_score=5,
-            detail="Kontrol başarısız",
+            detail=tr("quality.det_check_failed"),
         ))
 
 

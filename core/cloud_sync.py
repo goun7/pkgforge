@@ -103,7 +103,7 @@ def export_backup(output_path: str | None = None) -> dict[str, Any]:
         }))
     if not hashes:
         out.unlink(missing_ok=True)
-        raise SyncError("Yedeklenecek ayar/geçmiş bulunamadı")
+        raise SyncError(tr("cloud.yedeklenecek_bulunamadi"))
     return {"ok": True, "path": str(out), "size": out.stat().st_size}
 
 
@@ -117,7 +117,7 @@ def import_backup(backup_path: str) -> dict[str, Any]:
     with zipfile.ZipFile(p) as zf:
         names = zf.namelist()
         if _MARKER not in names or _MANIFEST not in names:
-            raise SyncError("Geçersiz PkgForge yedeği (imza/manifest eksik)")
+            raise SyncError(tr("cloud.gecersiz_yedek"))
         expected: dict[str, str] = json.loads(zf.read(_MANIFEST)).get("files", {})
 
         # Replace DBs atomically: verify every hash first, drop stale WAL
@@ -216,21 +216,17 @@ def _webdav_target() -> tuple[str, dict[str, str]]:
     s = __import__("i18n").load_settings()
     url = str(s.get("sync_url", "")).strip()
     if not url:
-        raise SyncError("Senkron sunucusu yapılandırılmadı (Ayarlar › Bulut Senkronizasyonu)")
+        raise SyncError(tr("cloud.sunucu_yapilandirilmadi"))
     low = url.lower()
     if low.startswith("http://") and not s.get("allow_insecure_http"):
         raise SyncError(
-            "http:// adresine izin verilmiyor — https:// kullanın veya "
-            "Ayarlar'dan 'Güvensiz HTTP'ye izin ver'i açın"
+            tr("cloud.http_insecure_kapali")
         )
     if not low.startswith(("http://", "https://")):
         # SEC: file:///ftp:/data: gibi semalar urlopen ile yerel dosya okuma
         # veya beklenmedik protokol erişimine yol açabilir; beyaz liste dışı
         # her şema reddedilir.
-        raise SyncError(
-            "Desteklenmeyen adres şeması — yalnızca https:// "
-            "(veya açık onayla http://) kullanılabilir"
-        )
+        raise SyncError(tr("cloud.semasi_desteklenmiyor"))
     if not url.endswith("/"):
         url += "/"
     headers = {"Content-Type": "application/zip"}

@@ -326,7 +326,7 @@ def install_auto_update(interval_hours: int = 6) -> tuple[bool, str]:
         (success, message)
     """
     if not _find_systemctl():
-        return False, "systemctl bulunamadı — systemd kurulu değil"
+        return False, tr("delta.systemctl_yok")
 
     units = _auto_update_units(interval_hours)
     try:
@@ -338,12 +338,12 @@ def install_auto_update(interval_hours: int = 6) -> tuple[bool, str]:
 
     NL = chr(10)
     msg = (
-        "✅ Auto-update servisi kuruldu!" + NL + NL
-        + f"  Timer: Her {interval_hours} saatte bir kontrol" + NL
+        tr("delta.servis_kuruldu") + NL + NL
+        + tr("delta.kuruldu_aralik", saat=interval_hours) + NL
         + f"  Servis: {_SERVICE_NAME}.service" + NL
         + f"  Timer: {_TIMER_NAME}.timer" + NL + NL
-        + f"  Durum: systemctl status {_TIMER_NAME}.timer" + NL
-        + "  Kaldır: pkgforge auto-update --remove (GUI'den Updates sayfası da olur)"
+        + tr("delta.kuruldu_durum", timer=_TIMER_NAME) + NL
+        + tr("delta.kuruldu_kaldir")
     )
     return True, msg
 
@@ -358,7 +358,7 @@ def remove_auto_update() -> tuple[bool, str]:
             systemctl = path
             break
     if not systemctl:
-        return False, "systemctl bulunamadı"
+        return False, tr("delta.systemctl_bulunamadi")
 
     try:
         from core.privileged import privileged_service_remove_argv
@@ -373,7 +373,7 @@ def remove_auto_update() -> tuple[bool, str]:
         if res.returncode != 0:
             return False, tr("delta.kaldirma_basarisiz_exc",
                              exc=f"helper kod {res.returncode}")
-        return True, "✅ Auto-update servisi kaldırıldı."
+        return True, tr("delta.servis_kaldirildi")
 
     except Exception as exc:  # noqa: BLE001
         return False, tr("delta.kaldirma_basarisiz_exc", exc=exc)
@@ -432,7 +432,7 @@ def enable_auto_update() -> tuple[bool, str]:
     from core.security import safe_run as _safe_run
     systemctl = shutil.which("systemctl")
     if not systemctl:
-        return False, "systemctl bulunamadı — systemd kurulu değil"
+        return False, tr("delta.systemctl_yok")
 
     timer_path = Path(f"/etc/systemd/system/{_TIMER_NAME}.timer")
     if not timer_path.exists():
@@ -457,7 +457,7 @@ def disable_auto_update() -> tuple[bool, str]:
     from core.security import safe_run as _safe_run
     systemctl = shutil.which("systemctl")
     if not systemctl:
-        return False, "systemctl bulunamadı — systemd kurulu değil"
+        return False, tr("delta.systemctl_yok")
 
     # stop + disable TEK diyalogda (service-disable).
     res = _safe_run(privileged_service_disable_argv(
@@ -482,7 +482,7 @@ def get_delta_logs(lines: int = 50) -> str:
 
     systemctl = shutil.which("systemctl")
     if not systemctl:
-        return "systemctl bulunamadı"
+        return tr("delta.systemctl_bulunamadi")
 
     res = _safe_run(
         ["journalctl", "-u", f"{_SERVICE_NAME}", "-n", str(lines), "--no-pager"],

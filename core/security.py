@@ -267,7 +267,7 @@ def verify_deb_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
     Most 3rd-party .deb files are unsigned; we just report that fact.
     """
     if not tools.ar or not tools.gpg:
-        return SignatureResult(detail="GPG veya ar aracı bulunamadı, imza kontrolü atlandı")
+        return SignatureResult(detail=tr("security.gpg_ar_yok_atlandi"))
 
     try:
         # List archive members
@@ -280,7 +280,7 @@ def verify_deb_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
         # Look for _gpg* signature files
         sig_members = [m for m in members if m.startswith("_gpg")]
         if not sig_members:
-            return SignatureResult(detail="Paket imzasız (.deb imza dosyası bulunamadı)")
+            return SignatureResult(detail=tr("security.deb_imzasiz"))
 
         return SignatureResult(
             has_signature=True,
@@ -298,7 +298,7 @@ def verify_rpm_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
 
         # RPM magic: 0xed 0xab 0xee 0xdb
         if header[:4] != b"\xed\xab\xee\xdb":
-            return SignatureResult(detail="Geçersiz RPM magic bytes")
+            return SignatureResult(detail=tr("security.rpm_magic_gecersiz"))
 
         # Signature tag present if sigtype field is non-zero
         # Byte 6 (sigtype): 0=none, 5=header+payload
@@ -306,9 +306,9 @@ def verify_rpm_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
         if sig_type >= 5:
             return SignatureResult(
                 has_signature=True,
-                detail="RPM başlığında imza alanı tespit edildi",
+                detail=tr("security.rpm_imza_alani"),
             )
-        return SignatureResult(detail="RPM imzasız veya imza doğrulanamadı")
+        return SignatureResult(detail=tr("security.rpm_imzasiz"))
     except OSError as exc:
         return SignatureResult(detail=tr("security.rpm_imza_kontrolu_basarisiz", exc=exc))
 

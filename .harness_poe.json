@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "b04b8a2b7d8140d74eb3436fb4413158404134c6b6d009f1d3e3c3b825eb5755",
-  "outputTail": "emalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
-  "command": "python -m pytest tests/test_i18n_output_leaks.py tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_api_handlers_round32.py tests/test_api_handlers_round33.py tests/test_api_queue_round34.py tests/test_api_tools_round62.py -q --no-cov",
-  "timestamp": "2026-10-13T19:41:22.058Z",
-  "diffHash": "fc854fb5549a8af67bb96bfd9e5c3ad312dd571261d7c81d1dd5519fc12762be",
-  "poeTag": "[PoE rc=0 out=b04b8a2b7d8140d7 diff=fc854fb5549a8af6 time=2026-10-13T19:41:22.058Z]",
-  "parentSealHash": "cd674daa16f157516009440ad25ecf07bc52a47e6880df4ac6c9a7be3c9670bb",
-  "commitAtSealTime": "31f17fa9281fece3f6a3ad0407d3692cc88a331c",
-  "sealHash": "bd6c0a80fe0d6d0f72cdc1c31677571b63e6e2b841a278211f830b0eb9bbaff4"
+  "outputHash": "226158fe41a5c00cf817fff7487c1d9fca64bd73bca6ff4b5c8e59dbbbb65da4",
+  "outputTail": "..................................................... [ 94%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n...................................................                      [100%]",
+  "command": "python -m pytest tests/test_quality_sweep.py tests/test_pipeline_units.py tests/test_cloud_sync.py tests/test_i18n_key_drift.py tests/test_i18n_output_leaks.py -q --no-cov",
+  "timestamp": "2026-10-13T19:53:24.192Z",
+  "diffHash": "5cc7c430a6eff76747336ca74eb0ea006da05674764d55a9f936050c1f4eb864",
+  "poeTag": "[PoE rc=0 out=226158fe41a5c00c diff=5cc7c430a6eff767 time=2026-10-13T19:53:24.192Z]",
+  "parentSealHash": "bd6c0a80fe0d6d0f72cdc1c31677571b63e6e2b841a278211f830b0eb9bbaff4",
+  "commitAtSealTime": "d2af6a312757700e9a4e78b9aa66f6134f05a5e5",
+  "sealHash": "f9716c166df30069180b353a46c580e3c0cb844666bfde0d6f4070b935ae839f"
 }

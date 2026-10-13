@@ -87,7 +87,7 @@ class Installer(QObject):
             return
 
         if not self._tools.pkexec:
-            self.finished.emit(False, "pkexec bulunamadı — polkit paketi gerekli")
+            self.finished.emit(False, tr("installer.pkexec_yok_polkit_gerekli"))
             return
 
         # Validate that the file has the expected extension
@@ -119,7 +119,7 @@ class Installer(QObject):
                 log.debug(tr("installer.snapshot_temizleme_basarisiz_s"), exc)
         self._snapshot_name = ""
 
-        self.output_line.emit("  Yetki yükseltme isteniyor (Polkit)...")
+        self.output_line.emit(tr("installer.yetki_yukseltiliyor"))
 
         self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
@@ -160,13 +160,13 @@ class Installer(QObject):
             if stripped:
                 if stripped.startswith("snapshot-ok:"):
                     self._snapshot_name = stripped.split("snapshot-ok:", 1)[1].strip()
-                    self.output_line.emit(f"  📸 Snapshot hazır: {self._snapshot_name}")
+                    self.output_line.emit(tr("installer.snapshot_hazir", ad=self._snapshot_name))
                 else:
                     self.output_line.emit(f"  {stripped}")
 
     def _on_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if self._cancelled:
-            self.finished.emit(False, "Kurulum kullanıcı tarafından iptal edildi")
+            self.finished.emit(False, tr("installer.kullanici_iptal_etti"))
             return
 
         if exit_code != 0:
@@ -186,14 +186,14 @@ class Installer(QObject):
             self.output_line.emit(tr("installer.self_pkg_name_basariyla_2", self__pkg_name=self._pkg_name, snap_hint=snap_hint))
             self.finished.emit(True, tr("installer.self_pkg_name_basariyla", self__pkg_name=self._pkg_name))
         else:
-            self.output_line.emit("⚠ Kurulum tamamlandı ama doğrulama başarısız")
-            self.finished.emit(True, "Kurulum tamamlandı (doğrulama yapılamadı)")
+            self.output_line.emit(tr("installer.kurulum_bitti_dogrulanamadi"))
+            self.finished.emit(True, tr("installer.kurulum_bitti_dogrulanamadi_kisa"))
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
         error_map = {
-            QProcess.ProcessError.FailedToStart: "pkexec başlatılamadı",
-            QProcess.ProcessError.Crashed: "Kurulum işlemi çöktü",
-            QProcess.ProcessError.Timedout: "Kurulum zaman aşımı",
+            QProcess.ProcessError.FailedToStart: tr("installer.pkexec_baslatilamadi"),
+            QProcess.ProcessError.Crashed: tr("installer.islem_coktu"),
+            QProcess.ProcessError.Timedout: tr("installer.zaman_asimi"),
         }
         msg = error_map.get(error, tr("installer.kurulum_hatasi_error", error=error))
         self.finished.emit(False, msg)

@@ -114,7 +114,7 @@ def take_snapshot(label: str = "pkgforge") -> SnapshotInfo:
             snapshot_name="",
             mount_point="",
             success=False,
-            detail="Btrfs veya ZFS algılanmadı — snapshot oluşturulamıyor",
+            detail=tr("snap.backend_algilanmadi"),
         )
 
 
@@ -129,14 +129,14 @@ def _take_snapshot_privileged(backend: str, snap_name: str) -> SnapshotInfo:
         if not dataset:
             return SnapshotInfo(
                 backend="zfs", snapshot_name="", mount_point="",
-                success=False, detail="ZFS root dataset bulunamadı",
+                success=False, detail=tr("snap.zfs_root_bulunamadi"),
             )
         op, target = "take-zfs", f"{dataset}@{snap_name}"
     else:
         return SnapshotInfo(
             backend="none", snapshot_name="", mount_point="",
             success=False,
-            detail="Btrfs veya ZFS algılanmadı — snapshot oluşturulamıyor",
+            detail=tr("snap.backend_algilanmadi"),
         )
     try:
         res = safe_run(privileged_snapshot_argv("pkexec", op, target),
@@ -182,7 +182,7 @@ def restore_snapshot(snapshot_name: str) -> tuple[bool, str]:
     elif backend == "zfs":
         return _restore_zfs_snapshot(snapshot_name)
     else:
-        return False, "Btrfs veya ZFS algılanamadı"
+        return False, tr("snap.backend_algilanamadi")
 
 
 def list_snapshots() -> list[dict[str, str]]:
@@ -412,7 +412,7 @@ def _take_zfs_snapshot(snap_name: str) -> SnapshotInfo:
     if not dataset:
         return SnapshotInfo(
             backend="zfs", snapshot_name="", mount_point="",
-            success=False, detail="ZFS root dataset bulunamadı",
+            success=False, detail=tr("snap.zfs_root_bulunamadi"),
         )
 
     snap_full = f"{dataset}@{snap_name}"

@@ -8,10 +8,11 @@ from PyQt6.QtCore import QCoreApplication
 
 import core.pipeline as PL
 from core.pipeline import (
-    STEP_LABELS,
+    STEP_LABEL_KEYS,
     ConversionPipeline,
     PipelineResult,
     PipelineStep,
+    step_label,
 )
 
 
@@ -29,9 +30,18 @@ def pipe(qapp, monkeypatch):
 
 
 def test_step_enum_and_labels():
-    assert len(STEP_LABELS) == len(PipelineStep)
+    assert len(STEP_LABEL_KEYS) == len(PipelineStep)
     assert PipelineStep.SECURITY == 0 and PipelineStep.INSTALL == 5
-    assert all(isinstance(v, str) and v for v in STEP_LABELS.values())
+    # Etiketler artik arayuzle ayni katalogdan (step.*) okunuyor; iki dilde de
+    # dolusalari ve PipelineStep'in her uyeye sahip olmasi sart.
+    from i18n import _load_language_module
+
+    for dil in ("tr", "en"):
+        katalog = _load_language_module(dil)
+        for adim in PipelineStep:
+            assert STEP_LABEL_KEYS[adim] in katalog, f"{dil}:{adim}"
+            assert katalog[STEP_LABEL_KEYS[adim]]
+    assert step_label(PipelineStep.CONVERSION)
 
 
 def test_result_defaults():

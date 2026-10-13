@@ -113,14 +113,19 @@ class PipelineStep(IntEnum):
     INSTALL = 5
 
 
-STEP_LABELS = {
-    PipelineStep.SECURITY: "Güvenlik Kontrolü",
-    PipelineStep.MALWARE_SCAN: "Malware Tarama",
-    PipelineStep.ANALYSIS: "Paket Analizi",
-    PipelineStep.CONVERSION: "Dönüşüm",
-    PipelineStep.COMPATIBILITY: "Uyumluluk Testi",
-    PipelineStep.INSTALL: "Kurulum",
+STEP_LABEL_KEYS = {
+    PipelineStep.SECURITY: "step.security",
+    PipelineStep.MALWARE_SCAN: "step.malware",
+    PipelineStep.ANALYSIS: "step.analysis",
+    PipelineStep.CONVERSION: "step.conversion",
+    PipelineStep.COMPATIBILITY: "step.compatibility",
+    PipelineStep.INSTALL: "step.install",
 }
+
+
+def step_label(step: PipelineStep) -> str:
+    """Adim etiketi — ayni katalogdan okundugu icin arayuzle her zaman ayni."""
+    return tr(STEP_LABEL_KEYS[step])
 
 
 class PipelineResult:
@@ -315,7 +320,7 @@ class ConversionPipeline(QObject):
         """
         if self._staged_path is None:
             self._result.success = False
-            self._result.message = "Pipeline başlatılamadı: dosya yolu verilmedi"
+            self._result.message = tr("pipeline.baslatilamadi_yol_yok")
             self.finished.emit(self._result)
             return
         self.run(self._staged_path, self._forced_type)
@@ -439,16 +444,14 @@ class ConversionPipeline(QObject):
                     if not scan_result.clean:
                         # SEC: motor hatasi fail-closed — donusumu durdur.
                         self._set_step(PipelineStep.MALWARE_SCAN, "error")
-                        self._result.message = (
-                            f"⛔ Malware tarayıcısı hata verdi (fail-closed): "
-                            f"{scan_result.detail}"
-                        )
+                        self._result.message = tr("pipeline.malware_hata_failclosed_detail",
+                                                       detail=scan_result.detail)
                         self._log("error", self._result.message)
                         return
                     self._log("info", scan_result.detail)
                     self._set_step(PipelineStep.MALWARE_SCAN, "done")
                 else:
-                    self._log("warning", "clamscan bulunamadı — malware taraması atlandı")
+                    self._log("warning", tr("pipeline.clamscan_yok_atlandi"))
                     self._set_step(PipelineStep.MALWARE_SCAN, "skipped")
             except Exception as exc:  # noqa: BLE001
                 self._log("warning", tr("pipeline.malware_taramasi_basarisiz_exc", exc=exc))
@@ -457,7 +460,7 @@ class ConversionPipeline(QObject):
         else:
             # Tarama ayarlardan kapaliysa adimi "pending" birakma, atlandigini goster
             self._set_step(PipelineStep.MALWARE_SCAN, "skipped")
-            self._log("info", "Malware taraması ayarlardan kapalı — atlandı")
+            self._log("info", tr("pipeline.malware_ayar_kapali"))
 
     def _stage_analysis(self, file_path: Path) -> PackageMetadata | None:
         """Adım 2: paket analizi + mimari/traversal kontrolleri.
@@ -516,7 +519,7 @@ class ConversionPipeline(QObject):
                 elif aur_res.status == "found_older":
                     self._log("info", f"Yerel paket AUR'dakinden daha yeni: {meta.version} > {aur_res.aur_version}")
                 elif aur_res.status == "not_found":
-                    self._log("info", "Paket AUR'da bulunamadı, özel dönüşüm yapılıyor")
+                    self._log("info", tr("pipeline.aurda_yok_ozel_donusum"))
             except Exception as exc:  # noqa: BLE001
                 log.warning(tr("pipeline.aur_kontrolu_atlandi_s"), exc)
                 self._log("warning", tr("pipeline.aur_kontrolu_yapilamadi_exc", exc=exc))
@@ -531,7 +534,7 @@ class ConversionPipeline(QObject):
         if self._cancelled:
             return None
         if self._temp_dir is None:
-            self._result.message = "Dönüşüm dizini hazırlanamadı"
+            self._result.message = tr("pipeline.donusum_dizini_hazirlanamadi")
             self._log("error", self._result.message)
             self._set_step(PipelineStep.CONVERSION, "error")
             return None
@@ -548,13 +551,13 @@ class ConversionPipeline(QObject):
 
         if not self._async_success:
             self._set_step(PipelineStep.CONVERSION, "error")
-            self._result.message = self._async_message or "Dönüşüm başarısız"
+            self._result.message = self._async_message or tr("pipeline.donusum_basarisiz")
             return None
 
         converted_pkg = self._async_pkg_path
         if converted_pkg is None:
             self._set_step(PipelineStep.CONVERSION, "error")
-            self._result.message = "Dönüştürülmüş paket bulunamadı"
+            self._result.message = tr("pipeline.donusturulmus_paket_yok")
             return None
 
         self._result.converted_pkg = converted_pkg
@@ -637,7 +640,7 @@ class ConversionPipeline(QObject):
 
         if report.overall == CheckSeverity.ERROR:
             self._set_step(PipelineStep.COMPATIBILITY, "error")
-            self._log("error", "Uyumluluk testleri başarısız — kullanıcı kararı bekleniyor")
+            self._log("error", tr("pipeline.uyumluluk_karar_bekliyor"))
             self.compatibility_ready.emit(report)
             # Block until the UI records a decision (Install Anyway / Close),
             # exactly like the WARNING branch. Previously this returned
@@ -657,16 +660,16 @@ class ConversionPipeline(QObject):
                 self._set_step(PipelineStep.INSTALL, "error")
                 self._result.success = False
                 self._result.message = (
-                    "İptal edildi" if self._cancelled
+                    tr("pipeline.iptal_edildi") if self._cancelled
                     else self._decision_message
-                    or "Uyumluluk testleri başarısız — kurulum onaylanmadı"
+                    or tr("pipeline.uyumluluk_kurulum_onaylanmadi")
                 )
                 return
             self._user_approved = True
             self._set_step(PipelineStep.COMPATIBILITY, "done")
         elif report.overall == CheckSeverity.WARNING:
             self._set_step(PipelineStep.COMPATIBILITY, "warning")
-            self._log("warning", "Uyarılar var — kullanıcı onayı bekleniyor")
+            self._log("warning", tr("pipeline.uyarilar_karar_bekliyor"))
             self.compatibility_ready.emit(report)
             # Block until the UI records a decision (approve_install /
             # dismiss_install). The temp dir — and therefore the converted
@@ -683,9 +686,9 @@ class ConversionPipeline(QObject):
                 self._set_step(PipelineStep.INSTALL, "error")
                 self._result.success = False
                 self._result.message = (
-                    "İptal edildi" if self._cancelled
+                    tr("pipeline.iptal_edildi") if self._cancelled
                     else self._decision_message
-                    or "Uyumluluk uyarıları mevcut — kurulum onaylanmadı"
+                    or tr("pipeline.uyumluluk_uyari_onaylanmadi")
                 )
                 return
             self._user_approved = True
@@ -1024,7 +1027,7 @@ class ConversionPipeline(QObject):
         else:
             self._set_step(PipelineStep.INSTALL, "error")
             self._result.success = False
-            self._result.message = self._async_message or "Kurulum başarısız"
+            self._result.message = self._async_message or tr("pipeline.kurulum_basarisiz")
 
     def _convert_deb(self, deb_path: Path, output_dir: Path) -> None:
         """Run DEB conversion using NativeDebConverter (with debtap fallback)."""
@@ -1075,7 +1078,7 @@ class ConversionPipeline(QObject):
 
         # Fallback to debtap if native converter fails and debtap exists
         if not self._async_success and self._tools.debtap:
-            self._log("warning", "Native DEB dönüştürücü başarısız oldu, debtap deneniyor...")
+            self._log("warning", tr("pipeline.native_deb_basarisiz_debtap"))
             from core.deb_converter import DebConverter
             fallback_converter = DebConverter(self._tools, self)
             fallback_converter.output_line.connect(lambda msg: self._log("info", msg))
@@ -1156,13 +1159,13 @@ class ConversionPipeline(QObject):
         if self._temp_dir and self._temp_dir.exists():
             try:
                 shutil.rmtree(self._temp_dir, onerror=self._on_rm_error)
-                self._log("info", "Geçici dosyalar temizlendi")
+                self._log("info", tr("pipeline.geci_dosyalar_temizlendi"))
             except OSError as exc:
                 self._log("warning", tr("pipeline.temizlik_hatasi_exc", exc=exc))
 
 
     def _set_step(self, step: PipelineStep, status: str) -> None:
-        label = STEP_LABELS[step]
+        label = step_label(step)
         self.step_changed.emit(int(step), status)
         if status == "running":
             self._log("info", f"━━ {label} ━━")
