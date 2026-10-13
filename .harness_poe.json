@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "a36c25cbcfbbf7232b8902292ba98bce556777b009150c069b2a5404a2b7b33a",
-  "outputTail": "..................................................... [ 95%]\n........................................................................ [ 97%]\n........................................................................ [ 99%]\n................                                                         [100%]",
-  "command": "python -m pytest tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_i18n_output_leaks.py tests/test_marketplace_round39.py tests/test_distrobox_fallback_units.py tests/test_converter_plugins.py tests/test_oci_builder_units.py -q --no-cov",
-  "timestamp": "2026-10-13T20:07:26.385Z",
-  "diffHash": "0f7ea96efc027ff17b28a10fa56668df8a7d173c5406c27d3977ac3ece7c5db6",
-  "poeTag": "[PoE rc=0 out=a36c25cbcfbbf723 diff=0f7ea96efc027ff1 time=2026-10-13T20:07:26.385Z]",
-  "parentSealHash": "f9716c166df30069180b353a46c580e3c0cb844666bfde0d6f4070b935ae839f",
-  "commitAtSealTime": "de573c20e3c3c293d9142f378790d9d40a1c8484",
-  "sealHash": "c23d2c2fda6cf9c211982c1b726bb8543182383d15740a7630d7464770d83736"
+  "outputHash": "68d151de2d41e8be184ac1416a3cf16fb5bd40c0d4fbb89dea3c839e7b5f7a87",
+  "outputTail": "..................................................... [ 95%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n....................................................ss.                  [100%]",
+  "command": "python -m pytest tests/test_i18n_output_leaks.py tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_pipeline_units.py tests/test_quality_sweep.py tests/test_intake_dallar.py tests/test_sync_backends.py -q --no-cov",
+  "timestamp": "2026-10-13T20:20:45.537Z",
+  "diffHash": "0a285f5450133e786e530602531dc1ee4165a8bd8baf7cb825af7dcfad336c67",
+  "poeTag": "[PoE rc=0 out=68d151de2d41e8be diff=0a285f5450133e78 time=2026-10-13T20:20:45.537Z]",
+  "parentSealHash": "c23d2c2fda6cf9c211982c1b726bb8543182383d15740a7630d7464770d83736",
+  "commitAtSealTime": "1260137ab817c6024b9e702ab19f66b1e24bcbb4",
+  "sealHash": "057377f1df6a7d8afad76604588880b72586dd039725a57985d21c3f291ce346"
 }

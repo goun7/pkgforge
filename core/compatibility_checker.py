@@ -528,7 +528,8 @@ def _analyze_elf_dependencies(
         if req_glibc:
             sys_glibc = _get_system_glibc(tools)
             if sys_glibc and _version_gt(req_glibc, sys_glibc):
-                issue = f"{elf_path.name}: GLIBC_{req_glibc} gerekli (sistemde: {sys_glibc})"
+                issue = tr("compat.glibc_gerekli", dosya=elf_path.name, gerekli=req_glibc,
+                           sistemde=sys_glibc)
                 if issue not in glibc_issues:
                     glibc_issues.append(issue)
 
@@ -546,7 +547,7 @@ def _shared_lib_result(
             name=tr("compat.so"),
             severity=CheckSeverity.ERROR,
             message=tr("compat.glibc_incompatible", n_issues=len(glibc_issues)),
-            details=glibc_issues + [f"Eksik: {lib}" for lib in missing_libs],
+            details=glibc_issues + [tr("compat.eksik_lib", lib=lib) for lib in missing_libs],
         )
     if missing_libs or unreachable:
         parts: list[str] = []
@@ -558,7 +559,7 @@ def _shared_lib_result(
             name=tr("compat.so"),
             severity=CheckSeverity.WARNING,
             message=" — ".join(parts),
-            details=[f"Eksik: {lib}" for lib in missing_libs]
+            details=[tr("compat.eksik_lib", lib=lib) for lib in missing_libs]
             + [tr("compat.libs_erisilemez_detail", note=n) for n in unreachable],
         )
     return CheckResult(

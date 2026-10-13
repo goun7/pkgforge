@@ -337,7 +337,7 @@ class ConversionPipeline(QObject):
             self._run_pipeline(file_path)
         except Exception as exc:  # noqa: BLE001
             self._result.success = False
-            self._result.message = f"Beklenmeyen hata: {exc}"
+            self._result.message = tr("pipeline.beklenmeyen_hata_exc", exc=exc)
             self._log("error", str(exc))
         finally:
             self._record_history(file_path)
@@ -436,8 +436,10 @@ class ConversionPipeline(QObject):
                     if scan_result.infected:
                         self._set_step(PipelineStep.MALWARE_SCAN, "error")
                         self._result.message = (
-                            f"⚠️ Malware tespit edildi: {scan_result.detail}. "
-                            f"Enfekte dosyalar: {scan_result.infected_files[:5]}"
+                            tr("pipeline.malware_tespit_detail",
+                               detail=scan_result.detail) + " "
+                            + tr("pipeline.enfekte_dosyalar",
+                                 dosyalar=scan_result.infected_files[:5])
                         )
                         self._log("error", self._result.message)
                         return
@@ -481,7 +483,7 @@ class ConversionPipeline(QObject):
             self._log("error", str(exc))
             return None
 
-        self._log("info", f"Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
+        self._log("info", tr("pipeline.paket_meta", ad=meta.name, surum=meta.version, mimari=meta.arch_mapped))
 
         if not meta.arch_compatible:
             self._set_step(PipelineStep.ANALYSIS, "error")
@@ -492,7 +494,7 @@ class ConversionPipeline(QObject):
             return None
 
         if meta.already_installed:
-            self._log("info", f"Zaten kurulu: {meta.name} {meta.installed_version}")
+            self._log("info", tr("pipeline.zaten_kurulu", ad=meta.name, surum=meta.installed_version))
 
         # Path traversal check
         if meta.file_list:
@@ -508,16 +510,16 @@ class ConversionPipeline(QObject):
         # AUR Check (purely informational — must never abort the conversion)
         from i18n import load_setting
         if load_setting("aur_check", True):
-            self._log("info", f"AUR'da kontrol ediliyor: {meta.name}")
+            self._log("info", tr("pipeline.aur_kontrol", ad=meta.name))
             try:
                 from core.aur_checker import check_aur
                 aur_res = check_aur(meta.name, meta.version)
                 if aur_res.status == "found_newer":
-                    self._log("warning", f"AUR'da daha yeni versiyon mevcut: {aur_res.aur_version} (paket: {meta.version})")
+                    self._log("warning", tr("pipeline.aur_daha_yeni", aur_surum=aur_res.aur_version, paket_surum=meta.version))
                 elif aur_res.status == "out_of_date":
                     self._log("info", tr("pipeline.aur_paketi_eskimis_outofdate", aur_res_aur_version=aur_res.aur_version))
                 elif aur_res.status == "found_older":
-                    self._log("info", f"Yerel paket AUR'dakinden daha yeni: {meta.version} > {aur_res.aur_version}")
+                    self._log("info", tr("pipeline.yerel_daha_yeni", paket_surum=meta.version, aur_surum=aur_res.aur_version))
                 elif aur_res.status == "not_found":
                     self._log("info", tr("pipeline.aurda_yok_ozel_donusum"))
             except Exception as exc:  # noqa: BLE001
@@ -719,7 +721,7 @@ class ConversionPipeline(QObject):
 
     def _run_intake_route(self, file_path: Path, ir: intake.IntakeResult) -> None:
         """deb/rpm disi turler icin rota: Arch paketi uret ve kur."""
-        self._log("info", "Algilanan tur: " + ir.file_type.value + " (" + ir.reason + ")")
+        self._log("info", tr("pipeline.algilenen_tur", tur=ir.file_type.value, gerekce=ir.reason))
 
         # Adim 1: genel guvenlik (boyut + sha256)
         if self._cancelled:
@@ -740,11 +742,10 @@ class ConversionPipeline(QObject):
             self._set_step(PipelineStep.ANALYSIS, "error")
             if ir.ambiguous:
                 self._result.message = (
-                    "Dosya turu belirsiz (kaynak mi, hazir binary mi?). "
-                    "Arayuzden acikca secin."
+                    tr("pipeline.tur_belirsiz")
                 )
             else:
-                self._result.message = "Taninamayan dosya turu: " + file_path.name
+                self._result.message = tr("pipeline.tur_taninmiyor", ad=file_path.name)
             self._log("error", self._result.message)
             return
         if ir.file_type == intake.FileType.FLATPAKREF:
@@ -763,7 +764,7 @@ class ConversionPipeline(QObject):
         self.progress.emit(25)
         meta = self._intake_metadata(file_path, ir)
         self._result.metadata = meta
-        self._log("info", "Paket: " + meta.name + " " + meta.version)
+        self._log("info", tr("pipeline.paket_ad_surum", ad=meta.name, surum=meta.version))
         self._set_step(PipelineStep.ANALYSIS, "done")
         self.progress.emit(35)
 
@@ -776,7 +777,7 @@ class ConversionPipeline(QObject):
             converted_pkg = self._intake_convert(file_path, ir, meta)
         except Exception as exc:  # noqa: BLE001
             self._set_step(PipelineStep.CONVERSION, "error")
-            self._result.message = "Donusum basarisiz: " + str(exc)
+            self._result.message = tr("pipeline.donusum_basarisiz_exc", exc=exc)
             self._log("error", str(exc))
             return
         if self._cancelled:
@@ -828,12 +829,12 @@ class ConversionPipeline(QObject):
             return self._build_from_source_tarball(file_path, ir, meta)
         if ft in (intake.FileType.BINARY_TARBALL, intake.FileType.APPIMAGE):
             return self._wrap_binary(file_path, ir, meta)
-        raise RuntimeError("Desteklenmeyen tur: " + ft.value)
+        raise RuntimeError(tr("pipeline.desteklenmeyen_tur", tur=ft.value))
 
     def _run_makepkg(self, build_dir: Path) -> Path:
         """build_dir icinde makepkg calistirir, uretilen paketi dondurur."""
         if not self._tools.makepkg:
-            raise RuntimeError("makepkg bulunamadi (paketleme icin gerekli)")
+            raise RuntimeError(tr("pipeline.makepkg_gerekli"))
         from core.security import safe_run
         self._log("info", "makepkg calistiriliyor: " + build_dir.name)
         r = safe_run([self._tools.makepkg, "-f", "--noconfirm"],
@@ -842,10 +843,10 @@ class ConversionPipeline(QObject):
             self._log("info", line)
         if r.returncode != 0:
             tail = (r.stderr or r.stdout or "").strip()[-300:]
-            raise RuntimeError("makepkg basarisiz: " + tail)
+            raise RuntimeError(tr("pipeline.makepkg_basarisiz_tail", tail=tail))
         built = sorted(build_dir.glob("*.pkg.tar.zst"))
         if not built:
-            raise RuntimeError("makepkg tamamlandi ama paket dosyasi bulunamadi")
+            raise RuntimeError(tr("pipeline.makepkg_paket_yok"))
         return built[-1]
 
     def _extract_tarball(self, file_path: Path, dest: Path) -> None:
@@ -881,7 +882,7 @@ class ConversionPipeline(QObject):
         if system == "make" and not any(
                 (repo_dir / mk).is_file()
                 for mk in ("Makefile", "makefile", "GNUmakefile")):
-            self._log("info", "Makefile bulunamadi — binary tarball olarak sariliyor")
+            self._log("info", tr("pipeline.makefile_yok_binary"))
             return self._wrap_binary(file_path, ir, meta)
         version = (
             _extract_version_from_cargo(repo_dir)
@@ -903,7 +904,7 @@ class ConversionPipeline(QObject):
             url=getattr(meta, "url", ""),
             sha256=_sha256_of(build_dir / file_path.name))
         (build_dir / "PKGBUILD").write_text(content, encoding="utf-8")
-        self._log("info", "Kaynak PKGBUILD uretildi (" + system + ")")
+        self._log("info", tr("pipeline.kaynak_pkgbuild", sistem=system))
         return self._run_makepkg(build_dir)
 
     def _build_from_source_dir(self, file_path: Path, ir: intake.IntakeResult,
@@ -933,10 +934,10 @@ class ConversionPipeline(QObject):
         r = safe_run([str(appimg), "--appimage-extract"],
                      cwd=extract_dir, timeout=300, text=True)
         if r.returncode != 0:
-            raise RuntimeError("AppImage acilamadi (--appimage-extract basarisiz)")
+            raise RuntimeError(tr("pipeline.appimage_acilamadi"))
         root = extract_dir / "squashfs-root"
         if not root.exists():
-            raise RuntimeError("AppImage acildi ama squashfs-root bulunamadi")
+            raise RuntimeError(tr("pipeline.appimage_squashfs_yok"))
         tarball = extract_dir / (file_path.stem + ".tar.gz")
         with _tarfile.open(tarball, "w:gz") as tf:
             tf.add(root, arcname=".")

@@ -266,3 +266,70 @@ def test_core_api_tabakasinda_ham_turkce_mesaj_yok() -> None:
             if TURKCE_HARF.search(sabit.value) or _ASCII_TURKCE.search(sabit.value):
                 suclu.append(f"{yol.name}:{sabit.lineno}: {sabit.value[:48]!r}")
     assert not suclu, "ham Turkce mesaj:\n" + "\n".join(suclu[:10])
+
+
+_LOG_adlar = frozenset({"info", "debug", "warning", "warn", "error", "exception", "log"})
+
+# Pacman/readelf cikatisini OKUYAN sabitler: bunlar kullaniciya gorunmez,
+# cevirmek yeri bosuna parse etmeyi bozar.
+_PARSER_SABITLER = frozenset({"Sürüm", "Version"})
+
+# Cevirilmemesi gereken sabitler — her birinin nedeni:
+#  * "liste": compatibility_checker disariya kod olarak yukluyor (`durum == "liste"`),
+#    kullaniciya gorunmeyen makine degeri.
+#  * polkit action description / systemd unit Description / PKGBUILD pkgdesc:
+#    /usr/share veya uretilen dosya icine yazilan sistem metadata'si; kullanici
+#    arayuzu yerine pacman/polkit tarafından okunur.
+#  * capabilities --emit kullanim satiri: gelistirici CLI'i.
+MAKINE_SABITLERI = frozenset({
+    "liste",
+    "PkgForge paket kurulumu",
+    "kullanim: python -m core.capabilities --emit [dosya]",
+    "Description=PkgForge zamanlanmis gorev",
+    " — kaynaktan derlenen paket",
+    " (PkgForge kaynak derleme)",
+})
+
+
+def _log_cagrisi_mi(dugum: ast.AST, ebeveyn: dict[ast.AST, ast.AST]) -> bool:
+    simdi: ast.AST | None = dugum
+    while simdi is not None:
+        if isinstance(simdi, ast.Call):
+            f = simdi.func
+            ad = getattr(f, "attr", None) or getattr(f, "id", None)
+            if ad in _LOG_adlar:
+                return True
+        simdi = ebeveyn.get(simdi)
+    return False
+
+
+def test_cekirdekte_kullaniciya_gorunen_ham_turkce_metn_kalmadi() -> None:
+    """core/ genelinde ratchet: log satirlari ve parser sabitleri disinda serbest metin yok.
+
+    Bu class'in kendisi üretime bir yil boyunca sessizce iki dilli cikti üretti:
+    kullaniciya dönen `detail`/`message`/emit metinleri koda gomuluydu.
+    """
+    suclu: list[str] = []
+    for yol in sorted((REPO / "core").rglob("*.py")):
+        if "__pycache__" in yol.parts:
+            continue
+        agac = ast.parse(yol.read_text(encoding="utf-8"))
+        doc = _docstring_sabitleri(agac)
+        anahtarlar = {
+            id(a) for c in ast.walk(agac) if isinstance(c, ast.Call)
+            and (getattr(c.func, "id", None) or getattr(c.func, "attr", None)) == "tr"
+            for a in c.args if isinstance(a, ast.Constant)
+        }
+        ebeveyn: dict[ast.AST, ast.AST] = {
+            c: p for p in ast.walk(agac) for c in ast.iter_child_nodes(p)}
+        for sabit in ast.walk(agac):
+            if not isinstance(sabit, ast.Constant) or not isinstance(sabit.value, str):
+                continue
+            if id(sabit) in doc or id(sabit) in anahtarlar:
+                continue
+            if (sabit.value in _PARSER_SABITLER or sabit.value in MAKINE_SABITLERI
+                or _log_cagrisi_mi(sabit, ebeveyn)):
+                continue
+            if TURKCE_HARF.search(sabit.value) or _ASCII_TURKCE.search(sabit.value):
+                suclu.append(f"{yol.relative_to(REPO)}:{sabit.lineno}: {sabit.value[:44]!r}")
+    assert not suclu, "ham Turkce kullanici metni:\n" + "\n".join(suclu[:10])

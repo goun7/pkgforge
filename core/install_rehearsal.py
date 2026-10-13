@@ -14,6 +14,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from i18n import tr
+
 log = logging.getLogger(__name__)
 
 _REHEARSAL_TIMEOUT_S = 120
@@ -58,7 +60,7 @@ def _container_file_list(runtime: str, package_path: Path) -> tuple[bool, str, l
     except (OSError, subprocess.SubprocessError) as exc:
         return False, f"Konteyner provasi calistirilamadi: {exc}", []
     if res.returncode != 0:
-        return False, f"Konteyner ici kurulum basarisiz: {res.stderr[:200]}", []
+        return False, tr("rehearse.kurulum_basarisiz_stderr", stderr=res.stderr[:200]), []
     files = [ln.strip() for ln in res.stdout.splitlines() if ln.strip()]
     return True, "Prova tamamlandi", files
 
@@ -72,7 +74,7 @@ def rehearse_install(package_path: Path | str) -> dict[str, Any]:
     pkg = Path(package_path)
     if not pkg.is_file():
         return {"ok": False, "available": False,
-                "reason": f"Paket bulunamadi: {pkg}"}
+                "reason": tr("rehearse.paket_bulunamadi_pkg", pkg=pkg)}
 
     runtime = find_rehearsal_runtime()
     if not runtime:

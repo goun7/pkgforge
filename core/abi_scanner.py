@@ -77,7 +77,7 @@ class ABIScanReport:
     def summary(self) -> str:
         lines = [
             tr("abi.taranan_elf_dosyasi_self", self_binary_count=self.binary_count),
-            f"  🔎 Kontrol edilen sembol: {self.checked_symbols}",
+            tr("abi.kontrol_edilen", n=self.checked_symbols),
             tr("abi.sembol_uyumsuzlugu_mismatches", mismatches=len(self.mismatches)),
             tr("abi.eksik_kutuphane_missing_libs", missing_libs=len(self.missing_libs)),
         ]
@@ -88,12 +88,12 @@ class ABIScanReport:
             lines.append(tr("abi.namcap_errors_hata_warns", n_errors=n_errors, n_warns=n_warns, n_info=n_info))
         if self.mismatches:
             lines.append("")
-            lines.append("  Uyumsuz Semboller:")
+            lines.append(tr("abi.uyumsuz_semboller"))
             for m in self.mismatches[:20]:
                 lines.append(
                     f"    {m.severity.upper():>7}  {m.binary}: "
-                    f"{m.symbol} (gerekli: {m.required_version}, "
-                    f"mevcut: {m.available_version})"
+                    + tr("abi.sembol_gerekli_mevcut", sembol=m.symbol,
+                         gerekli=m.required_version, mevcut=m.available_version)
                 )
         if self.missing_libs:
             lines.append("")

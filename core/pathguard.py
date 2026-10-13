@@ -18,6 +18,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from i18n import tr
+
 # Denied absolute roots: system state, boot, kernel interfaces, and other
 # users' homes. Denied regardless of who asks.
 DENIED_ROOTS: tuple[str, ...] = (
@@ -95,7 +97,7 @@ def guarded_path(value: str | Path, *, field: str = "path") -> Path:
         if _under(resolved, denied):
             if any(_under(resolved, ok) for ok in ALLOWED_UNDER_DENY):
                 break
-            raise PathNotAllowed(f"{field}: sistem yolu reddedildi ({denied})")
+            raise PathNotAllowed(tr("pathguard.sistem_yolu_reddedildi", field=field, denied=denied))
 
     return resolved
 
@@ -105,5 +107,5 @@ def guarded_paths(values: list[str] | tuple[str, ...] | None,
     """Guard every entry of a path list; rejects an empty list."""
     items = list(values or [])
     if not items:
-        raise PathNotAllowed(f"{field}: liste bos olamaz")
+        raise PathNotAllowed(tr("pathguard.liste_bos_olamaz", field=field))
     return [guarded_path(v, field=f"{field}[{i}]") for i, v in enumerate(items)]

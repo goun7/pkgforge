@@ -85,4 +85,4 @@ class DebConverterPlugin(ConverterPlugin):
             return False, tr("plugin.subprocess_converter_yok"), None
         except Exception as exc:  # noqa: BLE001
             log.warning("DEB plugin dönüşüm hatası: %s", exc)
-            return False, f"Dönüşüm hatası: {exc}", None
+            return False, tr("plugin.donusum_hatasi_exc", exc=exc), None

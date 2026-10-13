@@ -28,7 +28,7 @@ class ProfileError(ValueError):
 def _validate_name(name: str) -> None:
     if not isinstance(name, str) or not PROFILE_NAME_RE.match(name):
         raise ProfileError(
-            "Geçersiz profil adı: harf, rakam, - veya _ (en fazla 64 karakter)"
+            tr("profiles.ad_gecersiz_kural")
         )
 
 

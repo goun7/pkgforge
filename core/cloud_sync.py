@@ -176,11 +176,11 @@ def restore_drill() -> dict[str, Any]:
             # Bos yapilandirma: tatbikat edecek veri yok, mekanik saglikli.
             return {"ok": True, "detail": f"tatbikat atlandi: {exc}"}
         if exp.get("ok") is False or not bundle.is_file():
-            return {"ok": False, "detail": "export basarisiz: " + str(exp)}
+            return {"ok": False, "detail": tr("cloud.export_basarisiz", exc=exp)}
 
         with zipfile.ZipFile(bundle) as zf:
             if _MANIFEST not in zf.namelist():
-                return {"ok": False, "detail": "manifest eksik"}
+                return {"ok": False, "detail": tr("cloud.manifest_eksik")}
             expected = json.loads(zf.read(_MANIFEST)).get("files", {})
 
         config.CONFIG_DIR = restore_root
@@ -189,7 +189,7 @@ def restore_drill() -> dict[str, Any]:
         finally:
             config.CONFIG_DIR = original_root
         if not imp.get("ok"):
-            return {"ok": False, "detail": "import basarisiz: " + str(imp)}
+            return {"ok": False, "detail": tr("cloud.import_basarisiz", exc=imp)}
 
         restored = imp.get("restored", [])
         missing = []
@@ -201,10 +201,10 @@ def restore_drill() -> dict[str, Any]:
                 missing.append(arc)
         if missing:
             return {"ok": False,
-                    "detail": "eksik geri yuklenen dosya: " + ", ".join(missing)}
+                    "detail": tr("cloud.eksik_geri_yukleme", dosyalar=", ".join(missing))}
         return {"ok": True,
-                "detail": (f"tatbikat basarili: {len(restored)}/{len(expected)}"
-                           f" dosya dogrulandi")}
+                "detail": tr("cloud.tatbikat_basarili", geri=len(restored),
+                             beklenen=len(expected))}
     except SyncError as exc:
         return {"ok": False, "detail": str(exc)}
     finally:

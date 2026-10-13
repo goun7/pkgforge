@@ -61,7 +61,7 @@ class BenchmarkReport:
             status = "✅" if r.passed else "❌"
             lines.append(f"{r.name:<35} {dur:>10} {mem:>10} {status}")
         lines.append("-" * 70)
-        lines.append(f"{'Toplam':<35} {self.total_duration_ms/1000:.1f}s{'':>4} {'✅' if self.passed else '❌'}")
+        lines.append(f"{tr('bench.toplam'):<35} {self.total_duration_ms/1000:.1f}s{'':>4} {'✅' if self.passed else '❌'}")
         return "\n".join(lines)
 
 
@@ -175,7 +175,7 @@ def _bench_analysis(test_file: Path | None, tools: Any) -> BenchmarkResult | Non
     """Benc 4: paket analizi hizi (ar araci gerekir)."""
     if not (test_file and test_file.is_file() and tools.ar):
         return None
-    r = BenchmarkResult(name="Paket analizi")
+    r = BenchmarkResult(name=tr("bench.name_paket_analizi"))
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     from core.package_analyzer import analyze_package
@@ -211,7 +211,7 @@ def _bench_security(test_file: Path | None, tools: Any) -> BenchmarkResult | Non
     r.duration_ms = int((time.monotonic() - t0) * 1000)
     r.memory_peak_kb = _get_memory_usage() - mem_start
     r.passed = True
-    r.details = f"{r.duration_ms}ms toplam"
+    r.details = tr("bench.det_ms_toplam", ms=r.duration_ms)
     return r
 
 

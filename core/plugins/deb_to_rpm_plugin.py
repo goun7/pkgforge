@@ -64,7 +64,7 @@ class DebToRpmConverter(ConverterPlugin):
 
         if res.returncode != 0:
             stderr = res.stderr.decode("utf-8", errors="replace") if isinstance(res.stderr, bytes) else str(res.stderr)
-            return False, f"alien başarısız: {stderr[:200]}", None
+            return False, tr("plugin.alien_basarisiz_stderr", stderr=stderr[:200]), None
 
         # Find the generated .rpm file
         rpm_files = list(output_dir.glob("*.rpm"))

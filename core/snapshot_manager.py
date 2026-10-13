@@ -144,7 +144,7 @@ def _take_snapshot_privileged(backend: str, snap_name: str) -> SnapshotInfo:
     except Exception as exc:  # noqa: BLE001
         return SnapshotInfo(
             backend=backend, snapshot_name="", mount_point="/",
-            success=False, detail=f"Snapshot yetkili cagrisi basarisiz: {exc}",
+            success=False, detail=tr("snap.yetkili_cagri_basarisiz", exc=exc),
         )
     if res.returncode == 0:
         return SnapshotInfo(
@@ -156,7 +156,7 @@ def _take_snapshot_privileged(backend: str, snap_name: str) -> SnapshotInfo:
     elif res.stderr.strip():
         detail = res.stderr.strip().splitlines()[-1][:200]
     else:
-        detail = f"Snapshot basarisiz (kod {res.returncode})"
+        detail = tr("snap.basarisiz_kod", kod=res.returncode)
     return SnapshotInfo(
         backend=backend, snapshot_name="", mount_point="/",
         success=False, detail=detail,

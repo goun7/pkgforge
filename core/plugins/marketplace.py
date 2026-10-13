@@ -192,9 +192,7 @@ def install_plugin(
         # gelir; kullanicinin "neden bos?" sorusunu netcevapla.
         if not available:
             raise FileNotFoundError(
-                f"Plugin marketplace'te su an kullanilabilir eklenti yok "
-                f"('{name}' aranamadi). Topluluk eklentileri yakinda; "
-                f"yerlesik converter'lar (deb, rpm, appimage) zaten kurulu."
+                tr("plugin.marketplace_bos_name", name=name)
             )
         raise FileNotFoundError(
             f"Plugin '{name}' not found in marketplace. "

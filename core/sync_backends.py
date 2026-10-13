@@ -13,6 +13,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from i18n import tr
+
 log = logging.getLogger(__name__)
 
 BACKENDS = ("webdav", "git", "rclone-s3")
@@ -32,21 +34,21 @@ def age_available() -> bool:
 def age_encrypt(blob: bytes, recipient: str) -> bytes:
     """Encrypt a blob with an age recipient public key (best-effort)."""
     if not age_available():
-        raise SyncBackendError("age CLI kurulu degil (pacman -S age)")
+        raise SyncBackendError(tr("sync.age_cli_gerekli"))
     if not recipient:
         raise SyncBackendError("age alici anahtari (recipient) bos")
     res = subprocess.run(
         ["age", "-r", recipient, "-a"],
         input=blob, capture_output=True, timeout=_AGE_TIMEOUT_S, check=False)
     if res.returncode != 0:
-        raise SyncBackendError(f"age sifreleme basarisiz: {res.stderr[:200]!r}")
+        raise SyncBackendError(tr("sync.age_sifreleme_basarisiz", stderr=repr(res.stderr[:200])))
     return res.stdout
 
 
 def age_decrypt(blob: bytes, identity_path: str | Path) -> bytes:
     """Decrypt an age blob using an identity (private key) file."""
     if not age_available():
-        raise SyncBackendError("age CLI kurulu degil (pacman -S age)")
+        raise SyncBackendError(tr("sync.age_cli_gerekli"))
     ident = Path(identity_path)
     if not ident.is_file():
         raise SyncBackendError(f"age identity dosyasi yok: {ident}")
@@ -54,7 +56,7 @@ def age_decrypt(blob: bytes, identity_path: str | Path) -> bytes:
         ["age", "-d", "-i", str(ident)],
         input=blob, capture_output=True, timeout=_AGE_TIMEOUT_S, check=False)
     if res.returncode != 0:
-        raise SyncBackendError(f"age cozme basarisiz: {res.stderr[:200]!r}")
+        raise SyncBackendError(tr("sync.age_cozme_basarisiz", stderr=repr(res.stderr[:200])))
     return res.stdout
 
 
@@ -89,7 +91,7 @@ class GitBackend(SyncBackend):
 
     def push(self, blob: bytes, remote_name: str) -> dict[str, Any]:
         if not self.is_available():
-            raise SyncBackendError("git kurulu degil ya da repo_url bos")
+            raise SyncBackendError(tr("sync.git_gerekli"))
         import tempfile
 
         with tempfile.TemporaryDirectory(prefix="pkgforge_gitsync_") as td:
@@ -106,7 +108,7 @@ class GitBackend(SyncBackend):
 
     def pull(self, remote_name: str) -> bytes:
         if not self.is_available():
-            raise SyncBackendError("git kurulu degil ya da repo_url bos")
+            raise SyncBackendError(tr("sync.git_gerekli"))
         import tempfile
 
         with tempfile.TemporaryDirectory(prefix="pkgforge_gitsync_") as td:
@@ -115,7 +117,7 @@ class GitBackend(SyncBackend):
                   self.repo_url, str(repo)])
             target = repo / remote_name
             if not target.is_file():
-                raise SyncBackendError(f"Uzak dosya yok: {remote_name}")
+                raise SyncBackendError(tr("sync.uzak_dosya_yok", ad=remote_name))
             return target.read_bytes()
 
 
@@ -133,7 +135,7 @@ class RcloneBackend(SyncBackend):
 
     def push(self, blob: bytes, remote_name: str) -> dict[str, Any]:
         if not self.is_available():
-            raise SyncBackendError("rclone kurulu degil ya da remote bos")
+            raise SyncBackendError(tr("sync.rclone_gerekli"))
         import tempfile
 
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -148,7 +150,7 @@ class RcloneBackend(SyncBackend):
 
     def pull(self, remote_name: str) -> bytes:
         if not self.is_available():
-            raise SyncBackendError("rclone kurulu degil ya da remote bos")
+            raise SyncBackendError(tr("sync.rclone_gerekli"))
         import tempfile
 
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -166,7 +168,8 @@ def _run(cmd: list[str]) -> None:
                          timeout=120, check=False)
     if res.returncode != 0:
         raise SyncBackendError(
-            f"{' '.join(cmd[:3])} basarisiz: {res.stderr[:200]!r}")
+            tr("sync.komut_basarisiz", komut=" ".join(cmd[:3]),
+               stderr=repr(res.stderr[:200])))
 
 
 def get_backend(name: str, **cfg: Any) -> SyncBackend:

@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from i18n import tr
+
 SERVICE_UNIT = "pkgforge.service"
 TIMER_UNIT = "pkgforge.timer"
 
@@ -92,7 +94,7 @@ def run_task(task: str) -> dict[str, Any]:
     fn = TASKS.get(task)
     if fn is None:
         return {"ok": False,
-                "detail": "Bilinmeyen gorev: " + task + " (" + KNOWN_TASKS + ")"}
+                "detail": tr("sched.bilinmeyen_gorev", gorev=task, bilinen=KNOWN_TASKS)}
     try:
         out = fn()
         out.setdefault("ok", True)
@@ -157,7 +159,7 @@ def timer_unit_text(interval_hours: float) -> str:
 def hours_guard(value: Any) -> float:
     v = float(value)
     if v < 1:
-        raise ValueError("Aralik en az 1 saat olmali")
+        raise ValueError(tr("sched.aralik_en_az_1"))
     return v
 
 

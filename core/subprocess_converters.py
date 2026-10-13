@@ -86,7 +86,7 @@ class NativeDebConverterSubprocess:
             )
 
             meta = analyze_package(deb_path, self._tools)
-            self._emit(f"✓ Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
+            self._emit(tr("conv.paket_satiri", ad=meta.name, surum=meta.version, mimari=meta.arch_mapped))
 
             # Extract
             build_dir = output_dir / "native_build"
@@ -502,7 +502,7 @@ class RpmConverterSubprocess:
             if meta is None:
                 meta = analyze_package(rpm_path, self._tools)
 
-            self._emit(f"✓ Paket: {meta.name} {meta.version} ({meta.arch_mapped})")
+            self._emit(tr("conv.paket_satiri", ad=meta.name, surum=meta.version, mimari=meta.arch_mapped))
 
             pkg_dir = output_dir / "pkg_root"
             pkg_dir.mkdir(parents=True, exist_ok=True)

@@ -50,7 +50,7 @@ class QualityReport:
 
     def summary(self) -> str:
         lines = [
-            f"  📦 Paket: {self.package_name}",
+            tr("quality.rapor_paket", ad=self.package_name),
             f"  📊 Puan: {self.total_score}/{self.max_score} ({self.grade})",
             "",
         ]
@@ -139,7 +139,7 @@ def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) ->
             report.checks.append(QualityCheck(
                 name=tr("quality.name_abi"), category="security",
                 passed=False, score=max(0, 10 - abi.error_count * 2), max_score=10,
-                detail=f"{abi.error_count} uyumsuzluk tespit edildi",
+                detail=tr("quality.det_uyumsuzluk", n=abi.error_count),
             ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
@@ -159,7 +159,7 @@ def _security_checks(pkg_path: Path, tools: ToolPaths, report: QualityReport) ->
             report.checks.append(QualityCheck(
                 name=tr("quality.name_malware"), category="security",
                 passed=ok, score=10 if ok else 0, max_score=10,
-                detail="Temiz" if ok else f"Tespit: {msg[:50]}",
+                detail=tr("quality.det_temiz") if ok else tr("quality.det_tespit", msg=msg[:50]),
             ))
         else:
             report.checks.append(QualityCheck(
@@ -248,7 +248,8 @@ def _compatibility_checks(pkginfo: dict[str, str], report: QualityReport) -> Non
         report.checks.append(QualityCheck(
             name=tr("quality.name_arch"), category="compatibility",
             passed=arch_ok, score=10 if arch_ok else 0, max_score=10,
-            detail=f"Paket: {arch}, Sistem: {system_arch}" if arch else "Mimari bilinmiyor",
+            detail=tr("quality.det_paket_sistem", arch=arch, sistem=system_arch) if arch
+                           else tr("quality.det_mimari_bilinmiyor"),
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
@@ -266,7 +267,7 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
     report.checks.append(QualityCheck(
         name=tr("quality.name_pkgname"), category="metadata",
         passed=name_ok, score=5 if name_ok else 0, max_score=5,
-        detail=report.package_name or "Eksik",
+        detail=report.package_name or tr("quality.det_eksik"),
     ))
 
     # Version (5 pts)
@@ -276,7 +277,7 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         report.checks.append(QualityCheck(
             name=tr("quality.name_version"), category="metadata",
             passed=ver_ok, score=5 if ver_ok else 0, max_score=5,
-            detail=version or "Eksik",
+            detail=version or tr("quality.det_eksik"),
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
@@ -377,7 +378,7 @@ def _size_checks(pkg_path: Path, report: QualityReport) -> None:
                 name=tr("quality.name_filecount"), category="size",
                 passed=file_count < 5000,
                 score=f_score, max_score=10,
-                detail=f"{file_count} dosya",
+                detail=tr("quality.det_dosya_sayisi", n=file_count),
             ))
         else:
             report.checks.append(QualityCheck(

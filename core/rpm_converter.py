@@ -297,7 +297,7 @@ class RpmConverter(QObject):
             QProcess.ProcessError.Crashed: tr("rpmconv.self_phase_islemi_coktu", self__phase=self._phase),
             QProcess.ProcessError.Timedout: tr("rpmconv.self_phase_zaman_asimi", self__phase=self._phase),
         }
-        msg = error_map.get(error, f"Bilinmeyen hata: {error}")
+        msg = error_map.get(error, tr("rpmconv.bilinmeyen_hata", error=error))
         self.finished.emit(False, msg, None)
 
     def _find_output_package(self) -> Path | None:

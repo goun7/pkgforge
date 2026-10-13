@@ -98,7 +98,7 @@ class Installer(QObject):
         self._pkg_name = pkg_name
         self._cancelled = False
 
-        self.output_line.emit(f"▶ Paket kuruluyor: {pkg_path.name}")
+        self.output_line.emit(tr("installer.kuruluyor", ad=pkg_path.name))
 
         # Snapshot adi onceden uretilir; kurulumun kendisiyle AYNI pkexec
         # diyalogunda alinir (helper --snapshot bayragi). Boylece kurulum
@@ -149,7 +149,7 @@ class Installer(QObject):
         self._cancelled = True
         if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
             self._process.kill()
-            self.output_line.emit("⚠ Kurulum iptal edildi")
+            self.output_line.emit(tr("installer.kurulum_iptal"))
 
     def _on_output(self) -> None:
         if self._process is None:

@@ -86,7 +86,7 @@ def verify_rollback() -> RollbackVerifyResult:
     result.backend = backend
 
     if backend == "none":
-        result.detail = "Btrfs veya ZFS algılanmadı — rollback doğrulanamıyor"
+        result.detail = tr("rollback.backend_yok_detay")
         return result
 
     # Step 1: Record current state
@@ -143,7 +143,7 @@ def verify_rollback_restore() -> RollbackVerifyResult:
     result.backend = backend
 
     if backend == "none":
-        result.detail = "Btrfs veya ZFS algılanmadı"
+        result.detail = tr("rollback.backend_algilanamadi")
         return result
 
     # Record state
@@ -173,7 +173,7 @@ def verify_rollback_restore() -> RollbackVerifyResult:
     # State should match (we restored to the same state)
     if state_before == state_after:
         result.verified = True
-        result.detail = "✅ Rollback başarılı — dosya sistemi durumu eşleşiyor"
+        result.detail = tr("rollback.basarli")
     else:
         result.detail = (
             tr("rollback.rollback_sonrasi_dosya_sistemi", result_state_before=result.state_before, result_state_after=result.state_after)

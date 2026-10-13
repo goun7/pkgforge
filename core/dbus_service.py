@@ -83,16 +83,13 @@ def _handle_call(method_name: str, params_json: str,
                 response = {"jsonrpc": "2.0", "id": None,
                             "error": {"code": -32000,
                                       "message": (
-                                          "D-Bus policy: salt-okunur. "
-                                          "Ayarlar > D-Bus Servisi uzerinden "
-                                          "yazma izni verin (dbus.set_policy).")}}
+                                          tr("dbus.readonly_policy"))}}
             elif caller_uid != _own_uid():
                 # F5.1: session-bus peers are NOT trusted by default.
                 response = {"jsonrpc": "2.0", "id": None,
                             "error": {"code": -32002,
                                       "message": (
-                                          f"D-Bus arayani farkli kullanici "
-                                          f"(uid={caller_uid}); yazma reddedildi.")}}
+                                          tr("dbus.uid_farkli", uid=caller_uid))}}
             else:
                 response = _dispatch({"jsonrpc": "2.0", "id": 1,
                                       "method": method_name, "params": params})

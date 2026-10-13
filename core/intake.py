@@ -25,6 +25,7 @@ from enum import Enum
 from pathlib import Path
 
 from core.maps import arch_license
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -156,7 +157,7 @@ def classify(path: Path) -> IntakeResult:
     if path.is_dir():
         return _classify_dir(path)
     if not path.is_file():
-        return IntakeResult(FileType.UNKNOWN, path, 0.0, "dosya bulunamadi")
+        return IntakeResult(FileType.UNKNOWN, path, 0.0, tr("intake.dosya_bulunamadi"))
 
     name_lower = path.name.lower()
 
@@ -174,7 +175,7 @@ def classify(path: Path) -> IntakeResult:
         return IntakeResult(FileType.FLATPAKREF, path, 0.9, "uzanti .flatpakref",
                             actions=["convert"])
     if _is_arch_pkg_name(name_lower):
-        return IntakeResult(FileType.ARCH_PKG, path, 0.95, "Arch paket uzantisi",
+        return IntakeResult(FileType.ARCH_PKG, path, 0.95, tr("intake.arch_paket_uzantisi"),
                             actions=["install"])
 
     # 2) Magic bytes - uzantisiz/yaniltici dosyalar
@@ -191,7 +192,7 @@ def classify(path: Path) -> IntakeResult:
             (_GZ_MAGIC, _XZ_MAGIC, _BZ2_MAGIC, _ZST_MAGIC, _ZIP_MAGIC)):
         return _classify_tarball(path)
 
-    return IntakeResult(FileType.UNKNOWN, path, 0.0, "tanimanamayan tur")
+    return IntakeResult(FileType.UNKNOWN, path, 0.0, tr("intake.tanimanamayan_tur"))
 
 
 def _classify_dir(path: Path) -> IntakeResult:
@@ -203,10 +204,10 @@ def _classify_dir(path: Path) -> IntakeResult:
     system = detect_build_system(entries)
     if system:
         return IntakeResult(FileType.SOURCE_DIR, path, 0.85,
-                            "kaynak klasoru (" + system + ")", build_system=system,
+                            tr("intake.kaynak_klasoru_sistem", sistem=system), build_system=system,
                             actions=["build", "install"])
     return IntakeResult(FileType.UNKNOWN, path, 0.2,
-                        "klasorde build sistemi bulunamadi", ambiguous=True)
+                        tr("intake.build_sistemi_bulunamadi"), ambiguous=True)
 
 
 def _classify_tarball(path: Path) -> IntakeResult:
@@ -229,7 +230,7 @@ def _classify_tarball(path: Path) -> IntakeResult:
                             "hazir binary yerlesimi", actions=["wrap", "install"])
     if system and binary:
         return IntakeResult(FileType.UNKNOWN, path, 0.4,
-                            "hem kaynak hem binary isaretleri", build_system=system,
+                            tr("intake.hem_kaynak_hem_binary"), build_system=system,
                             ambiguous=True, actions=["build", "wrap"])
     return IntakeResult(FileType.UNKNOWN, path, 0.2, "icerik tanimlanamadi",
                         ambiguous=True)
@@ -345,7 +346,7 @@ def find_binary_entrypoint(names: list[str]) -> str | None:
 def _sanitize_name(name: str) -> str:
     """Gecersiz karakterleri temizleyip gecerli bir pkgname uretir."""
     s = re.sub(r"[^a-zA-Z0-9@._+-]", "-", name).lower().strip("-.")
-    return s or "paket"
+    return s or tr("intake.varsayilan_ad")
 
 
 def derive_name_version(stem: str) -> tuple[str, str]:

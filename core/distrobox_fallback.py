@@ -175,7 +175,7 @@ class DistroboxFallback(QObject):
             self.finished.emit(True, tr("distrobox.self_pkg_name_container", self__pkg_name=self._pkg_name))
         else:
             self.output_line.emit(tr("distrobox.kisayol_olusturuldu"))
-            self.finished.emit(True, f"{self._pkg_name} container'da kuruldu ve sisteme entegre edildi")
+            self.finished.emit(True, tr("distrobox.kuruldu_entegre", ad=self._pkg_name))
 
     def _on_output(self) -> None:
         if self._process is None:

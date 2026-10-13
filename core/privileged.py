@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 # F5.1: polkit action listesi ve helper yolu tek kaynaktan (capabilities)
 # turetilir; boylece policy uretimi ile HTTP/D-Bus kapsamlari kayamaz.
 from core.capabilities import action_exec_path, helper_system_path, polkit_actions
+from i18n import tr
 
 HELPER_SYSTEM_PATH = helper_system_path()
 POLICY_SYSTEM_PATH = "/usr/share/polkit-1/actions/org.pkgforge.helper.policy"
@@ -220,9 +221,7 @@ def privileged_setup_hint() -> str | None:
     if _SETUP_HINT_SHOWN or policy_installed():
         return None
     _SETUP_HINT_SHOWN = True
-    return ("Polkit politikasi kurulu degil — her yetkili islem ayri parola "
-            "ister. Tek parola icin: sudo ./scripts/install.sh "
-            "(ardindan policy + helper sisteme kurulur)")
+    return tr("priv.polkit_kurulu_degil")
 
 
 def _action_block(aid: str, title: str, desc: str) -> str:
@@ -296,5 +295,5 @@ if __name__ == "__main__":  # pragma: no cover - sudo entry point
         result = install_polkit_assets(dry_run="--dry-run" in _sys.argv)
         print(_json.dumps(result, indent=2))
     except Exception as exc:
-        print("hata:", exc, file=_sys.stderr)
+        print(tr("priv.hata", mesaj=exc), file=_sys.stderr)
         raise SystemExit(1) from exc
