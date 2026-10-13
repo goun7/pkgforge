@@ -168,7 +168,7 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
     """Run namcap static analysis on the package."""
     if not tools.namcap:
         return CheckResult(
-            name="Namcap Analizi",
+            name=tr("compat.namcap"),
             severity=CheckSeverity.WARNING,
             message="namcap bulunamadı, statik analiz atlandı",
         )
@@ -179,7 +179,7 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
 
     if not output:
         return CheckResult(
-            name="Namcap Analizi",
+            name=tr("compat.namcap"),
             severity=CheckSeverity.PASS,
             message="Namcap herhangi bir sorun tespit etmedi",
         )
@@ -200,21 +200,21 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
 
     if errors:
         return CheckResult(
-            name="Namcap Analizi",
+            name=tr("compat.namcap"),
             severity=CheckSeverity.ERROR,
             message=tr("compat.errors_hata_warnings_uyari", errors=len(errors), warnings=len(warnings)),
             details=errors + warnings,
         )
     elif warnings:
         return CheckResult(
-            name="Namcap Analizi",
+            name=tr("compat.namcap"),
             severity=CheckSeverity.WARNING,
             message=tr("compat.warnings_uyari_tespit_edildi", warnings=len(warnings)),
             details=warnings,
         )
     else:  # pragma: no cover — dış strip() en az bir dolu satır garantiler
         return CheckResult(
-            name="Namcap Analizi",
+            name=tr("compat.namcap"),
             severity=CheckSeverity.PASS,
             message="Sorun tespit edilmedi",
         )
@@ -227,7 +227,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
     if not depends:
         return [
             CheckResult(
-                name="Bağımlılık Kontrolü",
+                name=tr("compat.deps"),
                 severity=CheckSeverity.PASS,
                 message="Paket bağımlılığı yok",
             )
@@ -236,7 +236,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
         # Non-Arch host (CI/dev): no pacman db to consult; report skipped.
         return [
             CheckResult(
-                name="Bağımlılık Kontrolü",
+                name=tr("compat.deps"),
                 severity=CheckSeverity.WARNING,
                 message="pacman bulunamadı, bağımlılık kontrolü atlandı",
             )
@@ -293,7 +293,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
     if missing:
         results.append(
             CheckResult(
-                name="Bağımlılık Kontrolü",
+                name=tr("compat.deps"),
                 severity=CheckSeverity.WARNING,
                 message=tr("compat.missing_depends_bagimlilik_cozumlen", missing=len(missing), depends=len(depends)),
                 details=[f"❌ {d}" for d in missing],
@@ -302,7 +302,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
     else:
         results.append(
             CheckResult(
-                name="Bağımlılık Kontrolü",
+                name=tr("compat.deps"),
                 severity=CheckSeverity.PASS,
                 message=tr("compat.tum_bagimliliklar_resolved_cozumlen", resolved=len(resolved)),
                 details=[f"✓ {d}" for d in resolved],
@@ -318,13 +318,13 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
     """Check if any files would conflict with existing packages."""
     if not file_list:
         return CheckResult(
-            name="Dosya Çakışması",
+            name=tr("compat.conflicts"),
             severity=CheckSeverity.PASS,
             message="Dosya listesi boş, çakışma kontrolü atlandı",
         )
     if not tools.pacman:
         return CheckResult(
-            name="Dosya Çakışması",
+            name=tr("compat.conflicts"),
             severity=CheckSeverity.WARNING,
             message="pacman bulunamadı, çakışma kontrolü atlandı",
         )
@@ -351,14 +351,14 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
 
     if conflicts:
         return CheckResult(
-            name="Dosya Çakışması",
+            name=tr("compat.conflicts"),
             severity=CheckSeverity.WARNING,
             message=tr("compat.conflicts_dosya_mevcut_paketlerle", conflicts=len(conflicts)),
             details=conflicts[:20],  # limit display
         )
 
     return CheckResult(
-        name="Dosya Çakışması",
+        name=tr("compat.conflicts"),
         severity=CheckSeverity.PASS,
         message=tr("compat.check_files_dosya_kontrol", check_files=len(check_files)),
     )
@@ -543,7 +543,7 @@ def _shared_lib_result(
     unreachable = unreachable or []
     if glibc_issues:
         return CheckResult(
-            name="Shared Library Kontrolu",
+            name=tr("compat.so"),
             severity=CheckSeverity.ERROR,
             message=f"glibc uyumsuzlugu tespit edildi ({len(glibc_issues)} sorun)",
             details=glibc_issues + [f"Eksik: {lib}" for lib in missing_libs],
@@ -555,14 +555,14 @@ def _shared_lib_result(
         if unreachable:
             parts.append(tr("compat.libs_erisilemez", count=len(unreachable)))
         return CheckResult(
-            name="Shared Library Kontrolu",
+            name=tr("compat.so"),
             severity=CheckSeverity.WARNING,
             message=" — ".join(parts),
             details=[f"Eksik: {lib}" for lib in missing_libs]
             + [tr("compat.libs_erisilemez_detail", note=n) for n in unreachable],
         )
     return CheckResult(
-        name="Shared Library Kontrolu",
+        name=tr("compat.so"),
         severity=CheckSeverity.PASS,
         message=f"{checked_count} ELF dosyasi analiz edildi, tum kutuphaneler mevcut",
     )
@@ -583,20 +583,20 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
     elf_files, durum = _list_package_elf_files(pkg_path, tools)
     if durum == "arac":
         return CheckResult(
-            name="Shared Library Kontrolu",
+            name=tr("compat.so"),
             severity=CheckSeverity.WARNING,
             message="readelf/objdump veya bsdtar bulunamadi, kontrol atlandi",
         )
     if durum == "liste":
         return CheckResult(
-            name="Shared Library Kontrolu",
+            name=tr("compat.so"),
             severity=CheckSeverity.WARNING,
             message="Paket icerigi listelenemedi",
         )
     assert elf_files is not None
     if not elf_files:
         return CheckResult(
-            name="Shared Library Kontrolu",
+            name=tr("compat.so"),
             severity=CheckSeverity.PASS,
             message="Pakette ELF dosyasi tespit edilmedi",
         )
