@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "6e721e3d8bcef72d9b2e2d7043c04990a03d2a221b3743db1b32579ee2e57d44",
-  "outputTail": "emalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
-  "command": "./.venv/bin/python -m pytest tests/test_pathguard_containment.py tests/test_api_server_core.py tests/test_api_queue_round34.py tests/test_api_server_phase3.py tests/test_property_based.py -q",
-  "timestamp": "2026-10-13T11:24:05.905Z",
-  "diffHash": "4d4f323322fc7e7067d1eaa5cabdbe763fa3c558703dc381587c0defe37cda15",
-  "poeTag": "[PoE rc=0 out=6e721e3d8bcef72d diff=4d4f323322fc7e70 time=2026-10-13T11:24:05.905Z]",
-  "parentSealHash": "26a213fda7a291e1880c98f705ca96e2fe229aaa06a9e16a9ad51498482775cb",
-  "commitAtSealTime": "02e725d742627ea3b04f4f2400e01e0c496db2a5",
-  "sealHash": "f08eaed97932c1992a352aeb50ca96f60c62cc7186bebc7ba5940eb001726ec2"
+  "outputHash": "2b9d72051a5bfd7003606acf77d43323670d5e7e522bf29140c30f5247e631b9",
+  "outputTail": "..................................................... [ 94%]\n........................................................................ [ 97%]\n........................................................................ [ 99%]\n........                                                                 [100%]",
+  "command": "./.venv/bin/python -m pytest tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_sbom_and_stats.py -q",
+  "timestamp": "2026-10-13T11:43:00.268Z",
+  "diffHash": "51154449d6720538479f9339283e1635f9c04fbf55376b0fe8b46bebc449acca",
+  "poeTag": "[PoE rc=0 out=2b9d72051a5bfd70 diff=51154449d6720538 time=2026-10-13T11:43:00.268Z]",
+  "parentSealHash": "f08eaed97932c1992a352aeb50ca96f60c62cc7186bebc7ba5940eb001726ec2",
+  "commitAtSealTime": "d95dc01ee61d02e34a6f691850a2e39a23ec3b7a",
+  "sealHash": "7dcf98bf6433db2a920a150d38d44dd1ff6446d2c7ebd8fd29c8c7e2d4af09ab"
 }

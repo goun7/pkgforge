@@ -185,17 +185,20 @@ class SBOMDocument:
 
     def summary(self) -> str:
         lines = [
-            f"  📦 Paket:    {self.package_name} {self.package_version} ({self.package_arch})",
-            f"  📄 Toplam:   {self.total_files} dosya, {self.total_size_bytes / 1024:.0f} KB",
-            f"  🔧 ELF:      {self.elf_count}",
-            f"  📝 Metin:    {self.text_count}",
-            f"  🔗 Symlink:  {self.symlink_count}",
-            f"  📁 Dizin:    {self.dir_count}",
+            tr("sbom.sumoz.paket", package_name=self.package_name,
+               package_version=self.package_version, arch=self.package_arch),
+            tr("sbom.sumoz.toplam", total_files=self.total_files,
+               kb=f"{self.total_size_bytes / 1024:.0f}"),
+            tr("sbom.sumoz.elf", elf_count=self.elf_count),
+            tr("sbom.sumoz.metin", text_count=self.text_count),
+            tr("sbom.sumoz.symlink", symlink_count=self.symlink_count),
+            tr("sbom.sumoz.dizin", dir_count=self.dir_count),
         ]
         if self.dependencies:
             lines.append(tr("sbom.bagimliliklar_dependencies_var1", dependencies=len(self.dependencies), var1=', '.join(self.dependencies[:10])))
             if len(self.dependencies) > 10:
-                lines.append(f"     ... ve {len(self.dependencies) - 10} tane daha")
+                lines.append(tr("sbom.sumoz.devam",
+                               more=len(self.dependencies) - 10))
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:
