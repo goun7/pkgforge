@@ -71,7 +71,10 @@ def tr(key: str, **kwargs: Any) -> str:
     if kwargs:
         try:
             text = text.format(**kwargs)
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, IndexError):
+            # IndexError: template uses positional braces ("{}") but callers
+            # always pass keywords, so formatting can never complete. A
+            # translated string must never be able to crash a command.
             pass
 
     return text

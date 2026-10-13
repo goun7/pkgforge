@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "208d71c18d9788f1fc778a30f36fa9a514fb2ab381f819d6743b2c58068a411e",
-  "outputTail": "..................................................... [ 93%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n....................................                                     [100%]",
-  "command": "./.venv/bin/python -m pytest tests/test_sbom_standards_conformance.py tests/test_sbom_and_stats.py tests/test_i18n_key_drift.py tests/test_i18n_parity.py -q",
-  "timestamp": "2026-10-13T14:06:34.059Z",
-  "diffHash": "9a62aee8a52efc2a7d44302669f766301ba269cf64fbe7647bbfe5e61f94de43",
-  "poeTag": "[PoE rc=0 out=208d71c18d9788f1 diff=9a62aee8a52efc2a time=2026-10-13T14:06:34.059Z]",
-  "parentSealHash": "b545ccf1ca6195e32ecd8eea9f3c43d69eabb912510781d299b7067d6114aac1",
-  "commitAtSealTime": "15e23cff325e03135fefd1cfdbd2bb3eead56de2",
-  "sealHash": "73c16db2bf3089ecf17ee600040c200b15e0f2d483e769c2b8a5501c6be9117b"
+  "outputHash": "fadb649712f2aa286dc69f9312b2dbded8e51a506f12f33f6aaf5d4f6f5e2f21",
+  "outputTail": "..................................................... [ 92%]\n........................................................................ [ 95%]\n........................................................................ [ 97%]\n................................................................         [100%]",
+  "command": "./.venv/bin/python -m pytest tests/test_i18n_key_drift.py tests/test_i18n_sweep.py -q",
+  "timestamp": "2026-10-13T14:20:00.552Z",
+  "diffHash": "df71bbe5223b18b454813ca36fd219d640e735b1af067cd9f0aa98d67b8a6a11",
+  "poeTag": "[PoE rc=0 out=fadb649712f2aa28 diff=df71bbe5223b18b4 time=2026-10-13T14:20:00.552Z]",
+  "parentSealHash": "73c16db2bf3089ecf17ee600040c200b15e0f2d483e769c2b8a5501c6be9117b",
+  "commitAtSealTime": "d2f262bce911b37cff608afbf413ae5a1eb6c3d6",
+  "sealHash": "08d61d7f919f2dc56c615c3b59a2455acf44e8235c7d222ed8d72925716a8546"
 }

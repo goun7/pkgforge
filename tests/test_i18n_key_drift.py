@@ -99,3 +99,21 @@ def test_kataloglarda_kontrol_karakteri_yok():
         for anahtar, deger in katalog.items():
             kontrol = [c for c in deger if ord(c) < 32 and c != "\n"]
             assert not kontrol, f"{ad}:{anahtar} kontrol karakterleri {kontrol}"
+
+
+def test_konumlu_sablon_kwargs_ile_caburmaz(monkeypatch):
+    """IndexError tr()'den KACIYORDU: '{}' + kwargs -> format patlar.
+
+    Cok yerel hata: coklu hata yakalanmiyor diye ceviri sozlugunun bozuk bir
+    kaydi bir CLI komutunu dusururdu (bozuk `\\1` sablonlarinda bu neredeyse
+    oluyordu; tr()'de sessiz yutma vardi ama IndexError eksikti).
+    """
+    import i18n
+
+    monkeypatch.setattr(i18n, "_strings", {
+        "a": "konumlu {}", "b": "ad {ad}", "c": "bozuk {", "d": "eksik {yok}"})
+    monkeypatch.setattr(i18n, "_current_lang", "tr")
+    assert i18n.tr("a", ad=1) == "konumlu {}"     # caburmaz, ham metni birakir
+    assert i18n.tr("b", ad="x") == "ad x"          # normal dolma
+    assert i18n.tr("c", ad=1) == "bozuk {"         # ValueError yutuluyor
+    assert i18n.tr("d", ad=1) == "eksik {yok}"     # KeyError yutuluyor
