@@ -117,3 +117,20 @@ def test_konumlu_sablon_kwargs_ile_caburmaz(monkeypatch):
     assert i18n.tr("b", ad="x") == "ad x"          # normal dolma
     assert i18n.tr("c", ad=1) == "bozuk {"         # ValueError yutuluyor
     assert i18n.tr("d", ad=1) == "eksik {yok}"     # KeyError yutuluyor
+
+
+def test_EN_katalogunda_turkce_karakter_kalmamali():
+    """Ingilizce modda Turkce metin gorunmesi class'i kapanis kilidi.
+
+    Katalogdaki EN degerleri bir makine cevirisi gecisinde yari Turkce kalmisti
+    ("Package filesı not found", "signature datatabanı", "dataficationsı
+    failed") — Ingilizce arayuz kullanicisi icin bu, cevirinin hic olmamasindan
+    daha kotu. 127 kayit duzeltildi; bu test bir daha sizmasini engeller.
+    """
+    import re
+
+    turkce = re.compile(r"[çğıöşüÇĞİÖŞÜ]")
+    sikayetli = sorted(k for k, v in EN.items() if turkce.search(v))
+    assert not sikayetli, (
+        f"lang_en.py icinde {len(sikayetli)} degerde Turkce harf var: "
+        f"{sikayetli[:6]}")

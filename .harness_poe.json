@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "fadb649712f2aa286dc69f9312b2dbded8e51a506f12f33f6aaf5d4f6f5e2f21",
-  "outputTail": "..................................................... [ 92%]\n........................................................................ [ 95%]\n........................................................................ [ 97%]\n................................................................         [100%]",
-  "command": "./.venv/bin/python -m pytest tests/test_i18n_key_drift.py tests/test_i18n_sweep.py -q",
-  "timestamp": "2026-10-13T14:20:00.552Z",
-  "diffHash": "df71bbe5223b18b454813ca36fd219d640e735b1af067cd9f0aa98d67b8a6a11",
-  "poeTag": "[PoE rc=0 out=fadb649712f2aa28 diff=df71bbe5223b18b4 time=2026-10-13T14:20:00.552Z]",
-  "parentSealHash": "73c16db2bf3089ecf17ee600040c200b15e0f2d483e769c2b8a5501c6be9117b",
-  "commitAtSealTime": "d2f262bce911b37cff608afbf413ae5a1eb6c3d6",
-  "sealHash": "08d61d7f919f2dc56c615c3b59a2455acf44e8235c7d222ed8d72925716a8546"
+  "outputHash": "595e91383fb9f293f43ccc7faa0fd45997b26ea91495dfebe5237b274787aa83",
+  "outputTail": "..................................................... [ 92%]\n........................................................................ [ 94%]\n........................................................................ [ 97%]\n......................................................................   [100%]",
+  "command": "./.venv/bin/python -m pytest tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_i18n_sweep.py -q",
+  "timestamp": "2026-10-13T14:50:22.495Z",
+  "diffHash": "76b421bf45260fb323680c1b10b8a56de68ffd9aa0ebf1db35581defe07e2560",
+  "poeTag": "[PoE rc=0 out=595e91383fb9f293 diff=76b421bf45260fb3 time=2026-10-13T14:50:22.495Z]",
+  "parentSealHash": "08d61d7f919f2dc56c615c3b59a2455acf44e8235c7d222ed8d72925716a8546",
+  "commitAtSealTime": "4d6c6d8c2a6521404a90854f0575a40db42be6b2",
+  "sealHash": "414e7687796fa9986b22bf2b98ba0d442639b5758c2413fdca8890546ee16b4a"
 }
