@@ -56,7 +56,6 @@ def test_oniki_ay_katiligi_iki_dilde_de_var() -> None:
 
 def test_busiest_month_dile_gore_cevrilir() -> None:
     from core.stats_wrapped import _month_label
-
     from i18n import init_language
 
     init_language("tr")
@@ -126,8 +125,7 @@ def test_polkit_detayleri_placeholder_ile_doluyor() -> None:
 def test_keyring_probu_cekirdekte_ceviriye_bagli() -> None:
     from unittest import mock
 
-    import core.doctor as doctor
-
+    from core import doctor
     from i18n import init_language
 
     with mock.patch("core.secrets_store.available", return_value=False):
@@ -227,3 +225,44 @@ def test_main_hata_sablonu_doldurulabiliyor() -> None:
     _, en_d = _iki_dil("main.hata", mesaj="boom")
     assert en_d == "error: boom"
     assert main_mod.tr is not None
+
+
+def _docstring_sabitleri(agac: ast.AST) -> set[int]:
+    kimlikler: set[int] = set()
+    for dugum in ast.walk(agac):
+        if isinstance(dugum, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                              ast.AsyncFunctionDef)):
+            govde = getattr(dugum, "body", None)
+            if (govde and isinstance(govde[0], ast.Expr)
+                    and isinstance(govde[0].value, ast.Constant)
+                    and isinstance(govde[0].value.value, str)):
+                kimlikler.add(id(govde[0].value))
+    return kimlikler
+
+
+def test_core_api_tabakasinda_ham_turkce_mesaj_yok() -> None:
+    """JSON-RPC hata metinleri masaustü arayuzunde gorunur; ratchet.
+
+    Onceyan durumda handler metinleri koda gomuluydu: TR modunda Ingilizce
+    ("Invalid package name"), EN modunda Turkce ("... bulunamadı") kullanicinin
+    karsina cikiyordu. Docstring'ler ve tr() anahtarlari muaf.
+    """
+    suclu: list[str] = []
+    for yol in sorted((REPO / "core" / "api").rglob("*.py")):
+        if "__pycache__" in yol.parts:
+            continue
+        agac = ast.parse(yol.read_text(encoding="utf-8"))
+        doc = _docstring_sabitleri(agac)
+        anahtarlar = {
+            id(a) for c in ast.walk(agac) if isinstance(c, ast.Call)
+            and (getattr(c.func, "id", None) or getattr(c.func, "attr", None)) == "tr"
+            for a in c.args if isinstance(a, ast.Constant)
+        }
+        for sabit in ast.walk(agac):
+            if not isinstance(sabit, ast.Constant) or not isinstance(sabit.value, str):
+                continue
+            if id(sabit) in doc or id(sabit) in anahtarlar:
+                continue
+            if TURKCE_HARF.search(sabit.value) or _ASCII_TURKCE.search(sabit.value):
+                suclu.append(f"{yol.name}:{sabit.lineno}: {sabit.value[:48]!r}")
+    assert not suclu, "ham Turkce mesaj:\n" + "\n".join(suclu[:10])

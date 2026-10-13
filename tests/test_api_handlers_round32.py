@@ -1,6 +1,7 @@
 """Tur-32 — api_server isleyici katmani, birinci parti (senkron _run)."""
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -8,6 +9,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 import core.api_server as AS
+from i18n import tr
 
 
 @pytest.fixture()
@@ -99,12 +101,13 @@ def test_pipeline_start_ok_and_gates(senkron, tmp_path, monkeypatch):
 
 
 def test_history_handlers(senkron, monkeypatch, tmp_path):
-    with pytest.raises(ValueError, match="Invalid package name"):
+    beklenen = tr("api.gecersiz_paket_adi_name", name="kötü;rm")
+    with pytest.raises(ValueError, match=re.escape(beklenen)):
         AS.handle_history_uninstall({"name": "kötü;rm"})        # 172-173
     iyi = AS.handle_history_uninstall({"name": "demo"})
     assert iyi["requires_privilege"] is True
 
-    with pytest.raises(ValueError, match="Invalid package name"):
+    with pytest.raises(ValueError, match=re.escape(beklenen)):
         AS.handle_history_rollback({"name": "kötü;rm"})
 
     _mod(monkeypatch, "core.history_db")   # sadece importi garanti et

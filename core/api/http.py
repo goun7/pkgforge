@@ -14,6 +14,7 @@ from core.api import handlers_queue, transport
 from core.api.protocol import _dispatch
 from core.api.registry import METHODS
 from core.capabilities import http_reader_methods as _http_reader_methods
+from i18n import tr
 
 # HTTP hardening limits (F4.2).
 _HTTP_MAX_BODY = 1_048_576  # 1 MiB request body ceiling
@@ -79,10 +80,10 @@ def build_openapi_schema() -> dict[str, Any]:
                         },
                     }}}},
                 "responses": {
-                    "200": {"description": "JSON-RPC yanıtı"},
-                    "401": {"description": "token gerekli"},
-                    "403": {"description": "okuma yetkisi yok"},
-                    "429": {"description": "hız limiti"},
+                    "200": {"description": tr("api.openapi_200")},
+                    "401": {"description": tr("api.openapi_401")},
+                    "403": {"description": tr("api.openapi_403")},
+                    "429": {"description": tr("api.openapi_429")},
                 },
             }
         }
@@ -91,9 +92,7 @@ def build_openapi_schema() -> dict[str, Any]:
         "info": {
             "title": "PkgForge API",
             "version": APP_VERSION,
-            "description": ("JSON-RPC yüzeyi. Yazma işlemleri operator "
-                            "token, salt-okuma metodları read-token ile "
-                            "açılır."),
+            "description": tr("api.openapi_aciklama"),
         },
         "servers": [{"url": "/"}],
         "paths": paths,
@@ -108,16 +107,13 @@ def _http_validate_bind(host: str, token: str, insecure_http_lan: bool) -> None:
     loopback = host in ("127.0.0.1", "localhost", "::1")
     if not loopback and not token:
         raise ValueError(
-            "Non-loopback bind requires --token "
-            "(LAN erisimi kimlik dogrulamasiz acilamaz)")
+            tr("api.bind_token_gerekli"))
     # F5.2b: no TLS support — plain HTTP on a routable address is only
     # allowed behind an explicit opt-in, or in front of a TLS-terminating
     # reverse proxy (use --trusted-proxy so X-Forwarded-For is honoured).
     if not loopback and not insecure_http_lan:
         raise ValueError(
-            "Non-loopback HTTP requires --insecure-http-lan "
-            "(TLS yok; acik HTTP LAN erisimi icin riski bilincli onaylayin "
-            " ya da onde TLS sonlandiran bir reverse proxy kullanin)")
+            tr("api.bind_insecure_gerekli"))
 
 
 def _make_http_handler(token: str, read_token: str, trusted_proxy: bool) -> type:

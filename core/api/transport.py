@@ -10,6 +10,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from i18n import tr
+
 _write_lock = threading.Lock()
 
 # Pipeline state (single conversion at a time, matching the GUI model).
@@ -89,7 +91,7 @@ def _require_pkg_file(params: dict[str, Any]) -> Path:
     """
     path = _guarded_pkg_path(params.get("pkg_path", ""))
     if not path.is_file():
-        raise FileNotFoundError(f"Package not found: {path}")
+        raise FileNotFoundError(tr("api.pkg_bulunamadi_path", path=path))
     return path
 
 

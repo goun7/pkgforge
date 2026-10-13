@@ -33,10 +33,10 @@ def handle_plugin_uninstall(params: dict[str, Any]) -> dict[str, Any]:
 
     name = params.get("name", "")
     if not is_valid_plugin_name(name):
-        raise ValueError(f"Invalid plugin name: {name}")
+        raise ValueError(tr("api.gecersiz_plugin_adi_name", name=name))
     removed = uninstall_plugin(name)
     if not removed:
-        raise FileNotFoundError(f"Plugin not found: {name}")
+        raise FileNotFoundError(tr("api.plugin_bulunamadi_name", name=name))
     reload_plugins()
     return {"ok": True}
 
@@ -65,9 +65,9 @@ def handle_compare_diff(params: dict[str, Any]) -> dict[str, Any]:
     old_path = guarded_path(params.get("old_path", ""), field="old_path")
     new_path = guarded_path(params.get("new_path", ""), field="new_path")
     if not old_path.is_file():
-        raise FileNotFoundError(f"Old package not found: {old_path}")
+        raise FileNotFoundError(tr("api.eski_paket_bulunamadi_path", path=old_path))
     if not new_path.is_file():
-        raise FileNotFoundError(f"New package not found: {new_path}")
+        raise FileNotFoundError(tr("api.yeni_paket_bulunamadi_path", path=new_path))
     tools = discover_tools()
 
     def _op() -> Any:
@@ -90,7 +90,7 @@ def _validate_aur_name(name: str) -> None:
     # critically, "." / ".." path segments before the name reaches
     # tempfile.mkdtemp(prefix=f"pkgforge-aur-{name}-") and the clone URL.
     if not name or not _AUR_NAME_RE.match(name) or len(name) > 255:
-        raise ValueError(f"Invalid AUR package name: {name!r}")
+        raise ValueError(tr("api.gecersiz_aur_adi_name", name=name))
 
 
 def handle_aur_search(params: dict[str, Any]) -> dict[str, Any]:
@@ -153,7 +153,7 @@ def handle_aur_build(params: dict[str, Any]) -> dict[str, Any]:
 
         built = sorted((workdir / name).glob("*.pkg.tar.zst"))
         if not built:
-            raise RuntimeError("makepkg tamamlandı ama paket dosyası bulunamadı")
+            raise RuntimeError(tr("api.makepkg_dosya_bulunamadi"))
         # Build-only handler: install is never attempted here (SEC).
         return {"name": name, "pkg_path": str(built[-1]), "installed": False}
 

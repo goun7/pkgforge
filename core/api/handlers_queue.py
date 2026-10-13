@@ -212,7 +212,7 @@ def handle_queue_priority(params: dict[str, Any]) -> dict[str, Any]:
     item_id = params.get("id", "")
     with _queue_lock:
         if item_id not in _queue_items:
-            raise KeyError(f"Queue item not found: {item_id}")
+            raise KeyError(tr("api.queue_kayit_bulunamadi_id", item_id=item_id))
         _queue_items[item_id]["priority"] = int(params.get("priority", 0))
         _persist_item(_queue_items[item_id])
     return {"ok": True}
@@ -295,6 +295,8 @@ def handle_queue_start(params: dict[str, Any]) -> dict[str, Any]:
     if not has_pending:
         return {"started": False, "reason": "no pending items"}
     if _queue_running:
+        # Makine etiketi: masaustu arayuzu (Convert.tsx) bu metne gore toast
+        # seciyor; cevirmek o karari kirilir.
         return {"started": False, "reason": "already running"}
     _queue_running = True
     threading.Thread(target=_queue_dispatch, args=(parallel, do_install),
@@ -463,11 +465,10 @@ def handle_sync_config(params: dict[str, Any]) -> dict[str, Any]:
                 stored_in = "rejected"
         elif not user:
             stored_in = "rejected"
-            warning = "Anahtarlik icin kullanici adi gerekli"
+            warning = tr("api.anahtarlik_kullanici_gerekli")
         else:
             stored_in = "rejected"
-            warning = ("Plaintext password storage is disabled. Enable a "
-                       "Secret Service (gnome-keyring/kwalletd) and retry.")
+            warning = tr("api.duz_metin_parola_kapali")
 
     save_settings(s)
     out = {"ok": True, "password_stored": stored_in}

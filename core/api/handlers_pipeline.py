@@ -7,6 +7,7 @@ from typing import Any
 
 from core.api import transport
 from core.pathguard import guarded_path
+from i18n import tr
 
 
 def handle_pipeline_start(params: dict[str, Any]) -> dict[str, Any]:
@@ -15,7 +16,7 @@ def handle_pipeline_start(params: dict[str, Any]) -> dict[str, Any]:
 
     path = guarded_path(params.get("path", ""), field="path")
     if not path.exists():
-        raise FileNotFoundError(f"File not found: {path}")
+        raise FileNotFoundError(tr("api.dosya_bulunamadi_path", path=path))
     # Universal intake: accept every type; an optional 'mode' resolves an
     # ambiguous tarball (source_tarball / binary_tarball / ...).
     mode = params.get("mode") or None
@@ -74,7 +75,7 @@ def handle_history_uninstall(params: dict[str, Any]) -> dict[str, Any]:
 
     name = params.get("name", "")
     if not is_valid_package_name(name):
-        raise ValueError(f"Invalid package name: {name}")
+        raise ValueError(tr("api.gecersiz_paket_adi_name", name=name))
     # Actual pacman -R requires privilege escalation; the desktop UI
     # triggers pkexec via its own privileged helper in a later phase.
     return {"ok": True, "requires_privilege": True, "package": name}
@@ -86,7 +87,7 @@ def handle_history_rollback(params: dict[str, Any]) -> dict[str, Any]:
 
     name = params.get("name", "")
     if not is_valid_package_name(name):
-        raise ValueError(f"Invalid package name: {name}")
+        raise ValueError(tr("api.gecersiz_paket_adi_name", name=name))
     db = HistoryDB()
     records = db.get_records_for_package(name)
     backups = [r for r in records if r.backup_pkg and Path(r.backup_pkg).is_file()]
@@ -109,7 +110,7 @@ def handle_history_restore(params: dict[str, Any]) -> dict[str, Any]:
 
     records = params.get("records") or []
     if not isinstance(records, list):
-        raise TypeError("records bir liste olmalı")
+        raise TypeError(tr("api.records_liste_olmali"))
     db = HistoryDB()
     restored = db.restore_records(records)
     return {"ok": True, "restored": restored}

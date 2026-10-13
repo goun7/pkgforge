@@ -6,7 +6,7 @@ from typing import Any
 
 from core.api import transport
 from core.pathguard import guarded_path
-from i18n import load_settings, save_settings
+from i18n import load_settings, save_settings, tr
 
 
 # -- C1: D-Bus service bridge ------------------------------------
@@ -32,7 +32,7 @@ def handle_install_rehearse(params: dict[str, Any]) -> dict[str, Any]:
     path = str(guarded_path(params.get("package_path", ""),
                             field="package_path"))
     if not path:
-        raise ValueError("package_path gerekli")
+        raise ValueError(tr("api.package_path_gerekli"))
     return rehearse_install(Path(path))
 
 
@@ -42,14 +42,14 @@ def handle_tools_rpm_to_deb(params: dict[str, Any]) -> dict[str, Any]:
 
     rpm_path = Path(params.get("rpm", ""))
     if not rpm_path.is_file():
-        raise FileNotFoundError(f"RPM bulunamadi: {rpm_path}")
+        raise FileNotFoundError(tr("api.rpm_bulunamadi_path", path=rpm_path))
     out_raw = params.get("output_dir", "")
     out_dir = Path(out_raw) if out_raw else Path.cwd()
 
     def _op() -> Any:
         if not is_rpm_to_deb_available():
             return {"ok": False,
-                    "message": "rpm2cpio veya dpkg-deb bulunamadi",
+                    "message": tr("api.donusum_araci_bulunamadi"),
                     "deb_path": None}
         ok, msg, deb_path = rpm_to_deb(rpm_path, out_dir)
         return {"ok": ok, "message": msg,
@@ -67,7 +67,7 @@ def handle_tools_abi_check(params: dict[str, Any]) -> dict[str, Any]:
 
     pkg_path = Path(params.get("package", ""))
     if not pkg_path.is_file():
-        raise FileNotFoundError(f"Paket bulunamadi: {pkg_path}")
+        raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg_path))
 
     def _op() -> Any:
         report = check_abi_compatibility(pkg_path)
@@ -139,7 +139,7 @@ def handle_tools_scan_image(params: dict[str, Any]) -> dict[str, Any]:
 
     image_path = Path(params.get("image", ""))
     if not image_path.exists():
-        raise FileNotFoundError(f"Goruntu bulunamadi: {image_path}")
+        raise FileNotFoundError(tr("api.goruntu_bulunamadi_path", path=image_path))
 
     def _op() -> Any:
         return scan_oci_image(image_path)
@@ -159,14 +159,14 @@ def handle_tools_attest(params: dict[str, Any]) -> dict[str, Any]:
 
     pkg_path = Path(params.get("package", ""))
     if not pkg_path.is_file():
-        raise FileNotFoundError(f"Paket bulunamadi: {pkg_path}")
+        raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg_path))
     signer_key = params.get("key", "") or ""
 
     def _op() -> Any:
         prov_path = find_provenance(pkg_path)
         if not prov_path:
             return {"ok": False,
-                    "error": "Provenance kaydi bulunamadi (once convert calistirin)"}
+                    "error": tr("api.provenance_kaydi_bulunamadi")}
         prov = load_provenance(prov_path)
         if not prov:
             return {"ok": False, "error": f"Provenance yuklenemedi: {prov_path}"}
@@ -197,7 +197,7 @@ def handle_tools_publish(params: dict[str, Any]) -> dict[str, Any]:
 
     pkg_path = Path(params.get("package", ""))
     if not pkg_path.is_file():
-        raise FileNotFoundError(f"Paket bulunamadi: {pkg_path}")
+        raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg_path))
     out_raw = params.get("output_dir", "")
     out_dir = Path(out_raw) if out_raw else Path.cwd()
     aur_url = params.get("aur_url", "") or ""

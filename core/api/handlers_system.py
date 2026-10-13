@@ -21,12 +21,12 @@ def handle_delta_enable(params: dict[str, Any]) -> dict[str, Any]:
     # Enabling the systemd timer requires privilege escalation; the desktop
     # UI triggers pkexec via its own privileged helper in a later phase.
     return {"ok": False, "requires_privilege": True,
-            "message": "Delta auto-update etkinleştirme yetkili işlem gerektiriyor (pkexec)"}
+            "message": tr("api.delta_etkinlestirme_yetki")}
 
 
 def handle_delta_disable(params: dict[str, Any]) -> dict[str, Any]:
     return {"ok": False, "requires_privilege": True,
-            "message": "Delta auto-update kapatma yetkili işlem gerektiriyor (pkexec)"}
+            "message": tr("api.delta_kapatma_yetki")}
 
 
 # ── Faz 1 / A1: export centers ──────────────────────────────────
@@ -52,7 +52,7 @@ def handle_export_appimage_to_deb(params: dict[str, Any]) -> dict[str, Any]:
 
     appimage = Path(params.get("appimage_path", ""))
     if not appimage.is_file():
-        raise FileNotFoundError(f"AppImage not found: {appimage}")
+        raise FileNotFoundError(tr("api.appimage_bulunamadi_path", path=appimage))
     out_dir = guarded_path(params.get("output_dir", "."), field="output_dir")
 
     def _op() -> Any:
@@ -76,7 +76,7 @@ def handle_export_flatpak_to_deb(params: dict[str, Any]) -> dict[str, Any]:
 
     app_id = params.get("app_id", "")
     if not app_id:
-        raise ValueError("app_id is required")
+        raise ValueError(tr("api.app_id_gerekli"))
     branch = params.get("branch", "stable")
     out_dir = guarded_path(params.get("output_dir", "."), field="output_dir")
 
@@ -122,7 +122,7 @@ def handle_source_generate(params: dict[str, Any]) -> dict[str, Any]:
 
     repo_url = params.get("repo_url", "").strip()
     if not repo_url:
-        raise ValueError("repo_url is required")
+        raise ValueError(tr("api.repo_url_gerekli"))
     out_dir = guarded_path(params.get("output_dir", "."), field="output_dir").resolve()
 
     def _op() -> Any:
@@ -131,7 +131,7 @@ def handle_source_generate(params: dict[str, Any]) -> dict[str, Any]:
             transport._event("event/source_progress", {"step": "clone"})
             res = safe_run(["git", "clone", "--depth=1", repo_url, str(tmp / "repo")], timeout=120)
             if res.returncode != 0:
-                raise RuntimeError(f"git clone failed: {res.stderr[:200]}")
+                raise RuntimeError(tr("api.git_clone_basarisiz_var0", var0=res.stderr[:200]))
             repo_dir = tmp / "repo"
 
             proj_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
@@ -176,7 +176,7 @@ def handle_system_cross_check(params: dict[str, Any]) -> dict[str, Any]:
 
     name = params.get("package_name", "")
     if not name:
-        raise ValueError("package_name is required")
+        raise ValueError(tr("api.package_name_gerekli"))
     local_version = params.get("local_version", "")
 
     def _op() -> Any:
@@ -249,7 +249,7 @@ def handle_system_install_pkg(params: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(tr("api.gecersiz_paket_dosyasi_pkg", pkg_name=pkg.name))
     tools = discover_tools()
     if not tools.pkexec or not tools.pacman:
-        raise RuntimeError("pkexec veya pacman bulunamadı")
+        raise RuntimeError(tr("api.pkexec_pacman_bulunamadi"))
 
     # Snapshot + kurulum TEK diyalogda (helper --snapshot).
     snap = ""

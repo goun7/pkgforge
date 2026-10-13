@@ -8,6 +8,7 @@ from typing import Any
 from config import discover_tools
 from core.api import transport
 from core.pathguard import guarded_path
+from i18n import tr
 
 
 def handle_security_verify(params: dict[str, Any]) -> dict[str, Any]:
@@ -102,7 +103,7 @@ def handle_security_provenance_create(params: dict[str, Any]) -> dict[str, Any]:
     source_file = Path(params.get("source_file", ""))
     output_file = Path(params.get("output_file", ""))
     if not source_file.is_file():
-        raise FileNotFoundError(f"Source not found: {source_file}")
+        raise FileNotFoundError(tr("api.kaynak_bulunamadi_path", path=source_file))
 
     def _op() -> Any:
         prov = create_provenance(

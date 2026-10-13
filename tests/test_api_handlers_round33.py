@@ -1,6 +1,7 @@
 """Tur-33 — api_server isleyici katmani, ikinci parti."""
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -8,6 +9,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 import core.api_server as AS
+from i18n import tr
 
 
 @pytest.fixture()
@@ -75,7 +77,8 @@ def test_source_generate_gates_and_flow(senkron, monkeypatch, tmp_path):
                                "output_dir": str(tmp_path)})
     hatali = [r for r in senkron if r[0] == "event/source_done"
               and not r[1]["ok"]]
-    assert hatali and "git clone failed" in hatali[-1][1]["hata"]
+    assert hatali and tr("api.git_clone_basarisiz_var0",
+                         var0="baglanti yok") in hatali[-1][1]["hata"]
 
 
 # --- system ----------------------------------------------------------------------
@@ -202,7 +205,8 @@ def test_plugin_handlers(senkron, monkeypatch):
     monkeypatch.setattr(mp, "uninstall_plugin", lambda n: True)
     assert AS.handle_plugin_uninstall({"name": "demo"}) == {"ok": True}
 
-    with pytest.raises(ValueError, match="Invalid plugin"):
+    with pytest.raises(ValueError,
+                       match=re.escape(tr("api.gecersiz_plugin_adi_name", name="kotu!"))):
         AS.handle_plugin_uninstall({"name": "kotu!"})
     monkeypatch.setattr(mp, "uninstall_plugin", lambda n: False)
     with pytest.raises(FileNotFoundError):
