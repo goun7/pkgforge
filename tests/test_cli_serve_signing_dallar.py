@@ -80,14 +80,17 @@ def test_serve_banner_uruleri_varsayilan(serve_calls, capsys):
 
 
 @pytest.mark.parametrize("host,port", [
-    ("0.0.0.0", 9100),
     ("localhost", 7000),
     ("127.0.0.1", 8899),
     ("::1", 9000),
-    ("192.168.1.10", 65535),
 ])
 def test_serve_ozel_host_port(serve_calls, capsys, host, port):
-    """ORTAM: host/port args'ten gelir, banner'a ve run()'a aynen gecer."""
+    """ORTAM: host/port args'ten gelir, banner'a ve run()'a aynen gecer.
+
+    Routable adresler (0.0.0.0, 192.168.x) burada listelenMEZ: api_v2 kimlik
+    dogrulamasi olmadigi icin artik reddediliyor — davranis kilitleri
+    tests/test_api_v2_bind_guard.py icinde.
+    """
     rc = _cmd_serve_api(_ns(host=host, port=port))
     assert rc == 0
     assert serve_calls == [{"host": host, "port": port}]
@@ -95,6 +98,15 @@ def test_serve_ozel_host_port(serve_calls, capsys, host, port):
     assert f"http://{host}:{port}" in out
     assert f"http://{host}:{port}/docs" in out
     assert f"http://{host}:{port}/api/v2/openapi.json" in out
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "192.168.1.10"])
+def test_serve_routable_host_redededilir(serve_calls, capsys, host):
+    """GUVENLIK SOZLESMESI: routable bind rc=1, run() cagrilmaz, banner yok."""
+    rc = _cmd_serve_api(_ns(host=host, port=9100))
+    assert rc == 1
+    assert serve_calls == []
+    assert "🚀" not in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("attr", ["host", "port"])
@@ -134,9 +146,12 @@ def test_serve_port_bos_string_defaulta_doner(serve_calls):
 
 
 def test_serve_run_argumanlari_anahtarlarla(serve_calls):
-    """ORTAM: run() host= ve port= anahtar argumanlariyla cagrilir."""
-    _cmd_serve_api(_ns(host="10.0.0.1", port=1234))
-    assert serve_calls[0] == {"host": "10.0.0.1", "port": 1234}
+    """ORTAM: run() host= ve port= anahtar argumanlariyla cagrilir.
+
+    Loopback adresi kullanilir: amac arguman ismi tasimasi, bind politikasi degil.
+    """
+    _cmd_serve_api(_ns(host="127.0.0.1", port=1234))
+    assert serve_calls[0] == {"host": "127.0.0.1", "port": 1234}
 
 
 def test_serve_export_openapi_yoksa_run_cagrilir(serve_calls):

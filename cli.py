@@ -1313,7 +1313,7 @@ def _cmd_health(args: argparse.Namespace) -> int:
 def _cmd_serve_api(args: argparse.Namespace) -> int:
     """Handle `pkgforge serve-api` (Tur-55 C10)."""
     try:
-        from core.api_v2 import export_openapi
+        from core.api_v2 import ensure_bind_allowed, export_openapi
         from core.api_v2 import run as _run_api
     except ImportError as exc:
         print(f"❌ REST API bagimlilklari kurulu degil: {exc}", file=sys.stderr)
@@ -1328,6 +1328,13 @@ def _cmd_serve_api(args: argparse.Namespace) -> int:
 
     host = getattr(args, "host", "127.0.0.1") or "127.0.0.1"
     port = int(getattr(args, "port", 8899) or 8899)
+    try:
+        # Validated before the banner: uvicorn.run() blocks, so printing the
+        # URL first would show a promise the bind guard is about to refuse.
+        ensure_bind_allowed(host)
+    except ValueError as exc:
+        print(f"❌ {exc}", file=sys.stderr)
+        return 1
     print(f"🚀 PkgForge API v2: http://{host}:{port}")
     print(f"   • Docs:   http://{host}:{port}/docs")
     print(f"   • Schema: http://{host}:{port}/api/v2/openapi.json")

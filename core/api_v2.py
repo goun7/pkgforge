@@ -7,8 +7,8 @@ HTTP tabanlı bir REST + OpenAPI yüzeyi sağlar:
   - /api/v2/benchmark
   - /api/v2/signing/status
   - /api/v2/packages/manifests (POST validate)
-  - /api/v2/openapi.json (auto-generated)
-  - /api/v2/docs (Swagger UI)
+  - /openapi.json (auto-generated)
+  - /docs (Swagger UI)
 
 CLI: `pkgforge serve-api --port 8899`
 """
@@ -188,7 +188,31 @@ def export_openapi(target_path: str) -> str:
     return target_path
 
 
+#: Addresses that are not reachable from another machine.
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def ensure_bind_allowed(host: str) -> None:
+    """Reject a routable bind for this unauthenticated surface.
+
+    Split out of run() so the CLI can validate BEFORE printing the URL banner.
+    """
+    if host not in _LOOPBACK_HOSTS:
+        raise ValueError(
+            f"api_v2 does not authenticate requests; refusing to bind {host}. "
+            "Use 127.0.0.1/localhost/::1, or run 'pkgforge serve' (token-based) "
+            "for LAN access.")
+
+
 def run(host: str = "127.0.0.1", port: int = 8899) -> None:
-    """Standalone uvicorn runner (CLI entrypoint)."""
+    """Standalone uvicorn runner (CLI entrypoint).
+
+    This surface has no authentication at all (no token, no TLS), so it may
+    only listen on loopback: a routable bind would expose
+    `POST /api/v2/benchmark` and friends to the whole network/lab. Users who
+    need remote access must use `pkgforge serve`, which enforces a token via
+    core/api/http._http_validate_bind.
+    """
+    ensure_bind_allowed(host)
     import uvicorn
     uvicorn.run(app, host=host, port=port, log_level="info")
