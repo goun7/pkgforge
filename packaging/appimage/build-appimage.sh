@@ -21,7 +21,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 VERSION="$(python3 -c 'import config; print(config.APP_VERSION)')"
+# appimagetool ARCH'u ORTAMdan okur; export edilmezse alt islem goremez.
+# Declare/assign separate (SC2155): exporting the substitution directly would
+# mask a failing uname and silently produce "PkgForge-<ver>-.AppImage".
+export ARCH
 ARCH="$(uname -m)"
+[ -n "$ARCH" ] || { echo "HATA: uname -m bos dondu" >&2; exit 1; }
 APPDIR="dist/AppDir"
 
 echo "==> PkgForge $VERSION AppImage ($ARCH)"
@@ -59,6 +64,6 @@ install -Dm644 data/org.pkgforge.app.metainfo.xml \
 
 # ── 3. AppImage uret ────────────────────────────────────────────
 echo "==> appimagetool calistiriliyor"
-ARCH="$ARCH" appimagetool "$APPDIR" "dist/PkgForge-$VERSION-$ARCH.AppImage"
+appimagetool "$APPDIR" "dist/PkgForge-$VERSION-$ARCH.AppImage"
 
 echo "==> TAMAM: dist/PkgForge-$VERSION-$ARCH.AppImage"

@@ -27,6 +27,23 @@ _queue_store: Any = None
 _queue_store_lock = threading.Lock()
 
 
+def _close_queue_store(store: Any) -> None:
+    """Best-effort connection close for atexit.
+
+    atexit runs on the main thread, but the store is created by whichever
+    request first touches the queue - often a worker thread. sqlite3 refuses
+    cross-thread use of a connection, so an unguarded close() raised
+    ProgrammingError on every sidecar shutdown (reproduced twice) while doing
+    no cleanup at all. The process is exiting either way, so the only correct
+    behaviour is to try and stay quiet when the connection is not ours to close.
+    """
+    try:
+        store.close()
+    except Exception as exc:  # noqa: BLE001 - shutdown path must not raise
+        logging.getLogger(__name__).debug(
+            "QueueStore kapatilamadi (thread sahipligi): %s", exc)
+
+
 def _get_queue_store() -> Any:
     global _queue_store
     with _queue_store_lock:
@@ -36,7 +53,7 @@ def _get_queue_store() -> Any:
                 _queue_store = QueueStore()
                 # Singleton yasam dongusu: process cikisinda baglantiyi kapat
                 # (sqlite WAL temizligi + dosya tutamac sizintisini onle).
-                atexit.register(_queue_store.close)
+                atexit.register(_close_queue_store, _queue_store)
             except Exception:  # noqa: BLE001 - persistence is best-effort
                 _queue_store = False  # sentinel: tried and failed
         return _queue_store or None

@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "15d45ee89dd77c1573712d174e175e1369a0daf3ca0e6acdebef061ce046e96d",
-  "outputTail": "........................................................................ [ 77%]\n.....................                                                    [100%]",
-  "command": "./.venv/bin/python -m pytest tests/test_api_v2_bind_guard.py tests/test_cli_serve_signing_dallar.py -q",
-  "timestamp": "2026-10-13T11:56:55.117Z",
-  "diffHash": "b6650906e77cf0722a3f4822de119a27f141288c8844583583a905a59db03393",
-  "poeTag": "[PoE rc=0 out=15d45ee89dd77c15 diff=b6650906e77cf072 time=2026-10-13T11:56:55.117Z]",
-  "parentSealHash": "7dcf98bf6433db2a920a150d38d44dd1ff6446d2c7ebd8fd29c8c7e2d4af09ab",
-  "commitAtSealTime": "6c472f2ef1e9230d94ec375ea94651d998322808",
-  "sealHash": "7edb63937718059a3dc988a8ba9dcb1b50f55bde95f751494ef3881d8d643dfa"
+  "outputHash": "19b2ac35fe86a2ffd7f63fcc7be0133ef5ec32674d2807f0ae4b40a88cb0ae05",
+  "outputTail": "emalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+  "command": "./.venv/bin/python -m pytest tests/test_http_rpc_routing.py tests/test_queue_store_atexit.py tests/test_api_queue_round34.py -q",
+  "timestamp": "2026-10-13T13:44:32.648Z",
+  "diffHash": "c5c8ba5df682124905932cb02bc1f771c872e97713a9f67d9ba3ee7a82633c36",
+  "poeTag": "[PoE rc=0 out=19b2ac35fe86a2ff diff=c5c8ba5df6821249 time=2026-10-13T13:44:32.648Z]",
+  "parentSealHash": "7edb63937718059a3dc988a8ba9dcb1b50f55bde95f751494ef3881d8d643dfa",
+  "commitAtSealTime": "be92a62b4474128c7bb3cea8cf84edefd06d1f55",
+  "sealHash": "b545ccf1ca6195e32ecd8eea9f3c43d69eabb912510781d299b7067d6114aac1"
 }

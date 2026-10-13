@@ -247,6 +247,28 @@ def _make_http_handler(token: str, read_token: str, trusted_proxy: bool) -> type
                 self._reply(400, {"jsonrpc": "2.0", "id": None,
                                   "error": {"code": -32700, "message": "Parse error"}})
                 return
+            if not isinstance(msg, dict):
+                # Arrays/strings/numbers decode fine but have no "method";
+                # calling .get on them crashed the handler with AttributeError.
+                self._reply(400, {"jsonrpc": "2.0", "id": None,
+                                  "error": {"code": -32600,
+                                            "message": "Invalid Request"}})
+                return
+            # The schema advertises POST /rpc/<method>; honour it instead of
+            # routing on the body alone. Bare "/" stays supported (existing
+            # clients and the Tauri bridge post there).
+            route = self.path.split("?", 1)[0]
+            if route not in ("/", "/rpc"):
+                if not route.startswith("/rpc/"):
+                    self._reply(404, {"jsonrpc": "2.0", "id": msg.get("id"),
+                                      "error": {"code": -32601,
+                                                "message": "Unknown RPC path"}})
+                    return
+                if msg.get("method") != route[len("/rpc/"):]:
+                    self._reply(400, {"jsonrpc": "2.0", "id": msg.get("id"),
+                                      "error": {"code": -32600,
+                                                "message": "Path/method mismatch"}})
+                    return
             if scope == "reader" and msg.get("method") not in _READ_METHODS:
                 self._reply(403, {"jsonrpc": "2.0", "id": msg.get("id"),
                                   "error": {"code": -32000,

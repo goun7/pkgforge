@@ -123,10 +123,17 @@ def test_get_queue_store_sentinel(monkeypatch):
 
 
 def test_get_queue_store_registers_atexit_close(monkeypatch):
-    """Singleton QueueStore process cikisinda atexit ile kapatilmali."""
+    """Singleton QueueStore process cikisinda atexit ile kapatilmali.
+
+    Kayit dogrudan `store.close` degil, `_close_queue_store` sarmalayicisi ile
+    yapilir: atexit Ana thread'de calisir, store ise ilk queue istegini isleyen
+    parcacikta kurulur; sqlite capraz-thread kapatmayi reddettigi icin ham
+    `.close` kapanista ProgrammingError basilmasina yol aciyordu.
+    """
     monkeypatch.setattr(AS.handlers_queue, "_queue_store", None)
     kayitli = []
-    monkeypatch.setattr(AS.handlers_queue.atexit, "register", lambda fn: kayitli.append(fn))
+    monkeypatch.setattr(AS.handlers_queue.atexit,
+                        "register", lambda fn, *a: kayitli.append((fn, a)))
 
     class SahteStore:
         closed = False
@@ -139,7 +146,11 @@ def test_get_queue_store_registers_atexit_close(monkeypatch):
     store = AS.handlers_queue._get_queue_store()
     assert isinstance(store, SahteStore)
     assert len(kayitli) == 1            # atexit'e tam bir kayit
-    kayitli[0]()                        # kayitli close cagrisi
+    fn, args = kayitli[0]
+    assert fn is AS.handlers_queue._close_queue_store
+    assert args == (store,)
+    fn(*args)                           # kayitli kapanis cagrisi
+    assert SahteStore.closed is True
     assert SahteStore.closed is True
 
 
