@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "a5bad37fc2190bed21c8f7befa636dc4fbe8b2f6206048cff2d3378a016c4864",
-  "outputTail": "........................................................                 [100%]",
-  "command": "python -m pytest tests/test_aur_srcinfo_real.py tests/test_aur_publish_units.py tests/test_endgame_round58.py tests/test_cli_supplychain.py -q --no-cov",
-  "timestamp": "2026-10-13T20:41:47.241Z",
-  "diffHash": "9b2729737c6fc07cccc5223307cb66062f37b29c363d4dfad4414785907f79ab",
-  "poeTag": "[PoE rc=0 out=a5bad37fc2190bed diff=9b2729737c6fc07c time=2026-10-13T20:41:47.241Z]",
-  "parentSealHash": "7afaedceb984ee2198103f94034732cefcfdc4f09cca66d5a92cfb38b7193681",
-  "commitAtSealTime": "1dda30e5ee7104e271c02a2cf6895835637cc311",
-  "sealHash": "e804b28d37c3adb8fc575c7d7f984dcaffd650cc5de66c4a473da01792e93970"
+  "outputHash": "d2724cdff2b6b41ec23c57d67f7c110b63fe95daf9a7ee53532e8b058ed803d3",
+  "outputTail": "m\u001b[32m 290\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m2 passed\u001b[39m\u001b[22m\u001b[90m (2)\u001b[39m\n\u001b[2m   Start at \u001b[22m 23:46:39\n\u001b[2m   Duration \u001b[22m 2.19s\u001b[2m (environment 55%, tests 14%, import 11%, transform 10%, setup 9%, worker 1%)\u001b[22m",
+  "command": "bash -c 'cd desktop && ./node_modules/.bin/vitest run src/__tests__/AppTopbarSearch.test.tsx'",
+  "timestamp": "2026-10-13T20:46:42.004Z",
+  "diffHash": "a9d47b6c9704417b0ce8854297d327f4af7b2a103a1a07ae15f755eabaf444f9",
+  "poeTag": "[PoE rc=0 out=d2724cdff2b6b41e diff=a9d47b6c9704417b time=2026-10-13T20:46:42.004Z]",
+  "parentSealHash": "e804b28d37c3adb8fc575c7d7f984dcaffd650cc5de66c4a473da01792e93970",
+  "commitAtSealTime": "97f5bcbef085a0293616a244ac17326ba85e23bc",
+  "sealHash": "ba80d4c12e827e0a0a8582ea491b5bda2eb607dafb5cad93bd76a00e48048b72"
 }

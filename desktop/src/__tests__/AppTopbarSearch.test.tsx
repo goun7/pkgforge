@@ -12,7 +12,7 @@ import App from "../App";
  * Bu dosya Topbar'ı MOCKLAMAZ — App'in gerçek kompozisyonunu sınar.
  */
 
-const invokeMock = vi.fn(() => Promise.resolve(null));
+const invokeMock = vi.fn((..._args: unknown[]) => Promise.resolve(null));
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
