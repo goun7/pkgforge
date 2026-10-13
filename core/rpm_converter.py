@@ -62,13 +62,13 @@ class RpmConverter(QObject):
         3. Run makepkg to produce .pkg.tar.zst
         """
         if not self._tools.rpm2cpio:
-            self.finished.emit(False, "rpm2cpio bulunamadı — rpmextract paketi gerekli", None)
+            self.finished.emit(False, tr("rpmconv.rpm2cpio_gerekli"), None)
             return
         if not self._tools.bsdtar:
-            self.finished.emit(False, "bsdtar bulunamadı — libarchive paketi gerekli", None)
+            self.finished.emit(False, tr("rpmconv.bsdtar_gerekli"), None)
             return
         if not self._tools.makepkg:
-            self.finished.emit(False, "makepkg bulunamadı — pacman paketi gerekli", None)
+            self.finished.emit(False, tr("rpmconv.makepkg_gerekli"), None)
             return
 
         self._work_dir = work_dir
@@ -84,12 +84,12 @@ class RpmConverter(QObject):
         self._cancelled = True
         if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
             self._process.kill()
-            self.output_line.emit("⚠ RPM dönüşümü iptal edildi")
+            self.output_line.emit(tr("rpmconv.rpm_donusum_iptal"))
 
     # ── Phase 1: Extract ─────────────────────────────────────────
 
     def _extract_rpm(self, rpm_path: Path) -> None:
-        self.output_line.emit("▶ RPM içeriği çıkarılıyor...")
+        self.output_line.emit(tr("conv.rpm_icerik_cikariliyor"))
 
         pkg_dir = self._work_dir / "pkg_root"
         pkg_dir.mkdir(parents=True, exist_ok=True)
@@ -112,14 +112,14 @@ class RpmConverter(QObject):
 
     def _on_extract_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if self._cancelled:
-            self.finished.emit(False, "İptal edildi", None)
+            self.finished.emit(False, tr("pipeline.iptal_edildi"), None)
             return
 
         if exit_code != 0:
             self.finished.emit(False, tr("rpmconv.rpm_cikarma_basarisiz_kod", exit_code=exit_code), None)
             return
 
-        self.output_line.emit("✓ RPM içeriği çıkarıldı")
+        self.output_line.emit(tr("conv.rpm_icerik_cikarildi"))
 
         # Security: reject archives whose contents symlink outside the tree
         escaping = check_symlink_attacks(self._work_dir / "pkg_root")
@@ -155,7 +155,7 @@ class RpmConverter(QObject):
         if self._meta is None:
             return
 
-        self.output_line.emit("▶ PKGBUILD oluşturuluyor...")
+        self.output_line.emit(tr("conv.pkgbuild_olusturuluyor"))
 
         build_dir = self._work_dir / "build"
         build_dir.mkdir(parents=True, exist_ok=True)
@@ -184,7 +184,7 @@ class RpmConverter(QObject):
         self.output_line.emit(tr("rpmconv.pkgbuild_yazildi_pkgbuild_path", pkgbuild_path_name=pkgbuild_path.name))
 
         # Run makepkg
-        self.output_line.emit("▶ makepkg çalıştırılıyor...")
+        self.output_line.emit(tr("conv.makepkg_calistiriliyor"))
         self._phase = "build"
 
         self._process = self._make_process(self)
@@ -213,7 +213,7 @@ class RpmConverter(QObject):
 
     def _on_build_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if self._cancelled:
-            self.finished.emit(False, "İptal edildi", None)
+            self.finished.emit(False, tr("pipeline.iptal_edildi"), None)
             return
 
         if exit_code != 0:
@@ -230,14 +230,14 @@ class RpmConverter(QObject):
             )
             final = final or pkg_file
             self.output_line.emit(tr("rpmconv.paket_olusturuldu_pkg_file", pkg_file_name=final.name))
-            self.finished.emit(True, "RPM dönüşümü başarılı", final)
+            self.finished.emit(True, tr("rpmconv.rpm_donusum_basarli"), final)
         else:
-            self.finished.emit(False, "makepkg başarılı ama çıktı paketi bulunamadı", None)
+            self.finished.emit(False, tr("conv.makepkg_cikti_yok"), None)
 
     def _generate_pkgbuild(self, src_dir: Path, license_id: str = "") -> str:
         """Generate a PKGBUILD for the extracted RPM content."""
         if self._meta is None:
-            raise RuntimeError("Paket metadatası mevcut değil (meta=None)")
+            raise RuntimeError(tr("rpmconv.meta_yok"))
         meta = self._meta
 
         # Prefer dependencies resolved from the actual extracted binaries; fall

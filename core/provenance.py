@@ -222,7 +222,7 @@ def verify_provenance(prov: BuildProvenance) -> tuple[bool, str]:
         if actual != prov.output_sha256:
             return False, tr("provenance.cikti_dosyasi_hash_uyusmazligi", actual=actual[:16], output_sha256=prov.output_sha256[:16])
 
-    return True, "Provenance doğrulandı ✓"
+    return True, tr("prov.dogrulandi")
 
 
 def find_provenance(output_file: Path) -> Path | None:
@@ -373,4 +373,4 @@ def verify_attestation(attestation: InTotoStatement) -> tuple[bool, str]:
         if _key not in pred:
             return False, tr("provenance.predicate_de_key_alani", field=_key)
 
-    return True, "Attestation doğrulandı ✓"
+    return True, tr("prov.attestation_dogrulandi")

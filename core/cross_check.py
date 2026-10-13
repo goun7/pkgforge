@@ -55,7 +55,7 @@ def cross_check_package(package_name: str, local_version: str = "") -> CrossChec
     # 3. Determine best source using _version_compare (vercmp)
     best_source = "local"
     best_ver = local_version or "0.0.0"
-    reason = "Yerel paket güncel veya tek kaynak."
+    reason = tr("cross.yerel_guncel_veya_tek_kaynak")
 
     if aur_ver and _version_compare(aur_ver, best_ver) > 0:
         best_source = "aur"

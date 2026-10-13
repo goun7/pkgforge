@@ -192,7 +192,7 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
     graph = DepGraph()
     pacman = shutil.which("pacman")
     if not pacman:
-        graph.warnings.append("pacman bulunamadı — grafik oluşturulamıyor")
+        graph.warnings.append(tr("graph.pacman_yok_grafik_yok"))
         return graph
 
     # Extract package name from filename or use as-is. Delegate to the
@@ -384,12 +384,12 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
         tmp = Path(tmpdir)
 
         if not _extract_for_graph(pkg_path, tmp):
-            graph.warnings.append("Paket çıkarılamadı — format desteklenmiyor")
+            graph.warnings.append(tr("graph.paket_cikarilamadi_format"))
             return graph
 
         ldd = shutil.which("ldd")
         if not ldd:
-            graph.warnings.append("ldd bulunamadı — paylaşılan kütüphane analizi yapılamıyor")
+            graph.warnings.append(tr("graph.ldd_yok_analiz_yok"))
             return graph
 
         elf_count = 0
@@ -400,6 +400,6 @@ def build_file_dep_graph(pkg_path: Path) -> DepGraph:
             _ldd_graph_edges(candidate, ldd, tmp, graph)
 
         if elf_count == 0:
-            graph.warnings.append("Pakette ELF dosyası bulunamadı — paylaşılan kütüphane grafiği boş")
+            graph.warnings.append(tr("graph.elf_yok_grafik_bos"))
 
     return graph

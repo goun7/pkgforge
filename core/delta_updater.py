@@ -516,7 +516,7 @@ def notify_update_available(packages: list[str]) -> bool:
     if notify_send:
         from core.security import safe_run as _safe_run
         _safe_run(
-            [notify_send, "--urgency=normal", "PkgForge Güncelleme", message],
+            [notify_send, "--urgency=normal", tr("delta.bildirim_basligi"), message],
             timeout=5,
         )
         log.info(tr("delta.desktop_notification_gonderildi_d_paket"), len(packages))

@@ -12,6 +12,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from i18n import tr
+
 SERVICE = "org.freedesktop.secrets"
 SERVICE_PATH = "/org/freedesktop/secrets"
 COLLECTION_DEFAULT = "/org/freedesktop/secrets/aliases/default"
@@ -155,8 +157,7 @@ class SecretStore:
             raise SecretStoreError(f"CreateItem failed: {exc}") from exc
         item, prompt = str(reply.body[0]), str(reply.body[1])
         if prompt not in ("", "/"):
-            raise SecretStoreError(
-                "Kilitli koleksiyon: etkileşimli prompt gerekli")
+            raise SecretStoreError(tr("secrets.kilitli_koleksiyon"))
         return item
 
     def _get_secret(self, conn: Any, session: str, item: str) -> bytes:

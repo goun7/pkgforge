@@ -75,8 +75,7 @@ def sign_with_sigstore(
     if not cosign:
         return SigstoreResult(
             success=False,
-            message="cosign bulunamadı — Sigstore imzalama için gerekli. "
-                    "Yükleme: go install github.com/sigstore/cosign/v2/cmd/cosign@latest",
+            message=tr("sigstore.cosign_imzalama_gerekli"),
         )
 
     if not file_path.is_file():
@@ -147,7 +146,7 @@ def verify_with_sigstore(
     if not cosign:
         return SigstoreResult(
             success=False,
-            message="cosign bulunamadı — Sigstore doğrulama için gerekli",
+            message=tr("sigstore.cosign_dogrulama_gerekli"),
         )
 
     if not file_path.is_file():

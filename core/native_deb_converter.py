@@ -61,20 +61,20 @@ class NativeDebConverter(QObject):
             return
 
         if not self._tools.makepkg:
-            self.finished.emit(False, "makepkg bulunamadı", None)
+            self.finished.emit(False, tr("nativedeb.makepkg_yok"), None)
             return
 
         self._work_dir = output_dir
         self._cancelled = False
 
-        self.output_line.emit("▶ Paket analizi yapılıyor...")
+        self.output_line.emit(tr("conv.paket_analizi_yapiliyor"))
         try:
             self._meta = analyze_package(deb_path, self._tools)
         except Exception as exc:  # noqa: BLE001
             self.finished.emit(False, tr("nativedeb.deb_analizi_basarisiz_exc", exc=exc), None)
             return
 
-        self.output_line.emit("▶ DEB verileri ayıklanıyor...")
+        self.output_line.emit(tr("conv.deb_veri_ayiklaniyor"))
         try:
             build_dir = self._work_dir / "native_build"
             src_dir = build_dir / "src"
@@ -100,7 +100,7 @@ class NativeDebConverter(QObject):
 
             # Resolve real Arch dependencies from the extracted binaries so the
             # generated package declares installable deps, not raw deb names.
-            self.output_line.emit("▶ Bağımlılıklar çözümleniyor...")
+            self.output_line.emit(tr("conv.bagimlilik_cozuluyor"))
             resolved_deps = resolve_runtime_dependencies(src_dir, self._tools)
             if resolved_deps:
                 self.output_line.emit(tr("nativedeb.resolved_deps_bagimlilik_cozumlendi", resolved_deps=len(resolved_deps)))
@@ -130,7 +130,7 @@ class NativeDebConverter(QObject):
         self._cancelled = True
         if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
             self._process.kill()
-            self.output_line.emit("⚠ Native DEB dönüşümü iptal edildi")
+            self.output_line.emit(tr("nativedeb.donusum_iptal"))
 
     def _extract_data_tar(self, deb_path: Path, dest_dir: Path) -> None:
         """Extract data.tar.* member from .deb into dest_dir."""
@@ -146,7 +146,7 @@ class NativeDebConverter(QObject):
                 break
 
         if not data_tar:
-            raise RuntimeError(".deb içinde data.tar bulunamadı")
+            raise RuntimeError(tr("conv.deb_data_tar_yok"))
 
         # Extract data.tar payload and pipe to bsdtar or tar.
         # ar_proc.stderr is consumed via PIPE to avoid a deadlock if ar
@@ -260,7 +260,7 @@ class NativeDebConverter(QObject):
 
     def _on_makepkg_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if self._cancelled:
-            self.finished.emit(False, "İptal edildi", None)
+            self.finished.emit(False, tr("pipeline.iptal_edildi"), None)
             return
 
         if exit_code != 0:
@@ -277,9 +277,9 @@ class NativeDebConverter(QObject):
             )
             final = final or pkg_file
             self.output_line.emit(tr("nativedeb.native_deb_paketi_hazirlandi", pkg_file_name=final.name))
-            self.finished.emit(True, "Native DEB dönüşümü başarılı", final)
+            self.finished.emit(True, tr("nativedeb.donusum_basarli"), final)
         else:
-            self.finished.emit(False, "makepkg başarılı ancak çıktı paketi bulunamadı", None)
+            self.finished.emit(False, tr("nativedeb.makepkg_cikti_yok"), None)
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
         self.finished.emit(False, tr("nativedeb.native_deb_donusturucu_hatasi", error=error), None)

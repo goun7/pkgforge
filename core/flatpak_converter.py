@@ -184,7 +184,7 @@ def create_deb_package(
         # Build .deb using dpkg-deb
         dpkg_deb = shutil.which("dpkg-deb")
         if not dpkg_deb:
-            return False, "dpkg-deb bulunamadı — dpkg paketi gerekli"
+            return False, tr("conv.dpkg_deb_gerekli")
 
         res = safe_run(
             ["dpkg-deb", "--build", str(deb_root), str(output_path)],
@@ -214,7 +214,7 @@ def flatpak_to_deb(
         (success, message, deb_path)
     """
     if not is_flatpak_available():
-        return False, "flatpak bulunamadı — pacman -S flatpak", None
+        return False, tr("flatpak.yok_kurulum"), None
 
     # Get app metadata
     app = get_app_info(app_id)
@@ -286,7 +286,7 @@ def export_flatpak_runtime(
         (success, message, manifest_path)
     """
     if not is_flatpak_available():
-        return False, "flatpak bulunamadı", None
+        return False, tr("flatpak.bulunamadi"), None
 
     # Get app info
     apps = list_installed_apps()

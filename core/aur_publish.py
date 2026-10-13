@@ -256,7 +256,7 @@ def push_to_aur(
     """
     git = shutil.which("git")
     if not git:
-        return False, "git bulunamadı"
+        return False, tr("aurpublish.git_yok")
 
     # Initialize git repo if needed
     if not (aur_dir / ".git").exists():

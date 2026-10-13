@@ -72,7 +72,7 @@ class DistroboxFallback(QObject):
         4. Export desktop entry to host
         """
         if not self._tools.distrobox:
-            self.finished.emit(False, "distrobox bulunamadı")
+            self.finished.emit(False, tr("distrobox.yok"))
             return
 
         self._pkg_name = pkg_name
@@ -105,13 +105,13 @@ class DistroboxFallback(QObject):
             self.finished.emit(False, tr("distrobox.container_olusturulamadi_kod_exit", exit_code=exit_code))
             return
 
-        self.output_line.emit("✓ Container oluşturuldu")
+        self.output_line.emit(tr("distrobox.container_olusturuldu"))
         self._phase = "install"
         self._install_in_container()
 
     def _install_in_container(self) -> None:
         """Install the package inside the container."""
-        self.output_line.emit("▶ Paket container içinde kuruluyor...")
+        self.output_line.emit(tr("distrobox.containerda_kuruluyor"))
 
         pkg_type = "deb" if self._pkg_path.suffix.lower() == ".deb" else "rpm"
 
@@ -149,13 +149,13 @@ class DistroboxFallback(QObject):
             self.finished.emit(False, tr("distrobox.container_ici_kurulum_basarisiz", exit_code=exit_code))
             return
 
-        self.output_line.emit("✓ Paket container içinde kuruldu")
+        self.output_line.emit(tr("distrobox.containerda_kuruldu"))
         self._phase = "export"
         self._export_app()
 
     def _export_app(self) -> None:
         """Export the application's desktop entry from container to host."""
-        self.output_line.emit("▶ Masaüstü kısayolu dışa aktarılıyor...")
+        self.output_line.emit(tr("distrobox.kisayol_disa_aktariliyor"))
 
         self._process = self._make_process(self)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
@@ -171,10 +171,10 @@ class DistroboxFallback(QObject):
     def _on_export_finished(self, exit_code: int, _status: QProcess.ExitStatus) -> None:
         if exit_code != 0:
             # Export failure is not critical
-            self.output_line.emit("⚠ Masaüstü kısayolu dışa aktarılamadı (manuel: distrobox-export --app)")
+            self.output_line.emit(tr("distrobox.kisayol_disa_aktarilamadi"))
             self.finished.emit(True, tr("distrobox.self_pkg_name_container", self__pkg_name=self._pkg_name))
         else:
-            self.output_line.emit("✓ Masaüstü kısayolu oluşturuldu")
+            self.output_line.emit(tr("distrobox.kisayol_olusturuldu"))
             self.finished.emit(True, f"{self._pkg_name} container'da kuruldu ve sisteme entegre edildi")
 
     def _on_output(self) -> None:

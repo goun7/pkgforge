@@ -46,10 +46,10 @@ def rpm_to_deb(
         return False, tr("rpm2deb.dosya_bulunamadi_rpm_path", rpm_path=rpm_path), None
 
     if not shutil.which("rpm2cpio"):
-        return False, "rpm2cpio bulunamadı — rpmextract paketi gerekli", None
+        return False, tr("rpmconv.rpm2cpio_gerekli"), None
 
     if not shutil.which("dpkg-deb"):
-        return False, "dpkg-deb bulunamadı — dpkg paketi gerekli", None
+        return False, tr("conv.dpkg_deb_gerekli"), None
 
     with tempfile.TemporaryDirectory(prefix="pkgforge_rpm2deb_") as tmpdir:
         tmp = Path(tmpdir)

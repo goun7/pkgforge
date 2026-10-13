@@ -164,11 +164,11 @@ def appimage_to_deb(
 
         # Extract
         if not extract_appimage(appimage_path, extract_dir):
-            return False, "AppImage çıkarılamadı", None
+            return False, tr("appimage.cikarilamadi"), None
 
         approot = extract_dir / "squashfs-root"
         if not approot.is_dir():
-            return False, "AppImage içeriği çıkarılamadı (squashfs-root)", None
+            return False, tr("appimage.icerik_cikarilamadi"), None
 
         # Create DEB structure
         deb_root = Path(tmpdir) / "deb"
@@ -212,7 +212,7 @@ def appimage_to_deb(
         # Build .deb
         dpkg_deb = shutil.which("dpkg-deb")
         if not dpkg_deb:
-            return False, "dpkg-deb bulunamadı — dpkg paketi gerekli", None
+            return False, tr("conv.dpkg_deb_gerekli"), None
 
         res = safe_run(
             ["dpkg-deb", "--build", str(deb_root), str(output_path)],

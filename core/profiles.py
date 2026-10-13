@@ -75,9 +75,9 @@ def delete_profile(name: str) -> dict[str, Any]:
     """Delete a non-default, non-active profile and all of its data."""
     _validate_name(name)
     if name == DEFAULT_PROFILE:
-        raise ProfileError("Varsayılan profil silinemez")
+        raise ProfileError(tr("profiles.varsayilan_silinemez"))
     if name == current_profile():
-        raise ProfileError("Etkin profil silinemez; önce başka bir profile geçin")
+        raise ProfileError(tr("profiles.etkin_profil_silinemez"))
     target = profiles_dir() / name
     if not target.is_dir():
         raise ProfileError(tr("profiles.profil_bulunamadi_name", name=name))

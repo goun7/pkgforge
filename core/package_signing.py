@@ -81,7 +81,7 @@ def sign_package(
         (success, message)
     """
     if not is_gpg_available():
-        return False, "gpg bulunamadı — kurulum: sudo pacman -S gnupg"
+        return False, tr("signing.gpg_yok_kurulum")
 
     if not package_path.is_file():
         return False, tr("signing.paket_bulunamadi_package_path", package_path=package_path)
@@ -104,7 +104,7 @@ def sign_package(
         return False, tr("signing.gpg_imzalama_basarisiz_res", res_stderr=res.stderr)
 
     if not sig_path.is_file():
-        return False, "İmza dosyası oluşturulamadı"
+        return False, tr("signing.imza_dosyasi_olusmadi")
 
     log.info(tr("signing.paket_imzalandi_s_s"), package_path.name, sig_path.name)
     return True, tr("signing.mza_olusturuldu_sig_path", sig_path_name=sig_path.name)
@@ -120,7 +120,7 @@ def verify_signature(package_path: Path) -> SignatureInfo:
         SignatureInfo with verification details.
     """
     if not is_gpg_available():
-        return SignatureInfo(detail="gpg bulunamadı — imza doğrulanamıyor")
+        return SignatureInfo(detail=tr("signing.gpg_yok_dogrulanamiyor"))
 
     sig_path = Path(f"{package_path}.sig")
     if not sig_path.is_file():
@@ -165,7 +165,7 @@ def verify_signature(package_path: Path) -> SignatureInfo:
     elif info.signed:
         info.detail = tr("signing.mza_mevcut_ama_dogrulanamadi", var0=info.signer or info.key_id)
     else:
-        info.detail = "Geçerli imza bulunamadı"
+        info.detail = tr("signing.gecerli_imza_yok")
 
     return info
 

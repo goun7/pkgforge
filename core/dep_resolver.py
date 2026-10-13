@@ -53,7 +53,7 @@ class ResolveReport:
         ]
         if self.missing_count > 0:
             lines.append("")
-            lines.append("  Eksik bağımlılıklar:")
+            lines.append(tr("resolver.eksik_bagimliliklar"))
             for d in self.deps:
                 if not d.resolved:
                     lines.append(f"    ❌ {d.name}{d.required_version} — {d.source}")
@@ -243,7 +243,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
     if not aur_helper:
         aur_helper = _aur_helper()
     if not aur_helper:
-        return False, "AUR helper bulunamadı (paru veya yay)"
+        return False, tr("resolver.aur_helper_yok")
 
     cmd = [aur_helper, "-S", "--needed", "--noconfirm"] + packages
     res = safe_run(cmd, timeout=300)

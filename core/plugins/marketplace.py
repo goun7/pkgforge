@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from core.downloader import assert_public_host
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -49,8 +50,7 @@ def _validate_plugin_name(name: str) -> None:
     """Raise ValueError if *name* is not a safe plugin identifier."""
     if not is_valid_plugin_name(name):
         raise ValueError(
-            f"Geçersiz plugin adı: {name!r}. "
-            f"Yalnızca küçük harf, rakam, '-' ve '_' içeren 1-64 karakterlik adlar kabul edilir."
+            tr("plugin.ad_gecersiz_name", name=repr(name))
         )
 
 
@@ -58,7 +58,7 @@ def _require_https(url: str) -> None:
     """Raise ValueError unless *url* uses the https scheme."""
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != "https":
-        raise ValueError(f"Güvenlik: plugin indirme yalnızca HTTPS üzerinden yapılır: {url}")
+        raise ValueError(tr("plugin.indirme_https_zorunlu_url", url=url))
 
 
 def _get_user_agent() -> str:
@@ -218,9 +218,8 @@ def install_plugin(
                 expected_sha = sha_path.read_text().strip().split()[0]
             except (urllib.error.URLError, urllib.error.HTTPError, OSError, IndexError) as exc:
                 raise RuntimeError(
-                    f"Checksum dosyası alınamadı ({name}): {exc}. "
-                    f"Doğrulama yapılamadığı için kurulum iptal edildi."
-                ) from exc
+                    tr("plugin.checksum_alinamadi_name_exc", name=name,
+                       exc=exc)) from exc
             actual_sha = _sha256_file(tmp_path)
             if actual_sha.lower() != expected_sha.lower():
                 raise RuntimeError(
@@ -290,15 +289,15 @@ def update_plugin(name: str) -> tuple[bool, str, Path | None]:
     installed_names = {p["name"] for p in installed}
 
     if name not in installed_names:
-        return False, f"Plugin '{name}' kurulu değil", None
+        return False, tr("plugin.kurulu_degil_name", name=name), None
 
     try:
         path = install_plugin(name, force=True)
-        return True, f"Plugin güncellendi: {name}", path
+        return True, tr("plugin.guncellendi_name", name=name), path
     except FileNotFoundError as exc:
         return False, str(exc), None
     except (RuntimeError, ValueError) as exc:
-        return False, f"Güncelleme başarısız: {exc}", None
+        return False, tr("plugin.guncelleme_basarisiz_exc", exc=exc), None
 
 
 def audit_plugins() -> list[dict[str, str]]:
@@ -332,13 +331,13 @@ def audit_plugins() -> list[dict[str, str]]:
 
             if expected_hash:
                 if current_hash == expected_hash:
-                    results.append({"name": name, "status": "ok", "message": "Checksum eşleşiyor"})
+                    results.append({"name": name, "status": "ok", "message": tr("plugin.checksum_eslesiyor")})
                 else:
-                    results.append({"name": name, "status": "changed", "message": f"Hash değişmiş: {current_hash[:16]}... → beklenen: {expected_hash[:16]}..."})
+                    results.append({"name": name, "status": "changed", "message": tr("plugin.hash_degisti", mevcut=current_hash[:16], beklenen=expected_hash[:16])})
             else:
-                results.append({"name": name, "status": "unknown", "message": "Checksum doğrulanamadı (marketplace erişilemez)"})
+                results.append({"name": name, "status": "unknown", "message": tr("plugin.checksum_dogrulanamadi")})
 
         except Exception as exc:  # noqa: BLE001
-            results.append({"name": name, "status": "error", "message": f"Audit hatası: {exc}"})
+            results.append({"name": name, "status": "error", "message": tr("plugin.audit_hatasi_exc", exc=exc)})
 
     return results

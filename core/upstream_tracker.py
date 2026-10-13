@@ -49,7 +49,7 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
             source_url=record.source_url,
             has_update=False,
             status="offline",
-            detail="Çevrimdışı mod — güncelleme kontrolü atlandı",
+            detail=tr("upstream.cevrimdisi_atlandi"),
         )
 
     if not record.source_url or not record.source_url.startswith(("http://", "https://")):
@@ -58,7 +58,7 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
             source_url=record.source_url,
             has_update=False,
             status="no_url",
-            detail="Geçerli indirme URL'si yok (http/https gerekli)",
+            detail=tr("upstream.url_gecersiz"),
         )
 
     try:
@@ -114,9 +114,9 @@ def check_upstream_update(record: HistoryRecord, offline: bool = False) -> Updat
                 detail = tr("upstream.last_modified_degisti_prev", prev_last_mod=prev_last_mod, last_mod=last_mod)
             elif not prev_etag and not prev_last_mod:
                 # İlk kayıt — sakla ama güncelleme olarak işaretleme
-                detail = "İlk kontrol — upstream erişilebilir"
+                detail = tr("upstream.ilk_kontrol")
             else:
-                detail = "Değişiklik tespit edilmedi"
+                detail = tr("upstream.degisiklik_yok")
 
             return UpdateCheckResult(
                 package_name=record.package_name,

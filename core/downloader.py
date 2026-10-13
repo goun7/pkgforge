@@ -105,10 +105,7 @@ class _SchemeGuardRedirectHandler(urllib.request.HTTPRedirectHandler):
                 tr("downloader.yonlendirme_guvenli_olmayan_semaya", parsed_scheme=parsed.scheme)
             )
         if self._require_https and parsed.scheme != "https":
-            raise ValueError(
-                "Güvenlik: HTTPS indirme http:// adresine yönlendirilemez "
-                "(MITM koruması). Yönlendirme reddedildi."
-            )
+            raise ValueError(tr("downloader.https_yonlendirme_red"))
         # F2.3: her atlamada SSRF kontrolu — ilk URL temiz olsa bile
         # yönlendirme intranet'e donebilir.
         assert_public_host(parsed.hostname,
@@ -148,10 +145,7 @@ def _validate_download_url(url: str, require_https: bool,
     if parsed.scheme not in ("http", "https"):
         raise ValueError(tr("downloader.gecersiz_url_semasi_parsed", parsed_scheme=parsed.scheme))
     if require_https and parsed.scheme != "https":
-        raise ValueError(
-            "Güvenlik: yalnızca HTTPS bağlantıları kabul edilir. "
-            "http'yi etkinleştirmek için ayarlardan 'allow_insecure_http' seçeneğini açın."
-        )
+        raise ValueError(tr("downloader.https_zorunlu"))
     assert_public_host(parsed.hostname, allow_private_hosts=allow_private_hosts)
     return parsed
 
@@ -260,7 +254,7 @@ def download_package(
                         break
                     downloaded_bytes += len(chunk)
                     if downloaded_bytes > max_bytes:
-                        raise ValueError("İndirme boyutu maksimum limiti aştı")
+                        raise ValueError(tr("downloader.boyut_limiti_asildi"))
                     out_f.write(chunk)
 
     retry_config = RetryConfig(

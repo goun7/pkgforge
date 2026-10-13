@@ -43,11 +43,11 @@ def check_aur(package_name: str, local_version: str = "", offline: bool = False)
         AurResult with status and version info.
     """
     if not package_name:
-        return AurResult(status="error", detail="Boş paket adı")
+        return AurResult(status="error", detail=tr("aur.bos_paket_adi"))
 
     if offline:
         log.info(tr("aur_check.cevrimdisi_mod_aur_kontrolu_atlandi"), package_name)
-        return AurResult(status="error", detail="Çevrimdışı mod — ağ erişimi yok")
+        return AurResult(status="error", detail=tr("aur.cevrimdisi_mod"))
 
     try:
         url = f"{AUR_RPC_URL}?arg[]={urllib.parse.quote(package_name)}"

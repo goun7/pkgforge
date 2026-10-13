@@ -121,7 +121,7 @@ def _bench_create_deb() -> BenchmarkResult:
     Zamanlanan bolumler icindeki import satirlari BILINCLIDIR - ilk
     cagrinin ice aktarma maliyeti olcumun parcasidir.
     """
-    r = BenchmarkResult(name="Test DEB oluşturma")
+    r = BenchmarkResult(name=tr("bench.name_deb_olusturma"))
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -130,7 +130,7 @@ def _bench_create_deb() -> BenchmarkResult:
     r.duration_ms = int((time.monotonic() - t0) * 1000)
     r.memory_peak_kb = _get_memory_usage() - mem_start
     r.passed = ok
-    r.details = tr("bench.olusturulan_deb_path_name", deb_path_name=deb_path.name) if ok else "Başarısız"
+    r.details = tr("bench.olusturulan_deb_path_name", deb_path_name=deb_path.name) if ok else tr("bench.basarisiz")
     return r
 
 
@@ -155,7 +155,7 @@ def _bench_mime(test_file: Path | None, tools: Any) -> BenchmarkResult | None:
     """Benc 3: MIME dogrulama hizi."""
     if not (test_file and test_file.is_file()):
         return None
-    r = BenchmarkResult(name="MIME type doğrulama")
+    r = BenchmarkResult(name=tr("bench.name_mime_dogrulama"))
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     from core.security import validate_mime_type
@@ -165,7 +165,7 @@ def _bench_mime(test_file: Path | None, tools: Any) -> BenchmarkResult | None:
         r.details = mime
     except ValueError:
         r.passed = False
-        r.details = "Geçersiz MIME"
+        r.details = tr("bench.mime_gecersiz")
     r.duration_ms = int((time.monotonic() - t0) * 1000)
     r.memory_peak_kb = _get_memory_usage() - mem_start
     return r
@@ -195,7 +195,7 @@ def _bench_security(test_file: Path | None, tools: Any) -> BenchmarkResult | Non
     """Benc 5: guvenlik kontrolleri toplami."""
     if not (test_file and test_file.is_file()):
         return None
-    r = BenchmarkResult(name="Güvenlik kontrolleri (tümü)")
+    r = BenchmarkResult(name=tr("bench.name_guvenlik_tumu"))
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     from core.security import (
@@ -221,7 +221,7 @@ def _bench_xdelta(
     """Benc 6: xdelta3 delta olusturma (arac varsa, quick degilse)."""
     if quick or not shutil.which("xdelta3") or not (test_file and test_file.is_file()):
         return None
-    r = BenchmarkResult(name="xdelta3 delta oluşturma")
+    r = BenchmarkResult(name=tr("bench.name_xdelta3_delta"))
     with tempfile.TemporaryDirectory() as tmpdir:
         old_file = Path(tmpdir) / "old.bin"
         new_file = Path(tmpdir) / "new.bin"
@@ -250,7 +250,7 @@ def _bench_xdelta(
 
 def _bench_provenance() -> BenchmarkResult:
     """Benc 7: provenance uretimi."""
-    r = BenchmarkResult(name="Provenance oluşturma")
+    r = BenchmarkResult(name=tr("bench.name_provenance"))
     mem_start = _get_memory_usage()
     t0 = time.monotonic()
     from core.provenance import create_provenance

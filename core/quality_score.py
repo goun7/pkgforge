@@ -293,7 +293,7 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         report.checks.append(QualityCheck(
             name=tr("quality.name_desc"), category="metadata",
             passed=desc_ok, score=5 if desc_ok else 0, max_score=5,
-            detail=desc[:60] if desc else "Eksik veya çok kısa",
+            detail=desc[:60] if desc else tr("quality.det_desc_eksik"),
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)
@@ -327,7 +327,7 @@ def _metadata_checks(pkginfo: dict[str, str], report: QualityReport) -> None:
         report.checks.append(QualityCheck(
             name=tr("quality.name_url"), category="metadata",
             passed=url_ok, score=5 if url_ok else 0, max_score=5,
-            detail=url[:60] if url else "Belirtilmemiş",
+            detail=url[:60] if url else tr("quality.det_url_yok"),
         ))
     except Exception as exc:  # noqa: BLE001
         log.debug("Check fallback: %s", exc)

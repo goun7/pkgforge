@@ -91,7 +91,7 @@ def _compare_rebuild(
         return VerifyResult(
             verified=True,
             match_ratio=1.0,
-            detail="✓ Paket birebir aynı — reproducible build doğrulandı",
+            detail=tr("repro.birebir_ayni"),
             original_hash=original_hash,
             rebuild_hash=rebuild_hash,
         )
@@ -145,7 +145,7 @@ def verify_reproducible(
         return VerifyResult(detail=tr("repro.paket_bulunamadi_original_pkg", original_pkg=original_pkg))
 
     if not tools.makepkg:
-        return VerifyResult(detail="makepkg bulunamadı — yeniden oluşturma yapılamıyor")
+        return VerifyResult(detail=tr("repro.makepkg_yok"))
 
     original_hash = sha256_hash(original_pkg)
 
@@ -158,7 +158,7 @@ def verify_reproducible(
         pkgbuild_path = _extract_pkgbuild(original_pkg, tools, extract_dir)
         if pkgbuild_path is None:
             return VerifyResult(
-                detail="Paket çıkarılamadı veya PKGBUILD bulunamadı — yeniden oluşturma yapılamıyor",
+                detail=tr("repro.pkgbuild_bulunamadi"),
                 original_hash=original_hash,
             )
 
@@ -169,7 +169,7 @@ def verify_reproducible(
         rebuilt = _rebuild_package(tools, build_dir, rebuild_pkg)
         if rebuilt is None:
             return VerifyResult(
-                detail="Yeniden oluşturma başarısız — çıktı paketi bulunamadı",
+                detail=tr("repro.cikti_bulunamadi"),
                 original_hash=original_hash,
             )
 

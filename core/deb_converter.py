@@ -55,7 +55,7 @@ class DebConverter(QObject):
             output_dir: Directory where the .pkg.tar.zst will be placed.
         """
         if not self._tools.debtap:
-            self.finished.emit(False, "debtap bulunamadı — AUR'dan 'debtap' yükleyin", None)
+            self.finished.emit(False, tr("debconv.debtap_yok_aur_yukleyin"), None)
             return
 
         self._output_dir = output_dir
@@ -88,7 +88,7 @@ class DebConverter(QObject):
         self._cancelled = True
         if self._process and self._process.state() != QProcess.ProcessState.NotRunning:
             self._process.kill()
-            self.output_line.emit("⚠ Dönüşüm iptal edildi")
+            self.output_line.emit(tr("conv.donusum_iptal"))
 
     def _on_output(self) -> None:
         if self._process is None:
@@ -101,7 +101,7 @@ class DebConverter(QObject):
 
     def _on_finished(self, exit_code: int, exit_status: QProcess.ExitStatus) -> None:
         if self._cancelled:
-            self.finished.emit(False, "Dönüşüm kullanıcı tarafından iptal edildi", None)
+            self.finished.emit(False, tr("debconv.donusum_kullanici_iptal"), None)
             return
 
         if exit_code != 0:
@@ -116,22 +116,22 @@ class DebConverter(QObject):
         pkg_file = self._find_output_package()
         if pkg_file:
             self.output_line.emit(tr("debconv.paket_olusturuldu_pkg_file", pkg_file_name=pkg_file.name))
-            self.finished.emit(True, "DEB dönüşümü başarılı", pkg_file)
+            self.finished.emit(True, tr("debconv.deb_donusum_basarli"), pkg_file)
         else:
             self.finished.emit(
                 False,
-                "debtap başarılı çıktı ama çıktı paketi bulunamadı",
+                tr("debconv.debtap_cikti_yok"),
                 None,
             )
 
     def _on_error(self, error: QProcess.ProcessError) -> None:
         error_map = {
-            QProcess.ProcessError.FailedToStart: "Debtap başlatılamadı — yol doğru mu?",
-            QProcess.ProcessError.Crashed: "Debtap beklenmedik şekilde sonlandı",
-            QProcess.ProcessError.Timedout: "Debtap zaman aşımına uğradı",
-            QProcess.ProcessError.WriteError: "Debtap'a veri yazılamadı",
-            QProcess.ProcessError.ReadError: "Debtap çıktısı okunamadı",
-            QProcess.ProcessError.UnknownError: "Bilinmeyen debtap hatası",
+            QProcess.ProcessError.FailedToStart: tr("debconv.debtap_baslatilamadi"),
+            QProcess.ProcessError.Crashed: tr("debconv.debtap_coktu"),
+            QProcess.ProcessError.Timedout: tr("debconv.debtap_zaman_asimi"),
+            QProcess.ProcessError.WriteError: tr("debconv.debtap_yazilamadi"),
+            QProcess.ProcessError.ReadError: tr("debconv.debtap_okunamadi"),
+            QProcess.ProcessError.UnknownError: tr("debconv.debtap_bilinmeyen_hata"),
         }
         msg = error_map.get(error, tr("debconv.debtap_hatasi_error", error=error))
         self.finished.emit(False, msg, None)

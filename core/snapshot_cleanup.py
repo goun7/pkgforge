@@ -149,7 +149,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
     """
     backend = detect_backend()
     if backend == "none":
-        return False, "Btrfs veya ZFS algılanmadı — snapshot cleanup kurulamıyor"
+        return False, tr("snapclean.backend_yok")
 
     # Check if systemd is available
     systemctl = None
@@ -159,7 +159,7 @@ def install_cleanup_service(max_age_days: int = 7) -> tuple[bool, str]:
             break
 
     if not systemctl:
-        return False, "systemctl bulunamadı — systemd kurulu değil"
+        return False, tr("delta.systemctl_yok")
 
     # Generate and write the cleanup script
     script_content = _generate_cleanup_script(max_age_days)
@@ -213,7 +213,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
             break
 
     if not systemctl:
-        return False, "systemctl bulunamadı"
+        return False, tr("delta.systemctl_bulunamadi")
 
     try:
         from core.privileged import privileged_service_remove_argv
@@ -229,7 +229,7 @@ def remove_cleanup_service() -> tuple[bool, str]:
             "pkexec", f"{TIMER_NAME}.timer", *files), timeout=60)
 
         if res.returncode == 0:
-            return True, "✅ Snapshot cleanup servisi kaldırıldı."
+            return True, tr("snapclean.servis_kaldirildi")
         return False, tr("snapclean.kaldirma_basarisiz_exc",
                          exc=f"helper kod {res.returncode}: {res.stderr[:200]}")
 

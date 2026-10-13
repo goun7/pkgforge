@@ -138,7 +138,7 @@ def render_text(result: WizardResult) -> str:
     out: list[str] = []
     out.append(f"🪄  {tr('signing.setup.welcome')}")
     out.append("")
-    out.append("🔧  Araçlar:")
+    out.append(tr("wizard.araclar"))
     gpg = result.tools_available.get("gpg", {})
     sig = result.tools_available.get("sigstore", {})
     out.append(f"   • gpg: {'✅' if gpg.get('available') else '❌'} "
@@ -146,7 +146,7 @@ def render_text(result: WizardResult) -> str:
     out.append(f"   • cosign: {'✅' if sig.get('cosign_available') else '❌'} "
                f"{sig.get('cosign_version', '')}")
     out.append("")
-    out.append(f"📋  Yöntem: {result.method}")
+    out.append(tr("wizard.yontem", yontem=result.method))
     out.append("")
     for s in result.steps:
         out.append(f"  {s.order}. {s.title}")
@@ -155,6 +155,6 @@ def render_text(result: WizardResult) -> str:
             out.append(f"     💡 {s.rationale}")
     out.append("")
     if result.config_path:
-        out.append(f"💾  Yapılandırma kaydedildi: {result.config_path}")
+        out.append(tr("wizard.kaydedildi", yol=result.config_path))
     out.append(f"\n✅  {tr('signing.setup.done')}")
     return "\n".join(out)

@@ -97,12 +97,12 @@ class ABIScanReport:
                 )
         if self.missing_libs:
             lines.append("")
-            lines.append("  Eksik Kütüphaneler:")
+            lines.append(tr("abi.eksik_kutuphaneler"))
             for binary, lib in self.missing_libs[:20]:
                 lines.append(f"    ❌  {binary}: {lib}")
         if self.namcap_results:
             lines.append("")
-            lines.append("  Namcap Bulguları:")
+            lines.append(tr("abi.namcap_bulgulari"))
             for r in self.namcap_results[:20]:
                 icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}.get(r.severity, "•")
                 loc = f" ({r.file})" if r.file else ""

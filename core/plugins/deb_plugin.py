@@ -11,6 +11,7 @@ from typing import Any
 
 from config import ToolPaths
 from core.plugins import ConverterPlugin
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -76,12 +77,12 @@ class DebConverterPlugin(ConverterPlugin):
 
             return (
                 result.get("success", False),
-                result.get("message", "Dönüşüm tamamlanamadı"),
+                result.get("message", tr("plugin.donusum_tamamlanamadi")),
                 result.get("output_pkg"),
             )
 
         except ImportError:
-            return False, "Subprocess converter mevcut değil", None
+            return False, tr("plugin.subprocess_converter_yok"), None
         except Exception as exc:  # noqa: BLE001
             log.warning("DEB plugin dönüşüm hatası: %s", exc)
             return False, f"Dönüşüm hatası: {exc}", None

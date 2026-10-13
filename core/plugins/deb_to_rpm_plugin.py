@@ -13,6 +13,7 @@ from typing import Any
 from config import ToolPaths
 from core.plugins import ConverterPlugin
 from core.security import safe_run
+from i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class DebToRpmConverter(ConverterPlugin):
         """
         alien = shutil.which("alien")
         if not alien:
-            return False, "alien bulunamadı — DEB→RPM dönüşümü için gerekli", None
+            return False, tr("plugin.alien_yok_deb2rpm"), None
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -68,8 +69,8 @@ class DebToRpmConverter(ConverterPlugin):
         # Find the generated .rpm file
         rpm_files = list(output_dir.glob("*.rpm"))
         if not rpm_files:
-            return False, "RPM dosyası oluşturulamadı", None
+            return False, tr("plugin.rpm_dosyasi_olusmadi"), None
 
         rpm_path = rpm_files[0]
         log.info("DEB→RPM dönüşümü tamamlandı: %s", rpm_path.name)
-        return True, f"Dönüşüm başarılı: {rpm_path.name}", rpm_path
+        return True, tr("plugin.donusum_basarli_ad", ad=rpm_path.name), rpm_path

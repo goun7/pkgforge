@@ -138,12 +138,9 @@ class PkgForgeService:
 
     def start(self) -> None:
         if not is_available():
-            raise ServiceError(
-                "D-Bus servisi için opsiyonel 'jeepney' paketi gerekli: "
-                "pip install jeepney"
-            )
+            raise ServiceError(tr("dbus.jeepney_gerekli"))
         if self.is_running():
-            raise ServiceError("D-Bus servisi zaten çalışıyor")
+            raise ServiceError(tr("dbus.zaten_calisiyor"))
 
         from jeepney import DBusNameFlags, MessageType
         from jeepney.bus_messages import message_bus
@@ -229,7 +226,7 @@ def start_default() -> dict[str, Any]:
     global _service
     with _lock:
         if _service is not None and _service.is_running():
-            raise ServiceError("D-Bus servisi zaten çalışıyor")
+            raise ServiceError(tr("dbus.zaten_calisiyor"))
         svc = PkgForgeService()
         svc.start()
         _service = svc

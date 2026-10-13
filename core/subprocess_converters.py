@@ -108,7 +108,7 @@ class NativeDebConverterSubprocess:
                 return
 
             # Resolve deps
-            self._emit("▶ Bağımlılıklar çözümleniyor...")
+            self._emit(tr("conv.bagimlilik_cozuluyor"))
             resolved_deps = resolve_runtime_dependencies(src_dir, self._tools)
 
             # Unknown upstream license → honest LicenseRef + stub file so the
@@ -133,7 +133,7 @@ class NativeDebConverterSubprocess:
                 pkgbuild = pkgbuild + install_line
             pkgbuild_path = build_dir / "PKGBUILD"
             pkgbuild_path.write_text(pkgbuild, encoding="utf-8")
-            self._emit("  PKGBUILD oluşturuldu")
+            self._emit(tr("subconv.pkgbuild_olusturuldu"))
 
             # Run makepkg
             self._run_makepkg(build_dir, output_dir)
@@ -153,7 +153,7 @@ class NativeDebConverterSubprocess:
                 data_tar = m.strip()
                 break
         if not data_tar:
-            raise RuntimeError(".deb içinde data.tar bulunamadı")
+            raise RuntimeError(tr("conv.deb_data_tar_yok"))
 
         # ar stderr'sini paralel oku: boru tam dolarsa ar bloklanmasin
         # (native_deb_converter'daki ayni desenle parite).
@@ -361,9 +361,9 @@ package() {{
             from core.maps import finalize_build_output
 
             final = finalize_build_output(build_dir, output_dir)
-            self.finished.emit(True, "Native DEB dönüşümü başarılı", final or pkg_file)
+            self.finished.emit(True, tr("nativedeb.donusum_basarli"), final or pkg_file)
         else:
-            self.finished.emit(False, "makepkg başarılı ama çıktı paketi bulunamadı", None)
+            self.finished.emit(False, tr("conv.makepkg_cikti_yok"), None)
 
 
 # ── RPM Converter (subprocess) ─────────────────────────────────
@@ -393,7 +393,7 @@ class RpmConverterSubprocess:
         Guvenlik notu: komut shlex.quote ile kurulur; boru bilincli
         olarak /bin/bash -c uzerinden kurulur.
         """
-        self._emit("▶ RPM içeriği çıkarılıyor...")
+        self._emit(tr("conv.rpm_icerik_cikariliyor"))
         import shlex
         cmd = (
             f"{shlex.quote(self._tools.rpm2cpio)} {shlex.quote(str(rpm_path))} "
@@ -408,7 +408,7 @@ class RpmConverterSubprocess:
         proc.communicate(timeout=60)
         if proc.returncode != 0:
             return False, tr("subconv.rpm_cikarma_basarisiz_kod", proc_returncode=proc.returncode)
-        self._emit("✓ RPM içeriği çıkarıldı")
+        self._emit(tr("conv.rpm_icerik_cikarildi"))
         return True, ""
 
     def _rpm_security_gate(self, pkg_dir: Path) -> tuple[bool, str]:
@@ -442,7 +442,7 @@ class RpmConverterSubprocess:
         else:
             src_dir.mkdir(parents=True, exist_ok=True)
 
-        self._emit("▶ PKGBUILD oluşturuluyor...")
+        self._emit(tr("conv.pkgbuild_olusturuluyor"))
         pkgbuild = self._generate_pkgbuild(meta, src_dir)
         (build_dir / "PKGBUILD").write_text(pkgbuild, encoding="utf-8")
 
@@ -452,7 +452,7 @@ class RpmConverterSubprocess:
         if arch_license(getattr(meta, "license", "") or "", meta.name).startswith("LicenseRef-"):
             write_license_stub(src_dir, meta.name)
 
-        self._emit("▶ makepkg çalıştırılıyor...")
+        self._emit(tr("conv.makepkg_calistiriliyor"))
         pkg_out = build_dir / "pkgout"
         pkg_out.mkdir(parents=True, exist_ok=True)
 
@@ -527,9 +527,9 @@ class RpmConverterSubprocess:
                 from core.maps import finalize_build_output
 
                 final = finalize_build_output(output_dir / "build", output_dir)
-                self.finished.emit(True, "RPM dönüşümü başarılı", final or pkg_file)
+                self.finished.emit(True, tr("rpmconv.rpm_donusum_basarli"), final or pkg_file)
             else:
-                self.finished.emit(False, "makepkg başarılı ama çıktı paketi bulunamadı", None)
+                self.finished.emit(False, tr("conv.makepkg_cikti_yok"), None)
 
         except Exception as exc:  # noqa: BLE001
             self.finished.emit(False, tr("subconv.donusum_hatasi_exc", exc=exc), None)
