@@ -310,8 +310,11 @@ def test_cekirdekte_kullaniciya_gorunen_ham_turkce_metn_kalmadi() -> None:
     kullaniciya dönen `detail`/`message`/emit metinleri koda gomuluydu.
     """
     suclu: list[str] = []
-    for yol in sorted((REPO / "core").rglob("*.py")):
-        if "__pycache__" in yol.parts:
+    kaynaklar: list[pathlib.Path] = sorted((REPO / "core").rglob("*.py"))
+    kaynaklar += sorted((REPO / "ui").rglob("*.py"))
+    kaynaklar.append(REPO / "config.py")
+    for yol in kaynaklar:
+        if "__pycache__" in yol.parts or not yol.exists():
             continue
         agac = ast.parse(yol.read_text(encoding="utf-8"))
         doc = _docstring_sabitleri(agac)

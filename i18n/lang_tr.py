@@ -1459,4 +1459,5 @@ STRINGS: dict[str, str] = {
     "sync.uzak_dosya_yok": "Uzak dosya yok: {ad}",
     "sync.rclone_gerekli": "rclone kurulu degil ya da remote bos",
     "sync.komut_basarisiz": "{komut} basarisiz: {stderr}",
+    "history.col_source_url": "Kaynak URL",
 }

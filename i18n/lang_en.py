@@ -1459,4 +1459,5 @@ STRINGS: dict[str, str] = {
     "sync.uzak_dosya_yok": "Remote file missing: {ad}",
     "sync.rclone_gerekli": "rclone is not installed or the remote is empty",
     "sync.komut_basarisiz": "{komut} failed: {stderr}",
+    "history.col_source_url": "Source URL",
 }

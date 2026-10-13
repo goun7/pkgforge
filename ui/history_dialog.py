@@ -278,7 +278,7 @@ class HistoryDialog(QDialog):
 
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow([tr("history.col_id"), tr("history.col_date"), tr("history.col_name"), tr("history.col_type"), tr("history.col_status"), tr("history.col_file"), "Kaynak URL"])
+        writer.writerow([tr("history.col_id"), tr("history.col_date"), tr("history.col_name"), tr("history.col_type"), tr("history.col_status"), tr("history.col_file"), tr("history.col_source_url")])
         for r in filtered:
             writer.writerow([
                 r.id, r.timestamp, r.package_name,
