@@ -388,6 +388,13 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     return 0 if install_status != "install_failed" else 1
 
 
+def _table_headers(widths: tuple[int, ...]) -> str:
+    """Çevrilmis tablo basliklarini sabit siralarla hizalar."""
+    etiket = tr("cli.history_table_headers").split(",")
+    parcalar = [f"{e:<{w}}" for e, w in zip(etiket, widths, strict=True)]
+    return " ".join(parcalar).rstrip()
+
+
 def _cmd_list(args: argparse.Namespace) -> int:
     """Handle `pkgforge list`."""
     db = HistoryDB()
@@ -398,7 +405,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
         print(tr("cli.list_empty"))
         return 0
 
-    print(f"{'ID':<4} {'Date':<20} {'Package':<20} {'Type':<6} {'Status':<10} {'Original File'}")
+    print(_table_headers((4, 20, 20, 6, 10, 0)))
     print("-" * 80)
     for r in records:
         print(f"{r.id:<4} {r.timestamp:<20} {r.package_name:<20} {r.package_type:<6} {r.status:<10} {r.original_file}")
@@ -499,7 +506,7 @@ def _cmd_check_updates(args: argparse.Namespace) -> int:
         if not watch_mode:
             return 0
 
-        print(f"\n  ⏳ {interval}s sonra tekrar kontrol edilecek...")
+        print(f"\n  ⏳ {tr('cli.retry_after', interval=interval)}")
         try:
             _time.sleep(interval)
         except KeyboardInterrupt:
@@ -534,7 +541,7 @@ def _cmd_flatpak_export(args: argparse.Namespace) -> int:
     # Export a specific app
     app_id = getattr(args, "app_id", None)
     if not app_id:
-        print("❌ Flatpak uygulama ID'si gerekli.")
+        print(tr("cli.flatpak_id_gerekli"))
         print(tr("cli.auto_016"))
         print(tr("cli.auto_017"))
         return 1
@@ -578,22 +585,29 @@ def _cmd_provenance(args: argparse.Namespace) -> int:
 
     print(tr("cli.auto_024").format(pkg_path.name))
     print(tr("cli.auto_025").format(prov.tool_name, prov.tool_version))
-    print(f"  Build ID:      {prov.build_id}")
-    print(f"  Kaynak:        {prov.source_file}")
+    print(f"  {'Build ID:':<15}{prov.build_id}")
+    print(f"  {tr('cli.prov_kaynak'):<15}{prov.source_file}")
     if prov.source_url:
-        print(f"  Kaynak URL:    {prov.source_url}")
-    print(f"  Kaynak SHA-256:{prov.source_sha256[:32]}…" if prov.source_sha256 else "  Kaynak SHA-256: (yok)")
+        print(f"  {tr('cli.prov_kaynak_url'):<15}{prov.source_url}")
+    kaynak_ozet = (f"{prov.source_sha256[:32]}…" if prov.source_sha256
+                   else f" {tr('cli.prov_yok')}")
+    print(f"  {tr('cli.prov_kaynak_sha'):<15}{kaynak_ozet}")
     print(tr("cli.auto_026").format(prov.output_file))
-    print(f"  Çıktı SHA-256: {prov.output_sha256[:32]}…" if prov.output_sha256 else "  Çıktı SHA-256: (yok)")
+    cikti_ozet = (f"{prov.output_sha256[:32]}…" if prov.output_sha256
+                  else f" {tr('cli.prov_yok')}")
+    print(f"  {tr('cli.prov_cikti_sha'):<15}{cikti_ozet}")
     print(tr("cli.auto_027").format(prov.build_timestamp))
-    print(f"  Build Host:    {prov.build_host}")
-    print(f"  Build OS:      {prov.build_os}")
-    print(f"  Paket:         {prov.package_name} {prov.package_version}")
-    print(f"  Mimari:        {prov.package_arch}")
+    print(f"  {'Build Host:':<15}{prov.build_host}")
+    print(f"  {'Build OS:':<15}{prov.build_os}")
+    print(f"  {tr('cli.prov_paket'):<15}{prov.package_name} "
+          f"{prov.package_version}")
+    print(f"  {tr('cli.prov_mimari'):<15}{prov.package_arch}")
     print()
-    print(f"  🔒 ClamAV:     {prov.clamav_result}")
-    print(f"  💣 Bomb Check: {prov.decompression_bomb_result}")
-    print(tr("cli.auto_028").format('Geçerli' if prov.signature_valid else 'Yok/Geçersiz'))
+    print(f"  🔒 {'ClamAV:':<12}{prov.clamav_result}")
+    print(f"  💣 {'Bomb Check:':<12}{prov.decompression_bomb_result}")
+    print(tr("cli.auto_028").format(
+        tr("cli.prov_gecerli") if prov.signature_valid
+        else tr("cli.prov_gecersiz")))
     print()
 
     valid, msg = verify_provenance(prov)
@@ -694,7 +708,7 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
         from core.perf_budget import save_baseline
 
         out = save_baseline(report, save_path)
-        print(f"💾 Baseline kaydedildi: {out}")
+        print(tr("cli.baseline_kaydedildi", yol=out))
     baseline_path = getattr(args, "baseline", None)
     if baseline_path:
         from core.perf_budget import compare, load_baseline
@@ -762,14 +776,15 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     print(tr("cli.auto_043").format(pkg_path.name))
     info = verify_signature(pkg_path)
 
-    print(tr("cli.auto_044").format('✅ Geçerli' if info.valid else '❌ Geçersiz/Yok'))
+    print(tr("cli.auto_044").format(
+        tr("cli.verify_gecerli") if info.valid else tr("cli.verify_gecersiz")))
     if info.signer:
         print(tr("cli.auto_045").format(info.signer))
     if info.key_id:
-        print(f"  Key ID:       {info.key_id}")
+        print(f"  {tr('cli.verify_key_id'):<13} {info.key_id}")
     if info.key_fingerprint:
-        print(f"  Fingerprint:  {info.key_fingerprint}")
-    print(f"  Detay:        {info.detail}")
+        print(f"  {tr('cli.verify_parma_izi'):<13} {info.key_fingerprint}")
+    print(f"  {tr('cli.verify_detay'):<13} {info.detail}")
 
     return 0 if info.valid else 1
 
@@ -880,7 +895,7 @@ def _cmd_attest(args: argparse.Namespace) -> int:
     print(f"  Builder:    {attestation.predicate.get('builder', {}).get('id', '?')}")
     print(f"  Build ID:   {attestation.predicate.get('metadata', {}).get('buildInvocationId', '?')}")
     print(f"  Security:   ClamAV={attestation.predicate.get('security', {}).get('clamav', '?')}")
-    print(f"  Dosya:      {att_path}")
+    print(f"  {tr('cli.attest_dosya'):<11} {att_path}")
 
     return 0
 
@@ -922,8 +937,10 @@ def _cmd_graph(args: argparse.Namespace) -> int:
 
     stats = graph.stats()
     print(tr("cli.auto_059").format(graph.root))
-    print(f"   Toplam: {stats['total']}, Kurulu: {stats['installed']}, Eksik: {stats['missing']}")
-    print(f"   Maks Derinlik: {stats['max_depth']}")
+    ozet = tr("cli.deps_ozet", total=stats["total"],
+              installed=stats["installed"], missing=stats["missing"])
+    print(f"   {ozet}")
+    print(f"   {tr('cli.deps_maks_derinlik', derinlik=stats['max_depth'])}")
     print()
 
     if fmt == "mermaid":
@@ -1026,7 +1043,7 @@ def _cmd_audit(args: argparse.Namespace) -> int:
             print(tr("cli.auto_071").format(name))
             anomalies += 1
     if anomalies == 0:
-        print("   ✅ Anomali tespit edilmedi")
+        print(f"   {tr('cli.anomali_yok')}")
     print()
 
     # Provenance verification
@@ -1045,7 +1062,7 @@ def _cmd_audit(args: argparse.Namespace) -> int:
 
     # Detailed trail
     print(tr("cli.auto_075"))
-    print(f"{'ID':<4} {'Tarih':<20} {'Paket':<20} {'Tür':<6} {'Durum':<12} {'Orijinal Dosya'}")
+    print(_table_headers((4, 20, 20, 6, 12, 0)))
     print("-" * 90)
     for r in records:
         print(f"{r.id:<4} {r.timestamp:<20} {r.package_name:<20} {r.package_type:<6} {r.status:<12} {r.original_file}")
@@ -1148,7 +1165,7 @@ def _cmd_from_source(args: argparse.Namespace) -> int:
         # Determine project name from URL
         proj_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
 
-        print(f"  📁 Proje tespit edildi: {proj_name}")
+        print(f"  📁 {tr('cli.proje_tespit', ad=proj_name)}")
         if has_cmake:
             build_system = "cmake"
         elif has_meson:
@@ -1207,7 +1224,7 @@ def _cmd_abi_check(args: argparse.Namespace) -> int:
     if report.passed:
         print(tr("cli.auto_095"))
     else:
-        print(f"\n⚠️  {report.error_count} uyumsuzluk tespit edildi.")
+        print(f"\n⚠️  {tr('cli.uyumsuzluk_sayisi', n=report.error_count)}")
         print(tr("cli.auto_096"))
         return 1
 
@@ -1316,8 +1333,8 @@ def _cmd_serve_api(args: argparse.Namespace) -> int:
         from core.api_v2 import ensure_bind_allowed, export_openapi
         from core.api_v2 import run as _run_api
     except ImportError as exc:
-        print(f"❌ REST API bagimlilklari kurulu degil: {exc}", file=sys.stderr)
-        print("   Kurulum: pip install 'pkgforge[api]'", file=sys.stderr)
+        print(f"❌ {tr('cli.api_deps_missing', exc=exc)}", file=sys.stderr)
+        print(tr("cli.api_deps_kurulum"), file=sys.stderr)
         return 2
 
     export_target = getattr(args, "export_openapi", None)
@@ -1380,7 +1397,8 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         t = r["tools"]
         print(_json.dumps(t, ensure_ascii=False, indent=2))
         if t["missing_required"]:
-            print(f"\n❌ Eksik zorunlu: {', '.join(t['missing_required'])}",
+            eksik = ", ".join(t["missing_required"])
+            print(f"\n❌ {tr('cli.doctor_eksik_zorunlu', items=eksik)}",
                   file=sys.stderr)
             return 2
         print(tr("cli.auto_111"))
@@ -1396,9 +1414,11 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     t = r["tools"]
     print(tr("cli.auto_112").format(mark(t['ok'])))
     if t["missing_required"]:
-        print(f"   Eksik zorunlu: {', '.join(t['missing_required'])}")
+        zorunlu = ", ".join(t["missing_required"])
+        print(f"   {tr('cli.doctor_eksik_zorunlu', items=zorunlu)}")
     if t["missing_optional"]:
-        print(f"   Eksik opsiyonel: {', '.join(t['missing_optional'])}")
+        opsiyonel = ", ".join(t["missing_optional"])
+        print(f"   {tr('cli.doctor_eksik_opsiyonel', items=opsiyonel)}")
     print(f"   debtap: {mark(t['debtap'])}  pkexec: {mark(t['pkexec'])}"
           f"  distrobox: {mark(t['distrobox'])}")
 
@@ -1413,8 +1433,9 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     print(tr("cli.auto_113").format(mark(k['ok']), k.get('detail', '')))
 
     s = r["storage"]
-    print(f"{mark(s['ok'])} Depolama — profil: {s['profile']},"
-          f" config: {s['config_dir']}")
+    print(f"{mark(s['ok'])} "
+          + tr("cli.doctor_depolama", profil=s["profile"],
+               config=s["config_dir"]))
     print(f"   history.db: {mark(s['history_db_exists'])}"
           f"  queue.db: {mark(s['queue_db_exists'])}")
 
@@ -1496,7 +1517,7 @@ def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
     else:
         # Default: show status
         status = get_cleanup_status()
-        print("\n🔍 PkgForge Snapshot Cleanup Durumu\n")
+        print("\n" + tr("cli.snap_durumu") + "\n")
         if status["installed"]:
             print(tr("cli.auto_172"))
             print(tr("cli.auto_173_aktif") if status['active'] else tr("cli.auto_173_pasif"))
@@ -1506,7 +1527,7 @@ def _cmd_snapshot_cleanup(args: argparse.Namespace) -> int:
             print(tr("cli.auto_127"))
             print(tr("cli.auto_128"))
 
-        print("\n  📋 Mevcut snapshot'lar:")
+        print("\n  " + tr("cli.snap_mevcut"))
         from core.snapshot_manager import detect_backend, list_snapshots
         backend = detect_backend()
         print(tr("cli.auto_129").format(backend))
@@ -1627,13 +1648,13 @@ def _cmd_plugin(args: argparse.Namespace) -> int:
         if not confirmed:
             print(tr("cli.plugin_need_confirm"))
             return 1
-        print(f"📦 Plugin indiriliyor: {name} v{version}")
+        print(tr("cli.plugin_indiriliyor", ad=name, surum=version))
         try:
             path = install_plugin(name, version=version, force=force)
-            print(f"✅ Plugin kuruldu: {path}")
+            print(tr("cli.plugin_kuruldu", yol=path))
             # Reload plugins to pick up the new one
             reloaded = reload_plugins()
-            print(f"🔄 {len(reloaded)} plugin aktif")
+            print(f"🔄 {tr('cli.plugin_aktif', n=len(reloaded))}")
         except FileNotFoundError as exc:
             print(f"❌ {exc}")
             return 1
@@ -1717,10 +1738,10 @@ def _cmd_delta(args: argparse.Namespace) -> int:
 
     if action == "status":
         status = get_auto_update_status()
-        print("\n📊 Delta Auto-Update Durumu:\n")
-        print(f"  systemctl:     {'✅' if status.get('systemctl_available') else '❌'}")
-        print(f"  Timer kurulu:  {'✅' if status.get('installed') else '❌'}")
-        print(f"  Timer aktif:   {'✅' if status.get('active') else '❌'}")
+        print("\n" + tr("cli.delta_durumu") + "\n")
+        print(f"  {'systemctl:':<14} {'✅' if status.get('systemctl_available') else '❌'}")
+        print(f"  {tr('cli.delta_timer_kurulu'):<14} {'✅' if status.get('installed') else '❌'}")
+        print(f"  {tr('cli.delta_timer_aktif'):<14} {'✅' if status.get('active') else '❌'}")
         if status.get("next_run"):
             print(tr("cli.auto_148").format(status['next_run']))
 

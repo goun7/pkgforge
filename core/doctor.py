@@ -19,6 +19,7 @@ from config import (
     history_db_path,
     queue_db_path,
 )
+from i18n import tr
 
 
 def _check_tools() -> dict[str, Any]:
@@ -64,20 +65,14 @@ def _check_polkit() -> dict[str, Any]:
         exec_path_ok = POLKIT_EXEC_PATH_KEY in policy_text
 
     if not policy_installed:
-        detail = ("org.pkgforge.helper.policy kurulu değil — pkexec her "
-                  "çağrıda parola ister. Kurulum: sudo ./scripts/install.sh")
+        detail = tr("doctor.polkit_policy_yok")
     elif not exec_path_ok:
-        detail = ("Kurulu politika dosyasında geçerli exec.path sabitlemesi "
-                  f"yok ('{POLKIT_EXEC_PATH_KEY}') — pkexec hangi ayricalı "
-                  "binary'nin yetkilendirildigini politadan okuyamaz. "
-                  "Güncellemek için: sudo ./scripts/install.sh")
+        detail = tr("doctor.polkit_exec_path_yok",
+                    polkit_key=POLKIT_EXEC_PATH_KEY)
     elif running_from_source:
-        detail = ("Kaynak ağacından çalışıyorsunuz — polkit, kullanıcıya ait "
-                  "helper betiğini her seferinde doğrular. Sistem kurulumu "
-                  "tek-parola deneyimini sağlar.")
+        detail = tr("doctor.polkit_kaynaktan")
     elif not helper_in_system:
-        detail = ("Yetkili helper /usr/share/pkgforge/scripts/ altında değil "
-                  "— install.sh ile kurun.")
+        detail = tr("doctor.polkit_helper_yok")
 
     return {
         "ok": (policy_installed and helper_in_system
@@ -97,8 +92,7 @@ def _check_keyring() -> dict[str, Any]:
         ok = bool(available())
         return {
             "ok": ok,
-            "detail": ("Secret Service erisilebilir" if ok
-                       else "Secret Service yok (anahtarlik devre disi)"),
+            "detail": tr("doctor.keyring_ok" if ok else "doctor.keyring_yok"),
         }
     except Exception as exc:  # noqa: BLE001 - probe must not raise
         return {"ok": False, "detail": f"anahtarlik sorgulanamadi: {exc}"}

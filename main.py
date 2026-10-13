@@ -67,7 +67,7 @@ def check_dependencies(install: bool = False) -> bool:
     for tool, pkg, required in SYSTEM_DEPS:
         found = shutil.which(tool)
         status = "✓" if found else ("✗" if required else "○")
-        label = "GEREKLİ" if required else "İsteğe bağlı"
+        label = tr("deps.gerekli") if required else tr("deps.istege_bagli")
         color = "\033[32m" if found else ("\033[31m" if required else "\033[33m")
         print(f"  {color}{status}\033[0m  {tool:<16s} ({pkg}) [{label}]")
 
@@ -275,11 +275,11 @@ def main() -> int:
 
     # remove subcommand
     remove_parser = subparsers.add_parser("remove", help=tr("cli.remove_help"))
-    remove_parser.add_argument("package", help="Package name to remove")
+    remove_parser.add_argument("package", help=tr("main.arg_remove_pkg"))
 
     # rollback subcommand
     rollback_parser = subparsers.add_parser("rollback", help=tr("cli.rollback_help"))
-    rollback_parser.add_argument("package", help="Package name to rollback")
+    rollback_parser.add_argument("package", help=tr("main.arg_rollback_pkg"))
 
     # check-updates subcommand
     updates_parser = subparsers.add_parser("check-updates", help=tr("cli.updates_help"))
@@ -450,36 +450,36 @@ def main() -> int:
     # serve subcommand (JSON-RPC sidecar for the desktop UI)
     serve_parser = subparsers.add_parser("serve", help=tr("cli.serve_help"))
     serve_parser.add_argument("--http", action="store_true",
-                              help="Serve JSON-RPC over HTTP (LAN remote management)")
+                              help=tr("main.arg_serve_http"))
     serve_parser.add_argument("--port", type=int, default=8765,
-                              help="HTTP port (with --http, default 8765)")
+                              help=tr("main.arg_serve_port"))
     serve_parser.add_argument("--token", default="",
-                              help="Bearer token required for HTTP requests")
+                              help=tr("main.arg_serve_token"))
     serve_parser.add_argument("--host", default="127.0.0.1",
-                              help="HTTP bind address (with --http)")
+                              help=tr("main.arg_serve_host"))
     serve_parser.add_argument("--read-token", default="",
-                              help="Additional read-only token (with --http)")
+                              help=tr("main.arg_serve_read_token"))
     serve_parser.add_argument("--dbus", action="store_true",
-                              help="Also expose the JSON-RPC registry on the D-Bus session bus")
+                              help=tr("main.arg_serve_dbus"))
     serve_parser.add_argument("--token-file", default="",
-                              help="Token'ı dosyadan oku (--token yerine; ps'te görünmez)")
+                              help=tr("main.arg_serve_token_file"))
     serve_parser.add_argument("--insecure-http-lan", action="store_true",
-                              help="TLS olmadan LAN HTTP'ye izin ver (risk bilincli onay; F5.2b)")
+                              help=tr("main.arg_serve_insecure"))
     serve_parser.add_argument("--trusted-proxy", action="store_true",
-                              help="X-Forwarded-For basligina guven (onde TLS proxy varsa; F5.2b)")
+                              help=tr("main.arg_serve_proxy"))
 
     # schedule subcommands (F4.6: headless systemd-friendly entry points)
     sched_run = subparsers.add_parser(
-        "schedule-run", help="Zamanlanmis gorevi simdi calistir")
+        "schedule-run", help=tr("main.arg_sched_run"))
     sched_run.add_argument("--force", action="store_true",
-                           help="Zaman bakilmaksizin calistir")
+                           help=tr("main.arg_sched_force"))
     sched_install = subparsers.add_parser(
         "schedule-install",
-        help="systemd user timer birimlerini kur/onizle")
+        help=tr("main.arg_sched_install"))
     sched_install.add_argument("--interval-hours", type=float, default=None,
-                               help="Aralik (saat); varsayilan ayarlardan")
+                               help=tr("main.arg_sched_interval"))
     sched_install.add_argument("--dry-run", action="store_true",
-                               help="Dosyalari yazma, icerigi goster")
+                               help=tr("main.arg_sched_dry_run"))
 
     # completion subcommand
     completion_parser = subparsers.add_parser("completion", help=tr("cli.completion_help"))
@@ -591,7 +591,7 @@ def main() -> int:
 
                     try:
                         start_default()
-                        print("D-Bus servisi yayında:", "org.pkgforge.App")
+                        print(tr("main.dbus_yayinda"), "org.pkgforge.App")
                     except Exception as exc:  # noqa: BLE001
                         logging.getLogger(__name__).error(
                             "D-Bus servisi başlatılamadı: %s", exc)
@@ -605,8 +605,11 @@ def main() -> int:
         from core.scheduler import run_due
 
         out = run_due(force=bool(getattr(args, "force", False)))
-        print("calisti:" , out.get("ran"), "| gorev:", out.get("task", "-"),
-              "| sonuc:", out.get("ok", "-"), "|", out.get("detail", out.get("reason", "")))
+        print(tr("main.schedule_run_ozet",
+                 ran=out.get("ran"),
+                 gorev=out.get("task", "-"),
+                 sonuc=out.get("ok", "-"),
+                 detay=out.get("detail", out.get("reason", ""))))
         return 0 if out.get("ok", True) else 1
     if args.command == "schedule-install":
         from core.scheduler import install_timer
@@ -615,13 +618,13 @@ def main() -> int:
             res = install_timer(interval_hours=args.interval_hours,
                                 dry_run=bool(args.dry_run))
         except ValueError as exc:
-            print("hata:", exc)
+            print(tr("main.hata", mesaj=exc))
             return 2
         for path, text in res["units"].items():
             print("--- " + path + " ---")
             print(text)
         if res["installed"]:
-            print("kurulum tamam. etkinlestirme:", res["enable"])
+            print(tr("main.schedule_install_tamam", enable=res["enable"]))
         else:
             print(tr("main.auto_181"))
         return 0

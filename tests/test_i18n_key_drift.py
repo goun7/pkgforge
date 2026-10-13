@@ -12,8 +12,9 @@ Bunlar yardim ekraninda/standart hatada gorunur; dil parite testi
 iki katalogda da EKSIK olan anahtari hicbir zaman yakalamadi. Yani eksiklik,
 mevcut testin kapsama sinirindan dogal olarak firardi — bu test o boslugu kapatir.
 
-Yalnizca string-literal anahtarlar denetlenir; dinamik uretilen anahtarlar
-(ui/step_progress.py) statik olarak tespit edilemez ve bilerek disarda birakilir.
+Yalnizca string-literal anahtarlar denetlenir; `for k in _STEP_KEYS: tr(k)` gibi
+dinamik cagrilar da modul duzeyindeki sabit liste/tuple'lardan cozulur. Gercekten
+calisma zamaninda uretilen (henuz yok) anahtarlar statik olarak tespit edilemez.
 """
 from __future__ import annotations
 
@@ -32,8 +33,52 @@ URETIM = ["core", "ui", "i18n", "cli.py", "main.py", "config.py"]
 
 
 def _tr_anahtarlari(dosya: Path) -> set[str]:
-    """Dosyadaki tr("<literal>") cagrilarinin anahtarlarini dondurur."""
+    """Dosyadaki tr("<literal>") cagrilarinin anahtarlarini dondurur.
+
+    Dinamik cagrilar da cozulur: `for k in _STEP_KEYS: tr(k)` icin _STEP_KEYS
+    modul duzeyinde sabit bir liste/tuple ise uyeleri eklenir — aksi halde bu
+    anahtarlar katalogda yoksa hicbir test yakalamazdi.
+    """
     agac = ast.parse(dosya.read_text(encoding="utf-8"), filename=str(dosya))
+
+    sabit_listeler: dict[str, set[str]] = {}
+    for dugum in getattr(agac, "body", []):
+        if isinstance(dugum, ast.Assign) and isinstance(
+                dugum.value, (ast.List, ast.Tuple)):
+            degerler = {e.value for e in dugum.value.elts
+                        if isinstance(e, ast.Constant)
+                        and isinstance(e.value, str)}
+            if degerler:
+                for hede in dugum.targets:
+                    if isinstance(hede, ast.Name):
+                        sabit_listeler[hede.id] = degerler
+
+    dongu_adlari: dict[str, set[str]] = {}
+    for dugum in ast.walk(agac):
+        if not isinstance(dugum, ast.For):
+            continue
+        hedefler = ([dugum.target] if isinstance(dugum.target, ast.Name)
+                    else [e for e in getattr(dugum.target, "elts", [])
+                          if isinstance(e, ast.Name)])
+        if isinstance(dugum.iter, ast.Name):
+            kume = sabit_listeler.get(dugum.iter.id)
+            if kume:
+                for hede in hedefler:
+                    dongu_adlari[hede.id] = kume
+        elif (isinstance(dugum.iter, ast.Call)
+              and getattr(dugum.iter.func, "id", None) == "enumerate"
+              and dugum.iter.args and isinstance(dugum.iter.args[0], ast.Name)):
+            kume = sabit_listeler.get(dugum.iter.args[0].id)
+            if not kume:
+                continue
+            if isinstance(dugum.target, ast.Tuple) and len(dugum.target.elts) == 2:
+                hede = [e for e in dugum.target.elts if isinstance(e, ast.Name)]
+                if len(hede) == 2:      # (sirasal, anahtar)
+                    dongu_adlari[hede[1].id] = kume
+            else:
+                for hede in hedefler:
+                    dongu_adlari[hede.id] = kume
+
     bulunan: set[str] = set()
     for dugum in ast.walk(agac):
         if not isinstance(dugum, ast.Call):
@@ -45,6 +90,8 @@ def _tr_anahtarlari(dosya: Path) -> set[str]:
         ilk = dugum.args[0]
         if isinstance(ilk, ast.Constant) and isinstance(ilk.value, str):
             bulunan.add(ilk.value)
+        elif isinstance(ilk, ast.Name):
+            bulunan |= dongu_adlari.get(ilk.id, set())
     return bulunan
 
 
@@ -134,3 +181,38 @@ def test_EN_katalogunda_turkce_karakter_kalmamali():
     assert not sikayetli, (
         f"lang_en.py icinde {len(sikayetli)} degerde Turkce harf var: "
         f"{sikayetli[:6]}")
+
+
+def test_yer_tutucu_adlari_tr_imzasina_carmaz():
+    """'{key}' sablonu cagri noktasini DUSURURDU: tr(key, **kwargs) cakilamaz.
+
+    `tr("a.b", key="x")` Python'da TypeError dogurur ("multiple values for
+    argument 'key'") — ceviri kaydirildiktan sonra polkit doctor probunda bu
+    tam olarak oluyordu. Ruff/mypy literal anahtar oldugundan yakalamaz; tek
+    gecen yol ya cagrinin gercekten calistirilmasi ya da burada sablon adlarinin
+    tr()'nin parametre adleriyle karsilastirilmasi.
+    """
+    import inspect
+    import re
+    import string
+
+    from i18n import tr
+
+    korunan = set(inspect.signature(tr).parameters)
+    assert "key" in korunan, "tr imzasi degisti; bu testin onemi gozden gecirilmeli"
+
+    def ph(deger: str) -> set[str]:
+        try:
+            alanlar = {f for _, f, _, _ in string.Formatter().parse(deger) if f}
+        except ValueError:
+            return set()
+        # "{a.b}", "{a[0]}", "{a!r:>{w}}" -> kök ad "a"
+        return {re.split(r"[.[:!]", a, maxsplit=1)[0] for a in alanlar}
+
+    for ad, katalog in (("TR", TR), ("EN", EN)):
+        for anahtar, deger in katalog.items():
+            cubusan = ph(deger) & korunan
+            assert not cubusan, (
+                f"{ad}:{anahtar} tr() parametre adiyla ayni yer tutucu kullaniyor: "
+                f"{sorted(cubusan)} — tr anahtar kelimenin degeri olamaz")
+

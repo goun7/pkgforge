@@ -45,7 +45,7 @@ def init_language(lang: str | None = None) -> None:
 
     _current_lang = lang
     _strings = _load_language_module(lang)
-    log.info("Dil ayarlandı: %s (%d string)", lang, len(_strings))
+    log.debug("language=%s (%d strings)", lang, len(_strings))
 
 
 def tr(key: str, **kwargs: Any) -> str:

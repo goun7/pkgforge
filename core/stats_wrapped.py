@@ -10,9 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from config import history_db_path
-
-_MONTHS_TR = ["Ocak", "Subat", "Mart", "Nisan", "Mayis", "Haziran",
-              "Temmuz", "Agustos", "Eylul", "Ekim", "Kasim", "Aralik"]
+from i18n import tr
 
 # Basari sayilan durumlar (pipeline "success"/"failed", sistem "installed"/
 # "converted" yazar; hepsini kapsar).
@@ -21,7 +19,7 @@ _SUCCESS_STATUSES = {"success", "converted", "installed"}
 
 def _month_label(mm: str) -> str:
     if mm.isdigit() and 1 <= int(mm) <= 12:
-        return _MONTHS_TR[int(mm) - 1]
+        return tr(f"month.{int(mm)}")
     return mm
 
 

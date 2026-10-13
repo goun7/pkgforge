@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "511fb971caf59261241ec2a3919d9d10c7dcb9ec044ee07d50b2db465184f057",
-  "outputTail": "...............                                                          [100%]",
-  "command": "./.venv/bin/python -m pytest tests/test_compat_round35.py tests/test_compat_checker_units.py tests/test_compatibility_checker.py -q",
-  "timestamp": "2026-10-13T16:18:54.607Z",
-  "diffHash": "4ad2692404111a6da93aff9c87e8f75be4d47da020f931ad38049fd389002a22",
-  "poeTag": "[PoE rc=0 out=511fb971caf59261 diff=4ad2692404111a6d time=2026-10-13T16:18:54.607Z]",
-  "parentSealHash": "58e072c31287bd498a47ee85b0625fb022a90359c6493f4aa9225a80a1546e0b",
-  "commitAtSealTime": "f3eb701aca8de231b5ca500fd7e76d4c53a1f001",
-  "sealHash": "112f15cedd2e11fd032a5b27a582149f652cc8318f8e9fcc26e6a2d6bf28458d"
+  "outputHash": "3b9d9d8528d2676579f27178929940af43d49f9de992243d950307dc2405f25b",
+  "outputTail": "..................................................... [ 94%]\n........................................................................ [ 97%]\n........................................................................ [ 99%]\n...................                                                      [100%]",
+  "command": "python -m pytest tests/test_i18n_key_drift.py tests/test_i18n_output_leaks.py tests/test_i18n_parity.py tests/test_doctor_dallar.py tests/test_stats_wrapped.py tests/test_cli_commands.py -q --no-cov",
+  "timestamp": "2026-10-13T19:24:16.305Z",
+  "diffHash": "6f7fc415535109040702ede8275bf316065ceea763b0ccd6641288bea3d42513",
+  "poeTag": "[PoE rc=0 out=3b9d9d8528d26765 diff=6f7fc41553510904 time=2026-10-13T19:24:16.305Z]",
+  "parentSealHash": "112f15cedd2e11fd032a5b27a582149f652cc8318f8e9fcc26e6a2d6bf28458d",
+  "commitAtSealTime": "ce6002ee3208d972decfae6d51f3ff965047a7ec",
+  "sealHash": "cd674daa16f157516009440ad25ecf07bc52a47e6880df4ac6c9a7be3c9670bb"
 }
