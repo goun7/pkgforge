@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from core.api import transport
+from core.pathguard import guarded_path
 from i18n import load_settings, save_settings
 
 
@@ -28,7 +29,8 @@ def handle_install_rehearse(params: dict[str, Any]) -> dict[str, Any]:
     """F5.14: konteyner ici kurulum provasi (dosya-liste diffi)."""
     from core.install_rehearsal import rehearse_install
 
-    path = params.get("package_path", "")
+    path = str(guarded_path(params.get("package_path", ""),
+                            field="package_path"))
     if not path:
         raise ValueError("package_path gerekli")
     return rehearse_install(Path(path))

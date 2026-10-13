@@ -6,6 +6,7 @@ from typing import Any
 
 from config import discover_tools
 from core.api import transport
+from core.pathguard import guarded_path
 from i18n import tr
 
 
@@ -61,8 +62,8 @@ def handle_plugin_update(params: dict[str, Any]) -> dict[str, Any]:
 def handle_compare_diff(params: dict[str, Any]) -> dict[str, Any]:
     from core.sbom import diff_sboms, generate_sbom
 
-    old_path = Path(params.get("old_path", ""))
-    new_path = Path(params.get("new_path", ""))
+    old_path = guarded_path(params.get("old_path", ""), field="old_path")
+    new_path = guarded_path(params.get("new_path", ""), field="new_path")
     if not old_path.is_file():
         raise FileNotFoundError(f"Old package not found: {old_path}")
     if not new_path.is_file():

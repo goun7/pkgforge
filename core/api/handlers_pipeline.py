@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from core.api import transport
+from core.pathguard import guarded_path
 
 
 def handle_pipeline_start(params: dict[str, Any]) -> dict[str, Any]:
     from core import intake
     from core.pipeline import ConversionPipeline
 
-    path = Path(params.get("path", ""))
+    path = guarded_path(params.get("path", ""), field="path")
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
     # Universal intake: accept every type; an optional 'mode' resolves an

@@ -6,6 +6,7 @@ from typing import Any
 
 from config import discover_tools
 from core.api import transport
+from core.pathguard import guarded_path
 from i18n import tr
 
 # ── Faz 1 / A4: delta updater ───────────────────────────────────
@@ -52,7 +53,7 @@ def handle_export_appimage_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     appimage = Path(params.get("appimage_path", ""))
     if not appimage.is_file():
         raise FileNotFoundError(f"AppImage not found: {appimage}")
-    out_dir = Path(params.get("output_dir", "."))
+    out_dir = guarded_path(params.get("output_dir", "."), field="output_dir")
 
     def _op() -> Any:
         ok, msg, deb = appimage_to_deb(appimage, out_dir)
@@ -77,7 +78,7 @@ def handle_export_flatpak_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     if not app_id:
         raise ValueError("app_id is required")
     branch = params.get("branch", "stable")
-    out_dir = Path(params.get("output_dir", "."))
+    out_dir = guarded_path(params.get("output_dir", "."), field="output_dir")
 
     def _op() -> Any:
         ok, msg, deb = flatpak_to_deb(app_id, out_dir, branch=branch)
@@ -122,7 +123,7 @@ def handle_source_generate(params: dict[str, Any]) -> dict[str, Any]:
     repo_url = params.get("repo_url", "").strip()
     if not repo_url:
         raise ValueError("repo_url is required")
-    out_dir = Path(params.get("output_dir", ".")).resolve()
+    out_dir = guarded_path(params.get("output_dir", "."), field="output_dir").resolve()
 
     def _op() -> Any:
         with tempfile.TemporaryDirectory(prefix="pkgforge_src_") as tmpdir:
@@ -221,7 +222,7 @@ def handle_system_open_path(params: dict[str, Any]) -> dict[str, Any]:
     """Dosya yoneticisinde yolun bulundugu klasoru acar (sonuc bandi 'Klasoru Ac')."""
     import subprocess
 
-    path = Path(params.get("path", ""))
+    path = guarded_path(params.get("path", ""), field="path")
     if not path.exists():
         raise FileNotFoundError(tr("api.yol_bulunamadi_path", path=path))
     target = path.parent if path.is_file() else path
@@ -241,7 +242,7 @@ def handle_system_install_pkg(params: dict[str, Any]) -> dict[str, Any]:
     from core.privileged import privileged_install_pkg_argv
     from core.security import safe_run
 
-    pkg = Path(params.get("pkg_path", ""))
+    pkg = guarded_path(params.get("pkg_path", ""), field="pkg_path")
     if not pkg.is_file():
         raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg))
     if ".pkg.tar" not in pkg.name:

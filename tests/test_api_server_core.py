@@ -32,8 +32,13 @@ def test_require_pkg_file(tmp_path):
     f = tmp_path / "p.pkg.tar.zst"
     f.write_bytes(b"x")
     assert API._require_pkg_file({"pkg_path": str(f)}) == f
-    with pytest.raises(FileNotFoundError):
+    # Bos parametre artik PathNotAllowed veriyor ("Package not found" yerine
+    # neden kabul edilmedigini soyluyor); iki hata da ValueError ailesinde
+    # kalmaya devam ediyor, yani cagiranlarin except ValueError'su kirilmaz.
+    with pytest.raises(ValueError):
         API._require_pkg_file({})
+    with pytest.raises(FileNotFoundError):
+        API._require_pkg_file({"pkg_path": str(tmp_path / "yok.pkg.tar.zst")})
 
 def test_validate_aur_name():
     API._validate_aur_name("demo-pkg")

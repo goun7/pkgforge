@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from core.api import transport
+from core.pathguard import guarded_path, guarded_paths
 from i18n import load_settings, save_settings, tr
 
 # ── Faz 2 / B6: batch conversion queue ──────────────────────────
@@ -159,7 +160,7 @@ def _set_item(item_id: str, **fields: object) -> None:
 
 def handle_queue_add(params: dict[str, Any]) -> dict[str, Any]:
     global _queue_seq
-    paths = params.get("paths", [])
+    paths = [str(p) for p in guarded_paths(params.get("paths"), field="paths")]
     if isinstance(paths, str):
         paths = [paths]
     added = 0
@@ -391,14 +392,18 @@ def handle_profile_delete(params: dict[str, Any]) -> dict[str, Any]:
 def handle_sync_export(params: dict[str, Any]) -> dict[str, Any]:
     from core.cloud_sync import export_backup
 
-    output = str(params.get("output_path", "")).strip()
+    # "" means "use export_backup's own default location", so only a supplied
+    # destination is contained.
+    raw = str(params.get("output_path", "")).strip()
+    output = str(guarded_path(raw, field="output_path")) if raw else ""
     return export_backup(output or None)
 
 
 def handle_sync_import(params: dict[str, Any]) -> dict[str, Any]:
     from core.cloud_sync import import_backup
 
-    return import_backup(str(params.get("backup_path", "")))
+    return import_backup(str(guarded_path(params.get("backup_path", ""),
+                                    field="backup_path")))
 
 
 def handle_schedule_timer_install(params: dict[str, Any]) -> dict[str, Any]:

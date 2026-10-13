@@ -7,6 +7,7 @@ from typing import Any
 
 from config import discover_tools
 from core.api import transport
+from core.pathguard import guarded_path
 
 
 def handle_security_verify(params: dict[str, Any]) -> dict[str, Any]:
@@ -33,7 +34,7 @@ def handle_security_sigstore_status(params: dict[str, Any]) -> dict[str, Any]:
 def handle_security_provenance(params: dict[str, Any]) -> dict[str, Any] | None:
     from core.provenance import find_provenance, load_provenance
 
-    path = Path(params.get("pkg_path", ""))
+    path = guarded_path(params.get("pkg_path", ""), field="pkg_path")
     prov_path = find_provenance(path)
     if prov_path is None:
         return None
@@ -50,7 +51,8 @@ def handle_security_sign(params: dict[str, Any]) -> dict[str, Any]:
     from core.package_signing import sign_package
 
     path = transport._require_pkg_file(params)
-    key_path = Path(params["key_path"]) if params.get("key_path") else None
+    key_path = (guarded_path(params["key_path"], field="key_path")
+              if params.get("key_path") else None)
     passphrase = params.get("passphrase", "")
 
     def _op() -> Any:

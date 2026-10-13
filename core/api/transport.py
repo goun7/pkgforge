@@ -81,11 +81,23 @@ def _ensure_qapp() -> Any:
 # ── Faz 1 / A2: security panel ──────────────────────────────────
 
 def _require_pkg_file(params: dict[str, Any]) -> Path:
-    """Resolve and validate a package path param, raising if missing."""
-    path = Path(params.get("pkg_path", ""))
+    """Resolve and validate a package path param, raising if missing.
+
+    Contained before the is_file() check: with only is_file() ten handlers
+    routed host paths straight through, so /etc/shadow was an acceptable
+    "package" for security.verify.
+    """
+    path = _guarded_pkg_path(params.get("pkg_path", ""))
     if not path.is_file():
         raise FileNotFoundError(f"Package not found: {path}")
     return path
+
+
+def _guarded_pkg_path(value: object) -> Path:
+    """Contain a pkg_path parameter (import kept local to avoid a cycle)."""
+    from core.pathguard import guarded_path
+
+    return guarded_path("" if value is None else str(value), field="pkg_path")
 def _run_thread(fn: Callable[[], object], event_name: str) -> None:
     """Run a blocking op on a daemon thread, emitting a done event.
 

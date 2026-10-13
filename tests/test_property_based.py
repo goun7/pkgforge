@@ -54,16 +54,20 @@ class TestSha256Properties:
     @given(st.binary(min_size=0, max_size=10000))
     @settings(max_examples=100)
     def test_hash_length(self, data):
-        """SHA-256 hash should always be 64 hex chars."""
+        """SHA-256 hash should always be 64 hex chars.
+
+        delete=True + hashing inside the with-block: the old form used
+        delete=False and unlinked only after the asserts, so every failed
+        example leaked a temp file into TMPDIR.
+        """
         import tempfile
         from pathlib import Path
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as f:
+        with tempfile.NamedTemporaryFile(suffix=".bin") as f:
             f.write(data)
             f.flush()
             result = sha256_hash(Path(f.name))
-            assert len(result) == 64
-            assert all(c in "0123456789abcdef" for c in result)
-            Path(f.name).unlink()
+        assert len(result) == 64
+        assert all(c in "0123456789abcdef" for c in result)
 
 
 class TestPathTraversalProperties:
