@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "19b2ac35fe86a2ffd7f63fcc7be0133ef5ec32674d2807f0ae4b40a88cb0ae05",
-  "outputTail": "emalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
-  "command": "./.venv/bin/python -m pytest tests/test_http_rpc_routing.py tests/test_queue_store_atexit.py tests/test_api_queue_round34.py -q",
-  "timestamp": "2026-10-13T13:44:32.648Z",
-  "diffHash": "c5c8ba5df682124905932cb02bc1f771c872e97713a9f67d9ba3ee7a82633c36",
-  "poeTag": "[PoE rc=0 out=19b2ac35fe86a2ff diff=c5c8ba5df6821249 time=2026-10-13T13:44:32.648Z]",
-  "parentSealHash": "7edb63937718059a3dc988a8ba9dcb1b50f55bde95f751494ef3881d8d643dfa",
-  "commitAtSealTime": "be92a62b4474128c7bb3cea8cf84edefd06d1f55",
-  "sealHash": "b545ccf1ca6195e32ecd8eea9f3c43d69eabb912510781d299b7067d6114aac1"
+  "outputHash": "208d71c18d9788f1fc778a30f36fa9a514fb2ab381f819d6743b2c58068a411e",
+  "outputTail": "..................................................... [ 93%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n....................................                                     [100%]",
+  "command": "./.venv/bin/python -m pytest tests/test_sbom_standards_conformance.py tests/test_sbom_and_stats.py tests/test_i18n_key_drift.py tests/test_i18n_parity.py -q",
+  "timestamp": "2026-10-13T14:06:34.059Z",
+  "diffHash": "9a62aee8a52efc2a7d44302669f766301ba269cf64fbe7647bbfe5e61f94de43",
+  "poeTag": "[PoE rc=0 out=208d71c18d9788f1 diff=9a62aee8a52efc2a time=2026-10-13T14:06:34.059Z]",
+  "parentSealHash": "b545ccf1ca6195e32ecd8eea9f3c43d69eabb912510781d299b7067d6114aac1",
+  "commitAtSealTime": "15e23cff325e03135fefd1cfdbd2bb3eead56de2",
+  "sealHash": "73c16db2bf3089ecf17ee600040c200b15e0f2d483e769c2b8a5501c6be9117b"
 }

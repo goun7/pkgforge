@@ -467,8 +467,9 @@ class SBOMDiff:
     def summary(self) -> str:
         lines = [
             f"  📦 {self.old_name} {self.old_version} → {self.new_version}",
-            (f"  📄 Dosyalar: {self.old_total_files} → {self.new_total_files} ("
-             f"+{len(self.added_files)} eklendi, -{len(self.removed_files)} silindi)"),
+            tr("sbom.diffoz.dosyalar", old_total_files=self.old_total_files,
+               new_total_files=self.new_total_files,
+               added=len(self.added_files), removed=len(self.removed_files)),
         ]
         if self.added_deps:
             lines.append(tr("sbom.yeni_bagimliliklar_var0", var0=', '.join(self.added_deps[:10])))
@@ -483,7 +484,7 @@ class SBOMDiff:
             for vc in self.version_changes[:5]:
                 lines.append(f"     {vc.get('dep', '?')}: {vc.get('old', '?')} → {vc.get('new', '?')}")
         if not any([self.added_files, self.removed_files, self.changed_files, self.added_deps, self.removed_deps, self.version_changes]):
-            lines.append("  ✅ Fark yok — paketler aynı")
+            lines.append(tr("sbom.diffuz.fark_yok"))
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:

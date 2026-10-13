@@ -260,6 +260,8 @@ STRINGS: dict[str, str] = {
     # ── Uyumluluk Kontrolü ───────────────────────────────────────
     "cli.rpm_to_deb_girdi_rpm_degil": "Girdi RPM değil (lead magic eşleşmedi): {name}",
     "downloader.offline_mod_indirme_engelli": "offline modu etkin — ağdan indirme reddedildi; paketi elle indirip yerel yol verin",
+    "sbom.diffoz.dosyalar": "  📄 Dosyalar: {old_total_files} → {new_total_files} (+{added} eklendi, -{removed} silindi)",
+    "sbom.diffuz.fark_yok": "  ✅ Fark yok — paketler aynı",
     "sbom.sumoz.paket": "  📦 Paket:    {package_name} {package_version} ({arch})",
     "sbom.sumoz.toplam": "  📄 Toplam:   {total_files} dosya, {kb} KB",
     "sbom.sumoz.elf": "  🔧 ELF:      {elf_count}",

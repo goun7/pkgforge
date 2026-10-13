@@ -46,8 +46,10 @@ optdepends=(
     'xdelta3: Binary delta updates'
     'gnupg: Package signing'
 )
-provides=('pkgforge')
-conflicts=('pkgforge')
+# NOTE: pkgname is itself "pkgforge", so provides/conflicts on "pkgforge" are
+# self-referential (copied from packaging/aur/pkgforge-git, where they ARE
+# correct because that package replaces the released one). A package conflicts
+# with nothing here; keep the -git variant's lines for the real replacement.
 # NOTE: sha256 verified against the published v2.2.0 tag tarball (2026-09-18).
 # 2.2.0-4: 100/100 denetim duzeltmeleri (DropZone hata geri bildirimi,
 # PyQt6 emoji/render hatasi, plugin marketplace bos-vaat duzeltimi).

@@ -260,6 +260,8 @@ STRINGS: dict[str, str] = {
     # ── Compatibility Check ──────────────────────────────────────
     "cli.rpm_to_deb_girdi_rpm_degil": "Input is not an RPM (lead magic mismatch): {name}",
     "downloader.offline_mod_indirme_engelli": "offline mode is enabled — network download refused; download the package yourself and pass its local path",
+    "sbom.diffoz.dosyalar": "  📄 Files: {old_total_files} → {new_total_files} (+{added} added, -{removed} removed)",
+    "sbom.diffuz.fark_yok": "  ✅ No differences — packages are identical",
     "sbom.sumoz.paket": "  📦 Package:  {package_name} {package_version} ({arch})",
     "sbom.sumoz.toplam": "  📄 Total:    {total_files} files, {kb} KB",
     "sbom.sumoz.elf": "  🔧 ELF:      {elf_count}",

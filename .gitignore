@@ -30,6 +30,16 @@ htmlcov/
 mutants/
 .mutmut-cache/
 .ruff_cache/
+# makepkg kaynak indirme/cikti artefaklari kök dizinde birikir; bir
+# `git add -A` bunlari 4 MB'lik tarball olarak commit'leyebilir.
+# Kok-capali /src/ ve /pkg/: bastaki / olmadan desktop/src (110 dosya) ve
+# pkg altinda izlenen her sey yanlışlıkla gizlenirdi.
+# *.tar.zst BILEREK yok: utest/*.pkg.tar.zst fikstürleri izleniyor.
+/src/
+/pkg/
+*.tar.gz
+*.tar.xz
+
 # utest: yalnızca kalıcı E2E fikstürleri izlenir, geri kalanı çalışma artığı.
 # Blok bilinçli olarak EN SONDA: gitignore'da son eşleşen kural kazanır,
 # böylece yukarıdaki global *.deb/*.rpm istisnaları ezmesin.
