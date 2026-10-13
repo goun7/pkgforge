@@ -348,14 +348,19 @@ def test_prepare_aur_fallback_regenerate(monkeypatch, tmp_path):
 
     def sahte_srcinfo(pb_yolu):
         cagri["n"] += 1
-        return ""  # her iki denemede de bos; fallback yazimi yine isler
+        return ""  # her iki denemede de bos -> hazirlama basarisiz olmali
 
     monkeypatch.setattr(AP, "_generate_srcinfo", sahte_srcinfo)
-    ok, _msg, _aur_pkg = AP.prepare_aur_package(
+    ok, msg, _aur_pkg = AP.prepare_aur_package(
         pkg, tmp_path, git_url="https://github.com/x/y")
-    assert ok is True                                                # 217-222
+    # Eski sozlesme '.SRCINFO'suz ok=True uretiyordu; AUR push'i sonra anlasilmaz
+    # bir 'git add' hatasiyla kullanicida kaliyordu. Simdi erken ve acik hata.
+    assert ok is False
+    assert _aur_pkg is None
+    assert ".SRCINFO" in msg
     assert cagri["n"] >= 2
     assert (tmp_path / "demo" / "PKGBUILD").is_file()
+    assert not (tmp_path / "demo" / ".SRCINFO").exists()
 
 
 # ── snapshot_cleanup 196-197 / 204-205 / 224-225 / 255 / 261-262 ─────────────────

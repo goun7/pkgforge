@@ -1460,4 +1460,6 @@ STRINGS: dict[str, str] = {
     "sync.rclone_gerekli": "rclone is not installed or the remote is empty",
     "sync.komut_basarisiz": "{komut} failed: {stderr}",
     "history.col_source_url": "Source URL",
+    "aurpub.srcinfo_uretilemedi": ".SRCINFO could not be generated — makepkg cannot read the PKGBUILD: {pkgbuild}",
+    "aurpub.dosyalar_eksik": "Files missing for the AUR push: {dosyalar}",
 }

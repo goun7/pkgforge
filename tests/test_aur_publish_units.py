@@ -53,7 +53,10 @@ def test_generate_pkgbuild_variants():
     assert "cmake -B build" in text_cmake
     assert ("makedepends=(" + q + "cmake" + q + ")") in text_cmake
     text_py = _generate_pkgbuild("demo", "3.1", "", "python")
-    assert "python-build python-installer" in text_py
+    # her makedepends ogesi AYRI quoted olmali; tek string makepkg'te gecersiz
+    for ba in ("python-setuptools", "python-wheel", "python-build", "python-installer"):
+        assert q + ba + q in text_py, ba
+    assert "python-build python-installer" not in text_py
     assert chr(34) + "$url" + chr(34) in text_py
     text_go = _generate_pkgbuild("demo", "1", "u", "go")
     assert "go build -o $pkgname ." in text_go
@@ -102,6 +105,10 @@ def test_push_to_aur(monkeypatch, tmp_path):
     monkeypatch.setattr(AP, "safe_run", rec)
     d = tmp_path / "d"
     d.mkdir()
+    # push onkosulleri: PKGBUILD + .SRCINFO olmadan 'git add' denemez
+    # (eksik dosya senaryosu tests/test_aur_srcinfo_real.py'de kilitli).
+    (d / "PKGBUILD").write_text("pkgname=d\n", encoding="utf-8")
+    (d / ".SRCINFO").write_text("pkgbase = d\n", encoding="utf-8")
     ok2, msg2 = push_to_aur(d, "ssh://aur/x.git")
     assert ok2 is False and "git init başarısız" in msg2
 

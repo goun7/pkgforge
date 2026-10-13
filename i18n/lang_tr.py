@@ -1460,4 +1460,6 @@ STRINGS: dict[str, str] = {
     "sync.rclone_gerekli": "rclone kurulu degil ya da remote bos",
     "sync.komut_basarisiz": "{komut} basarisiz: {stderr}",
     "history.col_source_url": "Kaynak URL",
+    "aurpub.srcinfo_uretilemedi": ".SRCINFO uretilemedi — PKGBUILD makepkg tarafindan okunamadi: {pkgbuild}",
+    "aurpub.dosyalar_eksik": "AUR push icin eksik dosyalar: {dosyalar}",
 }
