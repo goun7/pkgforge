@@ -17,7 +17,7 @@ import subprocess
 import threading
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from config import ToolPaths
 from core.security import safe_run
@@ -56,8 +56,10 @@ class Signal:
 class NativeDebConverterSubprocess:
     """Converts .deb files natively using subprocess (no PyQt6)."""
 
-    def __init__(self, tools: ToolPaths, parent: object = None) -> None:
+    def __init__(self, tools: ToolPaths, parent: object = None,
+                 translate_scripts: bool = False) -> None:
         self._tools = tools
+        self._translate_scripts = translate_scripts
         self._cancelled = False
         self.output_line = Signal()
         self.finished = Signal()
@@ -117,8 +119,18 @@ class NativeDebConverterSubprocess:
             if lic.startswith("LicenseRef-"):
                 write_license_stub(src_dir, meta.name)
 
+            # Opt-in: carry Debian maintainer scripts into an Arch .INSTALL.
+            # Off by default — running third-party install hooks as root has to
+            # be an explicit user decision.
+            install_line = ""
+            if self._translate_scripts and meta.maintainer_scripts:
+                install_line = self._write_translated_install(
+                    deb_path, src_dir, build_dir, meta)
+
             # Generate PKGBUILD
             pkgbuild = self._generate_pkgbuild(meta, resolved_deps, lic)
+            if install_line:
+                pkgbuild = pkgbuild + install_line
             pkgbuild_path = build_dir / "PKGBUILD"
             pkgbuild_path.write_text(pkgbuild, encoding="utf-8")
             self._emit("  PKGBUILD oluşturuldu")
@@ -168,6 +180,95 @@ class NativeDebConverterSubprocess:
             raise RuntimeError(
                 tr("subconv.cerik_cikarilamadi_stderr_decode", stderr_decode=stderr.decode('utf-8', errors='replace'))
             )
+
+    _MAINT_DIR: ClassVar[str] = "usr/share/pkgforge-maintainer"
+    #: Ordered, immutable: Debian script -> (Arch hook, Debian's argument).
+    #: Order matters — it fixes the emitted .INSTALL function order.
+    _SCRIPT_MAP: ClassVar[tuple[tuple[str, str, str], ...]] = (
+        ("preinst", "pre_install", "install"),
+        ("postinst", "post_install", "configure"),
+        ("prerm", "pre_remove", "remove"),
+        ("postrm", "post_remove", "remove"),
+    )
+
+    def _pkgname_for(self, meta: Any) -> str:
+        """Same sanitization rule as _generate_pkgbuild's pkgname.
+
+        The install= filename must match the built package's name, so the rule
+        is kept here rather than re-derived at two call sites.
+        """
+        import re
+
+        return (re.sub(r"[^a-z0-9@._+-]", "-",
+                       meta.name.lower().strip()).strip("-")) or "unknown-deb"
+
+    def _extract_control_scripts(self, deb_path: Path, names: list[str]) -> dict[str, str]:
+        """Read DEBIAN/<script> text out of control.tar.* without extracting all."""
+        members = safe_run([self._tools.ar, "t", str(deb_path)], timeout=30)
+        if members.returncode != 0:
+            return {}
+        control_tar = next((m for m in members.stdout.splitlines()
+                            if m.startswith("control.tar")), "")
+        if not control_tar:
+            return {}
+        blob = safe_run([self._tools.ar, "p", str(deb_path), control_tar],
+                        timeout=30, text=False)
+        if blob.returncode != 0:
+            return {}
+        out: dict[str, str] = {}
+        for name in names:
+            # control.tar keeps its members at the archive root ("./postinst"),
+            # not under a DEBIAN/ prefix — that prefix only exists on disk.
+            for member in (f"./{name}", name):
+                res = safe_run(
+                    [self._tools.bsdtar, "-xf", "-", "--to-stdout", member]
+                    if self._tools.bsdtar else
+                    ["tar", "-xf", "-", "--to-stdout", member],
+                    input=blob.stdout, timeout=30,
+                )
+                if res.returncode == 0 and res.stdout:
+                    raw = res.stdout
+                    out[name] = (raw.decode("utf-8", errors="replace")
+                                 if isinstance(raw, bytes) else str(raw))
+                    break
+        return out
+
+    def _write_translated_install(self, deb_path: Path, src_dir: Path,
+                                  build_dir: Path, meta: Any) -> str:
+        """Materialize translated hooks; returns the PKGBUILD install= line."""
+        texts = self._extract_control_scripts(
+            deb_path, [n for n, _h, _a in self._SCRIPT_MAP])
+        if not texts:
+            return ""
+        script_dir = src_dir / self._MAINT_DIR
+        script_dir.mkdir(parents=True, exist_ok=True)
+        lines = [
+            "#!/bin/bash",
+            "# PkgForge: Debian maintainer scripts translated to Arch .INSTALL.",
+            "# Debian passes an operation argument (configure/remove); it is",
+            "# supplied here. Upgrade hooks reuse the install-side script.",
+            "set -u",
+            f'_MD="/{self._MAINT_DIR}"',
+            "",
+        ]
+        for script, hook, arg in self._SCRIPT_MAP:
+            if script not in texts:
+                continue
+            (script_dir / script).write_text(texts[script], encoding="utf-8")
+            (script_dir / script).chmod(0o755)
+            lines += [
+                f"{hook}() {{",
+                f'  echo "PkgForge: calistiriliyor -> /{self._MAINT_DIR}/{script} {arg}"',
+                f'  bash "$_MD/{script}" {arg} || echo "PkgForge: {script} sifir- olmayan cikis (devam ediliyor)"',
+                "}",
+            ]
+        if "postinst" in texts:
+            lines += ["post_upgrade() { post_install; }"]
+        install_name = f"{self._pkgname_for(meta)}.install"
+        # makepkg resolves install= relative to the PKGBUILD directory.
+        (build_dir / install_name).write_text(
+            "\n".join(lines) + "\n", encoding="utf-8")
+        return f"\ninstall='{install_name}'\n"
 
     def _generate_pkgbuild(self, meta: Any, resolved_deps: Any, license_id: str = "") -> str:
         """Generate PKGBUILD content."""

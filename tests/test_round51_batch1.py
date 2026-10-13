@@ -123,7 +123,9 @@ class SahteSignal:
 def _sahte_donusumcu(monkeypatch, modul_adi, sinif_adi, satirlar,
                      sonuc=(True, "tamam", "cikti.pkg")):
     class SahteDonusumcu:
-        def __init__(self, tools, parent=None):
+        def __init__(self, tools, parent=None, **ek):
+            # ek: ileriye donuk uyum (ornegin translate_scripts) — cakici
+            # sinifin gercek imzasini kismasina gerek yok.
             self.output_line = SahteSignal()
             self.finished = SahteSignal()
 

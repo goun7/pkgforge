@@ -45,9 +45,28 @@ class _ToolsShim:
 
 
 def _patch_isfile(monkeypatch, existing):
-    """Path.is_file -> uzvluk kontrolu (gercek /usr/share erisimi YOK)."""
+    """Path.is_file -> uzvluk kontrolu (gercek /usr/share erisimi YOK).
+
+    Politika dosyasi artik exec.path anotasyonu icin OKUNDUGU icin read_text de
+    stub'lanir; cagiran senaryonun bekledigi icerik _POLICY_TEXT ile verilir.
+    """
     existing = set(existing)
     monkeypatch.setattr(Path, "is_file", lambda self: str(self) in existing)
+    gercek_read = Path.read_text
+
+    def sahte_read(self, *a, **k):
+        if str(self).endswith("org.pkgforge.helper.policy"):
+            return _POLICY_TEXT[0]
+        return gercek_read(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", sahte_read)
+
+
+# Tek satirlik kancalar: testler senaryoya gore icerigi degistirir.
+_POLICY_TEXT = [
+    ('<annotate key="org.freedesktop.policykit.exec.path">'
+     "/usr/share/pkgforge/scripts/x.sh</annotate>")
+]
 
 
 # == _check_tools ==================================================================================
@@ -183,7 +202,29 @@ def test_polkit_anahtarlar_tam(monkeypatch):
     monkeypatch.setattr(core.privileged, "PRIVILEGED_HELPER", Path(_HELPER))
     assert set(_check_polkit().keys()) == {
         "ok", "policy_installed", "helper_installed", "running_from_source",
-        "detail"}
+        "detail", "exec_path_pinned"}
+
+
+def test_polkit_yanlis_yazilmis_anotasyon_yakalanir(monkeypatch):
+    """REGRESYON: 'policy.exec.path' (eksik 'kit') polkit icin anlamsizdir.
+
+    polkit bilinmeyen anotasyonlari SESSIZCE yok saydigi için sabitleme
+    etkisizlesir; doctor bunu gostermeli.
+    """
+    _patch_isfile(monkeypatch, {_POLICY, _HELPER})
+    _POLICY_TEXT[0] = ('<annotate key="org.freedesktop.policy.exec.path">'
+                       "/usr/share/pkgforge/scripts/x.sh</annotate>")
+    try:
+        monkeypatch.setattr(core.privileged, "PRIVILEGED_HELPER", Path(_HELPER))
+        r = _check_polkit()
+    finally:
+        # paylasilan liste: diger testlere sizmasin
+        _POLICY_TEXT[0] = ('<annotate key="org.freedesktop.policykit.exec.path">'
+                           "/usr/share/pkgforge/scripts/x.sh</annotate>")
+    assert r["policy_installed"] is True
+    assert r["exec_path_pinned"] is False
+    assert r["ok"] is False
+    assert "exec.path" in r["detail"]
 
 
 # == _check_keyring ================================================================================

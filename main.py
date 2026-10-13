@@ -267,6 +267,8 @@ def main() -> int:
     convert_parser.add_argument("--sign", action="store_true", help=tr("cli.arg_sign_auto"))
     convert_parser.add_argument("--sign-key", help=tr("cli.arg_sign_key_auto"))
     convert_parser.add_argument("--resolve-deps", action="store_true", help=tr("cli.arg_resolve_deps"))
+    convert_parser.add_argument("--translate-scripts", action="store_true",
+                                help=tr("cli.arg_translate_scripts"))
 
     # list subcommand
     subparsers.add_parser("list", help=tr("cli.list_help"))
@@ -507,6 +509,13 @@ def main() -> int:
         import config
         config.OFFLINE_MODE = True
         log.info("Çevrimdışı mod aktif")
+
+    # Opt-in: Debian maintainer scripts -> Arch .INSTALL (runs as root at
+    # install time, hence never the default).
+    if getattr(args, "translate_scripts", False):
+        import config
+        config.TRANSLATE_SCRIPTS = True
+        log.info("Bakim betigi cevirmeni etkin")
 
     if args.clear_cache:
         from core.offline_cache import get_cache

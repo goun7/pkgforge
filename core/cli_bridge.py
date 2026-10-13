@@ -35,6 +35,13 @@ class ConversionResult:
 
 # ── Subprocess-based conversion (no PyQt6) ────────────────────
 
+def TRANSLATE_SCRIPTS_ENABLED() -> bool:
+    """Process-wide opt-in switch, read at call time (main.py sets it)."""
+    import config as _cfg
+
+    return bool(getattr(_cfg, "TRANSLATE_SCRIPTS", False))
+
+
 def convert_deb_sync(
     deb_path: Path,
     output_dir: Path,
@@ -48,7 +55,8 @@ def convert_deb_sync(
     tools = tools or discover_tools()
     result = ConversionResult()
 
-    converter = NativeDebConverterSubprocess(tools)
+    converter = NativeDebConverterSubprocess(
+        tools, translate_scripts=TRANSLATE_SCRIPTS_ENABLED())
     done_event = threading.Event()
 
     def on_line(line: str) -> None:

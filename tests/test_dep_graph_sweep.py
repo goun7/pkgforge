@@ -110,7 +110,7 @@ def test_is_elf_binary_via_file_cmd(monkeypatch, tmp_path):
     monkeypatch.setattr("shutil.which",
                         _hangi_secici({"file": "/usr/bin/file"}))
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         hedef = Path(cmd[-1]).name
         if hedef.startswith("e"):
             return _rc(0, stdout="ELF 64-bit LSB shared object")
@@ -122,7 +122,7 @@ def test_is_elf_binary_via_file_cmd(monkeypatch, tmp_path):
     assert DG._is_elf_binary(e) is True
     assert DG._is_elf_binary(d) is False
 
-    def patla(cmd, timeout=0):
+    def patla(cmd, timeout=0, **k):
         raise subprocess.TimeoutExpired(cmd, 5)
     monkeypatch.setattr(DG, "safe_run", patla)
     assert DG._is_elf_binary(e) is False
@@ -132,7 +132,7 @@ def test_is_elf_binary_via_file_cmd(monkeypatch, tmp_path):
 
 def _pacman_haritasi(cevaplar):
     """cmd['-Qi'/'-Si'][paket] -> (rc, stdout) tablosundan safe_run uretir."""
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         anahtar = cmd[1]
         paket = cmd[2] if len(cmd) > 2 else ""
         cevap = cevaplar.get((anahtar, paket))
@@ -152,7 +152,7 @@ def test_build_graph_not_installed_plain(monkeypatch, tmp_path):
     monkeypatch.setattr("shutil.which",
                         _hangi_secici({"pacman": "/usr/bin/pacman"}))
     monkeypatch.setattr(DG, "safe_run",
-                        lambda cmd, timeout=0: _rc(1))
+                        lambda cmd, timeout=0, **k: _rc(1))
     g = DG.build_dep_graph(tmp_path / "demo-1-1-x.pkg.tar.zst")
     assert g.root == "demo"
     assert any("kurulu değil" in w for w in g.warnings)
@@ -164,7 +164,7 @@ def test_build_graph_not_installed_pkginfo_delegate(monkeypatch, tmp_path):
     monkeypatch.setattr("shutil.which",
                         _hangi_secici({"pacman": "/usr/bin/pacman"}))
     monkeypatch.setattr(DG, "safe_run",
-                        lambda cmd, timeout=0: _rc(1))
+                        lambda cmd, timeout=0, **k: _rc(1))
     yakalanan = {}
 
     def sahte_pkginfo(path, graph):
@@ -221,7 +221,7 @@ def test_build_from_pkginfo_parses_fields(monkeypatch, tmp_path):
     pkginfo = ("pkgname = demo\npkgver = 2.5-1\n"
                "depend = gtk3>=3.24\ndepend = libpng\n")
     monkeypatch.setattr(DG, "safe_run",
-                        lambda cmd, timeout=0: _rc(0, stdout=pkginfo))
+                        lambda cmd, timeout=0, **k: _rc(0, stdout=pkginfo))
     g = DG._build_from_pkginfo(f, DepGraph())
     assert g.root == "demo"
     assert g.nodes["demo"].version == "2.5-1"
@@ -232,11 +232,11 @@ def test_build_from_pkginfo_failures_swallowed(monkeypatch, tmp_path):
     f = tmp_path / "demo.pkg.tar.zst"; f.write_bytes(b"x")
 
     monkeypatch.setattr(DG, "safe_run",
-                        lambda cmd, timeout=0: _rc(1))
+                        lambda cmd, timeout=0, **k: _rc(1))
     g = DG._build_from_pkginfo(f, DepGraph())
     assert g.nodes == {}
 
-    def patla(cmd, timeout=0):
+    def patla(cmd, timeout=0, **k):
         raise subprocess.TimeoutExpired(cmd, 30)
     monkeypatch.setattr(DG, "safe_run", patla)
     assert DG._build_from_pkginfo(f, DepGraph()).nodes == {}
@@ -260,7 +260,7 @@ def test_file_graph_missing_file(tmp_path):
 def test_file_graph_extract_failure(monkeypatch, tmp_path):
     f = tmp_path / "demo-1-1-x.pkg.tar.zst"; f.write_bytes(b"x")
     monkeypatch.setattr(DG, "safe_run",
-                        lambda cmd, timeout=0: _rc(2, stderr="bozuk"))
+                        lambda cmd, timeout=0, **k: _rc(2, stderr="bozuk"))
     g = DG.build_file_dep_graph(f)
     assert any("çıkarılamadı" in w for w in g.warnings)
 
@@ -268,7 +268,7 @@ def test_file_graph_extract_failure(monkeypatch, tmp_path):
 def test_file_graph_no_ldd(monkeypatch, tmp_path):
     f = tmp_path / "demo-1-1-x.pkg.tar.zst"; f.write_bytes(b"x")
 
-    def sahte_tar(cmd, timeout=0):
+    def sahte_tar(cmd, timeout=0, **k):
         hedef = Path(cmd[-1])
         (hedef / "app").write_bytes(b"\x7fELFx")
         return _rc(0)
@@ -281,7 +281,7 @@ def test_file_graph_no_ldd(monkeypatch, tmp_path):
 def test_file_graph_full_flow(monkeypatch, tmp_path):
     f = tmp_path / "demo-1-1-x.pkg.tar.zst"; f.write_bytes(b"x")
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         if cmd[0] == "tar":
             hedef = Path(cmd[-1])
             (hedef / "usr" / "bin").mkdir(parents=True, exist_ok=True)
@@ -312,7 +312,7 @@ def test_file_graph_ldd_crash_continues(monkeypatch, tmp_path):
     f = tmp_path / "demo-1-1-x.pkg.tar.zst"; f.write_bytes(b"x")
     sayac = {"n": 0}
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         if cmd[0] == "tar":
             hedef = Path(cmd[-1])
             (hedef / "a").write_bytes(b"\x7fELFa")
@@ -334,7 +334,7 @@ def test_file_graph_ldd_crash_continues(monkeypatch, tmp_path):
 def test_file_graph_no_elf_warning(monkeypatch, tmp_path):
     f = tmp_path / "demo-1-1-x.pkg.tar.zst"; f.write_bytes(b"x")
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         if cmd[0] == "tar":
             hedef = Path(cmd[-1])
             (hedef / "belge.txt").write_text("metin")
@@ -367,7 +367,7 @@ def test_file_graph_raw_tar_branch(monkeypatch, tmp_path):
     f = tmp_path / "demo_1.0_amd64.deb"      # .pkg.tar disi -> ayni tar yolu
     f.write_bytes(b"x")
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         if str(cmd[0]).endswith("tar"):
             hedef = Path(cmd[-1])
             (hedef / "app").write_bytes(b"\x7fELFa")

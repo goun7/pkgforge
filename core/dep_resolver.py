@@ -82,7 +82,7 @@ def _check_pacman(name: str) -> tuple[bool, str]:
         return False, ""
 
     res = safe_run(
-        [pacman, "-Si", name], timeout=10,
+        [pacman, "-Si", name], timeout=10, env=c_locale_env(),
     )
     if res.returncode == 0:
         # Extract version
@@ -101,7 +101,7 @@ def _check_pacman_installed(name: str) -> tuple[bool, str]:
         return False, ""
 
     res = safe_run(
-        [pacman, "-Qi", name], timeout=10,
+        [pacman, "-Qi", name], timeout=10, env=c_locale_env(),
     )
     if res.returncode == 0:
         for line in res.stdout.splitlines():
@@ -260,7 +260,7 @@ def install_aur_packages(packages: list[str], aur_helper: str | None = None) -> 
 
 import re as _re
 
-from core.security import safe_run
+from core.security import c_locale_env, safe_run
 from i18n import tr
 
 # readelf -d prints the *description* in the caller's locale ("Shared library:"

@@ -93,7 +93,9 @@ def test_rpm_to_deb_guards(capsys, monkeypatch, tmp_path):
 def test_rpm_to_deb_paths(capsys, monkeypatch, tmp_path):
     monkeypatch.setattr(RD, "is_rpm_to_deb_available", lambda: True)
     f = tmp_path / "p.rpm"
-    f.write_bytes(b"x")
+    # cli._cmd_rpm_to_deb RPM lead magic'ini dogruluyor -> sentetik girdi de
+    # gercek imzayla baslamali (ed ab ee db).
+    f.write_bytes(b"\xed\xab\xee\xdb" + b"\x00" * 32)
     monkeypatch.setattr(RD, "rpm_to_deb", lambda p, o: (True, "hazir", tmp_path / "d.deb"))
     rc = cli._cmd_rpm_to_deb(NS(rpm=str(f), output_dir=str(tmp_path)))
     assert rc == 0 and "hazir" in capsys.readouterr().out

@@ -165,7 +165,8 @@ def _cmd_convert(args: argparse.Namespace) -> int:
         print(f"  {line}")
 
     if is_deb:
-        conv_result = convert_deb_sync(file_path, out_dir, tools, progress_callback=_print_line)
+        conv_result = convert_deb_sync(file_path, out_dir, tools,
+                                       progress_callback=_print_line)
     else:
         conv_result = convert_rpm_sync(file_path, out_dir, tools=tools, progress_callback=_print_line)
 
@@ -645,6 +646,13 @@ def _cmd_rpm_to_deb(args: argparse.Namespace) -> int:
     if not rpm_path.is_file():
         print(tr("cli.auto_030").format(rpm_path))
         return 1
+
+    # RPM lead magic — without this a .deb input was "converted" successfully
+    # into a .deb, reporting success for a conversion that never happened.
+    with rpm_path.open("rb") as fh:
+        if fh.read(4) != b"\xed\xab\xee\xdb":
+            print(tr("cli.rpm_to_deb_girdi_rpm_degil").format(name=rpm_path.name))
+            return 1
 
     out_dir = Path(args.output_dir).resolve() if args.output_dir else Path.cwd()
 
@@ -1386,6 +1394,13 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         print(f"   Eksik opsiyonel: {', '.join(t['missing_optional'])}")
     print(f"   debtap: {mark(t['debtap'])}  pkexec: {mark(t['pkexec'])}"
           f"  distrobox: {mark(t['distrobox'])}")
+
+    p = r["polkit"]
+    print(f"{mark(p['ok'])} Polkit — policy: {mark(p['policy_installed'])},"
+          f" exec.path: {mark(p.get('exec_path_pinned', False))},"
+          f" helper: {mark(p['helper_installed'])}")
+    if p.get("detail"):
+        print(f"   {p['detail']}")
 
     k = r["keyring"]
     print(tr("cli.auto_113").format(mark(k['ok']), k.get('detail', '')))

@@ -313,6 +313,21 @@ def verify_rpm_signature(file_path: Path, tools: ToolPaths) -> SignatureResult:
         return SignatureResult(detail=tr("security.rpm_imza_kontrolu_basarisiz", exc=exc))
 
 
+def c_locale_env() -> dict[str, str]:
+    """Environment that forces English labels from pacman/binutils.
+
+    Those tools localize their field labels ("İsim"/"Sürüm" instead of
+    "Name"/"Version"). Parsers that match the English labels then find nothing
+    and fail silently — e.g. `graph` reporting "Could not build graph" for an
+    installed package. Only calls whose OUTPUT WE PARSE should use this;
+    user-facing tool logs stay localized.
+    """
+    env = dict(os.environ)
+    env["LC_ALL"] = "C"
+    env["LANG"] = "C"
+    return env
+
+
 # ── Path traversal detection ─────────────────────────────────────
 
 def check_path_traversal(file_list: list[str]) -> list[str]:

@@ -258,6 +258,8 @@ STRINGS: dict[str, str] = {
     "exit.message": "A process is running. Are you sure you want to exit?",
 
     # ── Compatibility Check ──────────────────────────────────────
+    "cli.rpm_to_deb_girdi_rpm_degil": "Input is not an RPM (lead magic mismatch): {name}",
+    "downloader.offline_mod_indirme_engelli": "offline mode is enabled — network download refused; download the package yourself and pass its local path",
     "compat.namcap": "Namcap Analysis",
     "compat.deps": "Dependency Check",
     "compat.conflicts": "File Conflicts",
@@ -442,6 +444,7 @@ STRINGS: dict[str, str] = {
     "cli.arg_sbom_pkg": ".pkg.tar.zst file to generate SBOM for",
     "cli.arg_sbom_no_hashes": "Skip SHA-256 hash computation (faster)",
     "cli.arg_sbom_diff": "Show SBOM differences between two packages",
+    "cli.arg_translate_scripts": "Translate Debian maintainer scripts (postinst/postrm) into an Arch .INSTALL hook; runs as root at install — explicit opt-in",
     "cli.arg_sbom_format": "SBOM schema: internal (PkgForge, default), spdx (SPDX 2.3 JSON) or cyclonedx (CycloneDX 1.6 JSON)",
     "cli.attest_help": "Generate SLSA provenance attestation for a package",
     "cli.arg_attest_pkg": ".pkg.tar.zst file to generate attestation for",

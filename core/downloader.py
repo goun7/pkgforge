@@ -179,6 +179,13 @@ def _verify_download_sha256(dest_file: Path, expected_sha256: str) -> None:
     log.info(tr("downloader.sha_256_dogrulandi_s"), actual[:16])
 
 
+def OFFLINE_MODE_ENABLED() -> bool:
+    """Process-wide offline switch, read dynamically (main.py sets it at startup)."""
+    import config as _cfg
+
+    return bool(getattr(_cfg, "OFFLINE_MODE", False))
+
+
 def download_package(
     url: str,
     dest_dir: Path | None = None,
@@ -189,6 +196,9 @@ def download_package(
     allow_private_hosts: bool = False,
 ) -> Path:
     """Download a package file from a URL.
+
+    Raises RuntimeError when the process-wide offline switch is on, so
+    `pkgforge --offline` actually means something instead of being a no-op.
 
     Args:
         url: Direct HTTP/HTTPS download link.
@@ -209,6 +219,9 @@ def download_package(
     Returns:
         Path to the downloaded file.
     """
+    if OFFLINE_MODE_ENABLED():
+        raise RuntimeError(tr("downloader.offline_mod_indirme_engelli"))
+
     parsed = _validate_download_url(url, require_https, allow_private_hosts)
     filename = _download_filename(url, parsed)
 

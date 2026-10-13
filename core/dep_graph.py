@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from config import extract_package_name
-from core.security import safe_run
+from core.security import c_locale_env, safe_run
 from i18n import tr
 
 log = logging.getLogger(__name__)
@@ -201,7 +201,7 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
 
     # Query package dependencies
     res = safe_run(
-        [pacman, "-Qi", graph.root], timeout=10,
+        [pacman, "-Qi", graph.root], timeout=10, env=c_locale_env(),
     )
     if res.returncode != 0:
         graph.warnings.append(
@@ -245,7 +245,7 @@ def build_dep_graph(pkg_path: Path) -> DepGraph:
         if dep_name == graph.root:
             continue
         dep_res = safe_run(
-            [pacman, "-Qi", dep_name], timeout=5,
+            [pacman, "-Qi", dep_name], timeout=5, env=c_locale_env(),
         )
         if dep_res.returncode == 0:
             dep_node.is_installed = True

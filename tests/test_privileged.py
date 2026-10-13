@@ -24,10 +24,22 @@ def test_every_action_pins_its_exec_path_and_admin_keep():
         for tag in ("allow_any", "allow_inactive", "allow_active"):
             assert defaults.find(tag).text == "auth_admin_keep"
         ann = action.find(
-            "annotate[@key='org.freedesktop.policy.exec.path']")
+            "annotate[@key='org.freedesktop.policykit.exec.path']")
         assert ann is not None
-        # F5.4: her aksiyon kendi calistirilabilir dosyasini pin'ler.
+        # F5.4: her eylem kendi calistirilabilir dosyasini pin'ler
         assert ann.text == action_exec_path(action.get("id"))
+
+
+def test_polkit_annotation_key_spelling():
+    """REGRESYON KILIDI: anahtar 'policykit' olmalı.
+
+    'org.freedesktop.policy.exec.path' (eksik 'kit') polkit tarafindan
+    bilinmeyen bir annotation oldugu icin SESSIZCE yok sayilir — yardimci
+    binary sabitlemesi böylece etkisizlesir ve hata mesaji uretilmez.
+    """
+    assert P.POLKIT_EXEC_PATH_KEY == "org.freedesktop.policykit.exec.path"
+    text = P.build_policy_text()
+    assert "org.freedesktop.policy.exec.path" not in text
 
 
 def test_install_uses_install_helper_others_use_privileged_helper():

@@ -316,7 +316,12 @@ export default function App() {
         </a>
         <Sidebar active={page} onNavigate={setPage} recent={recent} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar title={t(PAGE_TITLES[page])} subtitle={t(PAGE_DESC[page])} right={<TopbarActions />} />
+          <Topbar
+            title={t(PAGE_TITLES[page])}
+            subtitle={t(PAGE_DESC[page])}
+            right={<TopbarActions />}
+            onSearchClick={() => setPaletteOpen(true)}
+          />
           <main id="main-content" className="min-h-0 flex-1 overflow-hidden">
             {/* Convert her zaman mount kalir: sekme degisince donusum state'i
                 ve event listener'lar kaybolmasin (aktif degilse sadece gizlenir). */}

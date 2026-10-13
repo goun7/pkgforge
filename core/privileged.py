@@ -20,6 +20,12 @@ from core.capabilities import action_exec_path, helper_system_path, polkit_actio
 HELPER_SYSTEM_PATH = helper_system_path()
 POLICY_SYSTEM_PATH = "/usr/share/polkit-1/actions/org.pkgforge.helper.policy"
 
+# Exact polkit annotation name that pins which binary an action authorizes.
+# Misspelling this (e.g. "org.freedesktop.policy.exec.path") does NOT fail
+# loudly: polkit ignores unknown annotations, so the helper-binary pinning
+# silently stops applying and pkexec falls back to its own path resolution.
+POLKIT_EXEC_PATH_KEY = "org.freedesktop.policykit.exec.path"
+
 Q = chr(34)
 NL = chr(10)
 
@@ -229,7 +235,7 @@ def _action_block(aid: str, title: str, desc: str) -> str:
         "      <allow_inactive>auth_admin_keep</allow_inactive>",
         "      <allow_active>auth_admin_keep</allow_active>",
         "    </defaults>",
-        "    <annotate key=" + Q + "org.freedesktop.policy.exec.path" + Q
+        "    <annotate key=" + Q + POLKIT_EXEC_PATH_KEY + Q
         + ">" + action_exec_path(aid) + "</annotate>",
         "  </action>",
     ]

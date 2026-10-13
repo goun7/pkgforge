@@ -13,18 +13,24 @@ import logging
 
 log = logging.getLogger(__name__)
 
+#: Top-level subcommands. Drift is locked by
+#: tests/test_completion_drift.py, which compares this list against the real
+#: argparse parser (``main.py --help`` choices) — a hand-maintained list here
+#: silently fell behind by 9 commands once already.
 COMMANDS = [
     "convert", "list", "remove", "rollback", "check-updates", "delta",
     "flatpak-export", "appimage-export", "graph", "audit", "scan-image",
-    "abi-check", "health", "snapshot-cleanup", "quality", "publish",
-    "verify-rollback", "from-source", "rpm-to-deb", "provenance",
-    "benchmark", "sign", "verify", "sbom", "attest", "plugin", "gui",
+    "abi-check", "health", "doctor", "wrapped", "snapshot-cleanup", "quality",
+    "signing-setup", "serve-api", "publish", "verify-rollback", "from-source",
+    "rpm-to-deb", "provenance", "benchmark", "sign", "verify", "sbom",
+    "attest", "plugin", "gui", "desktop", "serve", "schedule-run",
+    "schedule-install", "completion",
 ]
 
 CONVERT_FLAGS = [
     "--install", "-i", "--yes", "-y", "--dry-run", "--output-dir", "-o",
     "--to-oci", "--oci-tag", "--delta", "--verify-build", "--sign",
-    "--sign-key", "--resolve-deps",
+    "--sign-key", "--resolve-deps", "--translate-scripts",
 ]
 
 GLOBAL_FLAGS = [
@@ -114,7 +120,7 @@ _pkgforge() {{
                     _arguments \\
                         '--install[Auto-install after conversion]' \\
                         '--yes[Skip confirmation]' \\
-                        '--dry-run[Analyze without converting]' \\
+                        '--dry-run[Convert and analyze, never install]' \\
                         '-o[Output directory]:directory:_directories' \\
                         '--to-oci[Export as OCI container]' \\
                         '--delta[Use binary delta download]' \\
@@ -150,7 +156,7 @@ complete -c pkgforge -l file -s f -d 'Package file path'
 # Convert subcommand
 complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l install -s i -d 'Auto-install'
 complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l yes -s y -d 'Skip confirmation'
-complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l dry-run -d 'Dry run'
+complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l dry-run -d 'Convert and analyze, never install'
 complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l output-dir -s o -d 'Output directory'
 complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l to-oci -d 'Export as OCI'
 complete -c pkgforge -n '__fish_seen_subcommand_from convert' -l sign -d 'Sign with GPG'

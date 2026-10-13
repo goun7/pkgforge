@@ -43,7 +43,7 @@ def _check_polkit() -> dict[str, Any]:
     """
     from pathlib import Path
 
-    from core.privileged import PRIVILEGED_HELPER
+    from core.privileged import POLKIT_EXEC_PATH_KEY, PRIVILEGED_HELPER
 
     actions = Path("/usr/share/polkit-1/actions")
     helper_policy = actions / "org.pkgforge.helper.policy"
@@ -54,9 +54,23 @@ def _check_polkit() -> dict[str, Any]:
         "/usr/share/pkgforge/")
 
     detail = ""
+    exec_path_ok = False
+    if policy_installed:
+        try:
+            policy_text = helper_policy.read_text(
+                encoding="utf-8", errors="replace")
+        except OSError:
+            policy_text = ""
+        exec_path_ok = POLKIT_EXEC_PATH_KEY in policy_text
+
     if not policy_installed:
         detail = ("org.pkgforge.helper.policy kurulu değil — pkexec her "
                   "çağrıda parola ister. Kurulum: sudo ./scripts/install.sh")
+    elif not exec_path_ok:
+        detail = ("Kurulu politika dosyasında geçerli exec.path sabitlemesi "
+                  f"yok ('{POLKIT_EXEC_PATH_KEY}') — pkexec hangi ayricalı "
+                  "binary'nin yetkilendirildigini politadan okuyamaz. "
+                  "Güncellemek için: sudo ./scripts/install.sh")
     elif running_from_source:
         detail = ("Kaynak ağacından çalışıyorsunuz — polkit, kullanıcıya ait "
                   "helper betiğini her seferinde doğrular. Sistem kurulumu "
@@ -66,8 +80,10 @@ def _check_polkit() -> dict[str, Any]:
                   "— install.sh ile kurun.")
 
     return {
-        "ok": policy_installed and helper_in_system and not running_from_source,
+        "ok": (policy_installed and helper_in_system
+               and not running_from_source and exec_path_ok),
         "policy_installed": policy_installed,
+        "exec_path_pinned": exec_path_ok,
         "helper_installed": helper_in_system,
         "running_from_source": running_from_source,
         "detail": detail,

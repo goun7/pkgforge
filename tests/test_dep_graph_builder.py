@@ -42,7 +42,7 @@ def test_not_installed_falls_back_to_pkginfo(monkeypatch, tmp_path):
     pkg = _pkginfo_tar_pkg(tmp_path)
     monkeypatch.setattr(DG.shutil, "which", lambda x: "/usr/bin/pacman")
 
-    def fake_run(cmd, timeout=None):
+    def fake_run(cmd, timeout=None, **k):
         if cmd[1] == "-Qi":
             return _ns(1)
         if cmd[1] == "xf":
@@ -64,7 +64,7 @@ def test_not_installed_falls_back_to_pkginfo(monkeypatch, tmp_path):
 
 def test_not_installed_and_missing_file_only_warning(monkeypatch, tmp_path):
     monkeypatch.setattr(DG.shutil, "which", lambda x: "/usr/bin/pacman")
-    monkeypatch.setattr(DG, "safe_run", lambda cmd, timeout=None: _ns(1))
+    monkeypatch.setattr(DG, "safe_run", lambda cmd, timeout=None, **k: _ns(1))
     g = DG.build_dep_graph(tmp_path / "ghost-1-1-x86_64.pkg.tar.zst")
     assert len(g.warnings) == 1
     assert g.nodes == {} or "ghost" not in g.nodes
@@ -83,7 +83,7 @@ def test_installed_package_full_parse(monkeypatch, tmp_path):
     ])
     calls = []
 
-    def fake_run(cmd, timeout=None):
+    def fake_run(cmd, timeout=None, **k):
         calls.append(list(cmd))
         if cmd[1] == "-Qi" and cmd[2] == "app":
             return _ns(0, qi_app)

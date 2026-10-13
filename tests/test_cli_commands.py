@@ -19,6 +19,9 @@ def _doctor_report(ok=True):
         "storage": {"ok": True, "profile": "default",
                     "config_dir": "/tmp/x", "history_db_exists": True,
                     "queue_db_exists": False},
+        "polkit": {"ok": ok, "policy_installed": ok,
+                   "helper_installed": ok, "exec_path_pinned": ok,
+                   "running_from_source": False, "detail": ""},
         "dbus": {"ok": False},
         "scheduler": {"ok": True, "tasks": 4},
         "ok": ok,
@@ -159,7 +162,7 @@ def test_cmd_sign_missing_file(tmp_path, capsys):
 def test_cmd_remove_invalid_name(monkeypatch, capsys):
     called = {"n": 0}
     monkeypatch.setattr(cli, "safe_run",
-                        lambda cmd, timeout=None: called.update(n=1))
+                        lambda cmd, timeout=None, **k: called.update(n=1))
     rc = cli._cmd_remove(argparse.Namespace(package="kötü isim"))
     capsys.readouterr()
     assert rc == 1 and called["n"] == 0
@@ -289,7 +292,7 @@ def test_cmd_graph_ascii_and_mermaid(monkeypatch, capsys, tmp_path):
                         lambda n: "/usr/bin/pacman")
     real_run = __import__("core.dep_graph", fromlist=["safe_run"]).safe_run
 
-    def fake_run(cmd, timeout=None):
+    def fake_run(cmd, timeout=None, **k):
         if len(cmd) > 1 and cmd[1] == "-Qi":
             return SimpleNamespace(returncode=1, stdout="", stderr="")
         if len(cmd) > 1 and cmd[1] == "xf":
@@ -462,7 +465,7 @@ def test_cmd_publish_success_without_push(monkeypatch, capsys, tmp_path):
 def test_cmd_rollback_invalid_name(monkeypatch, capsys):
     called = {"n": 0}
     monkeypatch.setattr(cli, "safe_run",
-                        lambda cmd, timeout=None: called.update(n=1))
+                        lambda cmd, timeout=None, **k: called.update(n=1))
     rc = cli._cmd_rollback(argparse.Namespace(package="kötü ad"))
     assert rc == 1 and called["n"] == 0
 
@@ -486,14 +489,14 @@ def test_cmd_rollback_success_and_failure(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(cli, "HistoryDB", FakeDB)
     seen = {}
 
-    def fake_run(cmd, timeout=None):
+    def fake_run(cmd, timeout=None, **k):
         seen["cmd"] = list(cmd)
         return SimpleNamespace(returncode=0, stdout="", stderr="")
     monkeypatch.setattr(cli, "safe_run", fake_run)
     assert cli._cmd_rollback(argparse.Namespace(package="demo")) == 0
     assert "install-pkg" in seen["cmd"] and str(backup) in seen["cmd"]
 
-    def bad_run(cmd, timeout=None):
+    def bad_run(cmd, timeout=None, **k):
         return SimpleNamespace(returncode=1, stdout="", stderr="hata")
     monkeypatch.setattr(cli, "safe_run", bad_run)
     assert cli._cmd_rollback(argparse.Namespace(package="demo")) == 1
@@ -567,7 +570,7 @@ def test_cmd_scan_image_trivy_clean(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(MS.shutil, "which",
                         lambda n: "/usr/bin/trivy" if n == "trivy" else None)
     monkeypatch.setattr(MS, "safe_run",
-                        lambda cmd, timeout=None: SimpleNamespace(
+                        lambda cmd, timeout=None, **k: SimpleNamespace(
                             returncode=0, stdout="", stderr=""))
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
     out = capsys.readouterr().out
@@ -581,7 +584,7 @@ def test_cmd_scan_image_grype_findings(monkeypatch, capsys, tmp_path):
                         lambda n: "/usr/bin/grype" if n == "grype" else None)
     vulns = chr(10).join(["NAME High 1.2.3", "OTHER Critical 9.9"])
     monkeypatch.setattr(MS, "safe_run",
-                        lambda cmd, timeout=None: SimpleNamespace(
+                        lambda cmd, timeout=None, **k: SimpleNamespace(
                             returncode=1, stdout=vulns, stderr=""))
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
     out = capsys.readouterr().out
@@ -594,7 +597,7 @@ def test_cmd_scan_image_clamav_infected(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(MS.shutil, "which",
                         lambda n: "/usr/bin/clamscan" if n == "clamscan" else None)
     monkeypatch.setattr(MS, "safe_run",
-                        lambda cmd, timeout=None: SimpleNamespace(
+                        lambda cmd, timeout=None, **k: SimpleNamespace(
                             returncode=1, stdout="EICAR", stderr=""))
     rc = cli._cmd_scan_image(argparse.Namespace(image=str(f)))
     out = capsys.readouterr().out

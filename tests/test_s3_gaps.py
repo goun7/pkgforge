@@ -385,7 +385,7 @@ def test_doctor_polkit_three_branches(monkeypatch):
 
     real_is_file = Path.is_file
 
-    def senaryo(policy, helper, helper_sistemde):
+    def senaryo(policy, helper, helper_sistemde, politik_metni=None):
         def sahte_is_file(self, **k):
             s = str(self)
             if s.endswith("org.pkgforge.helper.policy"):
@@ -393,7 +393,20 @@ def test_doctor_polkit_three_branches(monkeypatch):
             if s.endswith("pkgforge-privileged.sh"):
                 return helper_sistemde
             return real_is_file(self)
+
+        gercek_read = Path.read_text
+
+        def sahte_read(self, *a, **k):
+            # _check_polkit artik exec.path anotasyonunu dogruluyor -> okuma
+            # gercek /usr/share'a gitmemeli.
+            if str(self).endswith("org.pkgforge.helper.policy"):
+                return (politik_metni if politik_metni is not None else
+                        '<annotate key="org.freedesktop.policykit.exec.path">'
+                        "/usr/share/pkgforge/scripts/x.sh</annotate>")
+            return gercek_read(self, *a, **k)
+
         monkeypatch.setattr(Path, "is_file", sahte_is_file)
+        monkeypatch.setattr(Path, "read_text", sahte_read)
         monkeypatch.setattr("core.privileged.PRIVILEGED_HELPER", helper)
         return DOC._check_polkit()
 

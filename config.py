@@ -79,6 +79,10 @@ def queue_db_path(profile: str | None = None) -> Path:
 
 # Offline mode — when True, network-dependent checks (AUR, upstream) are skipped
 OFFLINE_MODE: bool = False
+#: Set by `pkgforge convert --translate-scripts`; read by the deb converter.
+#: Process-wide like OFFLINE_MODE so the converter's public signature stays
+#: stable for every existing caller.
+TRANSLATE_SCRIPTS: bool = False
 
 # Size limits (re-export from core.constants for backward compatibility).
 # These are imported by core.pipeline and others via "from config import ...",

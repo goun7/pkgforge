@@ -44,7 +44,7 @@ def test_check_pacman_missing_tool(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda n: None)
     assert DR._check_pacman("x") == (False, "")
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0,
+                        lambda cmd, timeout=0, **k: _rc(0,
                                                    stdout="Version : 3.2\n"))
     assert DR._check_pacman_installed("y") == (False, "")
 
@@ -53,7 +53,7 @@ def test_check_pacman_versions_and_unknown(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda n: "/usr/bin/pacman")
     cikti = {"Version": []}
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         return _rc(0, stdout=cikti.get("stdout", ""))
     monkeypatch.setattr(DR, "safe_run", sahte)
 
@@ -65,17 +65,17 @@ def test_check_pacman_versions_and_unknown(monkeypatch):
     assert DR._check_pacman("demo") == (True, "unknown")
 
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(1))
+                        lambda cmd, timeout=0, **k: _rc(1))
     assert DR._check_pacman("demo") == (False, "")
 
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0,
+                        lambda cmd, timeout=0, **k: _rc(0,
                                                    stdout="Version : 9.9\n"))
     ok, ver = DR._check_pacman_installed("demo")
     assert (ok, ver) == (True, "9.9")
 
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0, stdout="Desc : x\n"))
+                        lambda cmd, timeout=0, **k: _rc(0, stdout="Desc : x\n"))
     assert DR._check_pacman_installed("demo") == (True, "unknown")
 
 
@@ -124,12 +124,12 @@ def test_check_aur_rpc_miss_falls_to_helper(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda n: "/usr/bin/yay"
                         if n in ("paru", "yay") else None)
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0,
+                        lambda cmd, timeout=0, **k: _rc(0,
                                                    stdout="Version : 4.4\n"))
     assert DR._check_aur("demo") == (True, "4.4")
 
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0, stdout="Depends : x\n"))
+                        lambda cmd, timeout=0, **k: _rc(0, stdout="Depends : x\n"))
     assert DR._check_aur("demo") == (True, "unknown")
 
 
@@ -180,7 +180,7 @@ def _elf_agaci(tmp_path, adet=2):
 def test_collect_sonames_readelf_path(monkeypatch, tmp_path):
     _elf_agaci(tmp_path)
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0, stdout=READELF_CIKTI))
+                        lambda cmd, timeout=0, **k: _rc(0, stdout=READELF_CIKTI))
     sonuc = DR.collect_sonames(tmp_path, _araclar(readelf="/usr/bin/readelf"))
     assert sonuc == {"libfoo.so.1", "libbar.so.2"}
 
@@ -188,7 +188,7 @@ def test_collect_sonames_readelf_path(monkeypatch, tmp_path):
 def test_collect_sonames_objdump_fallback(monkeypatch, tmp_path):
     _elf_agaci(tmp_path)
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0, stdout=OBJDUMP_CIKTI))
+                        lambda cmd, timeout=0, **k: _rc(0, stdout=OBJDUMP_CIKTI))
     sonuc = DR.collect_sonames(tmp_path, _araclar(objdump="/usr/bin/objdump"))
     assert sonuc == {"libfoo.so.1", "libbaz.so.9"}
 
@@ -197,7 +197,7 @@ def test_collect_sonames_max_files_cap(monkeypatch, tmp_path):
     _elf_agaci(tmp_path, adet=3)
     cagrilar = []
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: cagrilar.append(cmd)
+                        lambda cmd, timeout=0, **k: cagrilar.append(cmd)
                         or _rc(0, stdout=""))
     DR.collect_sonames(tmp_path, _araclar(readelf="/r"), max_files=1)
     assert len(cagrilar) == 1
@@ -206,7 +206,7 @@ def test_collect_sonames_max_files_cap(monkeypatch, tmp_path):
 def test_collect_sonames_reader_failure_swallowed(monkeypatch, tmp_path):
     _elf_agaci(tmp_path)
 
-    def patla(cmd, timeout=0):
+    def patla(cmd, timeout=0, **k):
         raise OSError("okuma reddi")
     monkeypatch.setattr(DR, "safe_run", patla)
     assert DR.collect_sonames(tmp_path,
@@ -231,7 +231,7 @@ def test_sonames_to_packages_mapping(monkeypatch):
     sahipler = {"libfoo.so.1": "extra/libfoo.so.1-6\n",
                 "libbar.so": "core/libbar\n"}
 
-    def sahte(cmd, timeout=0):
+    def sahte(cmd, timeout=0, **k):
         istekler.append(cmd[-1])
         return _rc(0, stdout=sahipler.get(cmd[-1], ""))
     monkeypatch.setattr(DR, "safe_run", sahte)
@@ -240,14 +240,14 @@ def test_sonames_to_packages_mapping(monkeypatch):
     assert paketler == ["libbar", "libfoo.so.1-6"]
 
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(1))
+                        lambda cmd, timeout=0, **k: _rc(1))
     assert DR.sonames_to_packages({"yok.so"}, _araclar()) == []
 
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0: _rc(0, stdout="\n"))
+                        lambda cmd, timeout=0, **k: _rc(0, stdout="\n"))
     assert DR.sonames_to_packages({"bos.so"}, _araclar()) == []
 
-    def patla(cmd, timeout=0):
+    def patla(cmd, timeout=0, **k):
         raise TimeoutError("pacman -F db yok")
     monkeypatch.setattr(DR, "safe_run", patla)
     assert DR.sonames_to_packages({"hata.so"}, _araclar()) == []
@@ -262,7 +262,7 @@ def test_resolve_runtime_empty_tree(tmp_path):
 def test_resolve_runtime_happy_chain(monkeypatch, tmp_path):
     _elf_agaci(tmp_path)
     monkeypatch.setattr(DR, "safe_run",
-                        lambda cmd, timeout=0:
+                        lambda cmd, timeout=0, **k:
                         _rc(0, stdout=READELF_CIKTI)
                         if "-d" in cmd else _rc(0, stdout="extra/libfoo.so.1\n"))
     paketler = DR.resolve_runtime_dependencies(
@@ -278,7 +278,7 @@ def test_resolve_runtime_exception_swallowed(monkeypatch, tmp_path):
 
 def test_check_pacman_installed_rc_fail(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda n: "/usr/bin/pacman")
-    monkeypatch.setattr(DR, "safe_run", lambda cmd, timeout=0: _rc(1))
+    monkeypatch.setattr(DR, "safe_run", lambda cmd, timeout=0, **k: _rc(1))
     assert DR._check_pacman_installed("yok") == (False, "")
 
 

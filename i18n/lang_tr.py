@@ -258,6 +258,8 @@ STRINGS: dict[str, str] = {
     "exit.message": "Bir işlem devam ediyor. Çıkmak istediğinize emin misiniz?",
 
     # ── Uyumluluk Kontrolü ───────────────────────────────────────
+    "cli.rpm_to_deb_girdi_rpm_degil": "Girdi RPM değil (lead magic eşleşmedi): {name}",
+    "downloader.offline_mod_indirme_engelli": "offline modu etkin — ağdan indirme reddedildi; paketi elle indirip yerel yol verin",
     "compat.namcap": "Namcap Analizi",
     "compat.deps": "Bağımlılık Kontrolü",
     "compat.conflicts": "Dosya Çakışması",
@@ -441,6 +443,7 @@ STRINGS: dict[str, str] = {
     "cli.sbom_help": "Paket için Software Bill of Materials (SBOM) oluştur",
     "cli.arg_sbom_pkg": "SBOM oluşturulacak .pkg.tar.zst dosyası",
     "cli.arg_sbom_no_hashes": "SHA-256 hash hesaplamasını atla (daha hızlı)",
+    "cli.arg_translate_scripts": "Debian bakım betiklerini (postinst/postrm) Arch .INSTALL kancasına çevir; kurulumda root olarak çalışır — açık onay ister",
     "cli.arg_sbom_diff": "İki paket arasındaki SBOM farklarını göster",
     "cli.arg_sbom_format": "SBOM şeması: internal (PkgForge, varsayılan), spdx (SPDX 2.3 JSON) veya cyclonedx (CycloneDX 1.6 JSON)",
     "cli.attest_help": "Paket için SLSA provenance attestasyonu oluştur",

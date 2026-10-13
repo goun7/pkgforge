@@ -85,7 +85,7 @@ def test_pacman_guards(monkeypatch):
 
     paths = {"pacman": "/p", "paru": "/paru"}
     monkeypatch.setattr(DR.shutil, "which", lambda n: paths.get(n))
-    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None: _ns(0, out="Version : 1.2"))
+    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None, **k: _ns(0, out="Version : 1.2"))
     ok, ver = DR._check_pacman("x")
     assert ok is True and ver == "1.2"
     ok2, ver2 = DR._check_pacman_installed("x")
@@ -96,7 +96,7 @@ def test_resolve_chain(monkeypatch):
     import core.dep_resolver as DR
     state = {"mode": "installed"}
 
-    def fake_pacman(cmd, timeout=None):
+    def fake_pacman(cmd, timeout=None, **k):
         if cmd[1] == "-Qi":
             return _ns(0 if state["mode"] == "installed" else 1, out="Version : 9.9")
         return _ns(0 if state["mode"] == "repo" else 1, out="Version : 8.8")
@@ -137,7 +137,7 @@ def test_check_aur_cache_and_helper(monkeypatch):
     assert DR._check_aur("demo") == (False, "")
 
     monkeypatch.setattr(DR.shutil, "which", lambda n: "/usr/bin/yay")
-    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None: _ns(0, out="Repo : aur" + chr(10) + "Version : 7"))
+    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None, **k: _ns(0, out="Repo : aur" + chr(10) + "Version : 7"))
     ok3, ver3 = DR._check_aur("demo2")
     assert ok3 is True and ver3 == "7"
 
@@ -149,11 +149,11 @@ def test_install_aur_packages(monkeypatch):
 
     seen = []
     monkeypatch.setattr(DR, "_aur_helper", lambda: "paru")
-    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None: seen.append(c) or _ns(0))
+    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None, **k: seen.append(c) or _ns(0))
     ok2, msg2 = install_aur_packages(["a", "b"])
     assert ok2 is True and "2 paket kuruldu" in msg2
     assert "--needed" in seen[0]
 
-    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None: _ns(1, err="hata"))
+    monkeypatch.setattr(DR, "safe_run", lambda c, timeout=None, **k: _ns(1, err="hata"))
     ok3, msg3 = install_aur_packages(["c"], aur_helper="yay")
     assert ok3 is False and "başarısız" in msg3
