@@ -170,7 +170,7 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
         return CheckResult(
             name=tr("compat.namcap"),
             severity=CheckSeverity.WARNING,
-            message="namcap bulunamadı, statik analiz atlandı",
+            message=tr("compat.namcap_missing"),
         )
 
     result = safe_run([tools.namcap, "-m", str(pkg_path)], timeout=60)
@@ -181,7 +181,7 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
         return CheckResult(
             name=tr("compat.namcap"),
             severity=CheckSeverity.PASS,
-            message="Namcap herhangi bir sorun tespit etmedi",
+            message=tr("compat.namcap_clean"),
         )
 
     errors: list[str] = []
@@ -216,7 +216,7 @@ def _run_namcap(pkg_path: Path, tools: ToolPaths) -> CheckResult:
         return CheckResult(
             name=tr("compat.namcap"),
             severity=CheckSeverity.PASS,
-            message="Sorun tespit edilmedi",
+            message=tr("compat.no_issues"),
         )
 
 
@@ -229,7 +229,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
             CheckResult(
                 name=tr("compat.deps"),
                 severity=CheckSeverity.PASS,
-                message="Paket bağımlılığı yok",
+                message=tr("compat.no_deps"),
             )
         ]
     if not tools.pacman:
@@ -238,7 +238,7 @@ def _check_dependencies(depends: list[str], tools: ToolPaths) -> list[CheckResul
             CheckResult(
                 name=tr("compat.deps"),
                 severity=CheckSeverity.WARNING,
-                message="pacman bulunamadı, bağımlılık kontrolü atlandı",
+                message=tr("compat.deps_pacman_missing"),
             )
         ]
 
@@ -320,13 +320,13 @@ def _check_file_conflicts(file_list: list[str], tools: ToolPaths) -> CheckResult
         return CheckResult(
             name=tr("compat.conflicts"),
             severity=CheckSeverity.PASS,
-            message="Dosya listesi boş, çakışma kontrolü atlandı",
+            message=tr("compat.empty_file_list"),
         )
     if not tools.pacman:
         return CheckResult(
             name=tr("compat.conflicts"),
             severity=CheckSeverity.WARNING,
-            message="pacman bulunamadı, çakışma kontrolü atlandı",
+            message=tr("compat.conflicts_pacman_missing"),
         )
 
     conflicts: list[str] = []
@@ -545,7 +545,7 @@ def _shared_lib_result(
         return CheckResult(
             name=tr("compat.so"),
             severity=CheckSeverity.ERROR,
-            message=f"glibc uyumsuzlugu tespit edildi ({len(glibc_issues)} sorun)",
+            message=tr("compat.glibc_incompatible", n_issues=len(glibc_issues)),
             details=glibc_issues + [f"Eksik: {lib}" for lib in missing_libs],
         )
     if missing_libs or unreachable:
@@ -564,7 +564,7 @@ def _shared_lib_result(
     return CheckResult(
         name=tr("compat.so"),
         severity=CheckSeverity.PASS,
-        message=f"{checked_count} ELF dosyasi analiz edildi, tum kutuphaneler mevcut",
+        message=tr("compat.all_libs_present", checked_count=checked_count),
     )
 
 
@@ -585,20 +585,20 @@ def _check_shared_libraries(pkg_path: Path, tools: ToolPaths) -> CheckResult:
         return CheckResult(
             name=tr("compat.so"),
             severity=CheckSeverity.WARNING,
-            message="readelf/objdump veya bsdtar bulunamadi, kontrol atlandi",
+            message=tr("compat.elf_tools_missing"),
         )
     if durum == "liste":
         return CheckResult(
             name=tr("compat.so"),
             severity=CheckSeverity.WARNING,
-            message="Paket icerigi listelenemedi",
+            message=tr("compat.pkg_list_failed"),
         )
     assert elf_files is not None
     if not elf_files:
         return CheckResult(
             name=tr("compat.so"),
             severity=CheckSeverity.PASS,
-            message="Pakette ELF dosyasi tespit edilmedi",
+            message=tr("compat.no_elf_in_package"),
         )
 
     # Extract ELF files to temp dir for static analysis

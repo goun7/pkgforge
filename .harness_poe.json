@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "e2289c230135b682d66e48107f8caab30f5b37878e8daf2e9fb92df9aebb1375",
-  "outputTail": "......................                                                   [100%]",
-  "command": "./.venv/bin/python -m pytest tests/test_compat_round35.py tests/test_compat_checker_units.py tests/test_compatibility_checker.py tests/test_cli_compat_reason_output.py -q",
-  "timestamp": "2026-10-13T15:00:17.263Z",
-  "diffHash": "dc2d8982bd1fab6afc88425c1679d37a2d2721dec73fb3caba2f3414cb2bffd6",
-  "poeTag": "[PoE rc=0 out=e2289c230135b682 diff=dc2d8982bd1fab6a time=2026-10-13T15:00:17.263Z]",
-  "parentSealHash": "414e7687796fa9986b22bf2b98ba0d442639b5758c2413fdca8890546ee16b4a",
-  "commitAtSealTime": "e917da12ec977b4e7a0d500bbf7d837525a3238d",
-  "sealHash": "58e072c31287bd498a47ee85b0625fb022a90359c6493f4aa9225a80a1546e0b"
+  "outputHash": "511fb971caf59261241ec2a3919d9d10c7dcb9ec044ee07d50b2db465184f057",
+  "outputTail": "...............                                                          [100%]",
+  "command": "./.venv/bin/python -m pytest tests/test_compat_round35.py tests/test_compat_checker_units.py tests/test_compatibility_checker.py -q",
+  "timestamp": "2026-10-13T16:18:54.607Z",
+  "diffHash": "4ad2692404111a6da93aff9c87e8f75be4d47da020f931ad38049fd389002a22",
+  "poeTag": "[PoE rc=0 out=511fb971caf59261 diff=4ad2692404111a6d time=2026-10-13T16:18:54.607Z]",
+  "parentSealHash": "58e072c31287bd498a47ee85b0625fb022a90359c6493f4aa9225a80a1546e0b",
+  "commitAtSealTime": "f3eb701aca8de231b5ca500fd7e76d4c53a1f001",
+  "sealHash": "112f15cedd2e11fd032a5b27a582149f652cc8318f8e9fcc26e6a2d6bf28458d"
 }
