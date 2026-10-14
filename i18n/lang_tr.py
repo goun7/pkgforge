@@ -1463,4 +1463,6 @@ STRINGS: dict[str, str] = {
     "aurpub.srcinfo_uretilemedi": ".SRCINFO uretilemedi — PKGBUILD makepkg tarafindan okunamadi: {pkgbuild}",
     "aurpub.dosyalar_eksik": "AUR push icin eksik dosyalar: {dosyalar}",
     "pathguard.yol_cok_uzun": "{field}: yol veya dosya adı uzunluğun üstünde",
+    "snap.hazir_target": "Snapshot hazir: {target}",
+    "snap.yetki_reddedildi": "Yetkilendirme reddedildi/iptal — snapshot atlandi",
 }

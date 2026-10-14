@@ -2,13 +2,11 @@
 # Install with: pip install -r requirements-dev.txt
 
 -r requirements.txt
+-r requirements-lint.txt
 
 pytest>=9.1.1
 pytest-cov>=7.1.0
 pytest-timeout>=2.4.0
-mypy==2.3.1
-bandit>=1.9.4
-ruff==0.16.6
 hypothesis>=6.167.1
 httpx>=0.28.1
 jeepney>=0.9.0

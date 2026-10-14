@@ -149,10 +149,10 @@ def _take_snapshot_privileged(backend: str, snap_name: str) -> SnapshotInfo:
     if res.returncode == 0:
         return SnapshotInfo(
             backend=backend, snapshot_name=target, mount_point="/",
-            success=True, detail=f"Snapshot hazir: {target}",
+            success=True, detail=tr("snap.hazir_target", target=target),
         )
     if res.returncode in (126, 127):
-        detail = "Yetkilendirme reddedildi/iptal — snapshot atlandi"
+        detail = tr("snap.yetki_reddedildi")
     elif res.stderr.strip():
         detail = res.stderr.strip().splitlines()[-1][:200]
     else:

@@ -1463,4 +1463,6 @@ STRINGS: dict[str, str] = {
     "aurpub.srcinfo_uretilemedi": ".SRCINFO could not be generated — makepkg cannot read the PKGBUILD: {pkgbuild}",
     "aurpub.dosyalar_eksik": "Files missing for the AUR push: {dosyalar}",
     "pathguard.yol_cok_uzun": "{field}: path or file name exceeds the length limit",
+    "snap.hazir_target": "Snapshot ready: {target}",
+    "snap.yetki_reddedildi": "Authorization refused/cancelled — snapshot skipped",
 }

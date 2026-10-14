@@ -76,15 +76,15 @@ jobs:
           git diff --staged --quiet || git commit -m "Update coverage badge [skip ci]"
           git push
 
+      # Pimler requirements-lint.txt'ten okunur: `make verify` ile ayni surum.
       - name: Type Check (mypy strict, lenient imports)
         run: |
-          pip install mypy
-          mypy core/ cli.py main.py config.py ui/ --ignore-missing-imports --strict --no-error-summary
+          pip install -r requirements-lint.txt
+          python -m mypy core/ cli.py main.py config.py ui/ --ignore-missing-imports --strict --no-error-summary
 
       - name: Security Scan (Bandit)
         run: |
-          pip install bandit
-          bandit -r core/ -ll --skip B101,B311
+          python -m bandit -r core/ -ll --skip B101,B311
 
   # Authoritative coverage gate (core+ui+i18n @ 99% — the honest measured
   # number; 100 was aspirational and never reproducible locally).
@@ -236,8 +236,8 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: Install ruff
-        run: pip install ruff==0.16.6
+      - name: Install lint tools (pinned)
+        run: pip install -r requirements-lint.txt
       # F5.9: legacy 83 findings temizlendi; gate artık tüm repoyu kapsıyor.
       - name: Ruff (full repo)
         run: |

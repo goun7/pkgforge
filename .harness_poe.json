@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "302c481d0476715670506a6664542c2cdca3bcb6f6be63ec67b5ba0dde493cf4",
-  "outputTail": ".......................................................................  [100%]",
-  "command": "python -m pytest tests/test_path_length_glob_hardening.py tests/test_cli_resolve_list_dallar.py tests/test_pathguard_containment.py tests/test_api_handlers_round32.py -q --no-cov",
-  "timestamp": "2026-10-14T07:45:21.265Z",
-  "diffHash": "8e4e6d90bfc287d0285408aabdfa8054fdb9a7e165b54ae289950aff8eae9593",
-  "poeTag": "[PoE rc=0 out=302c481d04767156 diff=8e4e6d90bfc287d0 time=2026-10-14T07:45:21.265Z]",
-  "parentSealHash": "4e6ee42f9f781a451720f92f54de4e2bd2fab0494748ae6c802f96e33aec58c2",
-  "commitAtSealTime": "8093e276a41d576461bacf08ea09ebcba4d54f29",
-  "sealHash": "0a3f6736e8a3c5edc8e7878e8a4b225f6fcd10c27f55ca9795b85dae7288ce1b"
+  "outputHash": "419de625531326a5d45023ff7e1a9f0581edd74b74398de29b6a11929f3e4c2d",
+  "outputTail": "..................................................... [ 95%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n......................................................                   [100%]",
+  "command": "python -m pytest tests/test_snapshot_yollari.py tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_path_length_glob_hardening.py -q --no-cov",
+  "timestamp": "2026-10-14T11:00:03.923Z",
+  "diffHash": "8117b80ce375e975097322538d8d86ab233250f08bd0df3e0af48cefae455f25",
+  "poeTag": "[PoE rc=0 out=419de625531326a5 diff=8117b80ce375e975 time=2026-10-14T11:00:03.923Z]",
+  "parentSealHash": "0a3f6736e8a3c5edc8e7878e8a4b225f6fcd10c27f55ca9795b85dae7288ce1b",
+  "commitAtSealTime": "88d8d4bb87c9e57de77ba2a5aad2f8f8188d8a43",
+  "sealHash": "33ab3a86953690e44724a6956b213a549ccbe06fe89f69a093036e0ab8c0bb6d"
 }
