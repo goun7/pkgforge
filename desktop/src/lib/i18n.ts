@@ -461,6 +461,8 @@ export const dict = {
     cmdOpenTour: "Özellik turunu aç",
     // Faz 9
     rpcTimeout: "Yanıt zaman aşımı",
+    noTauriRuntime: "Masaüstü köprüsü yok: PkgForge arayüzü Tauri uygulaması "
+      + "içinde çalıştırılmalı (pkgforge desktop).",
     logPaused: "Log · duraklatıldı",
     logEmpty: "Henüz log yok…",
     depForeign: "Yabancı",
@@ -1113,6 +1115,8 @@ export const dict = {
     cmdOpenTour: "Open feature tour",
     // Faz 9
     rpcTimeout: "Response timeout",
+    noTauriRuntime: "Desktop bridge unavailable: run the PkgForge Tauri "
+      + "application (pkgforge desktop).",
     logPaused: "Log · paused",
     logEmpty: "No logs yet…",
     depForeign: "Foreign",

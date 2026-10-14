@@ -64,6 +64,17 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   });
 }
 
+/** Tauri IPC'suz bir ortamda (tarayicida `vite`, headless QA) @tauri-apps/api
+ *  ham bir TypeError firlatiyor ve kullanicinin ekrani "Cannot read properties
+ *  of undefined (reading 'invoke')" toast'iyla doluyordu. Gercek RPC hatalarina
+ *  dokunmaz; yalnizca bu yuksuz hata mesajini acik bir sebeple degistirir. */
+export function tauriYoksaAcikla(err: unknown): unknown {
+  if (err instanceof TypeError && /__TAURI__|invoke/.test(err.message)) {
+    return new Error(tFor(getLang())("noTauriRuntime"));
+  }
+  return err;
+}
+
 /** Call a sidecar method and await its result. */
 export async function call<T = unknown>(
   method: string,
@@ -89,7 +100,7 @@ export async function call<T = unknown>(
     // Sidecar erisim hatasi (zaman asimi / kopuk baglanti).
     consecutiveFailures++;
     if (consecutiveFailures === 2) notifySidecarStatus(false);
-    throw err;
+    throw tauriYoksaAcikla(err);
   }
   if (consecutiveFailures > 0) {
     consecutiveFailures = 0;

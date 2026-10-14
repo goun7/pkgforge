@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "d2724cdff2b6b41ec23c57d67f7c110b63fe95daf9a7ee53532e8b058ed803d3",
-  "outputTail": "m\u001b[32m 290\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m2 passed\u001b[39m\u001b[22m\u001b[90m (2)\u001b[39m\n\u001b[2m   Start at \u001b[22m 23:46:39\n\u001b[2m   Duration \u001b[22m 2.19s\u001b[2m (environment 55%, tests 14%, import 11%, transform 10%, setup 9%, worker 1%)\u001b[22m",
-  "command": "bash -c 'cd desktop && ./node_modules/.bin/vitest run src/__tests__/AppTopbarSearch.test.tsx'",
-  "timestamp": "2026-10-13T20:46:42.004Z",
-  "diffHash": "a9d47b6c9704417b0ce8854297d327f4af7b2a103a1a07ae15f755eabaf444f9",
-  "poeTag": "[PoE rc=0 out=d2724cdff2b6b41e diff=a9d47b6c9704417b time=2026-10-13T20:46:42.004Z]",
-  "parentSealHash": "e804b28d37c3adb8fc575c7d7f984dcaffd650cc5de66c4a473da01792e93970",
-  "commitAtSealTime": "97f5bcbef085a0293616a244ac17326ba85e23bc",
-  "sealHash": "ba80d4c12e827e0a0a8582ea491b5bda2eb607dafb5cad93bd76a00e48048b72"
+  "outputHash": "316bb062336be693557ace6c8f70673eab576239cd43431c959aecfb970b7a79",
+  "outputTail": "..................................................... [ 95%]\n........................................................................ [ 97%]\n........................................................................ [ 99%]\n..............................                                           [100%]",
+  "command": "bash -c 'cd desktop && ./node_modules/.bin/vitest run src/lib/__tests__/rpcTauriYok.test.ts src/lib/__tests__/i18n.test.ts && cd .. && .venv/bin/python -m pytest tests/test_i18n_output_leaks.py tests/test_i18n_key_drift.py -q --no-cov'",
+  "timestamp": "2026-10-14T07:28:19.344Z",
+  "diffHash": "9cbf8a02704daccd7852cd155a740e8bf87ccdbbcbffd72ba981fa320feaae56",
+  "poeTag": "[PoE rc=0 out=316bb062336be693 diff=9cbf8a02704daccd time=2026-10-14T07:28:19.344Z]",
+  "parentSealHash": "ba80d4c12e827e0a0a8582ea491b5bda2eb607dafb5cad93bd76a00e48048b72",
+  "commitAtSealTime": "a846b5ee1b1f76e500f4a664dafc8153bf047b0e",
+  "sealHash": "4e6ee42f9f781a451720f92f54de4e2bd2fab0494748ae6c802f96e33aec58c2"
 }
