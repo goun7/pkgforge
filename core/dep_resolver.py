@@ -13,7 +13,9 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 import shutil
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -309,7 +311,41 @@ def is_elf_file(path: Path) -> bool:
         return False
 
 
-def collect_sonames(root_dir: Path, tools: ToolPaths, *, max_files: int = 200) -> set[str]:
+# Sanal dosya sistemleri: burada ELF aranmaz; `/proc` ve `/run` altindaki
+# cihaz/FIFO benzeri girdilerin acilisi ise BLOCKLAYEBILIYOR (CI'da 120sn'lik
+# test zaman asimi tam burada olustu).
+_SANAL_DIZINLER = frozenset({"/proc", "/sys", "/dev", "/run"})
+
+
+def _dosya_gezintisi(root_dir: Path, max_walk: int) -> Iterator[Path]:
+    """Sinirli, sembolik baglari izlemeyen ve sanal dizinleri budayan gezinti."""
+    gecen = 0
+    yigin: list[Path] = [root_dir]
+    while yigin and gecen < max_walk:
+        dizin = yigin.pop()
+        try:
+            with os.scandir(dizin) as girisler:
+                for giris in girisler:
+                    gecen += 1
+                    if gecen >= max_walk:
+                        return
+                    try:
+                        if giris.is_symlink():
+                            continue
+                        if giris.is_dir(follow_symlinks=False):
+                            if giris.path.rstrip("/") in _SANAL_DIZINLER:
+                                continue
+                            yigin.append(Path(giris.path))
+                        elif giris.is_file(follow_symlinks=False):
+                            yield Path(giris.path)
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+
+
+def collect_sonames(root_dir: Path, tools: ToolPaths, *,
+                    max_files: int = 200, max_walk: int = 20_000) -> set[str]:
     """Walk *root_dir*, statically read each ELF's DT_NEEDED sonames."""
     reader = tools.readelf or tools.objdump
     if not reader:
@@ -317,11 +353,9 @@ def collect_sonames(root_dir: Path, tools: ToolPaths, *, max_files: int = 200) -
 
     sonames: set[str] = set()
     checked = 0
-    for path in root_dir.rglob("*"):
+    for path in _dosya_gezintisi(root_dir, max_walk):
         if checked >= max_files:
             break
-        if not path.is_file() or path.is_symlink():
-            continue
         if not is_elf_file(path):
             continue
         checked += 1
