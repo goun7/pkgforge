@@ -11,25 +11,18 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
-from cli import _cmd_list
+from cli import _cmd_list, _resolve_pkg_file
 from core.history_db import HistoryDB
-
-# _resolve_pkg_file module-icinde (nested) — packaging() icinde test edilemez,
-# ama ayni govdeyi bagimsiz test ederiz:
 
 
 def _resolve_like(name: str, tmp: Path) -> Path | None:
-    """Ayni govde: direkt-dosya / pacman-cache glob."""
-    direct = Path(name).expanduser()
-    if direct.is_file():
-        return direct
-    import glob as globmod
-    for pattern in [f"/var/cache/pacman/pkg/{name}-*-any.pkg.tar.zst",
-                    f"/var/cache/pacman/pkg/{name}-x86_64.pkg.tar.zst"]:
-        matches = globmod.glob(pattern)
-        if matches:
-            return Path(matches[0])
-    return None
+    """Gercek govdeye delege et: ayna kod surukmesi testin degerini sifirlar.
+
+    Onceki surumde fonksiyon nested oldugu icin KOPYALANMISti; kopyanin glob
+    desenleri gercekten zaten sapmisti ve Python <=3.12'de Path.is_file()'in
+    ENAMETOOLONG yukseltmesi yalnizca gercek kodda duzeltilebilirdi.
+    """
+    return _resolve_pkg_file(name)
 
 
 # == _cmd_list: temel =============================================================================

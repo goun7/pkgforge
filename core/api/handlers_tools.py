@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from core.api import transport
-from core.pathguard import guarded_path
+from core.pathguard import exists_safe, guarded_path, is_file_safe
 from i18n import load_settings, save_settings, tr
 
 
@@ -41,7 +41,7 @@ def handle_tools_rpm_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     from core.rpm_to_deb_converter import is_rpm_to_deb_available, rpm_to_deb
 
     rpm_path = Path(params.get("rpm", ""))
-    if not rpm_path.is_file():
+    if not is_file_safe(rpm_path):
         raise FileNotFoundError(tr("api.rpm_bulunamadi_path", path=rpm_path))
     out_raw = params.get("output_dir", "")
     out_dir = Path(out_raw) if out_raw else Path.cwd()
@@ -66,7 +66,7 @@ def handle_tools_abi_check(params: dict[str, Any]) -> dict[str, Any]:
     from core.abi_scanner import check_abi_compatibility
 
     pkg_path = Path(params.get("package", ""))
-    if not pkg_path.is_file():
+    if not is_file_safe(pkg_path):
         raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg_path))
 
     def _op() -> Any:
@@ -138,7 +138,7 @@ def handle_tools_scan_image(params: dict[str, Any]) -> dict[str, Any]:
     from core.malware_scanner import scan_oci_image
 
     image_path = Path(params.get("image", ""))
-    if not image_path.exists():
+    if not exists_safe(image_path):
         raise FileNotFoundError(tr("api.goruntu_bulunamadi_path", path=image_path))
 
     def _op() -> Any:
@@ -158,7 +158,7 @@ def handle_tools_attest(params: dict[str, Any]) -> dict[str, Any]:
     )
 
     pkg_path = Path(params.get("package", ""))
-    if not pkg_path.is_file():
+    if not is_file_safe(pkg_path):
         raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg_path))
     signer_key = params.get("key", "") or ""
 
@@ -196,7 +196,7 @@ def handle_tools_publish(params: dict[str, Any]) -> dict[str, Any]:
     from core.aur_publish import prepare_aur_package, push_to_aur
 
     pkg_path = Path(params.get("package", ""))
-    if not pkg_path.is_file():
+    if not is_file_safe(pkg_path):
         raise FileNotFoundError(tr("api.paket_bulunamadi_pkg", pkg=pkg_path))
     out_raw = params.get("output_dir", "")
     out_dir = Path(out_raw) if out_raw else Path.cwd()

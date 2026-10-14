@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "316bb062336be693557ace6c8f70673eab576239cd43431c959aecfb970b7a79",
-  "outputTail": "..................................................... [ 95%]\n........................................................................ [ 97%]\n........................................................................ [ 99%]\n..............................                                           [100%]",
-  "command": "bash -c 'cd desktop && ./node_modules/.bin/vitest run src/lib/__tests__/rpcTauriYok.test.ts src/lib/__tests__/i18n.test.ts && cd .. && .venv/bin/python -m pytest tests/test_i18n_output_leaks.py tests/test_i18n_key_drift.py -q --no-cov'",
-  "timestamp": "2026-10-14T07:28:19.344Z",
-  "diffHash": "9cbf8a02704daccd7852cd155a740e8bf87ccdbbcbffd72ba981fa320feaae56",
-  "poeTag": "[PoE rc=0 out=316bb062336be693 diff=9cbf8a02704daccd time=2026-10-14T07:28:19.344Z]",
-  "parentSealHash": "ba80d4c12e827e0a0a8582ea491b5bda2eb607dafb5cad93bd76a00e48048b72",
-  "commitAtSealTime": "a846b5ee1b1f76e500f4a664dafc8153bf047b0e",
-  "sealHash": "4e6ee42f9f781a451720f92f54de4e2bd2fab0494748ae6c802f96e33aec58c2"
+  "outputHash": "302c481d0476715670506a6664542c2cdca3bcb6f6be63ec67b5ba0dde493cf4",
+  "outputTail": ".......................................................................  [100%]",
+  "command": "python -m pytest tests/test_path_length_glob_hardening.py tests/test_cli_resolve_list_dallar.py tests/test_pathguard_containment.py tests/test_api_handlers_round32.py -q --no-cov",
+  "timestamp": "2026-10-14T07:45:21.265Z",
+  "diffHash": "8e4e6d90bfc287d0285408aabdfa8054fdb9a7e165b54ae289950aff8eae9593",
+  "poeTag": "[PoE rc=0 out=302c481d04767156 diff=8e4e6d90bfc287d0 time=2026-10-14T07:45:21.265Z]",
+  "parentSealHash": "4e6ee42f9f781a451720f92f54de4e2bd2fab0494748ae6c802f96e33aec58c2",
+  "commitAtSealTime": "8093e276a41d576461bacf08ea09ebcba4d54f29",
+  "sealHash": "0a3f6736e8a3c5edc8e7878e8a4b225f6fcd10c27f55ca9795b85dae7288ce1b"
 }

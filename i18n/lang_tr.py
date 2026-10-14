@@ -1462,4 +1462,5 @@ STRINGS: dict[str, str] = {
     "history.col_source_url": "Kaynak URL",
     "aurpub.srcinfo_uretilemedi": ".SRCINFO uretilemedi — PKGBUILD makepkg tarafindan okunamadi: {pkgbuild}",
     "aurpub.dosyalar_eksik": "AUR push icin eksik dosyalar: {dosyalar}",
+    "pathguard.yol_cok_uzun": "{field}: yol veya dosya adı uzunluğun üstünde",
 }

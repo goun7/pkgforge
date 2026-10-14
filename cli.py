@@ -14,6 +14,7 @@ from pathlib import Path
 from config import discover_tools, extract_package_name
 from core.downloader import download_package
 from core.history_db import HistoryDB
+from core.pathguard import is_file_safe
 from core.security import is_valid_package_name, safe_run
 from core.upstream_tracker import check_all_installed_updates
 from i18n import load_setting, tr
@@ -900,6 +901,25 @@ def _cmd_attest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _resolve_pkg_file(name: str) -> Path | None:
+    """Accept a direct file path, or search the pacman package cache."""
+    ad = (name or "").strip()
+    if not ad:
+        return None
+    direct = Path(ad).expanduser()
+    if is_file_safe(direct):
+        return direct
+    import glob as globmod
+    # glob.escape: aksine `pkgforge graph "*"` cache'teki rastgele bir paketi
+    # secip onu analiz ediyordu (kullanici girdisi desen olarak yorumlaniyordu).
+    for pattern in [f"/var/cache/pacman/pkg/{globmod.escape(ad)}*.pkg.tar.zst",
+                    f"/var/cache/pacman/pkg/{globmod.escape(ad)}*.pkg.tar.xz"]:
+        matches = globmod.glob(pattern)
+        if matches:
+            return Path(matches[0])
+    return None
+
+
 def _cmd_graph(args: argparse.Namespace) -> int:
     """Handle `pkgforge graph`."""
     from core.dep_graph import build_dep_graph, build_file_dep_graph
@@ -907,19 +927,6 @@ def _cmd_graph(args: argparse.Namespace) -> int:
     pkg_name = args.package
     show_files = getattr(args, "files", False)
     fmt = getattr(args, "format", "ascii")
-
-    def _resolve_pkg_file(name: str) -> Path | None:
-        """Accept a direct file path, or search the pacman package cache."""
-        direct = Path(name).expanduser()
-        if direct.is_file():
-            return direct
-        import glob as globmod
-        for pattern in [f"/var/cache/pacman/pkg/{name}*.pkg.tar.zst",
-                        f"/var/cache/pacman/pkg/{name}*.pkg.tar.xz"]:
-            matches = globmod.glob(pattern)
-            if matches:
-                return Path(matches[0])
-        return None
 
     pkg_file = _resolve_pkg_file(pkg_name)
     if not pkg_file:

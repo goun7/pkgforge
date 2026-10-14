@@ -75,6 +75,37 @@ def _denied_home_subpaths() -> list[str]:
     return [str(home / sub) for sub in DENIED_HOME_SUBPATHS]
 
 
+# Linux NAME_MAX bir bilesen icin 255 bayttir; PATH_MAX de asilabilir.
+# Path.is_file() Python <=3.12'de ENAMETOOLONG'u YUKSELTIYOR (3.13+ False doner),
+# yani uzun bir kullanici girdisi CLI/RPC'yi traceback ile dusuruyordu.
+ADI_MAKS_BAYT = 255
+YOL_MAKS_BAYT = 4095
+
+
+def ad_cok_uzun(text: str) -> bool:
+    """Yol ya da bir bileseni ad limitini asiyor mu (dosya var olamaz)."""
+    if len(text.encode("utf-8", errors="replace")) > YOL_MAKS_BAYT:
+        return True
+    return any(len(parca.encode("utf-8", errors="replace")) > ADI_MAKS_BAYT
+               for parca in text.split("/"))
+
+
+def is_file_safe(value: str | Path) -> bool:
+    """`Path(value).is_file()` ama asla OSError yukseltmez."""
+    try:
+        return Path(value).is_file()
+    except OSError:
+        return False
+
+
+def exists_safe(value: str | Path) -> bool:
+    """`Path.exists()` ama asla OSError yukseltmez (uzun ad, bosluklu yol)."""
+    try:
+        return Path(value).exists()
+    except OSError:
+        return False
+
+
 def guarded_path(value: str | Path, *, field: str = "path") -> Path:
     """Return the resolved path or raise PathNotAllowed.
 
@@ -86,6 +117,9 @@ def guarded_path(value: str | Path, *, field: str = "path") -> Path:
     text = str(value or "").strip()
     if not text:
         raise PathNotAllowed(f"{field}: bos yol kabul edilmez")
+
+    if ad_cok_uzun(text):
+        raise PathNotAllowed(tr("pathguard.yol_cok_uzun", field=field))
 
     resolved = _normalize(text)
 

@@ -6,7 +6,7 @@ from typing import Any
 
 from config import discover_tools
 from core.api import transport
-from core.pathguard import guarded_path
+from core.pathguard import guarded_path, is_file_safe
 from i18n import tr
 
 # ── Faz 1 / A4: delta updater ───────────────────────────────────
@@ -51,7 +51,7 @@ def handle_export_appimage_to_deb(params: dict[str, Any]) -> dict[str, Any]:
     from core.appimage_converter import appimage_to_deb
 
     appimage = Path(params.get("appimage_path", ""))
-    if not appimage.is_file():
+    if not is_file_safe(appimage):
         raise FileNotFoundError(tr("api.appimage_bulunamadi_path", path=appimage))
     out_dir = guarded_path(params.get("output_dir", "."), field="output_dir")
 

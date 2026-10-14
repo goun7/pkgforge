@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from core.api import transport
-from core.pathguard import guarded_path, guarded_paths
+from core.pathguard import exists_safe, guarded_path, guarded_paths
 from i18n import load_settings, save_settings, tr
 
 # ── Faz 2 / B6: batch conversion queue ──────────────────────────
@@ -156,7 +156,7 @@ def _make_pipeline(path: Path, item_id: str, do_install: bool = False) -> Any:
         p._skip_install_message = tr("api.pkg_label_donusturuldu_kurulum", pkg_label=pkg_label)
         p.compatibility_ready.connect(
             lambda report: p.dismiss_install(), type=direct)  # type: ignore[call-arg]
-    p.finished.connect(_track_finished, type=direct)  # type: ignore[call-arg]  # type: ignore[call-arg]
+    p.finished.connect(_track_finished, type=direct)  # type: ignore[call-arg]
     p.finished.connect(
         lambda result: transport._event("event/finished", {
             "success": result.success,
@@ -184,7 +184,7 @@ def handle_queue_add(params: dict[str, Any]) -> dict[str, Any]:
     with _queue_lock:
         for raw in paths:
             path = Path(str(raw))
-            if not path.exists():
+            if not exists_safe(path):
                 continue
             _queue_seq += 1
             item_id = f"q{_queue_seq}"
