@@ -4,11 +4,11 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-2582%20collected-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)](#-running-tests)
+[![Tests](https://img.shields.io/badge/tests-7412%20collected-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-99.68%25-brightgreen)](#-running-tests)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#-running-tests)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#-security-architecture)
-[![Desktop](https://img.shields.io/badge/desktop-582%20vitest%20tests-brightgreen)](desktop/)
+[![Desktop](https://img.shields.io/badge/desktop-588%20vitest%20tests-brightgreen)](desktop/)
 [![Ruff](https://img.shields.io/badge/ruff-0%20errors-brightgreen)](#-running-tests)
 
 **PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **Tauri desktop app**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
@@ -231,14 +231,20 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-09-17, `make verify` + `pnpm test`):
-**2582 tests collected: 2577 passed, 4 skipped, 0 failed** · coverage
-**99.61%** on `core/`+`ui/`+`i18n/` (12 835 statements, 50 missed) ·
+Current status (measured 2026-10-14, `make verify` + frontend gates + CI on `master`):
+**7412 tests collected, full suite exit 0 (0 failed)** · coverage
+**99.68%** on `core/`+`ui/`+`i18n/` (13 181 statements, 42 missed) ·
 mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
 imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
-i18n parity 993/993 (tr/en) · desktop: 582/582 vitest, tsc 0 errors.
+ruff: 0 findings repo-wide · i18n parity 1416/1416 (tr/en) ·
+desktop: 588/588 vitest, `tsc -b --force` 0 errors, `vite build` ok ·
+headless visual tour: 12/12 pages render non-blank ·
+GitHub Actions on `master`: 19/19 jobs green (Python 3.10–3.14, multi-distro,
+coverage gate, supply-chain, keyring-live, desktop build, visual-qa, e2e).
 Real `tauri build --no-bundle` + PyInstaller sidecar built and
 `pkgforge desktop` launched end-to-end on this machine.
+Lint/type/security tool versions are pinned in `requirements-lint.txt` so
+`make verify` and CI run the identical versions.
 
 > **What the numbers do not prove.** High coverage is necessary but not
 > sufficient: this release still shipped a launcher that could not open,

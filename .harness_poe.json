@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "59f023734f6cb1483201466b425c83aa15db929c4a49f21e3d4a47285a49fb80",
-  "outputTail": "........................................................................ [ 56%]\n........................................................                 [100%]",
-  "command": "python -m pytest tests/test_walk_bounded.py tests/test_dep_resolver_sweep.py tests/test_dep_resolver_units.py tests/test_sbom_dallar.py tests/test_cli_supplychain.py -q --no-cov",
-  "timestamp": "2026-10-14T11:52:40.385Z",
-  "diffHash": "185d5a6ea40015711d0b8431133fff8c119944034dade02e03d64c1c6ac6672d",
-  "poeTag": "[PoE rc=0 out=59f023734f6cb148 diff=185d5a6ea4001571 time=2026-10-14T11:52:40.385Z]",
-  "parentSealHash": "f999d3778ad9f2a7f1ec2833b9c3b311cdc186160c3ec893a4a9c2683ee9e006",
-  "commitAtSealTime": "d47caa12b3d48316653b5695c31cb0914ecb6109",
-  "sealHash": "971639128a2e39fadd2f1875868dc75aec7069cf42429008839cd8f7824de208"
+  "outputHash": "c6ce8518a2cc113cc5560b3731e234ed6d559e746221ae903ce01599dfe7e797",
+  "outputTail": ".........................                                                [100%]",
+  "command": "python -m pytest tests/test_i18n_output_leaks.py tests/test_walk_bounded.py -q --no-cov",
+  "timestamp": "2026-10-14T13:48:02.530Z",
+  "diffHash": "d1b9505bcaa15a01de5cfb618523141d27765d30a27730fe5a94c27f09cdac47",
+  "poeTag": "[PoE rc=0 out=c6ce8518a2cc113c diff=d1b9505bcaa15a01 time=2026-10-14T13:48:02.530Z]",
+  "parentSealHash": "971639128a2e39fadd2f1875868dc75aec7069cf42429008839cd8f7824de208",
+  "commitAtSealTime": "97c63fc7700cf299eb9b6a011dd101bed901b040",
+  "sealHash": "eea3b073f6bfd0dbbf8bde40c5f3513b3a211f9d00f991f06a1e3bd439a458a2"
 }
