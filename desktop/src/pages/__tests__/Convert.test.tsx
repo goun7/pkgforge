@@ -128,6 +128,12 @@ describe("Convert page", () => {
     listeners.clear();
     invokeMock.mockReset();
     invokeMock.mockResolvedValue({ started: true });
+    // `open` mock'uOnce kuyrugu testler arasinda SIZIYORDU: bir testin
+    // mockResolvedValueOnce(null)'u sonraki testin tiklamasini yutabiliyordu
+    // (CI'da ara sira gorulen "pipeline.start hic cagrilmadi" hatasi).
+    // Varsayilan deger, mock'un olusturulmasindaki ile ayni.
+    vi.mocked(open).mockReset();
+    vi.mocked(open).mockResolvedValue([]);
   });
 
   it("renders the drop zone and empty queue", async () => {
@@ -225,6 +231,9 @@ describe("Convert page", () => {
     // Diyalog promise'inin (mockResolvedValueOnce) çözülüp pipeline.start
     // tetiklenmesi için flush + geniş waitFor (coverage modu yavaştır).
     await act(async () => {});
+    // Once diyalogun gercekten acildigini dogrula: aksi halde asagidaki
+    // "pipeline.start cagrilmadi" hatasi nedenini soylemez.
+    await vi.waitFor(() => expect(vi.mocked(open)).toHaveBeenCalled());
     await vi.waitFor(
       () => expect(callsTo("pipeline.start")).toHaveLength(1),
       { timeout: 5000 },

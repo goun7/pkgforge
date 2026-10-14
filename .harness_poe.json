@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "419de625531326a5d45023ff7e1a9f0581edd74b74398de29b6a11929f3e4c2d",
-  "outputTail": "..................................................... [ 95%]\n........................................................................ [ 96%]\n........................................................................ [ 98%]\n......................................................                   [100%]",
-  "command": "python -m pytest tests/test_snapshot_yollari.py tests/test_i18n_key_drift.py tests/test_i18n_parity.py tests/test_path_length_glob_hardening.py -q --no-cov",
-  "timestamp": "2026-10-14T11:00:03.923Z",
-  "diffHash": "8117b80ce375e975097322538d8d86ab233250f08bd0df3e0af48cefae455f25",
-  "poeTag": "[PoE rc=0 out=419de625531326a5 diff=8117b80ce375e975 time=2026-10-14T11:00:03.923Z]",
-  "parentSealHash": "0a3f6736e8a3c5edc8e7878e8a4b225f6fcd10c27f55ca9795b85dae7288ce1b",
-  "commitAtSealTime": "88d8d4bb87c9e57de77ba2a5aad2f8f8188d8a43",
-  "sealHash": "33ab3a86953690e44724a6956b213a549ccbe06fe89f69a093036e0ab8c0bb6d"
+  "outputHash": "cc9dbea6e0bbe4582f87c772a8bde363a0edb8755f367d3a33d8a938e0614b95",
+  "outputTail": " progress\u001b[33m 1107\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m44 passed\u001b[39m\u001b[22m\u001b[90m (44)\u001b[39m\n\u001b[2m   Start at \u001b[22m 14:16:39\n\u001b[2m   Duration \u001b[22m 19.36s\u001b[2m (tests 59%, environment 26%, transform 10%, import 3%, setup 2%)\u001b[22m",
+  "command": "bash -c 'cd desktop && ./node_modules/.bin/vitest run src/pages/__tests__/Convert.test.tsx'",
+  "timestamp": "2026-10-14T11:16:59.377Z",
+  "diffHash": "13d3aa7a4b3b2a3777cd29680317975ec52d4b75989df62f3158f19ad2076655",
+  "poeTag": "[PoE rc=0 out=cc9dbea6e0bbe458 diff=13d3aa7a4b3b2a37 time=2026-10-14T11:16:59.377Z]",
+  "parentSealHash": "33ab3a86953690e44724a6956b213a549ccbe06fe89f69a093036e0ab8c0bb6d",
+  "commitAtSealTime": "95797318d56dd5629efc92bc76fbe8674ce6b4f6",
+  "sealHash": "f999d3778ad9f2a7f1ec2833b9c3b311cdc186160c3ec893a4a9c2683ee9e006"
 }
