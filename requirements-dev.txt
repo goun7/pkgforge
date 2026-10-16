@@ -7,7 +7,7 @@
 pytest>=9.1.1
 pytest-cov>=7.1.0
 pytest-timeout>=2.4.0
-hypothesis>=6.167.1
+hypothesis>=6.168.5
 httpx>=0.28.1
 jeepney>=0.9.0
-pyinstaller>=6.22.2
+pyinstaller>=6.22.3
