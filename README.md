@@ -237,7 +237,7 @@ make verify     # ruff + mypy + bandit + full pytest with coverage gate
 
 Current status (measured 2026-10-16, `make verify` + frontend gates + Rust
 `cargo test`):
-**7419 tests collected, full suite exit 0 (0 failed)** · coverage
+**7431 tests collected, full suite exit 0 (0 failed)** · coverage
 **99.68%** on `core/`+`ui/`+`i18n/` (13 184 statements, 42 missed) ·
 mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
 imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
@@ -250,6 +250,8 @@ coverage gate, supply-chain, keyring-live, desktop build, visual-qa, e2e).
 Real `tauri build --no-bundle` + PyInstaller sidecar built and
 `pkgforge --file <real .deb>` opened the Tauri shell, converted the package
 and reached the approval gate on this machine.
+`bash desktop/scripts/e2e-integration.sh` (real app + sidecar + JSON-RPC +
+clean shutdown): **ALL CHECKS PASSED**.
 Lint/type/security tool versions are pinned in `requirements-lint.txt` so
 `make verify` and CI run the identical versions.
 

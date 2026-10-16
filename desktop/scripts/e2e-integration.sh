@@ -18,7 +18,14 @@ if [ ! -x "$BIN" ]; then
   exit 1
 fi
 
-export GDK_BACKEND=x11
+# Backend'i ZORLAMA: sabit `GDK_BACKEND=x11`, Wayland oturumunda GTK'yi
+# dusuruyordu (olculen: "Failed to initialize gtk backend!: BoolError ...
+# gtk::rt::init" + SIGABRT, 2026-10-16). DMABUF ayari artik kabugun icinde
+# (src-tauri/src/main.rs), bu yuzden burada da backend'i sadece X11
+# oturumundayken sabitliyoruz; Wayland'da GTK kendi backend'ini secer.
+if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -n "${DISPLAY:-}" ]; then
+  export GDK_BACKEND=x11
+fi
 LOG="$(mktemp)"
 
 "$BIN" >"$LOG" 2>&1 &

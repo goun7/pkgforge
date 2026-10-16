@@ -129,6 +129,44 @@ Ayrıca plugin `rust-version = 1.90` istiyor; depoda beyan edilen taban 1.77
 olayın gelip gelmediğine bakmak; geliyorsa `addPaths` çağrısını, gelmiyorsa
 Rust→JS olay kanalı farkını (yanıt/anabilen) karşılaştırmak.
 
+## 2026-10-16 (ikinci tur) — GUI bir aylık BAYAT motor çalıştırıyormuş
+
+Kullanıcı `sudo ./scripts/install.sh` sonrası kurulumu doğrularken ölçüldü:
+
+| Gözlem | Kanıt |
+|---|---|
+| Kurulu kabuk, yanındaki gömülü sidecar'ı seçiyor | `ps`: `/usr/lib/pkgforge/desktop/pkgforge-sidecar serve` |
+| O sidecar 17 Eylül'de derlenmiş (101 MB) | `ls -la` mtime `Eyl 17 17:10`; düzeltmeler 14–16 Ekim commit'lerinde |
+| Sonuç: CLI taze kodu, GUI bir aylık motoru çalıştırıyordu | `/usr/lib/pkgforge/main.py` aynı gün kopyalanmış, `pkgforge-sidecar` değil |
+
+Üç katmanlı düzeltme (hepsi ayrı ayrı gerçek çalıştırmayla doğrulandı):
+
+1. `main.py::_launch_desktop`: kabuk bu kurulum ağacının **içindeyse**
+   `PKGFORGE_SIDECAR=python` zorunlu; `PKGFORGE_PYTHON` yoksa CLI'yi çalıştıran
+   interpreter'ın kendisi veriliyor. Taklit `/usr/lib` düzeninde dönüşüm canlı
+   ağaçtan koştu, gömülü sidecar'ın imzası log'da 0.
+2. `sidecar.rs::bundled_sidecar_fresh()`: kabuk **doğrudan** çalıştırılsa bile
+   (terminal, harness, paket bağıntısı) gömülü snapshot kurulu Python kodundan
+   eskiyse kullanılmıyor ve sebebi stderr'e yazılıyor. İki yönlü ölçüm: bayat
+   snapshot → `bundled sidecar kurulu Python kodundan daha eski; canli Python
+   sidecar'i kullaniliyor`; taze snapshot → işaret yok, gömülü kullanılıyor.
+3. `install.sh`: snapshot Python ağacından eskiyse artık kopyalanmıyor, daha
+   önce kopyalanmış olan kaldırılıyor (101 MB bayat motor sistemde kalmıyor).
+
+Aynı turda bulunan ikinci gerçek hata: **kabuk doğrudan çalıştırılınca
+çöküyordu**. Wayland'da `Gdk-Message: Error 71 (Protocol error) dispatching to
+Wayland display`, `GDK_BACKEND=x11` zorlanırsa `Failed to initialize GTK` +
+SIGABRT. DMABUF ayarı yalnızca launcher ortamındaydı; artık kabuk kendi
+içinde koyuyor (`main.rs`, çağıranın değeri varsa ona dokunmadan). Aynı
+nedenle `desktop/scripts/e2e-integration.sh`'teki sabit `GDK_BACKEND=x11`
+kaldırıldı (Wayland oturumunda GTK'yi düşürüyordu); harness artık bu makinede
+**E2E: ALL CHECKS PASSED** veriyor.
+
+`desktop/scripts/e2e-integration.sh` ölü dosya denetiminde "yalnızca eski bir
+plan belgesinde geçiyor" diye işaretlenmişti; içeriği gerçek bir UÇTAN UCA
+doğrulaması (kabuk + sidecar + JSON-RPC + temiz kapanış) ve CI başsız olduğu
+için çağırıyor — **silinmedi**, ilk kez koşularak yeşile getirildi.
+
 ## Kalan insan adımları
 
 1. `v2.2.0` tag → release CI izlenir

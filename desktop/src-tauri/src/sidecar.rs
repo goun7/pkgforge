@@ -138,7 +138,9 @@ fn spawn_bundled(app: &AppHandle) -> Result<(), String> {
 /// Spawn the Python sidecar and start the stdout reader thread.
 ///
 /// Prefers a bundled single-file binary (production); falls back to running
-/// `python main.py serve` from the source tree (development).
+/// `python main.py serve` from the source tree (development). A bundled
+/// snapshot that is OLDER than the installed Python tree is never used —
+/// see [`bundled_sidecar_fresh`].
 pub fn spawn(app: &AppHandle) -> Result<(), String> {
     // PKGFORGE_SIDECAR=python: bundled binary yerine kaynak agacindaki guncel
     // Python sidecar'i kullan (bundled sidecar eski kalabilir; kaynak-koku/dev).
@@ -147,10 +149,69 @@ pub fn spawn(app: &AppHandle) -> Result<(), String> {
         // to the python dev fallback below. NOTE: `sidecar()` only resolves
         // the path, it does not check existence — check explicitly.
         if find_bundled_sidecar() {
-            return spawn_bundled(app);
+            if bundled_sidecar_fresh() {
+                return spawn_bundled(app);
+            }
+            eprintln!(
+                "pkgforge: bundled sidecar kurulu Python kodundan daha eski; \
+                 canli Python sidecar'i kullaniliyor"
+            );
         }
     }
     spawn_python(app)
+}
+
+/// Diskteki gomulu sidecar yolunu bul (kurulum duzeni veya dev duzeni).
+fn bundled_sidecar_path() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let dir = exe.parent()?;
+    let plain = dir.join("pkgforge-sidecar");
+    if plain.is_file() {
+        return Some(plain);
+    }
+    let triple = std::env::var("TAURI_ENV_TARGET_TRIPLE").unwrap_or_default();
+    let suffixed = if triple.is_empty() {
+        String::from("pkgforge-sidecar")
+    } else {
+        format!("pkgforge-sidecar-{triple}")
+    };
+    // dev layout: <root>/src-tauri/target/{debug,release} -> <root>/src-tauri/binaries/
+    let dev = dir.join("../../binaries").join(&suffixed);
+    if dev.is_file() {
+        return Some(dev);
+    }
+    None
+}
+
+/// Gomulu PyInstaller snapshot'u, yanindaki Python agacindan yeni mi?
+///
+/// Olculen neden (2026-10-16): install.sh, 17 Eyl'de derlenmis 101 MB'lik
+/// snapshot'u taze kabukla yan yana kopyalamisti; kabuk gomulu sectigi icin
+/// GUI bir aydir BAYAT donusum motorunu calistirirken CLI taze kodu
+/// calistiriyordu. Kabuk DOGRUDAN calistirildiginda (terminal, harness) launcher
+/// ayarlarini da almaz, bu yuzden kapi burada: Python agaci okunabiliyorsa ve
+/// snapshot ondan eskiyse gomulu hic kullanilmaz.
+fn bundled_sidecar_fresh() -> bool {
+    let Some(bundled) = bundled_sidecar_path() else {
+        return false;
+    };
+    let Ok(bundled_time) = bundled.metadata().and_then(|m| m.modified()) else {
+        return true; // mtime okunamiyorsa eski davranisi bozma
+    };
+    let Some(root) = find_project_root() else {
+        return true; // Python agaci gorunmuyor: tek secenek gomulu
+    };
+    let source = ["core/pipeline.py", "main.py"]
+        .iter()
+        .map(|f| root.join(f))
+        .find(|p| p.is_file());
+    let Some(source) = source else {
+        return true;
+    };
+    let Ok(source_time) = source.metadata().and_then(|m| m.modified()) else {
+        return true;
+    };
+    bundled_time >= source_time
 }
 
 /// True when a bundled sidecar binary exists on disk.
@@ -160,26 +221,7 @@ pub fn spawn(app: &AppHandle) -> Result<(), String> {
 /// (`src-tauri/binaries/pkgforge-sidecar-<triple>`, exe at
 /// `src-tauri/target/{debug,release}/`).
 fn find_bundled_sidecar() -> bool {
-    let triple = std::env::var("TAURI_ENV_TARGET_TRIPLE").unwrap_or_default();
-    let suffixed = if triple.is_empty() {
-        String::from("pkgforge-sidecar")
-    } else {
-        format!("pkgforge-sidecar-{triple}")
-    };
-    let Ok(exe) = std::env::current_exe() else {
-        return false;
-    };
-    let Some(dir) = exe.parent() else {
-        return false;
-    };
-    if dir.join("pkgforge-sidecar").is_file() {
-        return true;
-    }
-    // dev layout: <root>/src-tauri/target/{debug,release} -> <root>/src-tauri/binaries/
-    if dir.join("../../binaries").join(&suffixed).is_file() {
-        return true;
-    }
-    false
+    bundled_sidecar_path().is_some()
 }
 
 /// Dev fallback: spawn `python main.py serve` from the source tree.

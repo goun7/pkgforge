@@ -211,12 +211,28 @@ def _print_desktop_missing() -> None:
     print(tr("main.desktop_fallback"))
 
 
+def _kurulum_agaci_icinde(binary: Path, root: Path) -> bool:
+    """Kabuk bu Python agacinin (kurulumun) icinde mi?
+
+    Olcuilen neden (2026-10-16): ``install.sh`` yaninda 17 Eyl'luk gomulu
+    PyInstaller sidecar'ini da kopyaliyordu; kabuk agac icinde oldugu halde
+    onu kullaniyor, GUI bir aydir bayat motor calistiriyordu (CLI taze).
+    """
+    try:
+        binary.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
 def _launch_desktop(binary: Path, extra_args: list[str]) -> int:
     """Run the Tauri shell with the environment it requires.
 
-    Source-tree runs force the live Python sidecar (PKGFORGE_SIDECAR=python)
-    so a stale bundled binary can never shadow the current code; a system
-    install keeps the default (bundled sidecar).
+    Whenever the shell lives inside THIS installation tree (source tree or the
+    ``/usr/lib/pkgforge/desktop`` layout written by ``scripts/install.sh``) the
+    live Python sidecar is forced, so the GUI can never run a different (older)
+    engine than the CLI. A shell installed elsewhere keeps the default
+    (bundled sidecar).
     """
     root = Path(__file__).resolve().parent
     env = dict(os.environ)
@@ -224,7 +240,10 @@ def _launch_desktop(binary: Path, extra_args: list[str]) -> int:
     venv_py = root / ".venv/bin/python"
     if venv_py.is_file():
         env["PKGFORGE_PYTHON"] = str(venv_py)
-    if "target" in binary.parts:
+    else:
+        # Bu interpreter CLI'yi az calistirdi; sidecar da aynisini kullansin.
+        env.setdefault("PKGFORGE_PYTHON", sys.executable)
+    if _kurulum_agaci_icinde(binary, root):
         env.setdefault("PKGFORGE_SIDECAR", "python")
     # webkit2gtk DMABUF renderer renders blank/minimized windows on some
     # Wayland setups; disabled unless the caller overrides it.

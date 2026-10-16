@@ -82,12 +82,34 @@ if [ -x "$PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop" ]; then
     chmod 755 "$INSTALL_DIR/desktop/pkgforge-desktop"
     # Sidecar name is triple-suffixed in the build tree; the runtime looks
     # for the bare name next to the executable (Tauri strips it at bundle time).
+    #
+    # BAYATLIK KAPISI: the bundled PyInstaller snapshot is only useful if it is
+    # at least as new as the Python tree we are installing. Measured 2026-10-16:
+    # a 17-Eyl snapshot was copied next to a fresh cabuk, and because the shell
+    # prefers the bundled sidecar, the GUI ran a month-old conversion engine
+    # while the CLI ran current code. The launcher now forces the live Python
+    # sidecar for in-tree shells, so an old snapshot must NOT be shipped.
+    sc_kopyalandi=0
     for sc in "$PROJECT_DIR"/desktop/src-tauri/binaries/pkgforge-sidecar-*; do
         [ -x "$sc" ] || continue
-        cp "$sc" "$INSTALL_DIR/desktop/pkgforge-sidecar"
-        chmod 755 "$INSTALL_DIR/desktop/pkgforge-sidecar"
-        break
+        if [ "$sc" -nt "$PROJECT_DIR/core/pipeline.py" ]; then
+            cp "$sc" "$INSTALL_DIR/desktop/pkgforge-sidecar"
+            chmod 755 "$INSTALL_DIR/desktop/pkgforge-sidecar"
+            sc_kopyalandi=1
+            break
+        fi
     done
+    if [ "$sc_kopyalandi" -eq 0 ]; then
+        echo "ℹ️  Bundled sidecar Python ağacından eski: kopyalanmadı."
+        echo "   GUI, kurulu Python ağacını (canlı kod) kullanacak — bayat snapshot çalışmaz."
+        # Once kopyalanmis olabilecek bayat kopyayi da birakmiyoruz: diskte
+        # duran 100 MB'lik eski motor, yanlis bir tetiklemede GUI'yi calistirir.
+        if [ -e "$INSTALL_DIR/desktop/pkgforge-sidecar" ] \
+           && [ ! "$INSTALL_DIR/desktop/pkgforge-sidecar" -nt "$PROJECT_DIR/core/pipeline.py" ]; then
+            rm -f "$INSTALL_DIR/desktop/pkgforge-sidecar"
+            echo "🧹 Eski bundled sidecar kaldırıldı: $INSTALL_DIR/desktop/pkgforge-sidecar"
+        fi
+    fi
 else
     # Sessiz degrade, kullanicinin "neden eski arayüz açıldı" sorusuna yol
     # açıyordu (2026-10-16): kurulumda neden + çözüm tek satırda söylensin.

@@ -87,6 +87,25 @@ belgelerde veya masaüstü tarafında** tek bir referansı yoktu (sınıflandır
   dosyanın kuyruğa girdiğini, komut yoksa/bozuk şekilli yanıt geldiğinde sessiz
   kaldığını kanıtlar (etki kaldırılınca 3/3 FAIL).
 
+## İzlenmeyen ama diskte duran bayat artefaktlar (ikinci geçiş)
+
+İlk geçiş `git ls-files` üzerinden yapıldığı için **ignore edilmiş** derleme
+çıktıları görülmüyordu. Disk taramasında ölçülen:
+
+| Yol | Boyut | Durum |
+|---|---|---|
+| `build/` (PyInstaller `sidecar/` + `pkgforge-sidecar.spec`) | 111 MB | 17 Eyl snapshot'un derleme artığı; `bash desktop/scripts/build-sidecar.sh` ile yeniden üretilir. Silinmedi (kullanıcı kararı), `rm -rf build` ile geri kazanılır. |
+| `desktop/src-tauri/binaries/pkgforge-sidecar-x86_64-unknown-linux-gnu` | 97 MB | 17 Eyl tarihli gömülü Python motoru. Git'te izlenmiyor ama **install.sh bunu sisteme kopyalıyordu**. |
+| `desktop/src-tauri/target/` | 6,2 MB | Bugünkü Tauri derlemesi (canlı; `_find_desktop_binary()` bunu buluyor). |
+
+Tam da bu 97 MB'lik snapshot yüzünden gerçek bir hata çıktı: kurulumda GUI, yanına kopyalanan **bir aylık** motoru çalıştırıyorken CLI taze kodu
+çalıştırıyordu (ölçüm: `/usr/lib/pkgforge/desktop/pkgforge-sidecar serve`
+süreci, mtime 17 Eyl; Qt parent düzeltmesi 16 Ekim). Düzeltme iki parçalı:
+`main.py::_launch_desktop` kabuk kurulum ağacının içindeyse artık
+`PKGFORGE_SIDECAR=python` zorluyor, `install.sh` ise Python ağacından eski
+snapshot'i kopyalamıyor ve daha önce kopyalanmış olanı kaldırıyor.
+Kanıt: taklit `/usr/lib` düzeninde dönüşüm canlı ağaçtan koştu, gömülü sidecar'ın imzası log'da 0 kez göründü.
+
 ## Yeniden koşum
 
 ```bash
