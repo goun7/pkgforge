@@ -195,11 +195,37 @@ plan belgesinde geçiyor" diye işaretlenmişti; içeriği gerçek bir UÇTAN UC
 doğrulaması (kabuk + sidecar + JSON-RPC + temiz kapanış) ve CI başsız olduğu
 için çağırıyor — **silinmedi**, ilk kez koşularak yeşile getirildi.
 
-## Kalan insan adımları
+## Kalan insan adımları (ölçülmüş durum, 2026-10-16 gecesi)
 
-1. `v2.2.0` tag → release CI izlenir
-2. Root `PKGBUILD` sha256 güncellenir (tag tarball'ından)
-3. AUR: `pkgforge-git` (hazır, namcap-temiz) + `pkgforge` (stable) gönderimi
-   — AUR hesabı + ssh anahtarı gerekir
+1. **Yeni etiket gerekir — v2.2.0 bugünkü düzeltmeleri İÇERMİYOR.**
+   `v2.2.0` tarball'ının sha256'sı bugün yeniden indirilip doğrulandı
+   (`1b4639c8…`, 4 174 629 bayt — root `PKGBUILD` iddiası DOĞRU), ama tarball
+   17 Eyl kodudur: modern UI yönlendirmesi, argv aktarımı, Qt parent düzeltmesi,
+   kuyruk kalıcılığı ve Tauri 2.12 bu etikette yok. Yani stable `pkgforge`
+   AUR paketi bugün kurulsa bayat GUI davranışını taşır. Çözüm: `v2.2.1`
+   etiketi + root PKGBUILD'de `pkgver/sha256sums` yenilemesi (geri
+   döndürülemez/ethkî adım olduğu için kullanıcı onayı beklenir).
+2. AUR gönderimi: `pkgforge-git` PKGBUILD'i bugün **gerçekten derlendi**
+   (`makepkg -f --noconfirm --skipinteg`, exit 0 → 18,9 MB paket;
+   `usr/lib/pkgforge/desktop/{pkgforge-desktop, pkgforge-sidecar}` pakette).
+   `namcap`: **0 hata, 471 uyarı** — uyarıların 454'ü namcap'ın kendi modüllerimizi
+   ("core.*", "ui.*") dış bağımlı sanması, kalanı tipik sezgisel notlar.
+   Temiz chroot koşumu (`extra-xdg-build`) ayrıca denenmedi; sudo/chroot ister.
+3. Release CI: `v2.2.0` etiketi için koşan işler yeşildi; yeni etikette tekrar
+   izlenmeli.
 4. debtap parite tablosunun debtap sütunu (`docs/BENCHMARK_PARITY.md` —
-   root `debtap -u` gerektirir)
+   root `debtap -u` gerektirir).
+5. Bilinen tek kökü-bulunamayan davranış: kabuğun Rust→JS özel olayları webview
+   dinleyucusuna ulaşmıyor (bkz. yukarıdaki "tek-örnek" bölümü ve
+   `docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen"). Kullanıcıya görünür etkisi
+   bilinemiyor; bu yüzden UI canlı güncellemeleri de doğrulanmış sayılmıyor.
+
+## Bu geceki temizlik (disk)
+
+- `build/` (113 MB PyInstaller iş dizini) ve `dist/` (98 MB kopya yan ürün)
+  silindi; yerlerine **güncel koddan** taze sidecar üretildi
+  (`bash desktop/scripts/build-sidecar.sh`, 102 MB, Eki 16 23:05) ve gerçek
+  JSON-RPC ile denendi: `app.doctor` → `"version": "2.2.0"`,
+  `"exec_path_pinned": true` (bu oturumun düzeltmesi içinde → bayat değil).
+- `install.sh` tazelik kapısı artık aynı dosya için `TAZE` diyor, yani bir
+  sonraki kurulumda sisteme gidecek sidecar güncel kod olacak.
