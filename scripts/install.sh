@@ -93,7 +93,10 @@ if [ -x "$PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop" ]; then
     for sc in "$PROJECT_DIR"/desktop/src-tauri/binaries/pkgforge-sidecar-*; do
         [ -x "$sc" ] || continue
         if [ "$sc" -nt "$PROJECT_DIR/core/pipeline.py" ]; then
-            cp "$sc" "$INSTALL_DIR/desktop/pkgforge-sidecar"
+            # -p: mtime KORUNUR. Duz kopya sidecar'in damgasini "bugun" yapip
+            # icerigi bayat bir snapshot'i taze gosterecek ve kabuktaki
+            # bundled_sidecar_fresh() kapisini yaniltacakti.
+            cp -p "$sc" "$INSTALL_DIR/desktop/pkgforge-sidecar"
             chmod 755 "$INSTALL_DIR/desktop/pkgforge-sidecar"
             sc_kopyalandi=1
             break
