@@ -12,10 +12,21 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."   # desktop/
 
-BIN="src-tauri/target/debug/pkgforge-desktop"
+# CI release derlemesini de kosabilsin diye yol sabit degil; `cargo build`
+# sonrasi debug ikilisi varsayilan davranistir.
+BIN="${PKGFORGE_E2E_BIN:-src-tauri/target/debug/pkgforge-desktop}"
 if [ ! -x "$BIN" ]; then
-  echo "error: $BIN not found — run 'cargo build' in src-tauri first" >&2
+  echo "error: $BIN not found — run 'cargo build' in src-tauri first (or set PKGFORGE_E2E_BIN)" >&2
   exit 1
+fi
+
+# Sidecar, Python agacini PKGFORGE_ROOT ile bulur; dogrudan calistirmada
+# launcher bunu vermedigi icin burada sabitliyoruz (repo koku = desktop/..).
+export PKGFORGE_ROOT="${PKGFORGE_ROOT:-$(cd .. && pwd)}"
+# _launch_desktop'un kurali: agacta .venv varsa o interpreter kullanilsin,
+# aksi halde spawn_python'un varsayilani (python3) kalir.
+if [ -z "${PKGFORGE_PYTHON:-}" ] && [ -x "$PKGFORGE_ROOT/.venv/bin/python" ]; then
+  export PKGFORGE_PYTHON="$PKGFORGE_ROOT/.venv/bin/python"
 fi
 
 # Backend'i ZORLAMA: sabit `GDK_BACKEND=x11`, Wayland oturumunda GTK'yi
@@ -60,8 +71,8 @@ fi
 kill "$APP_PID" 2>/dev/null || true
 sleep 2
 
-if pgrep -af 'pkgforge-sidecar' | grep -v grep >/dev/null 2>&1; then
-  echo "FAIL: bundled sidecar still running after exit"; fail=1
+if pgrep -af 'pkgforge-sidecar|main.py serve' | grep -v grep >/dev/null 2>&1; then
+  echo "FAIL: sidecar still running after exit (bundled veya python)"; fail=1
 else
   echo "PASS: sidecar cleaned up on exit"
 fi

@@ -351,6 +351,16 @@ jobs:
       - name: Build desktop .deb (release)
         working-directory: desktop
         run: pnpm tauri build
+      # Gercek UCTAN UCA: kabuk + sidecar + JSON-RPC + temiz kapanis. Playwright
+      # bunu yapamaz (invoke IPC yalnizca Tauri webview'inda var); bash
+      # desktop/scripts/e2e-integration.sh ilk kez 2026-10-16'da bu makinede
+      # kosuldu ve ALL CHECKS PASSED verdi.
+      - name: E2E — real shell + sidecar + JSON-RPC (xvfb)
+        env:
+          PKGFORGE_E2E_BIN: src-tauri/target/release/pkgforge-desktop
+        run: |
+          sudo apt-get install -y --no-install-recommends xvfb
+          xvfb-run -a bash desktop/scripts/e2e-integration.sh
       - name: SHA256SUMS + upload
         run: |
           cd desktop/src-tauri/target/release/bundle/deb
