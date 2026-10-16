@@ -21,6 +21,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from core.pathguard import is_file_safe
 from i18n import tr
 
 logging.basicConfig(
@@ -197,10 +198,17 @@ def _find_desktop_binary() -> Path | None:
     ):
         candidates.append(Path(*layout, _DESKTOP_BIN_NAME))
     for cand in candidates:
-        if cand.is_file():
+        if is_file_safe(cand):
             return cand
     on_path = shutil.which(_DESKTOP_BIN_NAME)
     return Path(on_path) if on_path else None
+
+
+def _print_desktop_missing() -> None:
+    """Kullaniciya modern ikilinin neden olmadigini ve nasil uretilcegini soyle."""
+    print(tr("main.desktop_missing"))
+    print(tr("main.desktop_build_hint"))
+    print(tr("main.desktop_fallback"))
 
 
 def _launch_desktop(binary: Path, extra_args: list[str]) -> int:
@@ -633,10 +641,11 @@ def main() -> int:
         if binary is not None:
             return _launch_desktop(binary, list(getattr(args, "files", []) or []))
         # Tauri ikilisi yok: nedeni ve cozumu soyle, PyQt6'ya dus.
-        print(tr("main.desktop_missing"))
-        print(tr("main.desktop_build_hint"))
-        print(tr("main.desktop_fallback"))
+        _print_desktop_missing()
         args.command = "gui"
+        desktop_tried = True
+    else:
+        desktop_tried = False
     if args.command and args.command != "gui":
         from cli import run_cli
         return run_cli(args)
@@ -647,6 +656,18 @@ def main() -> int:
         parser.print_help()
         print(f"\n💡 {tr('cli.gui_tip')}")
         return 0
+    # Grafik arayuz niyeti: alt komutsuz dosya acma veya pkgforge-gui ikilisi.
+    # Bu yollar once modern Tauri kabugunu dener; `gui` ise adidir ve klasik
+    # PyQt6 arayuzunu acar (modern ikili kuruluysa kullniciyi ona yonlendirir).
+    if not desktop_tried:
+        if args.command == "gui":
+            if _find_desktop_binary() is not None:
+                print(tr("main.gui_legacy_hint"))
+        elif args.file or is_gui_binary:
+            binary = _find_desktop_binary()
+            if binary is not None:
+                return _launch_desktop(binary, [str(f) for f in (args.file or [])])
+            _print_desktop_missing()
     if not _check_pyqt6():
         return 1
 

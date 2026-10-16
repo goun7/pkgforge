@@ -2,8 +2,9 @@
 Type=Application
 Name=PkgForge
 Comment=Modern .deb/.rpm package converter and lifecycle manager for Arch Linux
-Exec=pkgforge
+Exec=pkgforge desktop %f
 Icon=pkgforge
 Categories=System;Utility;
+MimeType=application/vnd.debian.binary-package;application/x-debian-package;application/x-deb;application/x-rpm;
 Terminal=false
 StartupNotify=true

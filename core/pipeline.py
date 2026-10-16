@@ -985,6 +985,21 @@ class ConversionPipeline(QObject):
         """
         self.approve_install()
 
+    def _qt_parent(self) -> QObject | None:
+        """Converter/Installer'a verilecek Qt parent: yalnızca aynı thread'deysek.
+
+        Sidecar (main.py serve) pipeline'i main thread'de kurup işi bir worker
+        thread'de çalıştırıyor; orada `self`i parent yapmak Qt'nin nesne-affinite
+        kuralını kırıyor ve her dönüştürmede stderr'e şu düşüyordu:
+            QObject: Cannot create children for a parent that is in a different thread.
+        Qt parent'i sessizce yok saydığı için ömür garantisi de kayıyordu; nesne
+        omru zaten self._installer / self._deb_converter / self._rpm_converter
+        alanları üzerinden tutulan Python referanslarıyla garanti altında.
+        """
+        if not _HAS_PYQT6:  # pragma: no cover — PyQt6 kurulu ortamda ulaşılamaz
+            return None
+        return self if QThread.currentThread() == self.thread() else None
+
     def _do_install(self, pkg_path: Path, pkg_name: str) -> None:
         """Execute the installation step."""
         # Dry-run: convert + analyze only, never touch the real system.
@@ -1003,7 +1018,7 @@ class ConversionPipeline(QObject):
         # Local import: core.installer pulls in PyQt6, so importing it at module
         # level would break the PyQt6-free CLI path.
         from core.installer import Installer
-        self._installer = Installer(self._tools, self)
+        self._installer = Installer(self._tools, self._qt_parent())
         self._installer.output_line.connect(lambda msg: self._log("info", msg))
 
         self._async_success = False
@@ -1039,7 +1054,7 @@ class ConversionPipeline(QObject):
         if _HAS_PYQT6:
             # Qt mode: use QEventLoop
             from core.native_deb_converter import NativeDebConverter
-            converter_qt = NativeDebConverter(self._tools, self)
+            converter_qt = NativeDebConverter(self._tools, self._qt_parent())
             self._deb_converter = converter_qt
             converter_qt.output_line.connect(lambda msg: self._log("info", msg))
 
@@ -1081,7 +1096,8 @@ class ConversionPipeline(QObject):
         if not self._async_success and self._tools.debtap:
             self._log("warning", tr("pipeline.native_deb_basarisiz_debtap"))
             from core.deb_converter import DebConverter
-            fallback_converter = DebConverter(self._tools, self)
+            fallback_converter = DebConverter(self._tools, self._qt_parent())
+            self._deb_converter = fallback_converter
             fallback_converter.output_line.connect(lambda msg: self._log("info", msg))
 
             if _HAS_PYQT6:
@@ -1114,7 +1130,7 @@ class ConversionPipeline(QObject):
         self._async_pkg_path = None
 
         if _HAS_PYQT6:
-            self._rpm_converter = RpmConverter(self._tools, self)
+            self._rpm_converter = RpmConverter(self._tools, self._qt_parent())
             self._rpm_converter.output_line.connect(lambda msg: self._log("info", msg))
             loop = QEventLoop()
             def on_done(success: bool, msg: str, pkg: Path | None) -> None:

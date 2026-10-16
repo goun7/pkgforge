@@ -154,6 +154,42 @@ fn setup_notifications(app: &tauri::AppHandle, l10n: L10n) {
     });
 }
 
+/// argv'den dönüştürmek için verilen paket dosyalarını çıkarır.
+///
+/// Tauri kabuğu argv'yi webview'a kendi geçirmez; `pkgforge --file X.deb` ve
+/// dosya yöneticisinin "Birlikte aç"ı (`Exec=pkgforge desktop %f`) böyle ulaşıyor.
+/// Bayraklar (`-f`, `--lang tr`) atlanır, yalnızca gerçek dosyalar ve mutlak
+/// yollar döner; sıira ve tekillik korunur.
+fn initial_files_from_args(args: &[String]) -> Vec<String> {
+    const EN_FAZLA: usize = 64;
+    let mut out: Vec<String> = Vec::new();
+    for arg in args.iter().skip(1) {
+        if arg.starts_with('-') || arg.is_empty() {
+            continue;
+        }
+        let Ok(path) = std::fs::canonicalize(std::path::Path::new(arg)) else {
+            continue;
+        };
+        if !path.is_file() {
+            continue;
+        }
+        let text = path.to_string_lossy().into_owned();
+        if !out.contains(&text) {
+            out.push(text);
+        }
+        if out.len() >= EN_FAZLA {
+            break;
+        }
+    }
+    out
+}
+
+/// Webview'ın açılışta sorduğu CLI/dosya-yöneticisi girdi listesi.
+#[tauri::command]
+fn initial_files() -> Vec<String> {
+    initial_files_from_args(&std::env::args().collect::<Vec<String>>())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -170,7 +206,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![sidecar::rpc_call])
+        .invoke_handler(tauri::generate_handler![
+            sidecar::rpc_call,
+            initial_files
+        ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
@@ -179,4 +218,42 @@ pub fn run() {
                 state.kill();
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::initial_files_from_args;
+
+    fn v(args: &[&str]) -> Vec<String> {
+        args.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn argv_ilk_eleman_atlanir() {
+        assert_eq!(initial_files_from_args(&v(&["/usr/bin/pkgforge-desktop"])), Vec::<String>::new());
+    }
+
+    #[test]
+    fn bayraklar_ve_olmayan_yollar_elenir() {
+        let got = initial_files_from_args(&v(&["pkgforge-desktop", "--lang", "tr", "-f",
+                                               "/nope/x.deb", "/etc/hostname"]));
+        assert_eq!(got, vec!["/etc/hostname".to_string()]);
+    }
+
+    #[test]
+    fn dizin_ve_cift_girdi_tekilleşir() {
+        let tmp = std::env::temp_dir().join("pf_argtest_file.txt");
+        std::fs::write(&tmp, b"x").unwrap();
+        let s = tmp.to_string_lossy().into_owned();
+        let dir = std::env::temp_dir().to_string_lossy().into_owned();
+        let got = initial_files_from_args(&v(&["pf", &s, &s, &dir]));
+        assert_eq!(got, vec![s]);
+        std::fs::remove_file(&tmp).ok();
+    }
+
+    #[test]
+    fn goreceli_yol_mutlaga_donusur() {
+        let got = initial_files_from_args(&v(&["pf", "/etc/../etc/hostname"]));
+        assert_eq!(got, vec!["/etc/hostname".to_string()]);
+    }
 }

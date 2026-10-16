@@ -51,8 +51,34 @@ klasik arayüze düşer; `data/pkgforge.desktop` artık onu çağırıyor) +
 sudo ./scripts/install.sh   # wrapper + menü girişi + ikili tazelenecek
 ```
 
-Beklenirken: `~/.local/bin/pkgforge` (kullanıcı düzeyinde hazırlandı,
-çalışıyor) ve `scripts/pkgforge-desktop.sh` modern arayüzü açar.
+Beklenirken: `~/.local/bin/pkgforge desktop` modern arayüzü açar (kaynak
+ağacında `desktop/src-tauri/target/release/pkgforge-desktop` derlenmiş durumda,
+`_find_desktop_binary()` onu buluyor).
+
+## 2026-10-16 — menü girişi açıyordu ama dosyayı görmüyordu
+
+Kullanıcı şikâyeti: "qoder'ı pkgforge ile yükseltirken eski arayüz çıktı".
+İki ayrı gerçek hata bulundu:
+
+1. **Tauri ikilisi makinede hiç yoktu.** `install.sh` ikiliyi yalnızca
+   `desktop/src-tauri/target/release/pkgforge-desktop` varsa kopyalıyor; o
+   dizin silindiği için kurulum sessizce PyQt6'ya düşmüştü. İkili yeniden
+   derlendi (`pnpm tauri build --no-bundle`), 4 Rust testi + 591 vitest testi
+   ve tam `make verify` geçtikten sonra kaynak ağacına yerleştirildi.
+2. **`Exec=pkgforge desktop %f` dosyayı çöpe atıyordu.** Ne Rust kabuğu argv'yi
+   okuyor ne de frontend soruyordu; "Birlikte aç" hiçbir şey yüklenmeden pencere
+   açıyordu. Kabuk artık `initial_files` komutuyla yalnızca *gerçekten var olan*
+   dosyaların mutlak yollarını veriyor, Convert sayfası açılışta onları kuyruğa
+   alıyor. Kanıt: `pkgforge --file …/gelip.deb` izole HOME'da koştu, sidecar
+   log'unda `Pipeline başlatıldı: gelip.deb` ve `✓ Dönüşüm tamamlandı` görüldü.
+
+Aynı çalıştırma bir Qt hatası daha ortaya çıkardı (`Cannot create children for a
+parent that is in a different thread`): sidecar pipeline'ı main thread'te kurup
+worker thread'te çalıştırıyor, `Converter(self._tools, self)` ise Qt parent
+istiyor. `_qt_parent()` artık thread farklıysa `None` döndürüyor; nesne ömrü
+`self._deb_converter` / `self._installer` alanlarındaki Python referanslarıyla
+garantili. `tests/test_pipeline_qt_parent.py` hem davranışı hem de `(..., self)`
+deseninin geri gelmesini engelleyen AST anahtarını içeriyor.
 
 ### ZERON kapısı (AGENTS.md'in zorunlu kıldığı) — ölçülen durum
 

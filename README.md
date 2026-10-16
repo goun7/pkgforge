@@ -51,7 +51,7 @@ $ pkgforge convert hello_1.0.0-1_amd64.deb --dry-run
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
 - **🛡️ 12 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
-- **💻 Dual Interface (Headless CLI + Tauri Desktop)**: CLI runs without any GUI dependencies. The primary graphical interface is the Tauri 2 + React desktop app (`desktop/`, build with `cd desktop && pnpm tauri build`). The legacy PyQt6 GUI (`pkgforge gui`) is frozen — security fixes only, removal planned for v3.0.
+- **💻 Dual Interface (Headless CLI + Tauri Desktop)**: CLI runs without any GUI dependencies. The primary graphical interface is the Tauri 2 + React desktop app (`desktop/`, build with `cd desktop && pnpm tauri build`). Every graphical intent prefers it: `pkgforge desktop`, `pkgforge --file X.deb`, and the file manager's "Open with" entry all launch the Tauri shell and hand it the package files. The legacy PyQt6 GUI (`pkgforge gui`) is frozen — security fixes only, removal planned for v3.0, and it now points at the modern UI when that is installed.
 - **🖥️ Native Tauri Desktop App**: A modern Tauri 2 + React 19 shell (in `desktop/`) with tr/en i18n, theme + accent colors, command palette, feature tour, lazy-loaded pages, and a Python sidecar over JSON-RPC. Build with `cd desktop && pnpm tauri build`.
 - **🌐 Direct URL Conversion**: Download and convert packages directly from HTTP/HTTPS links (`pkgforge convert https://...`).
 - **📸 Atomic Snapshot Rollback**: Automatically takes Btrfs/ZFS filesystem snapshots before installation for instant atomic rollback.
@@ -151,15 +151,19 @@ pkgforge --clear-cache                           # Clear offline cache
 
 # GUI (primary: Tauri desktop — see below)
 pkgforge desktop
+pkgforge --file ./nano-7.2.deb   # same shell, file queued for conversion
 pkgforge gui          # legacy PyQt6 (frozen; security fixes only)
 ```
 
-> **UI decision (2026-09-05):** the primary interface is the Tauri desktop
-> (`desktop/`) + Python sidecar, opened with `pkgforge desktop`. PyQt6
-> (`pkgforge gui`) is frozen: no new features, security fixes only; removal
-> planned for v3.0. `pkgforge desktop` finds a locally built binary (source
-> tree, `$PKGFORGE_DESKTOP_BIN`, or the system install); if it cannot, it
-> prints the reason and falls back to the legacy GUI.
+> **UI decision (2026-09-05, routing updated 2026-10-16):** the primary
+> interface is the Tauri desktop (`desktop/`) + Python sidecar. `pkgforge
+> desktop` and `pkgforge --file X.deb` both launch it (the shell forwards the
+> file paths to the webview, which queues them); `pkgforge gui` is the named
+> legacy entry point and prints a pointer to the modern UI when the Tauri
+> binary is installed. PyQt6 (`pkgforge gui`) is frozen: no new features,
+> security fixes only; removal planned for v3.0. When the Tauri binary cannot
+> be found (source tree, `$PKGFORGE_DESKTOP_BIN`, or system install), the
+> launcher prints the reason and the build command, then falls back to PyQt6.
 
 ---
 
@@ -231,18 +235,21 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-10-14, `make verify` + frontend gates + CI on `master`):
-**7412 tests collected, full suite exit 0 (0 failed)** · coverage
-**99.68%** on `core/`+`ui/`+`i18n/` (13 181 statements, 42 missed) ·
+Current status (measured 2026-10-16, `make verify` + frontend gates + Rust
+`cargo test`):
+**7419 tests collected, full suite exit 0 (0 failed)** · coverage
+**99.68%** on `core/`+`ui/`+`i18n/` (13 184 statements, 42 missed) ·
 mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
 imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
-ruff: 0 findings repo-wide · i18n parity 1416/1416 (tr/en) ·
-desktop: 588/588 vitest, `tsc -b --force` 0 errors, `vite build` ok ·
+ruff: 0 findings repo-wide · i18n parity 1345/1345 (tr/en) ·
+desktop: 591/591 vitest, `tsc -b` 0 errors, `vite build` ok · Rust
+`cargo test --release`: 4/4 ·
 headless visual tour: 12/12 pages render non-blank ·
 GitHub Actions on `master`: 19/19 jobs green (Python 3.10–3.14, multi-distro,
 coverage gate, supply-chain, keyring-live, desktop build, visual-qa, e2e).
 Real `tauri build --no-bundle` + PyInstaller sidecar built and
-`pkgforge desktop` launched end-to-end on this machine.
+`pkgforge --file <real .deb>` opened the Tauri shell, converted the package
+and reached the approval gate on this machine.
 Lint/type/security tool versions are pinned in `requirements-lint.txt` so
 `make verify` and CI run the identical versions.
 

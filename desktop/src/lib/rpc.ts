@@ -132,6 +132,21 @@ export async function onEvent<T>(
   }
 }
 
+/** Tauri kabuğuna CLI/dosya yöneticisinden gelen paket yollarını sor.
+ *
+ * `pkgforge --file X.deb` ve "Birlikte aç" (`Exec=pkgforge desktop %f`) argv'yi
+ * kabuğa verir; webview kendi başına göremez. Tarayıcıda/headless QA'da böyle
+ * bir komut yoktur ve bu onaylı bir boş sonuçtur, hata değil.
+ */
+export async function initialFiles(): Promise<string[]> {
+  try {
+    const got = await invoke<unknown>("initial_files");
+    return Array.isArray(got) ? got.filter((p): p is string => typeof p === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Faz 12: unmount yarışına dayanıklı abonelik bağlayıcısı.
  *
  * Eski desen (`onEvent(...).then((u) => unsubs.push(u))`) erken unmount'ta

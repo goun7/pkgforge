@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "c6ce8518a2cc113cc5560b3731e234ed6d559e746221ae903ce01599dfe7e797",
-  "outputTail": ".........................                                                [100%]",
-  "command": "python -m pytest tests/test_i18n_output_leaks.py tests/test_walk_bounded.py -q --no-cov",
-  "timestamp": "2026-10-14T13:48:02.530Z",
-  "diffHash": "d1b9505bcaa15a01de5cfb618523141d27765d30a27730fe5a94c27f09cdac47",
-  "poeTag": "[PoE rc=0 out=c6ce8518a2cc113c diff=d1b9505bcaa15a01 time=2026-10-14T13:48:02.530Z]",
-  "parentSealHash": "971639128a2e39fadd2f1875868dc75aec7069cf42429008839cd8f7824de208",
-  "commitAtSealTime": "97c63fc7700cf299eb9b6a011dd101bed901b040",
-  "sealHash": "eea3b073f6bfd0dbbf8bde40c5f3513b3a211f9d00f991f06a1e3bd439a458a2"
+  "outputHash": "c66ef7936b32d2201bf6eb901cf69cbc8e71996669c38afe1f70ad40098e04a3",
+  "outputTail": "....................                                                     [100%]",
+  "command": ".venv/bin/python -m pytest tests/test_pipeline_qt_parent.py tests/test_desktop_launcher.py tests/test_i18n_no_dead_keys.py tests/test_i18n_parity.py -q",
+  "timestamp": "2026-10-16T10:11:22.622Z",
+  "diffHash": "7bf8053d0eba1919445aa3ca37deabb953b2c3038bd58dcba1d12e2ee8820fcb",
+  "poeTag": "[PoE rc=0 out=c66ef7936b32d220 diff=7bf8053d0eba1919 time=2026-10-16T10:11:22.622Z]",
+  "parentSealHash": "eea3b073f6bfd0dbbf8bde40c5f3513b3a211f9d00f991f06a1e3bd439a458a2",
+  "commitAtSealTime": "6995ec8adf6b6526f19cf9e69e90cef1fe661055",
+  "sealHash": "1be1f1808552b030cc0d475c98d8b45e73eb6feeb508f2db41fdd6aca966398a"
 }

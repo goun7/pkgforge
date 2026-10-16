@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Play, Square, Container, Network, Code2, Loader2, ListChecks, ArrowUp, ArrowDown, Trash2, FolderOpen, Copy, Download, CheckCircle2, PackageOpen, X } from "lucide-react";
-import { call, eventBinder } from "../lib/rpc";
+import { call, eventBinder, initialFiles } from "../lib/rpc";
 import { tFor, type I18nKey } from "../lib/i18n";
 import { useLang } from "../lib/lang";
 import type {
@@ -233,6 +233,21 @@ export function Convert() {
       // Faz 12: erken unmount'ta çözülmemiş listen() promise'leri de
       // çözülür çözülmez kendi unlisten'lerini çağırsın (sızıntı yarışı).
       unsubs.forEach((p) => void p.then((fn) => fn(), () => {}));
+    };
+  }, [addPaths]);
+
+  // Kabuğa verilen paket dosyalarını kuyruğa al (`pkgforge --file X.deb`,
+  // dosya yöneticisinde "Birlikte aç"). Sürükle-bırak argv'yi görmez.
+  useEffect(() => {
+    let alive = true;
+    void initialFiles().then(
+      (paths) => {
+        if (alive) addPaths(paths);
+      },
+      () => {},
+    );
+    return () => {
+      alive = false;
     };
   }, [addPaths]);
 
