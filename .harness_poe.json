@@ -4,10 +4,10 @@
   "outputHash": "341d5dca33250b815baddbafb6001e174c20bf1716bb74f3d612e77777db8938",
   "outputTail": "..................                                                       [100%]",
   "command": ".venv/bin/python -m pytest tests/test_gui_dialogs_and_scripts.py tests/test_desktop_launcher.py -q",
-  "timestamp": "2026-10-16T18:19:40.727Z",
-  "diffHash": "79646345752e93f55d5317bb5f4bbf5864fca1b13d587749ec33bafaf1aea4b5",
-  "poeTag": "[PoE rc=0 out=341d5dca33250b81 diff=79646345752e93f5 time=2026-10-16T18:19:40.727Z]",
-  "parentSealHash": "02f3f6bfcb0c214148836e99a9cab21345f1f1c23a206f294cbe72e7882d2a30",
-  "commitAtSealTime": "8da5de229baf1b547295ea9f32be66c403e43ac7",
-  "sealHash": "70379abdcbeab466be3905a48e17fb9bc531f652db89b9d5d2c6772bb8758da2"
+  "timestamp": "2026-10-16T18:22:34.633Z",
+  "diffHash": "8a1cf3f6c8991ec18300675e9d5bf962692e45f0a0423d88ed85d1ff7fa99aae",
+  "poeTag": "[PoE rc=0 out=341d5dca33250b81 diff=8a1cf3f6c8991ec1 time=2026-10-16T18:22:34.633Z]",
+  "parentSealHash": "70379abdcbeab466be3905a48e17fb9bc531f652db89b9d5d2c6772bb8758da2",
+  "commitAtSealTime": "5be0330f88081b7fae93dbd426addc31b5dcfa73",
+  "sealHash": "d6bd14f84a758bd11c158331cb7eaf788a06e1509453f6d165a7af5ae5c9e3e0"
 }

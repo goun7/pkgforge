@@ -107,8 +107,10 @@ if [ -x "$PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop" ]; then
         echo "   GUI, kurulu Python ağacını (canlı kod) kullanacak — bayat snapshot çalışmaz."
         # Once kopyalanmis olabilecek bayat kopyayi da birakmiyoruz: diskte
         # duran 100 MB'lik eski motor, yanlis bir tetiklemede GUI'yi calistirir.
+        # Kiyas YENI kurulan agaca karsi yapilir (`cp` damgasi "bugun" olabilir,
+        # ama az once kopyalanan pipeline.py daha tazedir).
         if [ -e "$INSTALL_DIR/desktop/pkgforge-sidecar" ] \
-           && [ ! "$INSTALL_DIR/desktop/pkgforge-sidecar" -nt "$PROJECT_DIR/core/pipeline.py" ]; then
+           && [ ! "$INSTALL_DIR/desktop/pkgforge-sidecar" -nt "$INSTALL_DIR/core/pipeline.py" ]; then
             rm -f "$INSTALL_DIR/desktop/pkgforge-sidecar"
             echo "🧹 Eski bundled sidecar kaldırıldı: $INSTALL_DIR/desktop/pkgforge-sidecar"
         fi

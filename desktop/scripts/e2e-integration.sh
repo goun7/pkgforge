@@ -45,8 +45,35 @@ APP_PID=$!
 cleanup() { kill "$APP_PID" 2>/dev/null || true; }
 trap cleanup EXIT
 
-# Give the app time to boot the webview and spawn the sidecar.
-sleep 6
+# Webview + sidecar dogumu yavas olabilir (CI kosucusu bu makineden yavas:
+# tek seferlik 6 sn kontrol CI'da "no sidecar child process" verdi). Kuyrukla.
+BEKLE="${E2E_WAIT_SECS:-40}"
+
+# Dogrudan cocuklar ve torunler: sidecar baska bir catinin altina dogabilir.
+has_sidecar_child() {
+  local pid="$1" k
+  for k in $(ps -o pid= --ppid "$pid" 2>/dev/null | tr -d ' '); do
+    if ps -o args= -p "$k" 2>/dev/null | grep -qE 'pkgforge-sidecar|main\.py serve'; then
+      return 0
+    fi
+    if has_sidecar_child "$k"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+found=0
+for _ in $(seq 1 "$BEKLE"); do
+  if ! kill -0 "$APP_PID" 2>/dev/null; then
+    break
+  fi
+  if has_sidecar_child "$APP_PID"; then
+    found=1
+    break
+  fi
+  sleep 1
+done
 
 fail=0
 
@@ -56,10 +83,10 @@ else
   echo "FAIL: app exited early"; fail=1
 fi
 
-if pgrep -P "$APP_PID" -a 2>/dev/null | grep -qE 'pkgforge-sidecar|main.py serve'; then
+if [ "$found" -eq 1 ]; then
   echo "PASS: sidecar child process spawned"
 else
-  echo "FAIL: no sidecar child process"; fail=1
+  echo "FAIL: no sidecar child process (${BEKLE}s beklendi)"; fail=1
 fi
 
 if grep -q 'i18n' "$LOG"; then
@@ -75,6 +102,14 @@ if pgrep -af 'pkgforge-sidecar|main.py serve' | grep -v grep >/dev/null 2>&1; th
   echo "FAIL: sidecar still running after exit (bundled veya python)"; fail=1
 else
   echo "PASS: sidecar cleaned up on exit"
+fi
+
+if [ "$fail" -ne 0 ]; then
+  # Teshis: CI logunda app'in kendi stderr'i gorunmeden hata cozulemiyordu.
+  echo "----- app logu ($LOG) -----"
+  cat "$LOG" 2>/dev/null || true
+  echo "----- process agaci -----"
+  ps -o pid,ppid,args -e 2>/dev/null | grep -E 'pkgforge|WebKit' | grep -v grep | head -20 || true
 fi
 
 rm -f "$LOG"
