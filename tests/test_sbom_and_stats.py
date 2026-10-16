@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -157,9 +158,38 @@ class TestHistoryDBUsageStats(unittest.TestCase):
             package_type="deb", sha256="b", status="converted",
         )
         stats = db.get_usage_stats()
-        self.assertEqual(stats["first_seen"], stats["last_seen"])
-        # Both are current_timestamp, so they're the same
+        # Zaman damgasi SQLite'in CURRENT_TIMESTAMP'i (saniye cozunurlugu).
+        # Iki ayri INSERT tek saniyeye duserse esit olur; sinira duserse
+        # last_seen bir saniye ileri cikar. Bu yuzden invariant <= olmali,
+        # esitlik degil (eski iddia CI'da 11:19:43 != 11:19:44 olarak kirdi).
         self.assertTrue(stats["first_seen"])
+        self.assertTrue(stats["last_seen"])
+        self.assertLessEqual(stats["first_seen"], stats["last_seen"])
+
+    def test_first_seen_bir_saniye_geride_kalmayi_tolere_edilir(self):
+        """Sinir durumu deterministik tekrari: ilk kayit bir saniye eski."""
+        db = self._make_db()
+        db.add_record(
+            package_name="first", original_file="f.deb",
+            package_type="deb", sha256="a", status="converted",
+        )
+        db.add_record(
+            package_name="second", original_file="s.deb",
+            package_type="deb", sha256="b", status="converted",
+        )
+        con = sqlite3.connect(str(self.tmp_dir / "stats.db"))
+        try:
+            con.execute(
+                "UPDATE conversions SET timestamp ="
+                " datetime(timestamp, '-1 second')"
+                " WHERE id = (SELECT MIN(id) FROM conversions)"
+            )
+            con.commit()
+        finally:
+            con.close()
+        stats = db.get_usage_stats()
+        self.assertNotEqual(stats["first_seen"], stats["last_seen"])
+        self.assertLess(stats["first_seen"], stats["last_seen"])
 
 
 if __name__ == "__main__":

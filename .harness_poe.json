@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "08faea39fd19189f6544839f505d91d76ecb1367e219f5db362cdf22916ef869",
-  "outputTail": "...........                                                              [100%]",
-  "command": ".venv/bin/python -m pytest tests/test_desktop_launcher.py tests/test_i18n_no_dead_keys.py -q",
-  "timestamp": "2026-10-16T11:13:52.445Z",
-  "diffHash": "5fe772ffeab24ffa2f6ea7a2ad950aaf7b9277e1c87d92471f02835f177dee2a",
-  "poeTag": "[PoE rc=0 out=08faea39fd19189f diff=5fe772ffeab24ffa time=2026-10-16T11:13:52.445Z]",
-  "parentSealHash": "ba3fa46fdfa34ebd28ea01a25bb787c365e2688b7eacc6abd88b760a14c7b8e9",
-  "commitAtSealTime": "3dd950da7b6c630b08f7ccae1273ca7ae1219cc7",
-  "sealHash": "9f7c722eb2e4a27fb0aaae0351decdeda5d834e041fba3fc747f4759ae8fa5fc"
+  "outputHash": "b71db6006ecc410f6085db2500759568a2da5d0cdf2fd3f7165307654085abe2",
+  "outputTail": ".............................                                            [100%]",
+  "command": ".venv/bin/python -m pytest tests/test_sbom_and_stats.py -q",
+  "timestamp": "2026-10-16T11:35:11.923Z",
+  "diffHash": "99e7371b98366bb4533f718f1395404fadd95165e69e508a5baa67708b82c5fb",
+  "poeTag": "[PoE rc=0 out=b71db6006ecc410f diff=99e7371b98366bb4 time=2026-10-16T11:35:11.923Z]",
+  "parentSealHash": "9f7c722eb2e4a27fb0aaae0351decdeda5d834e041fba3fc747f4759ae8fa5fc",
+  "commitAtSealTime": "b0741dd6f75ef187b5921c47267a866945de92b9",
+  "sealHash": "bd9a9ba6ab182bf1606e502f57c52347440a40a4b290b16075b2ad8c339addad"
 }
