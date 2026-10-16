@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "c66ef7936b32d2201bf6eb901cf69cbc8e71996669c38afe1f70ad40098e04a3",
-  "outputTail": "....................                                                     [100%]",
-  "command": ".venv/bin/python -m pytest tests/test_pipeline_qt_parent.py tests/test_desktop_launcher.py tests/test_i18n_no_dead_keys.py tests/test_i18n_parity.py -q",
-  "timestamp": "2026-10-16T10:11:22.622Z",
-  "diffHash": "7bf8053d0eba1919445aa3ca37deabb953b2c3038bd58dcba1d12e2ee8820fcb",
-  "poeTag": "[PoE rc=0 out=c66ef7936b32d220 diff=7bf8053d0eba1919 time=2026-10-16T10:11:22.622Z]",
-  "parentSealHash": "eea3b073f6bfd0dbbf8bde40c5f3513b3a211f9d00f991f06a1e3bd439a458a2",
-  "commitAtSealTime": "6995ec8adf6b6526f19cf9e69e90cef1fe661055",
-  "sealHash": "1be1f1808552b030cc0d475c98d8b45e73eb6feeb508f2db41fdd6aca966398a"
+  "outputHash": "5cba8a0d336f6301764b9e7cb54d2168880bd1238a4afa7c45b0666fad715409",
+  "outputTail": "................................                                         [100%]",
+  "command": ".venv/bin/python -m pytest tests/test_gui_dialogs_and_scripts.py tests/test_desktop_launcher.py tests/test_i18n_output_leaks.py -q",
+  "timestamp": "2026-10-16T10:36:11.262Z",
+  "diffHash": "be9ca94f93897a1e5201a8669b464d8afad3cd40f52367bcbdbd0c49b82b6fa0",
+  "poeTag": "[PoE rc=0 out=5cba8a0d336f6301 diff=be9ca94f93897a1e time=2026-10-16T10:36:11.262Z]",
+  "parentSealHash": "1be1f1808552b030cc0d475c98d8b45e73eb6feeb508f2db41fdd6aca966398a",
+  "commitAtSealTime": "0d50ed2f3624547a607b2de394892c92c3092cec",
+  "sealHash": "1a59badef44f6d7a42589192a4d067d1de7f3506a6211f94e7dcd5534bb74334"
 }

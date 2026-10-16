@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useLang } from "../../lib/lang";
@@ -79,6 +79,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [dismiss],
   );
+
+  // Unmount'ta bekleyen TTL timer'lari susdur. aksi halde kapanan toast'un
+  // setTimeout'u sonradan ateşlenip sökülmüş ağaçta setItems çağırıyor;
+  // vitest bunu "errors 1" olarak tüm koşumu başarısız sayıyor.
+  useEffect(() => {
+    const map = timers.current;
+    return () => {
+      map.forEach((t) => clearTimeout(t));
+      map.clear();
+    };
+  }, []);
 
   const tt = tFor(useLang());
 

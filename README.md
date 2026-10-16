@@ -242,7 +242,7 @@ Current status (measured 2026-10-16, `make verify` + frontend gates + Rust
 mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
 imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
 ruff: 0 findings repo-wide · i18n parity 1345/1345 (tr/en) ·
-desktop: 591/591 vitest, `tsc -b` 0 errors, `vite build` ok · Rust
+desktop: 592/592 vitest (exit 0, "errors 0"), `tsc -b` 0 errors, `vite build` ok · Rust
 `cargo test --release`: 4/4 ·
 headless visual tour: 12/12 pages render non-blank ·
 GitHub Actions on `master`: 19/19 jobs green (Python 3.10–3.14, multi-distro,

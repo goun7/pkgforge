@@ -88,6 +88,12 @@ if [ -x "$PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop" ]; then
         chmod 755 "$INSTALL_DIR/desktop/pkgforge-sidecar"
         break
     done
+else
+    # Sessiz degrade, kullanicinin "neden eski arayüz açıldı" sorusuna yol
+    # açıyordu (2026-10-16): kurulumda neden + çözüm tek satırda söylensin.
+    echo "⚠️  Modern (Tauri) arayüz ikilisi yok: $PROJECT_DIR/desktop/src-tauri/target/release/pkgforge-desktop"
+    echo "   Menü girişi şimdilik klasik PyQt6 arayüzünü açacak. Modern için:"
+    echo "   cd desktop && pnpm install && pnpm tauri build --no-bundle && sudo ./scripts/install.sh"
 fi
 
 # 3. Desktop launcher entry

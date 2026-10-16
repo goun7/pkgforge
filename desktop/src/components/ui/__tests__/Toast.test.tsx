@@ -165,3 +165,28 @@ describe("InfoTip (Faz 10 1.4)", () => {
     expect(trigger).toHaveAttribute("aria-label", "ipucu metni");
   });
 });
+
+describe("Toast timer temizligi", () => {
+  it("Unmount bekleyen TTL timer'ını iptal eder", async () => {
+    vi.useFakeTimers();
+    try {
+      const view = renderWithHarness();
+      fireEvent.click(screen.getByText("fire"));
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByText("basarili")).toBeInTheDocument();
+      // Toast'in 4000 ms'lik kapanma timer'ı bekliyor olmali.
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+      view.unmount();
+
+      // Temizlik yoksa bu timer sökülmüs ağacın dismiss'ini ateşler; tam
+      // koşumda React "An update ... was not wrapped in act" hatası olarak
+      // görüldü ve vitest koşumu "errors 1" ile düşürdü.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
