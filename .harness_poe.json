@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "cfc14fd2dc11c362cccf5421245ca5ab0e9d286b54a604a80bd2dd5522f6feb9",
-  "outputTail": ".............                                                            [100%]",
-  "command": ".venv/bin/python -m pytest tests/test_api_server_http.py tests/test_queue_store_threading.py -q",
-  "timestamp": "2026-10-16T19:34:25.220Z",
-  "diffHash": "fa83951df1dc3e606369de3b99175cdec0944afa42de8c2cae44a1eee01aeadb",
-  "poeTag": "[PoE rc=0 out=cfc14fd2dc11c362 diff=fa83951df1dc3e60 time=2026-10-16T19:34:25.220Z]",
-  "parentSealHash": "aa6d67254e4f8ca52ec29bf0b91ae744a9d4486472c8a378968c1886f372df50",
-  "commitAtSealTime": "44ca432378295057bd89c2be0c3fbdea5efc4f44",
-  "sealHash": "936807c73b706c5963b81acbc299da8a3e63a12984d4a6c1efec2728c51568dc"
+  "outputHash": "08faea39fd19189f6544839f505d91d76ecb1367e219f5db362cdf22916ef869",
+  "outputTail": "...........                                                              [100%]",
+  "command": ".venv/bin/python -m pytest tests/test_s6_fuzz.py tests/test_queue_store_threading.py -q",
+  "timestamp": "2026-10-16T20:02:33.292Z",
+  "diffHash": "54d321f97ca9b922f4220cc48348f802e8326fa7b4825051b540b3b2835731d5",
+  "poeTag": "[PoE rc=0 out=08faea39fd19189f diff=54d321f97ca9b922 time=2026-10-16T20:02:33.292Z]",
+  "parentSealHash": "936807c73b706c5963b81acbc299da8a3e63a12984d4a6c1efec2728c51568dc",
+  "commitAtSealTime": "41771857eaf4d440e86265c5714198436f948a10",
+  "sealHash": "1001dc8acd7a31f942675242689c52e7fcbf15e11fb0e9737dce34e775ba29b6"
 }

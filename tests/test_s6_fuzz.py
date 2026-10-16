@@ -20,15 +20,34 @@ ROOT = Path(__file__).resolve().parent.parent
     st.from_regex(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", fullmatch=True),
     st.text(alphabet="ab :/%?#@!", max_size=30),
 ))
-@settings(max_examples=80, deadline=None)  # DNS cozumleme suresi degisken
+@settings(max_examples=80, deadline=None)
 def test_assert_public_host_total(host):
-    """Herhangi bir girdide ya None doner ya ValueError; baska istisna yok."""
+    """Herhangi bir girdide ya None doner ya ValueError; baska istisna yok.
+
+    GERCEK DNS yapilmaz: rastgele uretilen adlarda cozumleyici saniyelerce
+    asilabiliyor ve test pytest-timeout altinda olcu (faulthandler dump'i
+    `core/downloader.py` icindeki `socket.getaddrinfo` kareterinde dondu).
+    SSRF korumasinin TOPLULUK ozelligi cozumleyiciden bagimsizdir; sahte ve
+    deterministik cozumleyiciyle olculur.
+    """
+    import socket as _socket
+    from unittest import mock
+
     from core.downloader import assert_public_host
 
-    try:
-        assert_public_host(host, allow_private_hosts=False)
-    except ValueError:
-        pass
+    def sahte_cozumleyici(ad, port, family=0, type=0, **_kw):
+        if ad.startswith(("10.", "127.")):
+            return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", (ad, 0))]
+        if ad.endswith(".invalid") or not ad.strip("."):
+            raise _socket.gaierror(8, "cozumlenemedi")
+        return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+
+    with mock.patch("core.downloader.socket.getaddrinfo",
+                   side_effect=sahte_cozumleyici):
+        try:
+            assert_public_host(host, allow_private_hosts=False)
+        except ValueError:
+            pass
 
 
 @given(st.sampled_from([
