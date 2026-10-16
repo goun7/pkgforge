@@ -99,35 +99,63 @@ hedefi araç desteği olmadan sağlanamaz. CDN'e taşımak çevrimdışı
 kullanımı bozacağı için yapılmadı. Gerçek bulgu giderilmiştir;
 kalan 4 bulgu yukarıda kanıtıyla yanlış pozitiftir.
 
-## 2026-10-16 — denenip GERİ ALINAN: tek-örnek (single-instance) kilidi
+## 2026-10-16 — tek-örnek (single-instance) kilidi: ÇÖZÜLDÜ (olay değil, kuyruk kanalı)
 
-**Bilinen davranış (hâlâ böyle):** uygulama açıkken ikinci bir pakete
-"Birlikte aç" denirse **yeni bir kabuk + yeni bir `main.py serve` sidecar'ı**
-başlıyor (ölçüldü: 2 sidecar süreci). Dosya yine dönüştürülüyor, yani kullanıcı
-verisi kaybolmuyor; bedeli ikinci pencere + ikinci sidecar.
+**Önceki davranış:** uygulama açıkken ikinci "Birlikte aç" yeni kabuk + yeni
+`main.py serve` sidecar'ı açıyordu (ölçüldü: 2 sidecar süreci).
 
-**Denenen çözüm:** `tauri-plugin-single-instance` 2.5.4 + `app/open-files`
-olayıyla dosyaları çalışan pencereye iletme (Convert sayfası kuyruğa ekliyor;
-vitest'te 4/4 yeşil, kırmızı-yeşil doğrulaması yapıldı).
+**İlk deneme ve neden bırakıldığı:** `tauri-plugin-single-instance` + özel
+webview olayı (`pkgforge://open-files`, sonra `app/open-files`). Kilit
+çalışıyordu (ikinci süreç çıkıyor, ikinci sidecar doğmuyor, pencere öne
+alınıyor) ve `emit` **Ok** dönüyordu — hem plugin'in soket thread'inden hem
+`run_on_main_thread` ile ana thread'den — ama üç ayrı derlemede de webview
+tarafı hiç tepki vermedi. Yalıtılmış ölçüm: aynı olayı açılıştan 6 sn sonra
+zamanlayıcıyla gönderdik, `emit` yine `Ok`; JS tarafı kanıtlı bir RPC
+(`queue.add`) çağırdığında bile `queue.db`'de satır oluşmadı. Yol politikası
+kontrolü aynı path için `izinli` döndü, yani reddedilmiş değildi. Yarım
+çalışan kilit ikinci dosyayı **sessizce düşüreceği** için geri alındı.
 
-**Gerçek çift çalıştırma ölçümü (3 ayrı derleme ile tekrarlandı):**
-- kilit çalışıyor: ikinci süreç çıkıyor, **ikinci sidecar açılmıyor**, pencere
-  öne alınıyor;
-- kabuk callback'i koşuyor (`dosya sayisi=1` izi), `emit` **Ok** dönüyor — hem
-  plugin'in soket thread'inden hem `run_on_main_thread` ile ana thread'den;
-- **ama webview hiç tepki vermiyor**: sidecar log'unda ikinci dosya için
-  `Pipeline başlatıldı` satırı yok (olay adı `pkgforge://open-files` iken de,
-  `app/open-files` iken de aynı). Sidecar'ın kendi `event/finished` yolu JS'e
-  ulaşıyor, yani mekanizma kanıtlı; fark bu olayda.
+**Çözüm (şu an shipped):** dosyalar webview'a değil, doğrudan sidecar RPC'sine
+devredilir — `sidecar::queue_files()` → `queue.add` → kalıcı `queue.db`; pencere
+öne alınır ve masaüstü bildirimi gönderilir ("kuyruğa eklendi (N)"). Böylece
+kullanıcının görmesi koşullu değildir: kayıt diskte, Toplu sekmesinden
+başlatılır, süreç kapanSA bile `restore_queue` ile geri gelir.
 
-**Neden geri alındı:** yarım çalışan kilit, ikinci dosyayı **sessizce düşürür** —
-bugünkü "iki pencere ama dönüştürülüyor" davranışından daha kötü (veri kaybı).
-Ayrıca plugin `rust-version = 1.90` istiyor; depoda beyan edilen taban 1.77
-(iddiayı doğrulamak için MSRV yükseltmesi gerekecek).
+**Gerçek çift çalıştırma ölçümü (fix sonrası):**
+- ikinci örnek öncesi/sonrası: `kabuk=1 sidecar=1` (ikinci doğmuyor),
+- ikinci sürecin logu 1 satır (derhal çıkıyor),
+- instance-1 logu: `pkgforge: ikinci örnek dosyaları kuyruğa eklendi:
+  {"result":{"added":1}}`,
+- `queue.db`: `{'id':'q1','path':'/tmp/pf_si5/ikinci.deb','status':'pending'}`.
 
-**Sonraki adım adayı:** debug derlemesiyle WebKit inspector'ında JS tarafında
-olayın gelip gelmediğine bakmak; geliyorsa `addPaths` çağrısını, gelmiyorsa
-Rust→JS olay kanalı farkını (yanıt/anabilen) karşılaştırmak.
+Ayrıca `rust-version` 1.77 → **1.90** (plugin'in alt sınırı; beyan artık gerçeği
+yansıtıyor).
+
+**Açık kalan tek şey (ölçüldü, kökü bilinmiyor):** Rust→JS *özel* olayları bu
+derlemede webview dinleyucusuna ulaşmıyor. Yanıltıcı olmasın: sidecar'ın
+`event/*` itmelerinin JS'e ulaştığını **kanıtlamadık** — mekanizma aynı
+`app.emit` çağrısı olduğundan şüphe orada da; bugüne dek hiçbir test bunu uçtan
+uça doğrulamamış (vitest'te `listen` mock'lu, visual-qa ise Tauri'suz tarayıcıda
+koşuyor). Çözüm için debug derlemesi + WebKit inspector oturumu gerekiyor;
+UI'yi canlı tutan tek yol bu olduğu için kalıcı bir TODO olarak bırakıldı
+(`docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen").
+
+## 2026-10-16 — QueueStore thread hatası: kuyruk hiç kalıcı değildi (bulundu + düzeltildi)
+
+Kuyruk devrini ölçerken çıktı: `queue.add` yanıtı `{"added": 1}` dönüyor, ama
+`queue.db` boş kalıyordu. Neden iki katmanlı:
+
+1. `QueueStore` bağlantısı `sqlite3.connect()` **`check_same_thread=False`
+   olmadan** kuruluyordu; sidecar istekleri worker thread'lerde koştuğu için her
+   `upsert` `sqlite3.ProgrammingError` atıyordu (doğrudan ölçüm: worker'da
+   upsert → `ProgrammingError`, satır sayısı 0).
+2. `handlers_queue._persist_item()` hata `except Exception: pass` ile
+   yuttuğu için bu, bir ay boyunca görünmezdi.
+
+Düzeltme: paylaşımlı bağlantı + tüm işlemleri saran `threading.Lock`; yutma
+yeri `logging.warning` ile gözlenebilir yapıldı. Kalıcı kilit:
+`tests/test_queue_store_threading.py` (3 test; düzeltme öncesi 3/3 KIRMIZI
+oldukları üretildi — worker upsert, 8 thread eşzamanlı yazım, remove/clear).
 
 ## 2026-10-16 (ikinci tur) — GUI bir aylık BAYAT motor çalıştırıyormuş
 

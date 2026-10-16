@@ -4,12 +4,16 @@ Kural-1: mevcut dosyalara DOKUNULMADI, SADECE bu yeni dosya eklendi.
 Kural-4: sqlite GERCEKTEN kullanilir (ayni-thread kuralini taklit etmek imkansiz,
          cunku kuralin kendisi surukumuzun kaniti); dosyalar tmp_path'te, ag yok.
 
-Neden var: handlers_queue._get_queue_store() singleton'i ilk queue istegini
-isleyen is parcaciginda olusuyor; atexit ise Ana thread'de calisiyor.
-sqlite3 bir baglantiyi kurucusu disindaki thread'de kullanimi reddettigi icin
-`atexit.register(_queue_store.close)` her sidecar kapanisinda
-ProgrammingError izlegi basiyordu (alt-ajan iki kez uretti) ve yorumun iddia
-ettigi temizlik (WAL + dosya tutamaci) HIC yapilmiyordu.
+Tarihce (2026-10-16 guncellendi):
+1) handlers_queue._get_queue_store() singleton'i ilk queue istegini isleyen
+   is parcaciginda olusuyor; atexit ise Ana thread'de calisiyor. Baglanti
+   kurucusu thread'e kilitli oldugu icin ham `.close()` ProgrammingError
+   atiyordu; bu yuzden _close_queue_store sarmalayicisi gerekliydi.
+2) AYNI sahiplik kurali YAZMALARI da kırıyordu: `upsert` worker thread'inde
+   ProgrammingError atıyor, `_persist_item` hatayı yuttuğu için `queue.add`
+   `{"added": 1}` dönüyor ama `queue.db` BOŞ kalıyordu (ölçüldü).
+   QueueStore artik `check_same_thread=False` + ic kilit ile calisiyor;
+   kalıcılık testleri: tests/test_queue_store_threading.py.
 """
 from __future__ import annotations
 
@@ -35,20 +39,28 @@ def _threadde_kur(tmp_path: Path, ad: str) -> QueueStore:
     return holder["s"]
 
 
-def test_capraz_thread_close_gercekten_hata_verir(tmp_path):
-    """Kök nedeni sabitle: ham .close() ProgrammingError firlatiyor olmali.
+def test_capraz_thread_close_artik_hata_vermez(tmp_path):
+    """2026-10-16 sozlesme degisikligi: baglanti paylasilir, kapanis sessiz.
 
-    Bu test olmaksizin duzeltme 'olmayan bir hatayi yutuyor' olurdu; sqlite
-    surumu/kurulumu degisirse test buradan kirilir ve uyari verir.
+    Bu test eskiden ham `.close()`'un `ProgrammingError` firlattigini
+    sabitliyordu (baglanti kurucusu thread'e kilitliydi). `QueueStore` artik
+    `check_same_thread=False` + ic kilit ile calisiyor; ayni degisiklik
+    kuyruk yazmalarini da worker thread'lerde kalici kildi
+    (test_queue_store_threading.py).
     """
     store = _threadde_kur(tmp_path, "raw.db")
+    store.close()                        # ana thread'de: artik yasal
     with pytest.raises(sqlite3.ProgrammingError):
-        store.close()
+        store._conn.execute("SELECT 1")  # kapanmis baglanti kullanilamaz
 
 
-def test_sarmalayici_hatayi_yutar_ve_caburmaz(tmp_path):
-    store = _threadde_kur(tmp_path, "wrapped.db")
-    HQ._close_queue_store(store)          # sessiz olmali
+def test_sarmalayici_gercek_hatayi_yutar(tmp_path):
+    """Sarmalayicinin yutma davranisi boslukta degil, gercek hatada test edilir."""
+    class KapanirkenPatlayan:
+        def close(self) -> None:
+            raise sqlite3.ProgrammingError("baglanti bu thread'e ait degil")
+
+    HQ._close_queue_store(KapanirkenPatlayan())   # sessiz olmali
 
 
 def test_sarmalayici_gecerli_kapatmayi_gercekten_kapatir(tmp_path):

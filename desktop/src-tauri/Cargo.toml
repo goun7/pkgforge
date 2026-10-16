@@ -4,7 +4,9 @@ version = "2.2.0"
 description = "PkgForge desktop UI (Tauri + Python sidecar)"
 authors = ["goun7"]
 edition = "2021"
-rust-version = "1.77"
+# tauri-plugin-single-instance 2.5.4 alt siniri rustc 1.90 istiyor; beyan
+# gercek gereksinimi yansitsin (kok ve -git PKGBUILD'leri stable rust kullanir).
+rust-version = "1.90"
 
 [lib]
 name = "pkgforge_desktop_lib"
@@ -21,6 +23,9 @@ tokio = { version = "1", features = ["sync", "time"] }
 tauri-plugin-dialog = "2.0.0-rc.8"
 tauri-plugin-notification = "2"
 tauri-plugin-shell = "2"
+# Uygulama acikken ikinci "Birlikte ac" ornegini tek kabukta toplar.
+# 2.5.4 rustc 1.90 ister; rust-version bu yuzden 1.90'a cekildi.
+tauri-plugin-single-instance = "2"
 
 [profile.release]
 panic = "abort"

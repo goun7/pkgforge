@@ -237,8 +237,8 @@ make verify     # ruff + mypy + bandit + full pytest with coverage gate
 
 Current status (measured 2026-10-16, `make verify` + frontend gates + Rust
 `cargo test`):
-**7431 tests collected, full suite exit 0 (0 failed)** · coverage
-**99.68%** on `core/`+`ui/`+`i18n/` (13 184 statements, 42 missed) ·
+**7437 tests collected, full suite exit 0 (0 failed)** · coverage
+**99.68%** on `core/`+`ui/`+`i18n/` (13 193 statements, 42 missed) ·
 mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
 imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
 ruff: 0 findings repo-wide · i18n parity 1345/1345 (tr/en) ·

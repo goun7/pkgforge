@@ -106,6 +106,26 @@ süreci, mtime 17 Eyl; Qt parent düzeltmesi 16 Ekim). Düzeltme iki parçalı:
 snapshot'i kopyalamıyor ve daha önce kopyalanmış olanı kaldırıyor.
 Kanıt: taklit `/usr/lib` düzeninde dönüşüm canlı ağaçtan koştu, gömülü sidecar'ın imzası log'da 0 kez göründü.
 
+## Bilinmeyen (kanıtsız bırakılmadı, kökü bulunamadı)
+
+**Rust→JS özel olayları bu derlemede webview'a ulaşmıyor.** Ölçüm: olay adı
+`pkgforge://open-files` ve `app/open-files` ile denendi; `emit` her iki
+yönden (plugin soket thread'i + `run_on_main_thread` ile ana thread) `Ok`
+döndü; yol politikası aynı path için `izinli` dedi; izolasyon denemesinde
+(Zamanlayıcı→`emit`→JS dinleyici→`queue.add` RPC) `queue.db`'de satır
+oluşmadı. Yani "gönderildi ama işlenmedi" hali belgeli.
+
+Yanlız bu olaya mı özgün, yoksa sidecar'ın `event/log`, `event/finished`
+itmeleri de mi ulaşmıyor — **bilinmiyor**, çünkü bunu uçtan uça doğrulayan tek
+bir test yok: vitest'te `listen` mock'lu, `visual-qa` ise Tauri köprüsü olmayan
+tarayıcıda koşuyor. Bu yüzden "canlı güncellemeler çalışıyor" da doğrulanmış
+bir önerme değil; yanlız UI'nin donduğuna dair kullanıcı şikâyeti yok.
+
+Çözüm için gereken: debug derlemesi + `WEBKIT_INSPECTOR_SERVER` ile WebKit
+inspector'da `listen()` promise'inin akıbetine bakmak (reddediliyor mu,
+çözümleniyor ama olay mı gelmiyor). Kuyruk devri bu belirsizliğe bağlı
+kalmaması için zaten RPC üzerinden yapılıyor.
+
 ## Yeniden koşum
 
 ```bash

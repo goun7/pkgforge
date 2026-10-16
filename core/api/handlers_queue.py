@@ -65,8 +65,12 @@ def _persist_item(item: dict[str, Any]) -> None:
         return
     try:
         store.upsert(item)
-    except Exception:  # noqa: BLE001, S110 - best-effort persistence
-        pass
+    except Exception as exc:  # noqa: BLE001 - best-effort persistence
+        # Kalicilik basarisiz ise is kaybolmaz (bellekteki kuyruk devam eder),
+        # ama sessizlik thread hatasini bir ay boyunca görünmez kildi.
+        logging.getLogger(__name__).warning(
+            tr("api.queue_kalicilik_yazilamadi",
+               item_id=item.get("id"), exc=exc))
 
 
 def _persist_remove(item_id: str) -> None:

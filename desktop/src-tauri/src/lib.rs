@@ -17,6 +17,8 @@ struct L10n {
     fail_title: &'static str,
     ok_body: &'static str,
     err_body: &'static str,
+    queued_title: &'static str,
+    queued_body: &'static str,
 }
 
 const TR: L10n = L10n {
@@ -26,6 +28,8 @@ const TR: L10n = L10n {
     fail_title: "PkgForge: Dönüştürme başarısız",
     ok_body: "Paket başarıyla işlendi.",
     err_body: "İşlem sırasında bir hata oluştu.",
+    queued_title: "PkgForge: kuyruğa eklendi",
+    queued_body: "Dosyalar zaten açık olan pencerenin iş kuyruğuna eklendi (Toplu sekmesi).",
 };
 
 const EN: L10n = L10n {
@@ -35,6 +39,8 @@ const EN: L10n = L10n {
     fail_title: "PkgForge: Conversion failed",
     ok_body: "Package processed successfully.",
     err_body: "An error occurred during the operation.",
+    queued_title: "PkgForge: added to queue",
+    queued_body: "Files were queued in the window that was already open (Batch tab).",
 };
 
 /// Aktif profilin settings.json'ini okur (profil farkindali); best-effort.
@@ -190,10 +196,41 @@ fn initial_files() -> Vec<String> {
     initial_files_from_args(&std::env::args().collect::<Vec<String>>())
 }
 
+/// Uygulama açıkken gelen ikinci "Birlikte aç" örneğini birleştirir.
+///
+/// Ölçülen (2026-10-16): kilitsiz her tıklama yeni kabuk + yeni sidecar
+/// açıyordu. Dosyalar webview olayıyla DEĞİL (aynı adla `emit` üç derlemede de
+/// dinleyiciye ulaşmadı), kanıtlı sidecar RPC'si ve kalıcı `queue.db` üzerinden
+/// devredilir; pencere öne alınır ve bildirim gönderilir. Böylece ikinci dosya
+/// hiçbir koşulda sessizce düşmez.
+fn forward_new_instance(app: &tauri::AppHandle, args: Vec<String>, _cwd: String) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.unminimize();
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+    let files = initial_files_from_args(&args);
+    if files.is_empty() {
+        return;
+    }
+    let count = files.len();
+    sidecar::queue_files(app, files);
+    let l10n = *load_language();
+    if notifications_enabled() {
+        let _ = app
+            .notification()
+            .builder()
+            .title(l10n.queued_title)
+            .body(format!("{} ({count})", l10n.queued_body))
+            .show();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(sidecar::Sidecar::new())
+        .plugin(tauri_plugin_single_instance::init(forward_new_instance))
         .setup(|app| {
             sidecar::spawn(app.handle())?;
             let l10n = *load_language();

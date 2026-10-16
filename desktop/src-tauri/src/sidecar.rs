@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -263,6 +264,57 @@ fn spawn_python(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Yazma + bekleme ortak yolu: yanıt `route_line` tarafından id üzerinden
+/// eşleştirilir. `rpc_call` (frontend) ve `queue_files` (kabin içi devir) aynı
+/// mekanizmayı paylaşır.
+async fn request(
+    inner: Arc<SidecarInner>,
+    id: u64,
+    method: String,
+    params: serde_json::Value,
+    secs: u64,
+) -> Result<serde_json::Value, String> {
+    let (tx, rx) = oneshot::channel();
+    inner.pending.lock().unwrap().insert(id, tx);
+
+    let msg = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "method": method,
+        "params": params,
+    });
+    let write_result = {
+        if let Some(child) = inner.shell_child.lock().unwrap().as_mut() {
+            let line = format!("{msg}\n");
+            child.write(line.as_bytes()).map_err(|e| e.to_string())
+        } else {
+            let mut guard = inner.legacy_stdin.lock().unwrap();
+            match guard.as_mut() {
+                None => Err("sidecar not running".to_string()),
+                Some(stdin) => writeln!(stdin, "{msg}")
+                    .and_then(|_| stdin.flush())
+                    .map_err(|e| e.to_string()),
+            }
+        }
+    };
+    if let Err(e) = write_result {
+        inner.pending.lock().unwrap().remove(&id);
+        return Err(e);
+    }
+
+    match tokio::time::timeout(Duration::from_secs(secs), rx).await {
+        Ok(Ok(v)) => Ok(v),
+        Ok(Err(_)) => {
+            inner.pending.lock().unwrap().remove(&id);
+            Err("sidecar closed the connection".into())
+        }
+        Err(_) => {
+            inner.pending.lock().unwrap().remove(&id);
+            Err("sidecar response timeout".into())
+        }
+    }
+}
+
 /// Frontend entry point: send a JSON-RPC request, await the response.
 #[tauri::command]
 pub async fn rpc_call(
@@ -271,33 +323,64 @@ pub async fn rpc_call(
     method: String,
     params: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let (tx, rx) = oneshot::channel();
-    state.0.pending.lock().unwrap().insert(id, tx);
+    request(state.0.clone(), id, method, params, 120).await
+}
 
-    let msg = serde_json::json!({
-        "jsonrpc": "2.0",
-        "id": id,
-        "method": method,
-        "params": params,
-    });
-    {
-        if let Some(child) = state.0.shell_child.lock().unwrap().as_mut() {
-            let line = format!("{msg}\n");
-            child.write(line.as_bytes()).map_err(|e| e.to_string())?;
-        } else {
-            let mut guard = state.0.legacy_stdin.lock().unwrap();
-            let stdin = guard.as_mut().ok_or("sidecar not running")?;
-            writeln!(stdin, "{msg}").map_err(|e| e.to_string())?;
-            stdin.flush().map_err(|e| e.to_string())?;
+/// Rust tarafindan gelen cagrilar JS id'leriyle çakışmasın.
+static INTERNAL_ID: AtomicU64 = AtomicU64::new(9_000_000_000_000);
+
+fn next_internal_id() -> u64 {
+    INTERNAL_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+/// `queue.add` için JSON-RPC parametresi (test edilebilir saf fonksiyon).
+fn queue_add_params(files: &[String]) -> serde_json::Value {
+    serde_json::json!({ "paths": files })
+}
+
+/// Uygulama zaten açıkken gelen dosyaları KALICI iş kuyruğuna devret.
+///
+/// Neden webview olayı değil: aynı adla `emit` edilen özel bir olayın (hem
+/// plugin'in soket thread'inden hem `run_on_main_thread` ile ana threadden,
+/// `Ok` dönmesine rağmen) webview dinleyucusuna ulaşmadığı 2026-10-16'da üç
+/// ayrı derlemede ölçüldü; yol politikasından da geçiyordu. Sidecar RPC'si ise
+/// bu uygulamanın kanıtlı kanalı ve `queue.db` kalıcı: dosya hiçbir koşull
+/// kaybolmaz, Toplu sekmesinden başlatılır.
+pub fn queue_files(app: &AppHandle, files: Vec<String>) {
+    let inner = app.state::<Sidecar>().0.clone();
+    let params = queue_add_params(&files);
+    tauri::async_runtime::spawn(async move {
+        match request(inner, next_internal_id(), "queue.add".into(), params, 30).await {
+            Ok(v) => eprintln!("pkgforge: ikinci örnek dosyaları kuyruğa eklendi: {v}"),
+            Err(e) => eprintln!("pkgforge: kuyruk devri başarısız: {e}"),
         }
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::queue_add_params;
+
+    #[test]
+    fn queue_add_params_paths_alanisini_korur() {
+        let v = queue_add_params(&["/tmp/a.deb".to_string(), "/tmp/b.rpm".to_string()]);
+        assert_eq!(
+            v["paths"],
+            serde_json::json!(["/tmp/a.deb", "/tmp/b.rpm"])
+        );
     }
 
-    match tokio::time::timeout(Duration::from_secs(120), rx).await {
-        Ok(Ok(v)) => Ok(v),
-        Ok(Err(_)) => Err("sidecar closed the connection".into()),
-        Err(_) => {
-            state.0.pending.lock().unwrap().remove(&id);
-            Err("sidecar response timeout".into())
-        }
+    #[test]
+    fn queue_add_params_bos_listeyi_eseler() {
+        let v = queue_add_params(&[]);
+        assert_eq!(v["paths"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn ic_id_dayanli_artar() {
+        let a = super::next_internal_id();
+        let b = super::next_internal_id();
+        assert!(b > a);
+        assert!(a >= 9_000_000_000_000);
     }
 }

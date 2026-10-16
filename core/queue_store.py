@@ -8,6 +8,7 @@ never completed. Terminal items (done/error) are not resurrected.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -31,19 +32,31 @@ _RESTORE_AS_PENDING = ("pending", "running")
 
 
 class QueueStore:
-    """SQLite-backed durability for the batch queue."""
+    """SQLite-backed durability for the batch queue.
+
+    Thread-safe by design: the sidecar serves requests on worker threads, so
+    the store is typically created on one thread and written from another.
+    Without `check_same_thread=False` every such write raised
+    `sqlite3.ProgrammingError` — and `handlers_queue._persist_item` swallowed
+    it, so the queue silently never persisted while the API answered
+    `{"added": 1}` (measured 2026-10-16).
+    """
 
     def __init__(self, db_path: Path | None = None):
         self.db_path = db_path if db_path is not None else queue_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
         self._conn = sqlite3.connect(
-            self.db_path, timeout=_BUSY_TIMEOUT_MS / 1000)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute(_SCHEMA)
-        self._conn.commit()
+            self.db_path, timeout=_BUSY_TIMEOUT_MS / 1000,
+            check_same_thread=False)
+        with self._lock:
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute(_SCHEMA)
+            self._conn.commit()
 
     def close(self) -> None:
-        self._conn.close()
+        with self._lock:
+            self._conn.close()
 
     def load_restorable(self) -> list[dict[str, Any]]:
         """Items to restore on startup, coerced to 'pending'.
@@ -51,10 +64,12 @@ class QueueStore:
         Items whose source file no longer exists are skipped so a restart
         does not resurrect work whose input has vanished.
         """
-        cur = self._conn.execute(
-            "SELECT id, path, name, status, priority FROM queue")
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT id, path, name, status, priority FROM queue")
+            rows = cur.fetchall()
         out: list[dict[str, Any]] = []
-        for (iid, path, name, status, priority) in cur.fetchall():
+        for (iid, path, name, status, priority) in rows:
             if status not in _RESTORE_AS_PENDING:
                 continue
             if not Path(path).is_file():
@@ -66,23 +81,26 @@ class QueueStore:
         return out
 
     def upsert(self, item: dict[str, Any]) -> None:
-        self._conn.execute(
-            "INSERT INTO queue (id, path, name, status, priority, message)"
-            " VALUES (?, ?, ?, ?, ?, ?)"
-            " ON CONFLICT(id) DO UPDATE SET"
-            "  path=excluded.path, name=excluded.name, status=excluded.status,"
-            "  priority=excluded.priority, message=excluded.message",
-            (item["id"], item["path"], item["name"], item["status"],
-             int(item.get("priority", 0)), item.get("message", "")))
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO queue (id, path, name, status, priority, message)"
+                " VALUES (?, ?, ?, ?, ?, ?)"
+                " ON CONFLICT(id) DO UPDATE SET"
+                "  path=excluded.path, name=excluded.name, status=excluded.status,"
+                "  priority=excluded.priority, message=excluded.message",
+                (item["id"], item["path"], item["name"], item["status"],
+                 int(item.get("priority", 0)), item.get("message", "")))
+            self._conn.commit()
 
     def remove(self, item_id: str) -> None:
-        self._conn.execute("DELETE FROM queue WHERE id = ?", (item_id,))
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute("DELETE FROM queue WHERE id = ?", (item_id,))
+            self._conn.commit()
 
     def clear(self, status: str = "") -> None:
-        if status:
-            self._conn.execute("DELETE FROM queue WHERE status = ?", (status,))
-        else:
-            self._conn.execute("DELETE FROM queue")
-        self._conn.commit()
+        with self._lock:
+            if status:
+                self._conn.execute("DELETE FROM queue WHERE status = ?", (status,))
+            else:
+                self._conn.execute("DELETE FROM queue")
+            self._conn.commit()

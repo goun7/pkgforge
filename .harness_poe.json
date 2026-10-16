@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "341d5dca33250b815baddbafb6001e174c20bf1716bb74f3d612e77777db8938",
-  "outputTail": "..................                                                       [100%]",
-  "command": ".venv/bin/python -m pytest tests/test_gui_dialogs_and_scripts.py tests/test_desktop_launcher.py -q",
-  "timestamp": "2026-10-16T18:22:34.633Z",
-  "diffHash": "8a1cf3f6c8991ec18300675e9d5bf962692e45f0a0423d88ed85d1ff7fa99aae",
-  "poeTag": "[PoE rc=0 out=341d5dca33250b81 diff=8a1cf3f6c8991ec1 time=2026-10-16T18:22:34.633Z]",
-  "parentSealHash": "70379abdcbeab466be3905a48e17fb9bc531f652db89b9d5d2c6772bb8758da2",
-  "commitAtSealTime": "5be0330f88081b7fae93dbd426addc31b5dcfa73",
-  "sealHash": "d6bd14f84a758bd11c158331cb7eaf788a06e1509453f6d165a7af5ae5c9e3e0"
+  "outputHash": "a4ba55c7ec7daeede2ecfea3dda9a793665ee142066911215af4f033a9e8412a",
+  "outputTail": "............................                                             [100%]",
+  "command": ".venv/bin/python -m pytest tests/test_queue_store_threading.py tests/test_queue_store_atexit.py tests/test_i18n_output_leaks.py -q",
+  "timestamp": "2026-10-16T19:31:52.144Z",
+  "diffHash": "505f7f2dba37615c1981ba2c2ca8686136992cd9cfcfbef17e7899f120ca205f",
+  "poeTag": "[PoE rc=0 out=a4ba55c7ec7daeed diff=505f7f2dba37615c time=2026-10-16T19:31:52.144Z]",
+  "parentSealHash": "d6bd14f84a758bd11c158331cb7eaf788a06e1509453f6d165a7af5ae5c9e3e0",
+  "commitAtSealTime": "8f38858a059af01750b8b3e1c2844e3b8a39f323",
+  "sealHash": "8d930db00ae00e1c2dd7e8173edd89ed7db88c44f98a4be15e50f23db4930391"
 }
