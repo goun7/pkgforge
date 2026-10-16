@@ -99,6 +99,36 @@ hedefi araç desteği olmadan sağlanamaz. CDN'e taşımak çevrimdışı
 kullanımı bozacağı için yapılmadı. Gerçek bulgu giderilmiştir;
 kalan 4 bulgu yukarıda kanıtıyla yanlış pozitiftir.
 
+## 2026-10-16 — denenip GERİ ALINAN: tek-örnek (single-instance) kilidi
+
+**Bilinen davranış (hâlâ böyle):** uygulama açıkken ikinci bir pakete
+"Birlikte aç" denirse **yeni bir kabuk + yeni bir `main.py serve` sidecar'ı**
+başlıyor (ölçüldü: 2 sidecar süreci). Dosya yine dönüştürülüyor, yani kullanıcı
+verisi kaybolmuyor; bedeli ikinci pencere + ikinci sidecar.
+
+**Denenen çözüm:** `tauri-plugin-single-instance` 2.5.4 + `app/open-files`
+olayıyla dosyaları çalışan pencereye iletme (Convert sayfası kuyruğa ekliyor;
+vitest'te 4/4 yeşil, kırmızı-yeşil doğrulaması yapıldı).
+
+**Gerçek çift çalıştırma ölçümü (3 ayrı derleme ile tekrarlandı):**
+- kilit çalışıyor: ikinci süreç çıkıyor, **ikinci sidecar açılmıyor**, pencere
+  öne alınıyor;
+- kabuk callback'i koşuyor (`dosya sayisi=1` izi), `emit` **Ok** dönüyor — hem
+  plugin'in soket thread'inden hem `run_on_main_thread` ile ana thread'den;
+- **ama webview hiç tepki vermiyor**: sidecar log'unda ikinci dosya için
+  `Pipeline başlatıldı` satırı yok (olay adı `pkgforge://open-files` iken de,
+  `app/open-files` iken de aynı). Sidecar'ın kendi `event/finished` yolu JS'e
+  ulaşıyor, yani mekanizma kanıtlı; fark bu olayda.
+
+**Neden geri alındı:** yarım çalışan kilit, ikinci dosyayı **sessizce düşürür** —
+bugünkü "iki pencere ama dönüştürülüyor" davranışından daha kötü (veri kaybı).
+Ayrıca plugin `rust-version = 1.90` istiyor; depoda beyan edilen taban 1.77
+(iddiayı doğrulamak için MSRV yükseltmesi gerekecek).
+
+**Sonraki adım adayı:** debug derlemesiyle WebKit inspector'ında JS tarafında
+olayın gelip gelmediğine bakmak; geliyorsa `addPaths` çağrısını, gelmiyorsa
+Rust→JS olay kanalı farkını (yanıt/anabilen) karşılaştırmak.
+
 ## Kalan insan adımları
 
 1. `v2.2.0` tag → release CI izlenir
