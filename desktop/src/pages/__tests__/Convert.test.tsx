@@ -228,15 +228,17 @@ describe("Convert page", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Paket bırakma alanı" }));
     });
-    // Diyalog promise'inin (mockResolvedValueOnce) çözülüp pipeline.start
-    // tetiklenmesi için flush + geniş waitFor (coverage modu yavaştır).
-    await act(async () => {});
     // Once diyalogun gercekten acildigini dogrula: aksi halde asagidaki
     // "pipeline.start cagrilmadi" hatasi nedenini soylemez.
     await vi.waitFor(() => expect(vi.mocked(open)).toHaveBeenCalled());
+    // Diyalog promise'inin cozulumu ve sonrasindaki RPC cagrisi act()
+    // disinda kalabilir (mock promise ayni mikrotaskte cozulmez); 5000ms
+    // altinda seyrek "expected [] to have a length of 1" flaky'leri olustu,
+    // bu yuzden flush burada degil waitFor icinde, daha uzun timeoutla
+    // ve sik aralikla bekleniyor.
     await vi.waitFor(
       () => expect(callsTo("pipeline.start")).toHaveLength(1),
-      { timeout: 5000 },
+      { timeout: 9000, interval: 25 },
     );
     expect(callsTo("pipeline.start")[0][1]).toEqual(
       expect.objectContaining({ params: { path: "/tmp/secim.deb" } }),

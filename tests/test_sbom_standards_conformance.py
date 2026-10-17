@@ -17,6 +17,7 @@ import json
 import uuid
 from pathlib import Path
 
+from config import APP_VERSION
 from core.sbom import SBOMDocument, SBOMEntry, save_sbom
 
 
@@ -146,7 +147,7 @@ def test_cdx_metadata_component():
     assert m["component"]["type"] == "application"
     assert m["component"]["name"] == "ghost-dep"
     assert m["component"]["version"] == "1.0"
-    assert m["tools"][0]["version"] == "2.2.0"
+    assert m["tools"][0]["version"] == APP_VERSION
 
 
 def test_cdx_bos_belge_yine_gecerli():

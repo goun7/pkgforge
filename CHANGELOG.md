@@ -6,8 +6,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-> **Bu etiket-altı yığın 2026-09-18'de donmuştu; v2.2.0 etiketinden bu yana 58
-> commit birikti.** Aşağıdaki üç grup 2026-10-01 … 2026-10-16 arasını özetler
+> Bu bölüm bir sonraki sürüm için boş tutulur.
+
+## [2.2.1] - 2026-10-17
+
+> **v2.2.0 sonrası 68 commit'in son 10'u (2026-10-17 otonom turu).**
+> Sayım komutları: `git log v2.2.0..HEAD --oneline | wc -l` → **68**
+> (`fix` 35 / `feat` 3 / `test` 14 / `docs` 8 / `chore` 8);
+> `git log --since=2026-10-17 --oneline | wc -l` → **10**
+> (`fix` 5 / `test` 3 / `docs` 2).
+> Aşağıdaki "v2.2.0 sonrası" bölümü 55 commit'lik 2026-09-18 … 2026-10-16
+> aralığını özetler ve burada tekrar edilmez.
+
+### Fixed — 2026-10-17 otonom turu (5 commit)
+- **api/desktop**: sidecar'ın stdio çerçevelemesi art arda ikinci RPC
+  isteğini yutuyordu; artık her istek yanıtını veriyor
+  (`130ddcd`).
+- **pipeline**: `install: false` (yalnızca dönüşüm) yollarında üretilen
+  paket dönüşüm bitince siliniyordu ve red "başarısız" etiketiyle
+  gösteriliyordu; artık paket bırakılıyor ve red doğru etiketleniyor
+  (`440e0b1`).
+- **api**: `pipeline.start` RPC'si `install` ve `out_dir` parametrelerini
+  sessizce görmezden geliyordu; artık saygı gösteriyor (`041e503`).
+- **queue**: toplu kuyruk ayarlarda kayıtlı `output_dir`'i okumuyordu
+  (`ae838ee`).
+- **i18n**: kullanılmayan `queue.*` katalog anahtarları silindi;
+  dead-key kilidinde f-string enjeksiyon yüzeyi kapatıldı (`0ffc93b`).
+
+### Changed — 2026-10-17 otonom turu (test + docs, 5 commit)
+- **test**: RPC param sözleşme kilidi; ölü `settings.output_dir` artık
+  kullanılıyor (`24fd529`); testler artık gerçek `$HOME`'a dokunmadan
+  tekrar üretilebilir (`89ef2ce`); `event/*` webview ulaşımının iki
+  önkoşulu (`withGlobalTauri` globali + `core:event` ACL) regression
+  testine kilitlendi (`722e7b6`).
+- **docs**: Rust→JS `event/*` yayınının webview'e ulaştığı uçtan uca
+  kanıtlandı (10-16'daki "ulaşmıyor" iddiası test-rig kusuru olarak
+  çürütüldü; 89 emit → 96 webview rapor satırı) (`e42b814`, `722e7b6`);
+  tur kapanış raporu `docs/OTONOM_TUR_RAPORU_2026-10-17.md`.
+
+### Kapılar (2026-10-17 ölçümü)
+- Python: **7494 test (7490 pass + 4 skip)** — ruff, mypy --strict, bandit
+  -ll temiz; coverage **%99.56** (`make verify` RC=0).
+- Rust (`desktop/src-tauri`): `cargo test` 8/8 pass, `cargo clippy` 0 warning.
+- Frontend: `tsc -b` + `vite build` temiz, `vitest run` **594/594** (55 dosya).
+- ZERON: `scan` 129 buton / 0 critical; `doctor` 23/23 PASS, health 100/100.
+- Sürüm 5 yerde senkron (2.2.1) ve `tests/test_version_parity.py` ile
+  kilitli; AppStream metainfo ve SBOM araç sürümü aynı kaynaktan gelir
+  (önceki sabit değerler sürüm yükselince kıran testlere neden oluyordu).
+
+### Önceki v2.2.0 sonrası değişiklikler (2026-09-18 … 2026-10-16, 58 commit)
+
+
+> **Bu bölüm v2.2.0 etiketinden sonraki 2026-09-18 … 2026-10-16
+> aralığını (58 commit) özetler.** Aşağıdaki üç grup 2026-10-01 … 2026-10-16 arasını özetler
 > (55 commit); bu bloğun altındaki "gelir stratejisi sadeleştirme (2026-09-18)"
 > bölümü zaten belgelenmiş 3 commit'i içerir, tekrar edilmedi.
 > Sayım ve liste komutları (bu satırlar uydurma değildir, commit mesajlarından
