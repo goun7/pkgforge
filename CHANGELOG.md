@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 > Bu bölüm bir sonraki sürüm için boş tutulur.
 
+### Fixed — 2026-10-18 otonom turu
+
+- **Build-system algılayıcıları tekilleştirildi** (`core/aur_publish.py`):
+  aynı repo için üç farklı çağırma yeri üç farklı sonuç veriyordu.
+  `handle_source_generate` (from-source PKGBUILD sihirbazı) elle yazılmış
+  bir if-else merdiveni kullanıyordu ve `pyproject.toml`-only bir repoyu
+  `unknown` sanıyordu — sonuçta `python -m build` yerine derleme başarısız
+  olan `gcc`+`make` PKGBUILD'i üretiliyordu. Artık tek marker tablosu
+  (`_BUILD_SYSTEM_MARKERS`) üç yüzeyde de (intake, AUR hazırlama,
+  from-source) paylaşılmaktadır; `configure.ac` ve `setup.cfg` de tanınır.
+- **from-source node dalı ulaşılabilir hale getirildi** (`core/from_source.py`):
+  hiçbir algılayıcı `node` döndürmediği için bu dal ölü kodd uygulanıyordu.
+- **from-source'e `go` ve `autoreconf` yolları eklendi** (`core/from_source.py`):
+  `go.mod` repoları `go build -trimpath` ile; `configure.ac`-only autotools
+  repoları `autoreconf -fi` ile derlenir.
+- Kanıt: `tests/test_build_system_unified.py` (24 test) — ürettilen
+  PKGBUILD gerçek `makepkg` ile derlenip paket üretmektedir
+  (namcap 0 hata). Tamirim öncesi kırmızı: 7 test fail.
+
 ## [2.2.2] - 2026-10-18
 
 > **v2.2.0 sonrası 68 commit'in son 10'u (2026-10-17 otonom turu).**

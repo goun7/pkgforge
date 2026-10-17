@@ -83,24 +83,49 @@ def _generate_srcinfo(pkgbuild_path: Path) -> str:
 def detect_build_system(repo_dir: Path) -> str:
     """Detect the build system from a repository directory.
 
-    Returns one of: cmake, meson, cargo, autotools, make, python, go, unknown.
+    Tek dogruluk kaynagi: intake (tarball icindeki dosya adlari), AUR
+    hazirlama ve from-source PKGBUILD uretimi ayni tabloyu kullanir.
+    Onceki ayrı tablolar birbirini tutmuyordu: pyproject.toml-only repolar
+    "unknown" oluyordu ve from-source node daliwc ulasilamazdi.
+
+    Returns one of: cmake, meson, cargo, autotools, make, python, go, node, unknown.
     """
-    checks = [
-        ("CMakeLists.txt", "cmake"),
-        ("meson.build", "meson"),
-        ("Cargo.toml", "cargo"),
-        ("configure.ac", "autotools"),
-        ("configure", "autotools"),
-        ("Makefile", "make"),
-        ("makefile", "make"),
-        ("setup.py", "python"),
-        ("pyproject.toml", "python"),
-        ("go.mod", "go"),
-    ]
-    for filename, system in checks:
-        if (repo_dir / filename).exists():
+    for filename, system in _BUILD_SYSTEM_MARKERS:
+        if (repo_dir / filename).is_file():
             return system
     return "unknown"
+
+
+def detect_build_system_names(names: list[str]) -> str | None:
+    """Arsiv/girdi ad listesinden build sistemini algilar (yoksa None).
+
+    intake tarafindan tarball acilmadan once kullanilir; tablo
+    ``detect_build_system`` ile aynidir.
+    """
+    base = {n.rstrip("/").split("/")[-1] for n in names if n}
+    for marker, system in _BUILD_SYSTEM_MARKERS:
+        if marker in base:
+            return system
+    return None
+
+
+# Marker tablosu (oncelik sirasiyla). Tek tablo — uc cagri yeri tarafindan
+# paylasilir: aur_publish.detect_build_system, intake.detect_build_system,
+# handlers_system (from-source UI).
+_BUILD_SYSTEM_MARKERS: tuple[tuple[str, str], ...] = (
+    ("Cargo.toml", "cargo"),
+    ("CMakeLists.txt", "cmake"),
+    ("meson.build", "meson"),
+    ("package.json", "node"),
+    ("pyproject.toml", "python"),
+    ("setup.py", "python"),
+    ("setup.cfg", "python"),
+    ("configure", "autotools"),
+    ("configure.ac", "autotools"),
+    ("Makefile", "make"),
+    ("makefile", "make"),
+    ("go.mod", "go"),
+)
 
 
 # Build system → makedepends array (her eleman ayri quoted ogesi olmali;

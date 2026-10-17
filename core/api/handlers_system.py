@@ -136,19 +136,13 @@ def handle_source_generate(params: dict[str, Any]) -> dict[str, Any]:
 
             proj_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
             transport._event("event/source_progress", {"step": "detect"})
-            build_system = "unknown"
-            if (repo_dir / "CMakeLists.txt").exists():
-                build_system = "cmake"
-            elif (repo_dir / "meson.build").exists():
-                build_system = "meson"
-            elif (repo_dir / "Cargo.toml").exists():
-                build_system = "cargo"
-            elif (repo_dir / "configure").exists():
-                build_system = "autotools"
-            elif (repo_dir / "Makefile").exists() or (repo_dir / "makefile").exists():
-                build_system = "make"
-            elif (repo_dir / "setup.py").exists():
-                build_system = "python"
+            # Tek dogruluk kaynagi: core/aur_publish.detect_build_system.
+            # Elle yazilmis merdiven pyproject.toml/package.json/go.mod/
+            # configure.ac repolarini "unknown" birakip yanlis PKGBUILD
+            # uretiyordu (olcum: tests/test_build_system_unified.py).
+            from core.aur_publish import detect_build_system
+
+            build_system = detect_build_system(repo_dir)
 
             transport._event("event/source_progress", {"step": "generate"})
             content = generate_pkgbuild_from_source(proj_name, repo_url, build_system, repo_dir)

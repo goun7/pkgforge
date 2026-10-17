@@ -334,16 +334,32 @@ def generate_pkgbuild_from_source(
         install_cmds = f'    install -Dm755 target/release/{binary_name} \\\n        "$pkgdir/usr/bin/{binary_name}"'
     elif build_system == "autotools":
         makedepends_base.extend(["gcc", "autoconf", "automake"])
-        build_cmds = (
-            "    ./configure --prefix=/usr --sysconfdir=/etc\n"
-            "    make"
-        )
+        if (repo_dir / "configure").is_file():
+            build_cmds = (
+                "    ./configure --prefix=/usr --sysconfdir=/etc\n"
+                "    make"
+            )
+        else:
+            # configure.ac var ama uretilmemis configure yok: autoreconf.
+            build_cmds = (
+                "    autoreconf -fi\n"
+                "    ./configure --prefix=/usr --sysconfdir=/etc\n"
+                "    make"
+            )
         install_cmds = '    make DESTDIR="$pkgdir" install'
     elif build_system == "python":
         makedepends_base.extend(["python-build", "python-installer", "python-setuptools"])
         build_cmds = "    python -m build --wheel --no-isolation"
         install_cmds = '    python -m installer --destdir="$pkgdir" dist/*.whl'
-    elif _detect_node_package(repo_dir):
+    elif build_system == "go":
+        makedepends_base.extend(["go", "git"])
+        binary_name = _detect_binary_name(repo_dir, name)
+        build_cmds = (
+            "    go build -trimpath -ldflags=\"-s -w\" -o "
+            f"{binary_name} ."
+        )
+        install_cmds = f'    install -Dm755 {binary_name} \\\n        "$pkgdir/usr/bin/{binary_name}"'
+    elif build_system == "node" or _detect_node_package(repo_dir):
         makedepends_base.extend(["nodejs", "npm"])
         build_cmds = "    npm ci\n    npm run build"
         install_cmds = (

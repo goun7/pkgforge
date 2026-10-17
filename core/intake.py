@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
+from core.aur_publish import _BUILD_SYSTEM_MARKERS as _AUR_BUILD_SYSTEM_MARKERS
 from core.maps import arch_license
 from i18n import tr
 
@@ -79,19 +80,11 @@ _TARBALL_SUFFIXES = (
     ".tar.zst", ".tar", ".zip",
 )
 
-# Build-sistemi markerlari (oncelik sirasiyla): (dosya adi, sistem)
-_BUILD_MARKERS: tuple[tuple[str, str], ...] = (
-    ("Cargo.toml", "cargo"),
-    ("CMakeLists.txt", "cmake"),
-    ("meson.build", "meson"),
-    ("pyproject.toml", "python"),
-    ("setup.py", "python"),
-    ("configure", "autotools"),
-    ("Makefile", "make"),
-    ("makefile", "make"),
-    ("go.mod", "go"),
-    ("package.json", "node"),
-)
+# Build-sistemi markerlari: TEK tablo core/aur_publish'de tutulur
+# (uc cagri yeri — intake, AUR hazirlama, from-source UI — ayni sonucu
+# vermeli). intake, tarball acilmadan dosya adlariyla calistigi icin
+# burada yalnizca delege eder.
+_BUILD_MARKERS: tuple[tuple[str, str], ...] = _AUR_BUILD_SYSTEM_MARKERS
 
 
 # -- Yardimcilar -------------------------------------------------
