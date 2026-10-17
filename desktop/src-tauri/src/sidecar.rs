@@ -340,12 +340,14 @@ fn queue_add_params(files: &[String]) -> serde_json::Value {
 
 /// Uygulama zaten açıkken gelen dosyaları KALICI iş kuyruğuna devret.
 ///
-/// Neden webview olayı değil: aynı adla `emit` edilen özel bir olayın (hem
-/// plugin'in soket thread'inden hem `run_on_main_thread` ile ana threadden,
-/// `Ok` dönmesine rağmen) webview dinleyucusuna ulaşmadığı 2026-10-16'da üç
-/// ayrı derlemede ölçüldü; yol politikasından da geçiyordu. Sidecar RPC'si ise
-/// bu uygulamanın kanıtlı kanalı ve `queue.db` kalıcı: dosya hiçbir koşull
-/// kaybolmaz, Toplu sekmesinden başlatılır.
+/// Neden webview olayı değil: 2026-10-16'da aynı adla `emit` edilen özel bir
+/// olayın webview dinleyucusuna ulaşmadığı üç derlemede ölçülmüştü; 2026-10-17'de
+/// kökü bulundu — deneme düzeniğinde `window.__TAURI__` (yalnızca
+/// `withGlobalTauri: true` durumunda var) ve `core:event` ACL yetkisi eksikmiş;
+/// ürün yapılandırması doğru ve sidecar `event/*` itmeleri gerçek webview'de
+/// uçtan uca kanıtlandı (`docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen → ÇÖZÜLDÜ").
+/// Yine de RPC kanalı burada daha güçlüdür: `queue.db` kalıcı, dosya hiçbir
+/// koşulda kaybolmaz, Toplu sekmesinden başlatılır.
 pub fn queue_files(app: &AppHandle, files: Vec<String>) {
     let inner = app.state::<Sidecar>().0.clone();
     let params = queue_add_params(&files);

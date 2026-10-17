@@ -135,25 +135,78 @@ süreci, mtime 17 Eyl; Qt parent düzeltmesi 16 Ekim). Düzeltme iki parçalı:
 snapshot'i kopyalamıyor ve daha önce kopyalanmış olanı kaldırıyor.
 Kanıt: taklit `/usr/lib` düzeninde dönüşüm canlı ağaçtan koştu, gömülü sidecar'ın imzası log'da 0 kez göründü.
 
-## Bilinmeyen (kanıtsız bırakılmadı, kökü bulunamadı)
+## Bilinmeyen → ÇÖZÜLDÜ (2026-10-17): Rust→JS olaylarının webview'e ulaşması
 
-**Rust→JS özel olayları bu derlemede webview'a ulaşmıyor.** Ölçüm: olay adı
-`pkgforge://open-files` ve `app/open-files` ile denendi; `emit` her iki
-yönden (plugin soket thread'i + `run_on_main_thread` ile ana thread) `Ok`
-döndü; yol politikası aynı path için `izinli` dedi; izolasyon denemesinde
-(Zamanlayıcı→`emit`→JS dinleyici→`queue.add` RPC) `queue.db`'de satır
-oluşmadı. Yani "gönderildi ama işlenmedi" hali belgeli.
+**10-16 bulgusu (önceki durum):** Rust→JS *özel* olayları bu derlemede
+webview'a ulaşmıyordu. Ölçüm: olay adı `pkgforge://open-files` ve
+`app/open-files` ile denendi; `emit` her iki yönden (plugin soket thread'i +
+`run_on_main_thread` ile ana thread) `Ok` döndü; yol politikası aynı path için
+`izinli` dedi; izolasyon denemesinde (Zamanlayıcı→`emit`→JS dinleyici→
+`queue.add` RPC) `queue.db`'de satır oluşmadı. Yani "gönderildi ama
+işlenmedi" hali belgeliydi. Sidecar'ın `event/log`, `event/finished`
+itmelerinin ulaşıp ulaşmadığı bilinmiyordu (uçtan uca doğrulayan test yoktu:
+vitest'te `listen` mock'lu, `visual-qa` Tauri köprüsü olmayan tarayıcıda
+koşuyor).
 
-Yanlız bu olaya mı özgün, yoksa sidecar'ın `event/log`, `event/finished`
-itmeleri de mi ulaşmıyor — **bilinmiyor**, çünkü bunu uçtan uça doğrulayan tek
-bir test yok: vitest'te `listen` mock'lu, `visual-qa` ise Tauri köprüsü olmayan
-tarayıcıda koşuyor. Bu yüzden "canlı güncellemeler çalışıyor" da doğrulanmış
-bir önerme değil; yanlız UI'nin donduğuna dair kullanıcı şikâyeti yok.
+**Kök neden (2026-10-17, kaynak-kodu okuma + canlı webview ile kanıtlandı):**
+olayların webview'e ulaşması iki bağımsız koşula bağlıdır ve 10-16 ölçümünde
+ikisi de eksikti:
 
-Çözüm için gereken: debug derlemesi + `WEBKIT_INSPECTOR_SERVER` ile WebKit
-inspector'da `listen()` promise'inin akıbetine bakmak (reddediliyor mu,
-çözümleniyor ama olay mı gelmiyor). Kuyruk devri bu belirsizliğe bağlı
-kalmaması için zaten RPC üzerinden yapılıyor.
+1. **`window.__TAURI__` yalnızca `withGlobalTauri: true` durumunda vardır.**
+   Tauri 2 global nesneyi yalnızca `app.withGlobalTauri` (tauri.conf.json)
+   açıkken enjekte eder; üretim kabuğumuz bu alanı hiç kullanmamıştır
+   (`desktop/src-tauri/tauri.conf.json`'da yok). Üretim JS'i modül import'uyla
+   (`@tauri-apps/api`) çalıştığından bu bir hata değildir — ama 10-16'daki el
+   denemesi global nesneyi kullandığı için JS tarafı sessizce ölmüştür.
+2. **`plugin:event|listen` bir ACL yetkisi gerektirir.** `listen()` bir IPC
+   komutudur: `invoke("plugin:event|listen", …)` → Rust `Webview::listen_js`
+   → `listeners.listen_js`. Yetki kümesi yoksa promise **`Command
+   plugin:event|listen not allowed by ACL`** ile reddedilir ve hiçbir olay
+   gelmez (birebir ölçüldü, aşağıda). Üretim kabuğu `capabilities/default.json`
+   listesinde `core:default` içerir → compiled ACL'de `core:event:default` →
+   `allow-listen` + `allow-unlisten` + `allow-emit` + `allow-emit-to`
+   (kanıt: `gen/schemas/acl-manifests.json`,
+   `core:event.default_permission.permissions`). Yani üretim yapılandırması
+   doğrudur; 10-16 deneyi bu koşulları sağlamıyordu.
+
+Teslim mekanizması kaynak-kod düzeyinde de doğrulandı (tauri-2.12.0):
+`app.emit(event, payload)` → `AppManager::emit` → `listeners.emit_js`
+(`js_event_listeners` tablosundan webview label'i + olay adıyla eşleşen
+handler id'leri) → `Webview::emit_js` → `eval(emit_js_script)` →
+`window.__internal_unstable_listeners_function_id__(eventData, ids)` →
+`__TAURI_INTERNALS__.runCallback(handlerId, eventData)`. Olay adında `/`
+serbesttir (`event_name.rs`: alfanümerik + `-` `/` `:` `_`) — dolayısıyla
+`event/finished` biçimi engel değildir.
+
+**Uçtan uca kanıt (2026-10-17, gerçek derleme + gerçek WebKit2GTK webview +
+gerçek Python sidecar):** minimal bir Tauri 2 kabuğu (`/tmp/pf_wvproov`,
+depoda değil) üretim devresini birebir taklit eder: repo kökünden
+`.venv/bin/python main.py serve` sidecar'ı, aynı `route_line` → `app.emit`
+yönlendirmesi, `rpc_call` IPC komutu ve `capabilities/default.json` içinde
+`core:default`. Webview JS'i her `listen()` çağrısını ve her olay alımını
+`rapor_et` IPC'siyle stdout'a yazar. Ölçüm (`run4.log`, HOME=tmp izole):
+
+- Rust tarafı 89 `emit` (62 `event/log`, 14 `event/progress`,
+  11 `event/step_changed`, 1 `event/compatibility_ready`, 1 `event/finished`),
+- webview **96 rapor satırı** aldı: `log` 62, `progress` 14, `step` 11,
+  `finished` 1 — yani emit'lerin tamamı,
+- `event/finished` payload: `success: true`, gerçek çıktı paketi
+  `utest/hello-1.0.0-1-x86_64.pkg.tar.zst`,
+- `listen()` promise'inin akıbeti de kayıt altına alındı: capabilities
+  yokken `Command plugin:event|listen not allowed by ACL` (`run3.log`),
+  `core:default` eklenince `listen(0) tamam, id alindi` (`run4.log`).
+
+Sonuç: **sidecar'ın tüm `event/*` itmeleri webview'in JS dinleyicilerine
+ulaşır.** 10-16 "ulaşmıyor" bulgusu deneme düzeneğinin (global nesne + ACL)
+eksikliğinden kaynaklanıyordu, ürün kodunda veya kabuk kodunda bir hata
+değildir; üretim `capabilities/default.json` zaten doğru yetki kümesini
+içerir.
+
+Geriye kalan tek boşluk: 10-16'daki *özel* `app/open-files` olayının
+üretim derlemesiyle (globalTauri kapalı, ACL izinli) uçtan uca
+ölçülmemiş olması. Mekanizma yukarıda çalıştığına göre bunun da çalışması
+beklenir; yine de deney üretim kabuğu binary'siyle bir kez tekrar
+edilmelidir.
 
 ## Yeniden koşum
 

@@ -173,14 +173,39 @@ başlatılır, süreç kapanSA bile `restore_queue` ile geri gelir.
 Ayrıca `rust-version` 1.77 → **1.90** (plugin'in alt sınırı; beyan artık gerçeği
 yansıtıyor).
 
-**Açık kalan tek şey (ölçüldü, kökü bilinmiyor):** Rust→JS *özel* olayları bu
-derlemede webview dinleyucusuna ulaşmıyor. Yanıltıcı olmasın: sidecar'ın
-`event/*` itmelerinin JS'e ulaştığını **kanıtlamadık** — mekanizma aynı
-`app.emit` çağrısı olduğundan şüphe orada da; bugüne dek hiçbir test bunu uçtan
-uça doğrulamamış (vitest'te `listen` mock'lu, visual-qa ise Tauri'suz tarayıcıda
-koşuyor). Çözüm için debug derlemesi + WebKit inspector oturumu gerekiyor;
-UI'yi canlı tutan tek yol bu olduğu için kalıcı bir TODO olarak bırakıldı
-(`docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen").
+**Açık kalan tek şey (10-16 ölçümü, kökü bilinmiyordu) → ÇÖZÜLDÜ (2026-10-17):**
+Rust→JS *özel* olaylarının bu derlemede webview dinleyucusuna ulaşmıyor
+gözükmekteydi ve sidecar'ın `event/*` itmelerinin JS'e ulaştığı da
+kanıtlı değildi (mekanizma aynı `app.emit` çağrısı olduğundan şüphe orada
+da; bugüne dek hiçbir test bunu uçtan uça doğrulamamıştı — vitest'te
+`listen` mock'lu, visual-qa ise Tauri'siz tarayıcıda koşuyor).
+
+Kök neden iki bağımsız deneme-düzeniği eksikliğiydi, ürün hatası değil:
+(1) Tauri 2'de `window.__TAURI__` yalnızca `app.withGlobalTauri: true`
+durumunda enjekte edilir — üretim kabuğu modül import'u (`@tauri-apps/api`)
+kullandığından bu bir hata değildir, ama 10-16 el denemesi global nesneyi
+kullandığı için JS tarafı sessizce öldü; (2) `listen()` bir IPC komutudur
+(`invoke("plugin:event|listen")`) ve `core:event` ACL yetkisi gerektirir —
+üretim `capabilities/default.json` zaten `core:default` →
+`core:event:default` → `allow-listen`/`allow-unlisten`/`allow-emit`/
+`allow-emit-to` içermektedir (kanıt: `gen/schemas/acl-manifests.json`).
+
+Canlı uçtan uca kanıt (2026-10-17): üretim devresini birebir taklit eden
+minimal Tauri 2 kabuğu — gerçek WebKit2GTK webview, gerçek
+`.venv/bin/python main.py serve` sidecar'ı, aynı `route_line`→`app.emit`
+yönlendirmesi, `core:default` yetkili capability. Rust'ın 89 `emit`'ine
+karşı webview **96 rapor satırı** aldı: `log` 62, `progress` 14, `step` 11,
+`finished` 1 (`event/finished` payload `success: true` ve gerçek çıktı
+paketi). `listen()` promise'inin akıbeti de ölçüldü: capabilities
+yokken `Command plugin:event|listen not allowed by ACL`, `core:default`
+eklenince başarılı. Sonuç: **sidecar'ın tüm `event/*` itmeleri webview'in
+JS dinleyicilerine ulaşır.** Ayrıntı: `docs/DEAD_CODE_AUDIT.md` →
+"Bilinmeyen → ÇÖZÜLDÜ".
+
+Geriye kalan tek gerçek boşluk: 10-16'daki *özel* `app/open-files` olayının
+üretim derlemesiyle (globalTauri kapalı, ACL izinli) uçtan uca
+ölçülmemiş olması. Mekanizma yukarıda çalıştığına göre bunun da çalışması
+beklenir.
 
 ## 2026-10-16 — QueueStore thread hatası: kuyruk hiç kalıcı değildi (bulundu + düzeltildi)
 
@@ -359,10 +384,13 @@ mypy --strict temiz, `npx zeron scan .` 129/129 sağlıklı buton.
    izlenmeli.
 4. debtap parite tablosunun debtap sütunu (`docs/BENCHMARK_PARITY.md` —
    root `debtap -u` gerektirir).
-5. Bilinen tek kökü-bulunamayan davranış: kabuğun Rust→JS özel olayları webview
-   dinleyucusuna ulaşmıyor (bkz. yukarıdaki "tek-örnek" bölümü ve
-   `docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen"). Kullanıcıya görünür etkisi
-   bilinemiyor; bu yüzden UI canlı güncellemeleri de doğrulanmış sayılmıyor.
+5. ~~Bilinen tek kökü-bulunamayan davranış: kabuğun Rust→JS özel olayları
+   webview dinleyucusuna ulaşmıyor~~ → **ÇÖZÜLDÜ (2026-10-17):** kök neden
+   deneme-düzeniğinde (global `__TAURI__` yok + `core:event` ACL'siz
+   deneme kabuğu) bulundu; sidecar'ın tüm `event/*` itmeleri real webview'de
+   uçtan uca kanıtlandı (bkz. yukarıdaki "tek-örnek" bölümü ve
+   `docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen → ÇÖZÜLDÜ"). UI canlı
+   güncellemeleri doğrulanmış sayılabileceği için bu öğe listeden çıkarıldı.
 
 ## Bu geceki temizlik (disk)
 

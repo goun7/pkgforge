@@ -12,8 +12,8 @@
 - **Faz 2 — Alan B** (yeni yetenekler): B1–B8 — ✅ tamamlandı (AUR tarayıcı, tray+bildirim, zamanlayıcı, CVE taraması, paket karşılaştırma, toplu kuyruk, HTTP/LAN API, plugin pazarı; kritik event-adı düzeltmesi; 686 Python + 57 vitest testi)
 - **Faz 3 — Alan C** (mimari genişleme): C1–C3 — ✅ tamamlandı (çoklu profil, yedek/WebDAV senkron, D-Bus servisi; kritik event-adı düzeltmesi sonrası; 727 Python + 64 vitest testi)
 - **Faz 4 — Sertleştirme** (eleştiri kaynaklı 11 madde): F4.1 event sözleşme testi, F4.2 HTTP token zorunluluğu + hız/gövde limitleri + D-Bus salt-okunur politika, F4.3 toplu kuyruk dürüstlüğü (salt-dönüşüm varsayılan, kayıt defteri + cancel), F4.4 anahtarlık (Secret Service), F4.5 yedek bütünlüğü (WAL checkpoint + sha256 manifest), F4.6 systemd timer + headless CLI, F4.7 polkit policy tek-kaynak, F4.8 OpenAPI/Swagger, F4.9 web panosu, F4.10 sürüm tek-kaynağı (2.0.0) + CI (ruff/frontend/cargo), F4.11 i18n köprüsü — ✅ tamamlandı; 765 Python (+3 skip) ve 67 vitest testi; E2E 4/4
-- **Faz 5 — Mükemmelleştirme** (Faz 4 sonrası eleştiriler C1–C20 + 20 yaratıcı öneri S1–S20 → F5.1–F5.26): ✅ **TAMAMLANDI (26/26)**. Sertleştirme/borç: F5.1 capabilities tek-kaynak + D-Bus arayan-UID (fail-closed -32002), F5.2a token-file/env + rate-map budama, F5.2b --insecure-http-lan + --trusted-proxy XFF, F5.3 systemd sandbox, F5.4 pkexec tek helper (pkgforge-privileged.sh) + eylem-bazlı exec.path, F5.5 swagger vendor + CSP + HTML→http_assets, F5.6 keyring canlı CI + OpenSession marshalling, F5.7 hypothesis import_backup fuzz, F5.9 83 legacy ruff sıfırlandı, F5.10a badge + Cargo parity, F5.11 api_server→core/http_api/ (meta+read router, facade), F5.12 kuyruk sqlite kalıcılığı+restore, F5.13 METHODS→TS codegen + CI diff-check. Ürün: F5.14 install.rehearse (konteyner provası), F5.15 provenance makbuzu (araç sürümleri+debtap-db→attest/SBOM), F5.16 delta DENEYSEL etiketi, F5.17 restore_drill görevi, F5.18 fleet sync backends (git/rclone-s3)+age, F5.19 politika motoru+Settings, F5.20 Convert canlı dil, F5.21 AppStream+flatpak, F5.22 pkgforge doctor, F5.23 SSE GET /events (**kod düzeyinde tamam; webview'a ulaşması uçtan uca kanıtlanmadı — ölçüldü 2026-10-16, AÇIK**), F5.24 Stats Wrapped, F5.25 upstream enrichment, F5.26 perf bütçesi (%20). Testler: **906 Python (+6 skip), 74 vitest**; ruff/mypy temiz; desktop build temiz.
-  - **F5.23 durum düzeltmesi (2026-10-17):** yukarıdaki "✅ TAMAMLANDI (26/26)"
+- **Faz 5 — Mükemmelleştirme** (Faz 4 sonrası eleştiriler C1–C20 + 20 yaratıcı öneri S1–S20 → F5.1–F5.26): ✅ **TAMAMLANDI (26/26)**. Sertleştirme/borç: F5.1 capabilities tek-kaynak + D-Bus arayan-UID (fail-closed -32002), F5.2a token-file/env + rate-map budama, F5.2b --insecure-http-lan + --trusted-proxy XFF, F5.3 systemd sandbox, F5.4 pkexec tek helper (pkgforge-privileged.sh) + eylem-bazlı exec.path, F5.5 swagger vendor + CSP + HTML→http_assets, F5.6 keyring canlı CI + OpenSession marshalling, F5.7 hypothesis import_backup fuzz, F5.9 83 legacy ruff sıfırlandı, F5.10a badge + Cargo parity, F5.11 api_server→core/http_api/ (meta+read router, facade), F5.12 kuyruk sqlite kalıcılığı+restore, F5.13 METHODS→TS codegen + CI diff-check. Ürün: F5.14 install.rehearse (konteyner provası), F5.15 provenance makbuzu (araç sürümleri+debtap-db→attest/SBOM), F5.16 delta DENEYSEL etiketi, F5.17 restore_drill görevi, F5.18 fleet sync backends (git/rclone-s3)+age, F5.19 politika motoru+Settings, F5.20 Convert canlı dil, F5.21 AppStream+flatpak, F5.22 pkgforge doctor, F5.23 SSE GET /events (**kod düzeyinde tamam; sidecar `event/*` itmelerinin webview'e ulaştığı uçtan uca kanıtlandı — ölçüldü 2026-10-17, KAPANDI**), F5.24 Stats Wrapped, F5.25 upstream enrichment, F5.26 perf bütçesi (%20). Testler: **906 Python (+6 skip), 74 vitest**; ruff/mypy temiz; desktop build temiz.
+  -   - **F5.23 durum düzeltmesi (2026-10-17):** yukarıdaki "✅ TAMAMLANDI (26/26)"
     hükmü F5.23 için **tamamlanmış sayılmaz**. SSE/`event/*` itmelerinin
     webview dinleyucusuna ulaştığı hiçbir koşulda uçtan uca doğrulanmadı:
     Rust→JS *özel* olayların ulaşmadığı ölçüldü (2026-10-16) ve sidecar
@@ -21,6 +21,25 @@
     Tauri köprüsü olmayan tarayıcıda koşar. Ayrıntı ve ölçüm kaydı:
     `RELEASE_READINESS.md` (kök) "tek-örnek" bölümü ve
     `docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen".
+  - **F5.23 kapanış (2026-10-17, aynı gün):** yukarıdaki boşluk kapatıldı.
+    Kök neden iki bağımsız deneme-düzeniği eksikliğiydi: (1) Tauri 2'de
+    `window.__TAURI__` sadece `app.withGlobalTauri: true` durumunda enjekte
+    edilir (üretim kabuğu modül import'u kullandığından bu bir hata değil,
+    ama 10-16 el denemesi global nesneyi kullandığı için JS sessizce öldü);
+    (2) `listen()` bir IPC komutudur ve `core:event` ACL yetkisi gerektirir —
+    üretim `capabilities/default.json` zaten `core:default` →
+    `core:event:default` → `allow-listen` içermektedir (kanıt:
+    `gen/schemas/acl-manifests.json`), dolayısıyla ürün yapılandırması doğru.
+    Canlı uçtan uca kanıt: üretim devresini birebir taklit eden minimal Tauri 2
+    kabuğu (gerçek WebKit2GTK webview + gerçek `.venv/bin/python main.py serve`
+    sidecar'ı + aynı `route_line`→`app.emit` yönlendirmesi); Rust 89 `emit`
+    işlevine karşı webview **96 rapor satırı** aldı (`log` 62, `progress` 14,
+    `step` 11, `finished` 1; `event/finished` payload `success: true` ve gerçek
+    çıktı paketi). `listen()` promise'inin akıbeti de ölçüldü: capabilities
+    yokken `Command plugin:event|listen not allowed by ACL`, `core:default`
+    eklenince başarılı. Ayrıntı: `docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen →
+    ÇÖZÜLDÜ". F5.23 böylece **gerçekten tamamlandı**.
+
   - **Faz satırlarındaki test sayıları (637/26, 656/45, 686/57, 727/64,
     765/67, 906/74) o fazın kapanışındaki tarihsel sayımlardır** ve bugün
     yeniden üretilemez: güncel sayılar için README → "Running Tests"

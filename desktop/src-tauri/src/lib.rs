@@ -199,10 +199,15 @@ fn initial_files() -> Vec<String> {
 /// Uygulama açıkken gelen ikinci "Birlikte aç" örneğini birleştirir.
 ///
 /// Ölçülen (2026-10-16): kilitsiz her tıklama yeni kabuk + yeni sidecar
-/// açıyordu. Dosyalar webview olayıyla DEĞİL (aynı adla `emit` üç derlemede de
-/// dinleyiciye ulaşmadı), kanıtlı sidecar RPC'si ve kalıcı `queue.db` üzerinden
-/// devredilir; pencere öne alınır ve bildirim gönderilir. Böylece ikinci dosya
-/// hiçbir koşulda sessizce düşmez.
+/// açıyordu. Dosyalar webview olayıyla DEĞİL, kanıtlı sidecar RPC'si ve kalıcı
+/// `queue.db` üzerinden devredilir; pencere öne alınır ve bildirim gönderilir.
+/// (Not: 2026-10-16'daki "webview olayı ulaşmadı" gözlemi 2026-10-17'de
+/// deneme düzeniğine bağlandı — `window.__TAURI__` globali ve `core:event`
+/// ACL yetkisi eksikmiş; ürün yapılandırması doğru, sidecar `event/*`
+/// itmeleri gerçek webview'de uçtan uca kanıtlandı, bkz.
+/// `docs/DEAD_CODE_AUDIT.md` → "Bilinmeyen → ÇÖZÜLDÜ".) RPC kanalı yine de
+/// burada daha güçlüdür: `queue.db` kalıcıdır, ikinci dosya hiçbir koşulda
+/// sessizce düşmez.
 fn forward_new_instance(app: &tauri::AppHandle, args: Vec<String>, _cwd: String) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.unminimize();
