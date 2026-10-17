@@ -1,6 +1,6 @@
 # Maintainer: goun7 <https://github.com/goun7/pkgforge>
 pkgname=pkgforge
-pkgver=2.2.0
+pkgver=2.2.2
 pkgrel=4
 pkgdesc="Modern .deb/.rpm package converter, safety analyzer, and lifecycle manager for Arch Linux"
 arch=('x86_64')
@@ -57,7 +57,7 @@ optdepends=(
 # Onceki 2.2.0-1 yalnizca Python wheel'ini iceriyordu (modern arayuz AUR
 # kullanicilarina ulasmiyordu).
 source=("$pkgver.tar.gz::https://github.com/goun7/pkgforge/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('1b4639c8baef8277afcde345154fb8c1e6ed42d2a6e15df11b59deb6d3aaec8b')
+sha256sums=('60639805e9f53b9087acbb247d7e4f23215934ed59e75359f590405c6537716d')
 
 build() {
     cd "$srcdir/pkgforge-$pkgver"
