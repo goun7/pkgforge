@@ -17,6 +17,7 @@ Kirmizi kanit: duzeltme geri alininca "pyproject merdiveni" testi fail veriyor.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -114,6 +115,28 @@ def test_from_source_generator_algilanan_sistemi_destekliyor(
         assert "meson setup build" in pb
     elif beklenen == "cargo":
         assert "cargo build --release" in pb
+
+
+def test_go_mod_versiyonu_pkgver_oluyor(tmp_path: Path) -> None:
+    """go.mod icinde acik version varsa pkgver'a yansimali.
+
+    Olculen bug: go yolu yeni eklendi ama version algilama go.mod'yu
+    gormuyordu (pkgver 0.0.1 kaliyordu) ve makedepends 'git' iki kez
+    yaziliyordu.
+    """
+    (tmp_path / "go.mod").write_text(
+        "module github.com/x/demo\n\nversion v1.2.3\n", encoding="utf-8"
+    )
+    pb = generate_pkgbuild_from_source(
+        "demo", "https://x.test/demo", "go", tmp_path
+    )
+    m = re.search(r"pkgver=(\S+)", pb)
+    assert m is not None and m.group(1) == "v1.2.3", pb
+    md = re.search(r"makedepends=\((.*?)\)", pb)
+    assert md is not None
+    deps = [d.strip().strip("'\"") for d in md.group(1).split()]
+    dup = {d for d in deps if deps.count(d) > 1}
+    assert not dup, f"makedepends tekrarli: {dup} -> {md.group(1)}"
 
 
 def test_node_paketi_url_goremeyen_algilayicidan_gelebilir(tmp_path: Path) -> None:

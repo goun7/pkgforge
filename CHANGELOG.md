@@ -22,7 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   hiçbir algılayıcı `node` döndürmediği için bu dal ölü kodd uygulanıyordu.
 - **from-source'e `go` ve `autoreconf` yolları eklendi** (`core/from_source.py`):
   `go.mod` repoları `go build -trimpath` ile; `configure.ac`-only autotools
-  repoları `autoreconf -fi` ile derlenir.
+  repoları `autoreconf -fi` ile derlenir. `go.mod` içindeki açık `version`
+  satırı `pkgver`'a yansır (öncesi: 0.0.1).
 - Kanıt: `tests/test_build_system_unified.py` (24 test) — ürettilen
   PKGBUILD gerçek `makepkg` ile derlenip paket üretmektedir
   (namcap 0 hata). Tamirim öncesi kırmızı: 7 test fail.

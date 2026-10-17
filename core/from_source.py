@@ -71,6 +71,26 @@ def _extract_version_from_meson(repo_dir: Path) -> str | None:
     return None
 
 
+def _extract_version_from_go_mod(repo_dir: Path) -> str | None:
+    """Extract version from go.mod (module path'den tag tumcemsi yoksa none).
+
+    go.mod genellikle modul yolu tasiyabilir; bump icin mvn-style bir
+    version alanlar go.mod'da varsayilan olarak yoktur, bu yuzden yalnizca
+    acik version gormedikce None doneruz (fallback 0.0.1'in tasiyicisi).
+    """
+    go_mod = repo_dir / "go.mod"
+    if not go_mod.is_file():
+        return None
+    try:
+        text = go_mod.read_text(encoding="utf-8", errors="ignore")
+        match = re.search(r"^\s*version\s+(\S+)", text, re.MULTILINE)
+        if match:
+            return match.group(1).strip()
+    except OSError as exc:
+        log.debug("go.mod okunamadi (%s): %s", go_mod, exc)
+    return None
+
+
 def _extract_version_from_pyproject(repo_dir: Path) -> str | None:
     """Extract version from pyproject.toml."""
     pyproject = repo_dir / "pyproject.toml"
@@ -297,6 +317,7 @@ def generate_pkgbuild_from_source(
         or _extract_version_from_cmake(repo_dir)
         or _extract_version_from_meson(repo_dir)
         or _extract_version_from_pyproject(repo_dir)
+        or _extract_version_from_go_mod(repo_dir)
         or _extract_version_from_file(repo_dir)
         or "0.0.1"
     )
@@ -352,7 +373,7 @@ def generate_pkgbuild_from_source(
         build_cmds = "    python -m build --wheel --no-isolation"
         install_cmds = '    python -m installer --destdir="$pkgdir" dist/*.whl'
     elif build_system == "go":
-        makedepends_base.extend(["go", "git"])
+        makedepends_base.extend(["go"])
         binary_name = _detect_binary_name(repo_dir, name)
         build_cmds = (
             "    go build -trimpath -ldflags=\"-s -w\" -o "
