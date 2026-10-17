@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -188,13 +189,26 @@ def test_explicit_out_dir_settings_ezilir(monkeypatch, tmp_path, senkron):
 
 # --- canli surec testleri (gercek sidecar + gercek .deb) ---------------------
 
+def _python_yolu() -> str:
+    """Sidecar icin calisan yorumlayici.
+
+    Olculen (2026-10-17): sabit `.venv/bin/python` yalnizca gelistirici
+    makinesinde vardir; CI `pip install` ile sistem python'unu kullanir ve
+    test `FileNotFoundError` ile dusuyordu. once .venv, sonra sys.executable.
+    """
+    aday = REPO / ".venv" / "bin" / "python"
+    if aday.is_file():
+        return str(aday)
+    return sys.executable
+
+
 def _sidecar_baslat():
     home = tempfile.mkdtemp(prefix="pf_rpc_home_")
     env = dict(os.environ)
     env["HOME"] = home
     env["QT_QPA_PLATFORM"] = "offscreen"
     proc = subprocess.Popen(
-        [str(REPO / ".venv/bin/python"), "main.py", "serve"],
+        [_python_yolu(), "main.py", "serve"],
         cwd=str(REPO), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, text=True, env=env, bufsize=1)
     return proc, home
