@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 import time
 from pathlib import Path
 
@@ -118,7 +119,19 @@ def test_perf_regression_gate() -> None:
     result = compare(report, baseline, threshold=DEFAULT_THRESHOLD)
 
     # Persist the latest run so devs can refresh baseline by committing.
-    save_baseline(report, BASELINE_PATH.with_suffix(".latest.json"))
+    # CI dışında (veya izin verilmeyen ortamlarda) her koşu repo ağacına
+    # bir .latest.json bırakıyordu — çalışma dizini kirletmemesi için
+    # artık ya pkg-cache gibi geçici bir dizine, ya da açıkça
+    # PKGFORGE_PERF_LATEST_DIR ile belirlenen yere yazılır.
+    latest_dir = os.environ.get("PKGFORGE_PERF_LATEST_DIR")
+    if latest_dir:
+        latest_path = Path(latest_dir) / "perf_baseline.latest.json"
+    else:
+        latest_dir = os.path.join(
+            tempfile.gettempdir(), "pkgforge_perf_latest")
+        Path(latest_dir).mkdir(parents=True, exist_ok=True)
+        latest_path = Path(latest_dir) / "perf_baseline.latest.json"
+    save_baseline(report, latest_path)
 
     if not result["ok"]:
         # Auto-bump baseline when explicitly requested (CI opt-in).

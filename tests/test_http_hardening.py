@@ -15,7 +15,11 @@ import pytest
 import core.api_server as A
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PORT = 18773
+def _port() -> int:
+    from conftest import free_port
+    return free_port()
+
+PORT = _port()
 
 
 # --- startup gates (raise before any server work, safe to call directly) ----
@@ -88,9 +92,9 @@ def _post(token, headers=None):
         return e.code, {}
 
 
-def test_trusted_proxy_server_accepts_xff():
+def test_trusted_proxy_server_accepts_xff(tmp_path):
     env = os.environ.copy()
-    env["HOME"] = str(PROJECT_ROOT / ".tmp_home_hardening")
+    env["HOME"] = str(tmp_path)
     env["QT_QPA_PLATFORM"] = "offscreen"
     proc = subprocess.Popen(
         [sys.executable, str(PROJECT_ROOT / "main.py"), "serve", "--http",

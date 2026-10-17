@@ -56,6 +56,21 @@ if not (PROJECT_ROOT / "config.py").is_file():
 from config import ToolPaths
 
 
+def free_port() -> int:
+    """Kernel'den hic baglanmamis bir port al (loopback).
+
+    Sabit portlar (18765 vb.) paralel kosan veya ayni makinede kalan
+    testlerle cakisip sahte flakes uretiyordu; her test bu yardimcidan
+    dinamik port alir. tests/test_serve_transport.py'deki ayni adli
+    yerel yardimciyla eslesen tek tanedir.
+    """
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Remove the isolated HOME temp dir after the test session."""
     import shutil

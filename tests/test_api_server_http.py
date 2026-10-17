@@ -13,7 +13,11 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PORT = 18765
+def _port() -> int:
+    from conftest import free_port
+    return free_port()
+
+PORT = _port()
 TOKEN = "test-secret-token"
 
 
@@ -154,7 +158,7 @@ def test_body_over_1mib_rejected(http_server):
 def test_read_only_token_scope(tmp_path):
     import subprocess
 
-    read_port = 18766
+    read_port = _port()
     env = os.environ.copy()
     env["HOME"] = str(tmp_path)
     env.pop("XDG_CONFIG_HOME", None)

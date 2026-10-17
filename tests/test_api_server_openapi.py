@@ -13,7 +13,11 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PORT = 18771
+def _port() -> int:
+    from conftest import free_port
+    return free_port()
+
+PORT = _port()
 
 
 def _get(path):
@@ -23,9 +27,9 @@ def _get(path):
 
 
 @pytest.fixture(scope="module")
-def http_server():
+def http_server(tmp_path_factory):
     env = os.environ.copy()
-    env["HOME"] = str(PROJECT_ROOT / ".tmp_home_openapi")
+    env["HOME"] = str(tmp_path_factory.mktemp("home"))
     env["QT_QPA_PLATFORM"] = "offscreen"
     proc = subprocess.Popen(
         [sys.executable, str(PROJECT_ROOT / "main.py"), "serve", "--http",

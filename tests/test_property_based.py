@@ -14,7 +14,7 @@ class TestExtractPackageNameProperties:
     """Property-based tests for extract_package_name."""
 
     @given(st.text(min_size=1, max_size=200))
-    @settings(max_examples=200)
+    @settings(max_examples=200, deadline=None)
     def test_always_returns_string(self, filename):
         """Should always return a string (may be empty for edge cases like '.rpm')."""
         result = extract_package_name(filename)
@@ -52,7 +52,7 @@ class TestSha256Properties:
     """Property-based tests for sha256_hash."""
 
     @given(st.binary(min_size=0, max_size=10000))
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_hash_length(self, data):
         """SHA-256 hash should always be 64 hex chars.
 

@@ -16,7 +16,11 @@ import pytest
 import core.api_server as A
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PORT = 18791
+def _port() -> int:
+    from conftest import free_port
+    return free_port()
+
+PORT = _port()
 
 
 # --- in-process bus testleri ---------------------------------------------

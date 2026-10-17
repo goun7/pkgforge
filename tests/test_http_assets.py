@@ -14,7 +14,11 @@ import pytest
 from core import http_assets
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PORT = 18774
+def _port() -> int:
+    from conftest import free_port
+    return free_port()
+
+PORT = _port()
 
 
 # --- loader (birim) testleri ----------------------------------------------

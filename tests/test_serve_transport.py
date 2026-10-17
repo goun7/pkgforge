@@ -54,10 +54,11 @@ def _stop(proc: subprocess.Popen) -> None:
             proc.wait(timeout=5)
 
 
-def _start_server(env_extra: dict[str, str], extra_args: list[str] | None = None):
+def _start_server(env_extra: dict[str, str], extra_args: list[str] | None = None,
+                 home: Path | None = None):
     port = _free_port()
     env = os.environ.copy()
-    env["HOME"] = str(PROJECT_ROOT / ".tmp_home_transport")
+    env["HOME"] = str(home or PROJECT_ROOT / ".tmp_home_transport")
     env["QT_QPA_PLATFORM"] = "offscreen"
     env.update(env_extra)
     proc = subprocess.Popen(
@@ -91,7 +92,8 @@ def _start_server(env_extra: dict[str, str], extra_args: list[str] | None = None
 def test_token_from_file(tmp_path):
     tf = tmp_path / "tok"
     tf.write_text("filesecret\n", encoding="utf-8")
-    proc, port = _start_server({}, extra_args=["--token-file", str(tf)])
+    proc, port = _start_server({}, extra_args=["--token-file", str(tf)],
+                             home=tmp_path)
     try:
         status, _ = _post(port, "/", "wrong")
         assert status == 401, f"yanlis token 401 beklenirdi: {status}"
@@ -102,8 +104,8 @@ def test_token_from_file(tmp_path):
         _stop(proc)
 
 
-def test_token_from_env():
-    proc, port = _start_server({"PKGFORGE_TOKEN": "envsecret"})
+def test_token_from_env(tmp_path):
+    proc, port = _start_server({"PKGFORGE_TOKEN": "envsecret"}, home=tmp_path)
     try:
         status, _ = _post(port, "/", "nope")
         assert status == 401, f"yanlis token 401 beklenirdi: {status}"

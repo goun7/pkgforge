@@ -35,10 +35,33 @@ def test_empty_host_rejected():
         assert_public_host(None)
 
 
-def test_unresolvable_host_fail_closed():
-    # .invalid TLD (RFC 2606) asla cozulmez — ag bagimsiz test
-    with pytest.raises(ValueError):
+def test_unresolvable_host_fail_closed(monkeypatch):
+    # Gercek DNS yerine deterministik cozumleyici: .invalid TLD (RFC 2606)
+    # her zaman cozumsuzdur — test ag durumundan etkilenmez (onceki surum
+    # gercek getaddrinfo cagrisiydi).
+    import socket as _socket
+    from unittest import mock
+
+    def sahte_cozumleyici(host, *a, **kw):
+        raise _socket.gaierror(8, "cozumlenemedi")
+
+    with mock.patch("core.downloader.socket.getaddrinfo",
+                    side_effect=sahte_cozumleyici), pytest.raises(ValueError):
         assert_public_host("yok-boyle-host.invalid")
+
+
+def test_readable_hostname_passes_without_dns(monkeypatch):
+    # README-adresi gibi gercek bir hostname DNS olmadan da gecmeli:
+    # guard sadece cozum basarisini sayar, gercek bir aga cikis yapmaz.
+    import socket as _socket
+    from unittest import mock
+
+    def sahte_cozumleyici(host, *a, **kw):
+        return [(_socket.AF_INET, _socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+
+    with mock.patch("core.downloader.socket.getaddrinfo",
+                    side_effect=sahte_cozumleyici):
+        assert_public_host("example.com")
 
 
 def test_opt_in_bypasses_guard():

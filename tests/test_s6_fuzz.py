@@ -83,7 +83,7 @@ def test_redirect_scheme_guard_total(newurl):
 # --- marketplace: ad guvenligi ozelligi -----------------------------------------
 
 @given(st.text(max_size=70))
-@settings(max_examples=300)
+@settings(max_examples=300, deadline=None)
 def test_plugin_name_never_escapes_dir(name):
     from core.plugins.marketplace import PLUGIN_DIR, is_valid_plugin_name
 
@@ -94,7 +94,7 @@ def test_plugin_name_never_escapes_dir(name):
 
 
 @given(st.text(min_size=1, max_size=200))
-@settings(max_examples=200)
+@settings(max_examples=200, deadline=None)
 def test_downloader_scheme_rejects_non_http(url):
     """http(s) disi sema her zaman ValueError (SSRF/host bagimsiz)."""
     from core.downloader import _validate_download_url

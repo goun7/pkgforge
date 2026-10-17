@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import os
 from typing import ClassVar
 
 import pytest
@@ -143,11 +144,20 @@ def _seed():
     (d / "settings.json").write_text('{"theme": "dark"}', encoding="utf-8")
 
 
-# --- live Secret Service roundtrip (skipped without org.freedesktop.secrets) --
+# --- live Secret Service roundtrip (opt-in: real session bus) -----------------
+#
+# Bu test kullanıcının oturumundaki gerçek Secret Service'e dokunur
+# (bir sır yazıp siliyor). CI'da veya başlıksız bir makinede service
+# olmadiginda skip eder; yine de makine durumuna bagimli oldugu için
+# sadece PKGFORGE_REAL_KEYRING=1 ile calisir — aksi halde deterministik
+# degildir (kullanıcının mevcut oturum durumu sonucu degistirir).
 
 @pytest.mark.skipif(
     not __import__("core.secrets_store", fromlist=["available"]).available(),
     reason="no Secret Service on session bus")
+@pytest.mark.skipif(
+    not os.environ.get("PKGFORGE_REAL_KEYRING"),
+    reason="gercek oturum keyring'i dokunur; PKGFORGE_REAL_KEYRING=1 ile acilir")
 def test_live_secret_service_roundtrip():
     from core.secrets_store import webdav_store
 
