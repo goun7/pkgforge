@@ -2,12 +2,21 @@
 from __future__ import annotations
 
 import json
+import os
+import select
 import sys
 import threading
+from collections.abc import Callable
 from typing import Any
 
 from core.api import handlers_queue, transport
 from core.api.registry import METHODS
+from i18n import tr
+
+# Cercevesiz baytlar birikmesin: sinirsiz tampon, bozuk bir ebeveynde bellek
+# buyumesine yol acar. Esik, en buykok yasal istekten (history.restore butun
+# kayit lisesini tek satirda gonderir) buyuk secildi.
+_MAX_INBOUND_BYTES = 8 * 1024 * 1024
 
 
 def _dispatch(msg: dict[str, Any]) -> dict[str, Any]:
@@ -54,35 +63,82 @@ def _route_request(msg: dict[str, Any]) -> None:
         threading.Thread(target=_dispatch_blocking, args=(msg,), daemon=True).start()
 
 
+def _handle_line(line: str) -> None:
+    """Bir cercevelenmis istek satirini yollar."""
+    try:
+        msg = json.loads(line)
+    except json.JSONDecodeError:
+        transport._error(None, -32700, "Parse error")
+        return
+    _route_request(msg)
+
+
+ReadFn = Callable[[], bytes | None]
+
+
+def _make_reader(fd: int, select_secs: float = 0.05) -> ReadFn:
+    """fd'den chunk okuyan bir okuyucu.
+
+    Donuş sözleşmesi: yeni bayt varsa baytlar, fd hazırsa ama akış kapandıysa
+    `None`, henüz veri yoksa `b""` (çalışma zamanı boşta kalmasın diye).
+    """
+    def read() -> bytes | None:
+        try:
+            ready, _, _ = select.select([fd], [], [], select_secs)
+            if not ready:
+                return b""
+            return os.read(fd, 65536) or None
+        except (OSError, ValueError):
+            return None  # ebeveyn stdin'i kapattı
+
+    return read
+
+
+def _pump_stdin(read: ReadFn, on_line: Callable[[str], None],
+                tick: Callable[[], None] | None = None) -> None:
+    """Chunk'lari satir cercevelerine cevirip `on_line` ile verir.
+
+    `read()` yeni bayt verisiyse baytlari, hazir degilse `b""`, stdin
+    kapandiysa `None` doner. `tick` her turda cagrilir (Qt olaylari icin).
+
+    Cerceveleme burada, `select()` + `sys.stdin.readline()` ile degil: o
+    ikili, ayni okumada gelen ikinci satiri TextIOWrapper tamponunda birakir
+    ve fd bosaldigi icin select onu bir daha hazir goremez — istek, yeni bir
+    satir gelene kadar yanitsiz kalir. Olculen 2026-10-17: `queue.add` ve
+    `queue.start` arka arkaya yazilinca toplu kuyruk hic baslamadan takiliyordu.
+    """
+    buf = bytearray()
+    while True:
+        if tick is not None:
+            tick()
+        chunk = read()
+        if chunk is None:
+            return  # EOF / stdin kapandi
+        if not chunk:
+            continue
+        buf.extend(chunk)
+        if len(buf) > _MAX_INBOUND_BYTES:
+            transport._error(None, -32700, tr("api.istem_satiri_cok_uzun"))
+            buf.clear()
+            continue
+        while True:
+            nl = buf.find(b"\n")
+            if nl < 0:
+                break
+            line = bytes(buf[:nl]).decode("utf-8", "replace").strip()
+            del buf[: nl + 1]
+            if line:
+                on_line(line)
+
+
 def serve() -> None:
     """Run the sidecar main loop (blocking).
 
     Non-blocking stdin reads interleaved with Qt event processing so
-    pipeline signals (emitted from the worker thread) are delivered and
+    pipeline signals (emitted from a worker thread) are delivered and
     approve/dismiss requests reach a pipeline blocked in _wait_for_decision.
     """
-    import select
-
     app = transport._ensure_qapp()
     handlers_queue._ensure_scheduler()
     handlers_queue.restore_queue()
-    while True:
-        app.processEvents()
-        try:
-            ready, _, _ = select.select([sys.stdin], [], [], 0.05)
-        except (OSError, ValueError):
-            break  # stdin closed
-        if not ready:
-            continue
-        line = sys.stdin.readline()
-        if not line:
-            break  # stdin closed — parent exited
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            msg = json.loads(line)
-        except json.JSONDecodeError:
-            transport._error(None, -32700, "Parse error")
-            continue
-        _route_request(msg)
+    _pump_stdin(_make_reader(sys.stdin.fileno()), _handle_line, app.processEvents)

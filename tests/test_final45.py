@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import os
-import select
-import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -53,29 +51,24 @@ def test_scheduler_tick_valid_last_run(monkeypatch):
     assert any(o.get("task") == "bakim" for o in olaylar)          # 1047-1051
 
 
-# --- 1344-1348: bozuk->gecerli->EOF tam dongu -------------------------------------
+# --- stdin cerceveleme: bozuk -> gecerli -> EOF tam dongu ----------------------------
 
 def test_serve_parse_continue_then_dispatch(monkeypatch):
-    satirlar = ["{", '{"id": 9, "method": "app.version"}', ""]
-    gonderilen = []
-    hatalar = []
-
-    class SahteStdin:
-        def readline(self):
-            return satirlar.pop(0) if satirlar else ""
-
-    monkeypatch.setattr(sys, "stdin", SahteStdin())
-    monkeypatch.setattr(select, "select",
-                        lambda *a: ([sys.stdin], [], []))
-    monkeypatch.setattr(AS.transport, "_send", lambda o: gonderilen.append(o))
+    hatalar: list[int] = []
+    yonlenen: list[dict] = []
+    parcalar: list[bytes | None] = [
+        b"{\n",
+        b'{"id": 9, "method": "app.version"}\n',
+        None,
+    ]
     monkeypatch.setattr(AS.transport, "_error",
                         lambda rid, kod, msg: hatalar.append(kod))
-    monkeypatch.setattr(AS.transport, "_ensure_qapp",
-                        lambda: NS(processEvents=lambda: None))
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
 
-    AS.serve()                                                     # 1344-1348
-    assert hatalar == [-32700]                                     # 1345-1347
-    assert len(gonderilen) == 1 and gonderilen[0]["id"] == 9       # 1348
+    AS.protocol._pump_stdin(lambda: parcalar.pop(0), AS.protocol._handle_line)
+    assert hatalar == [-32700]
+    assert [m["id"] for m in yonlenen] == [9]
 
 
 # --- 1608-1611: serve_forever KI + server_close -----------------------------------

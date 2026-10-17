@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "341d5dca33250b815baddbafb6001e174c20bf1716bb74f3d612e77777db8938",
-  "outputTail": "..................                                                       [100%]",
-  "command": ".venv/bin/python -m pytest tests/test_desktop_launcher.py tests/test_s6_fuzz.py -q",
-  "timestamp": "2026-10-16T20:07:53.941Z",
-  "diffHash": "6a0101a974ac1ce2382d63aa4ce7530b97e2a4c02b316ba00c7346f2bec6094b",
-  "poeTag": "[PoE rc=0 out=341d5dca33250b81 diff=6a0101a974ac1ce2 time=2026-10-16T20:07:53.941Z]",
-  "parentSealHash": "1001dc8acd7a31f942675242689c52e7fcbf15e11fb0e9737dce34e775ba29b6",
-  "commitAtSealTime": "c746a4d27b5ee895aa20af700c483393aa7ea63c",
-  "sealHash": "89a62526395385d2c644a59e6e6519097c83f9e4ec10d418d58a71048c74ca75"
+  "outputHash": "aac974dc018d4f661c81125c273246c10770ce232831959288be654c91834162",
+  "outputTail": "100%\nui/tools_dialog.py                    351      0   100%\nui/url_dialog.py                       54      0   100%\n-----------------------------------------------------------------\nTOTAL                               13219     46    99%\nRequired test coverage of 99% reached. Total coverage: 99.65%",
+  "command": ".venv/bin/python -m pytest tests/ -q --cov=core --cov=ui --cov=i18n --cov-fail-under=99",
+  "timestamp": "2026-10-17T07:24:33.542Z",
+  "diffHash": "cecc237b0d1905cb03ec9fd31633356551e35f6a5a594e3725754c7b6a535ef8",
+  "poeTag": "[PoE rc=0 out=aac974dc018d4f66 diff=cecc237b0d1905cb time=2026-10-17T07:24:33.542Z]",
+  "parentSealHash": "89a62526395385d2c644a59e6e6519097c83f9e4ec10d418d58a71048c74ca75",
+  "commitAtSealTime": "4f25178c34eb71935300d8c21a39b77a06a41f42",
+  "sealHash": "ebe0b6ef95a834d7592eac5e0c573bdfde81a72471b4d0debd929469cd58cbec"
 }

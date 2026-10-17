@@ -1,5 +1,31 @@
 # PkgForge v1.1.0 — Release Readiness Report
 
+> ## ⚠️ TARİHSEL ANLIK GÖRÜNTÜ — güncel kapı BELGESİ değildir
+>
+> Bu dosya **v1.1.0 dönemine (2026-08-21) ait bir denetim kaydudur** ve
+> içeriği olduğu gibi bırakılmıştır; tek güncel sürüm-hazırlık kaynağı
+> **kök dizindeki [`RELEASE_READINESS.md`](../RELEASE_READINESS.md)** dosyasıdır
+> (özet tablosu ise README → "Running Tests"). `docs/RELEASE_READINESS_v1.1.0.md`
+> bu dosyanın bayt-bazında kopyasıdır — **bu uyarı blokları eklenmeden önce**
+> (master @ `4f25178`); ölçüm:
+> `git show 4f25178:docs/RELEASE_READINESS.md > /tmp/a && git show 4f25178:docs/RELEASE_READINESS_v1.1.0.md > /tmp/b && cmp /tmp/a /tmp/b`
+> → fark yok. İki dosya artık yalnızca kendilerine konan uyarı başlığında
+> ayrılır, gövdeleri aynıdır; bu yüzden aynı uyarı orada da duruyor.
+>
+> **Aşağıdaki üçüncü şahıs iddialarının hiçbiri bugün doğru değil** —
+> 2026-10-17'de yeniden ölçüldü:
+>
+> | Buradaki iddia | Bugünkü ölçülen | Komut |
+> |---|---|---|
+> | "1479 passed, 6 skipped" | **7447 test toplanıyor** | `./.venv/bin/python -m pytest --collect-only -q tests` (satır toplama: `... \| grep -E "^tests/[^ ]+\.py: [0-9]+$" \| awk -F': ' '{s+=$2} END {print s}'`) — geçme sayısı için `make verify` gerekir, bu oturumda koşmadı |
+> | "make repo public" (özel depo) | Depo **PUBLIC** | `gh repo view --json visibility` → `PUBLIC` |
+> | "PRODUCTION-READY" | Bu belge **geçerli bir kabul kapısı değildir**; mevcut kapı `make verify` + `desktop/scripts/e2e-integration.sh` + CI'dır | `RELEASE_READINESS.md` (kök) ve README "Running Tests" |
+>
+> Ayrıca buradaki "vitest ✅ 582/582" ve "i18n ✅ 766/766" satırları 2026-08-31
+> koşularının sayısıdır; bugünkü ağaçta vitest bildirimi 594, i18n anahtar
+> sayısı 1347'dir (komutlar README'de). **Bu dosyayı bir kapı kanıtı olarak
+> alıntılamayın.**
+
 **Date:** 2026-08-21 · **Last updated:** kritiksizlik taraması (goal-4bc2fb3f)
 **Auditor:** automated deep-audit (goal-driven overnight pass)
 **Scope:** full source tree (~21,730 LOC Python), packaging, CI, docs, tests

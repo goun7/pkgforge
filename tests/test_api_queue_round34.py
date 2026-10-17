@@ -442,35 +442,18 @@ def test_schedule_timer_and_run(monkeypatch):
 
 
 def test_serve_stdio_loop(monkeypatch):
-    satirlar = ["{bozuk-json", '{"id": 1, "method": "app.version"}', "",
-                '{"id": 2, "method": "app.version"}']
+    """Tek chunk'ta bozuk + gecerli satir: yalnizca gecerli satir yollanir."""
+    hatalar: list[int] = []
+    yonlenen: list[dict] = []
+    parcalar: list[bytes | None] = [
+        b'{bozuk-json\n{"id": 1, "method": "app.version"}\n',
+        None,
+    ]
+    monkeypatch.setattr(AS.transport, "_error",
+                        lambda rid, kod, msg: hatalar.append(kod))
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
 
-    class SahteStdin:
-        def readline(self):
-            return satirlar.pop(0) if satirlar else ""
-
-    gonderilen = []
-    monkeypatch.setattr(sys, "stdin", SahteStdin())
-    monkeypatch.setattr("select.select",
-                        lambda *a: (True, [], []))
-    monkeypatch.setattr(AS.transport, "_send", lambda o: gonderilen.append(o) or (_ for _ in ()).throw(KeyboardInterrupt()))
-    monkeypatch.setattr(json_mod := __import__("json"), "loads",
-                        json_loads_orijinal := json_mod.loads)
-
-    def akilli_loads(s):
-        if s == "{bozuk-json":
-            raise json_mod.JSONDecodeError("hata", s, 0)
-        return json_loads_orijinal(s)
-    monkeypatch.setattr(json_mod, "loads", akilli_loads)
-    monkeypatch.setattr(AS.transport, "_ensure_qapp",
-                        lambda: NS(processEvents=lambda: None))
-    monkeypatch.setattr(AS, "_restore", lambda: 0, raising=False)
-
-    import threading as th
-    monkeypatch.setattr(th.Thread, "start", lambda self: None)
-
-    try:
-        AS.serve()                                                # 1317-1348
-    except KeyboardInterrupt:
-        pass
-    assert len(gonderilen) == 1   # yalniz gecerli satir dispatch edilir
+    AS.protocol._pump_stdin(lambda: parcalar.pop(0), AS.protocol._handle_line)
+    assert hatalar == [-32700]
+    assert [m["id"] for m in yonlenen] == [1]

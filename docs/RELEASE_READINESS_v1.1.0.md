@@ -1,5 +1,26 @@
 # PkgForge v1.1.0 — Release Readiness Report
 
+> ## ⚠️ TARİHSEL ANLIK GÖRÜNTÜ — v1.1.0 dönemi (2026-08-21), deliberately retained
+>
+> Bu dosya **v1.1.0 dönemine ait denetim kaydının arşiv kopyasıdır**; silinmedi
+> ama **güncel bir sürüm-hazırlık kapısı değildir**. Tek güncel kaynak kök
+> dizindeki [`RELEASE_READINESS.md`](../RELEASE_READINESS.md) dosyasıdır; özet
+> tablo README → "Running Tests" içindedir.
+> `docs/RELEASE_READINESS.md` bu dosyanın bayt-bazında kopyasıydı — **uyarı
+> blokları eklenmeden önce**, master @ `4f25178` (ölçüm:
+> `git show 4f25178:docs/RELEASE_READINESS.md > /tmp/a && git show 4f25178:docs/RELEASE_READINESS_v1.1.0.md > /tmp/b && cmp /tmp/a /tmp/b`
+> → fark yok). İki dosya artık yalnızca kendi uyarı başlığında ayrılır; gövde
+> metinlerine dokunulmadı.
+>
+> **Buradaki iddialar bugün geçersizdir** (2026-10-17'de yeniden ölçüldü):
+> "1479 passed, 6 skipped" yerine bugün **7447 test toplanıyor**
+> (`./.venv/bin/python -m pytest --collect-only -q tests`); "make repo public"
+> yerine depo artık **PUBLIC** (`gh repo view --json visibility`);
+> "PRODUCTION-READY" hükmü **bu belgeden alıntılanamaz** — mevcut kapılar
+> `make verify`, `desktop/scripts/e2e-integration.sh` ve CI'dır.
+> Buradaki "vitest 582/582" ve "i18n 766/766" satırları 2026-08-31 sayısıdır;
+> bugünkü ağaçta vitest bildirimi 594, i18n anahtar sayısı 1347'dir.
+
 **Date:** 2026-08-21 · **Last updated:** kritiksizlik taraması (goal-4bc2fb3f)
 **Auditor:** automated deep-audit (goal-driven overnight pass)
 **Scope:** full source tree (~21,730 LOC Python), packaging, CI, docs, tests

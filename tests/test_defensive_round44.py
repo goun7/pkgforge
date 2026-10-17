@@ -228,34 +228,75 @@ def test_scheduler_tick_parse_and_outer_error(monkeypatch):
     assert olaylar and "durum okunamadi" in olaylar[0].get("error", "")
 
 
-# --- serve: hazir-degil continue + gecerli-satir dispatch --------------------------
+# --- stdin cerceveleme: hazir-degil turu + gecerli satir dispatch -------------------
 
-def test_serve_not_ready_then_valid(monkeypatch):
-    satirlar = ['{"id": 5, "method": "app.version"}', ""]
-    adim = {"n": 0}
+def test_pump_not_ready_then_valid(monkeypatch):
+    """Hazir olmayan tur bos gecer; tam satir dispatch edilir, EOF donguyu bitirir."""
+    parcalar: list[bytes | None] = [b"", b'{"id": 5, "method": "app.version"}\n', None]
+    yonlenen: list[dict] = []
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
+    AS.protocol._pump_stdin(lambda: parcalar.pop(0), AS.protocol._handle_line)
+    assert [m["id"] for m in yonlenen] == [5]
 
-    def sec(*a):
-        adim["n"] += 1
-        return ([], [], []) if adim["n"] == 1 else ([sys.stdin], [], [])
 
-    class SahteStdin:
-        def readline(self):
-            return satirlar.pop(0) if satirlar else ""
+def test_parcali_satir_tamamlaninca_islenir(monkeypatch):
+    """Tek satir iki chunk'a bolunmussu: parca bekler, tamamlaninca bir kez yollanir."""
+    parcalar: list[bytes | None] = [b'{"id": 6, "met', b'hod": "app.version"}\n', None]
+    yonlenen: list[dict] = []
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
+    AS.protocol._pump_stdin(lambda: parcalar.pop(0), AS.protocol._handle_line)
+    assert [m["id"] for m in yonlenen] == [6]
 
-    gonderilen = []
-    monkeypatch.setattr(sys, "stdin", SahteStdin())
+
+def test_pump_single_chunk_three_requests(monkeypatch):
+    """Olculen regresyon (2026-10-17): ayni chunk'a dusten satir kaybolmasin."""
+    govde = b"\n".join(
+        [b'{"id": 1, "method": "app.version"}',
+         b'{"id": 2, "method": "app.version"}',
+         b'{"id": 3, "method": "app.version"}']) + b"\n"
+    parcalar: list[bytes | None] = [govde, None]
+    yonlenen: list[dict] = []
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
+    AS.protocol._pump_stdin(lambda: parcalar.pop(0), AS.protocol._handle_line)
+    assert [m["id"] for m in yonlenen] == [1, 2, 3]
+
+
+def test_pump_oversized_line_is_rejected(monkeypatch):
+    """Cercevesiz baytlar birikmesin: esik asilirsa hata doner, tampon sifirlanir."""
+    hatalar: list[int] = []
+    yonlenen: list[dict] = []
+    monkeypatch.setattr(AS.protocol, "_MAX_INBOUND_BYTES", 64)
+    monkeypatch.setattr(AS.transport, "_error",
+                        lambda rid, kod, msg: hatalar.append(kod))
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
+    parcalar: list[bytes | None] = [b"x" * 200, b'{"id": 8, "method": "app.version"}\n',
+                                    None]
+    AS.protocol._pump_stdin(lambda: parcalar.pop(0), AS.protocol._handle_line)
+    assert hatalar == [-32700]
+    assert [m["id"] for m in yonlenen] == [8]
+
+
+def test_make_reader_eof_and_errors(monkeypatch):
+    """fd okuyucusu: hazir degil -> b"", os.read bos -> None, istisna -> None."""
     import select as select_mod
-    monkeypatch.setattr(select_mod, "select", sec)
-    monkeypatch.setattr(AS.transport, "_send",
-                        lambda o: gonderilen.append(o)
-                        or (_ for _ in ()).throw(KeyboardInterrupt()))
-    monkeypatch.setattr(AS.transport, "_ensure_qapp",
-                        lambda: NS(processEvents=lambda: None))
-    try:
-        AS.serve()                                                 # 1336+1347
-    except KeyboardInterrupt:
-        pass
-    assert len(gonderilen) == 1
+
+    monkeypatch.setattr(select_mod, "select", lambda *a: ([], [], []))
+    assert AS.protocol._make_reader(0)() == b""
+
+    monkeypatch.setattr(select_mod, "select", lambda *a: ([0], [], []))
+    monkeypatch.setattr(AS.protocol, "os",
+                        NS(read=lambda fd, n: b""))  # type: ignore[arg-type]
+    assert AS.protocol._make_reader(0)() is None
+
+    def patlak(*a):
+        raise ValueError("stdin kapali")
+
+    monkeypatch.setattr(select_mod, "select", patlak)
+    assert AS.protocol._make_reader(0)() is None
 
 
 # --- SSE keepalive dali (gercek sunucu) ---------------------------------------------

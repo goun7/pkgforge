@@ -27,7 +27,7 @@ PkgForge is a modular Python application with a clear separation between CLI, GU
 
 - **Birincil:** Tauri 2 + React (`desktop/`) + Python sidecar (JSON-RPC). Yeni ozellikler buraya eklenir.
 - **Giris noktasi haritasi (`main.py`):** `pkgforge desktop` ve `pkgforge --file X.deb` Tauri kabugunu acar; kabuk `initial_files` komutuyla argv'deki *gercek* dosyalari webview'a verir, Convert sayfasi onlari kuyruga alir. `pkgforge gui` adidir ve klasik PyQt6'yi acar; modern ikili kuruluysa tek satirla ona yonlendirir. Ikili hicbir yerde bulunamazsa neden + derleme komutu + degrade notu basilir (sessiz Legacy'ye dusus yok).
-- **Donduruldu:** PyQt6 (`ui/`, `pkgforge gui`). Yeni ozellik yok; yalnizca guvenlik/kritik duzeltme. Kaldirma v3.0'da planlanir (38 test dosyasi bagli oldugu icin ani silme suite'yi kizartir).
+- **Donduruldu:** PyQt6 (`ui/`, `pkgforge gui`). Yeni ozellik yok; yalnizca guvenlik/kritik duzeltme. Kaldirma v3.0'da planlanir — test bagliligi **38 degil, 15 test dosyasi** (2026-10-17 olcumu: `LC_ALL=C grep -rlE "^(from|import) ui" tests/*.py | wc -l` → **15**; satir-basi girintili/ertelenmis importlari da sayarsaniz `LC_ALL=C grep -lE "^[[:space:]]*(from|import) ui" tests/*.py | wc -l` → **21**, dosya govdesinde herhangi `ui.` sozcugunu gecen testler → **23**; toplam test dosyasi 261). Onceki "38" sayisi bu uc tanimin hicbiriyle agactan uretilemiyor. Ani silme yine suiti kizartir, ama iddia edilen baglilik buyuklugu oldugu gibi birakilmamali.
 - CLI (`cli.py` + `core/`) paylasilan cekirdektir; her iki UI ayni sidecar sozlesmesini kullanir.
 
 ## Core Modules

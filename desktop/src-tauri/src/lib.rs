@@ -289,6 +289,29 @@ mod tests {
     }
 
     #[test]
+    fn uc_dosya_sirasi_ve_tekilliği_korunur() {
+        let dir = std::env::temp_dir();
+        let names = ["pf_multi_a.deb", "pf_multi_b.deb", "pf_multi_c.deb"];
+        let paths: Vec<String> = names
+            .iter()
+            .map(|n| {
+                let p = dir.join(n);
+                std::fs::write(&p, b"x").unwrap();
+                p.to_string_lossy().into_owned()
+            })
+            .collect();
+        let mut argv = vec!["pf-desktop".to_string()];
+        // a, a, b, bir dizin, c -> sirali ve tekilleştirilmiş [a, b, c] beklenir.
+        argv.extend_from_slice(&[paths[0].clone(), paths[0].clone(), paths[1].clone(),
+                                 dir.to_string_lossy().into_owned(), paths[2].clone()]);
+        let got = initial_files_from_args(&argv);
+        assert_eq!(got, paths);
+        for n in names {
+            std::fs::remove_file(dir.join(n)).ok();
+        }
+    }
+
+    #[test]
     fn goreceli_yol_mutlaga_donusur() {
         let got = initial_files_from_args(&v(&["pf", "/etc/../etc/hostname"]));
         assert_eq!(got, vec!["/etc/hostname".to_string()]);

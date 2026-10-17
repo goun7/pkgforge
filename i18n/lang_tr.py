@@ -1084,6 +1084,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_aktif": "{n} plugin aktif",
     "cli.uyumsuzluk_sayisi": "{n} uyumsuzluk tespit edildi.",
     "api.records_liste_olmali": "records bir liste olmalı",
+    "api.istem_satiri_cok_uzun": "İstek satırı çok uzun",
     "api.gecersiz_paket_adi_name": "Geçersiz paket adı: {name}",
     "api.queue_kayit_bulunamadi_id": "Kuyruk kaydı bulunamadı: {item_id}",
     "api.queue_kalicilik_yazilamadi": "Kuyruk kalıcılığı yazılamadı (id={item_id}): {exc}",

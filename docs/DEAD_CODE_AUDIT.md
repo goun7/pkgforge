@@ -26,9 +26,38 @@ silinenler ve **bilerek silinmeyenler** kaydıdır.
 | Eksen | Taranan | Ölü bulunan | İşlem |
 |---|---|---|---|
 | Python modülü (`core/`, `ui/`) | 111 | 0 (yalnızca 7 `__init__.py`) | gerek yok |
-| TR/EN i18n anahtarı | 1417 | **72** | silindi → 1345 |
-| Masaüstü `i18n.ts` anahtarı | 616 | **8** | silindi → 608 |
-| İzlenen dosya | 1690+ | **69** | silindi (1,09 MB) |
+| TR/EN i18n anahtarı (dil başına) | 1417 → **1416 yeniden ölçüldü** | **72** (doğrulandı) | silindi → 1345 · bugün **1347** |
+| Masaüstü `i18n.ts` anahtarı (dil başına) | 616 (doğrulandı) | **8** (doğrulandı) | silindi → 608 · bugün de **608** |
+| İzlenen dosya | 1690+ → **829 yeniden ölçüldü** | **69** (65 net düşüş ölçüldü) | silindi (1,09 MB) |
+
+> **Bu satırlar 2026-10-16 denetim kaydının fotoğrafıdır; 2026-10-17'de
+> ağaçtan yeniden üretildi.** Komutlar ve sonuçlar:
+>
+> - Silme commit'i: `0d50ed2` ("fix(main,desktop): modern arayuz her giris
+>   noktasindan aciliyor…"). Öncesi/sonrası anahtar kümeleri AST ile sayıldı:
+>   `i18n/lang_tr.py` → `0d50ed2^` = **1416** tekil anahtar, `0d50ed2` = **1345**
+>   → o commit **72 ölü anahtarı sildi ve 1 anahtar ekledi**
+>   (1416 − 72 + 1 = 1345). Yani "72 silindi" satırı **birebir doğru**;
+>   "1417 taranan" ise ağaçtan üretilemiyor — yeniden ölçülen taranan sayı
+>   **1416**'dır. Bugünkü sayı **1347** (2026-10-17'de `api.istem_satiri_cok_uzun` eklendi): `327a077` sonrasında 1 anahtar ekledi.
+> - Bugünkü Python anahtar sayısı:
+>   `LC_ALL=C grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py` → **1347 / 1347**.
+>   Dikkat: tam-4-boşluk deseni (`'^    "[^"]+": '`) **1332** verir — 14 satır
+>   2 boşlukla girintili; bu sayı anahtar sayısı değil, satır sayımıdır.
+> - Masaüstü: `LC_ALL=C grep -cE '^    [A-Za-z_][A-Za-z0-9_]*: ' desktop/src/lib/i18n.ts`
+>   → **1216**, yani **608 tr + 608 en** (`0d50ed2^` aynı sayımla **616 + 616**;
+>   8 anahtar silindi → 608, bugün hâlâ 608). **Bu satır bir tuzağa işaret
+>   ediyor:** yerel ayar `tr_TR.UTF-8` iken aynı desen **532** veriyor (GNU grep
+>   aralık sınıfları yerelden etkileniyor). Sayımları **mutlaka `LC_ALL=C`** ile
+>   koşun; bu belgedeki 616/608 sayıları `LC_ALL=C` ile yeniden üretilebilir.
+> - İzlenen dosya: `git ls-tree -r --name-only 0d50ed2^ | wc -l` → **829**,
+>   `0d50ed2` → **764**, `HEAD` → **765**. Tablodaki "1690+" izlenen-dosya
+>   sayımından değil, denetimin kullandığı daha geniş tarama evreninden
+>   (tüm çalışma ağacı) geliyor; bu yüzden bu sütun **yeniden üretilemez** ve
+>   ölü-bulunan/silinen sayıları tek başına referans alınmamalıdır.
+> - Python modülü: `git ls-tree -r --name-only HEAD | grep -cE '^(core|ui)/[^/]+\.py$'`
+>   → **89** (0d50ed2^'da da 89). Tablodaki "111" alt paketler/giriş noktaları
+>   ile birlikte yapılmış bir sayımdır; dar tanımla yeniden üretilemez.
 
 Silinen 72 Python anahtarının hiçbirinin **prodüksiyon kodunda, testlerde,
 belgelerde veya masaüstü tarafında** tek bir referansı yoktu (sınıflandırma

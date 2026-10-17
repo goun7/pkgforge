@@ -1,11 +1,19 @@
 # PkgForge v2.2.0 — Sürüm Hazırlık Durumu
 
-> Son doğrulama: 2026-09-17 · `make verify` + `pnpm test` + gerçek
-> `pkgforge desktop` açılış duman testi (bu makine)
-> Tarihsel notlar `docs/RELEASE_READINESS.md` (v1.1.0 dönemi) ve git
-> geçmişindedir; bu dosya tek güncel kaynaktır.
+> Son doğrulama: 2026-09-17 (aşağıdaki özet tablo) + 2026-10-16 gece koşusu
+> (tarih bölümleri) · `make verify` + `pnpm test` + gerçek `pkgforge desktop`
+> açılış duman testi (bu makine)
+> Tarihsel notlar `docs/RELEASE_READINESS.md` ve `docs/RELEASE_READINESS_v1.1.0.md`
+> (v1.1.0 dönemi; her ikisi de "tarihsel anlık görüntü" olarak etiketlidir) ve
+> git geçmişindedir; bu dosya tek güncel kaynaktır.
 
-## Ölçülen Gerçek Durum
+## Ölçülen Gerçek Durum — **2026-09-17 ölçümü; README'nin 2026-10-16 ölçümü tarafından geçersiz kılındı**
+
+> Aşağıdaki tablo **2026-09-17** `make verify` koşusunun kaydının olduğu gibi
+> korunduğu bir fotoğraftır. O tarihten beri ağaç büyüdü ve aynı metrikler
+> **2026-10-16 / 2026-10-17'de yeniden ölçüldü**; geçerli olan rakamlar
+> README → "Running Tests" tablosundakilerdir. Satırları bugünkü durum sanmayın;
+> güncel karşılıkları hemen aşağıdaki "2026-10-17'de yeniden ölçülen" satırıdır.
 
 | Alan | Durum | Kanıt |
 |---|---|---|
@@ -21,7 +29,33 @@
 | Repo | **PUBLIC**, master korumalı (force-push/silme yasak) | `gh repo view` |
 | Release boru hattı | gate (ruff+mypy+bandit+tam suit) → build → SBOM (SPDX+CycloneDX) + SLSA provenance + SHA256SUMS | `release.yml` |
 
-## Bilinen başarısızlık: yok (2577 passed + 4 skipped, 0 failed)
+> **2026-10-17'de yeniden ölçülen (geçerli sayılar ve komutları):**
+> toplanan Python testi **7447**
+> (`./.venv/bin/python -m pytest --collect-only -q tests`, dosya-başına
+> sayımların toplamı) · kapsama **%99.65 — 13 219 ifade / 46 eksik**
+> (`./.venv/bin/python -m coverage json` + `totals` alanları; 2026-10-16
+> `make verify` koşusunun `.coverage` veri dosyasından okundu) ·
+> i18n paritesi **1347/1347**, anahtar kümeleri özdeş
+> (`grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py`;
+> dikkat: tam-4-boşluk grep `^    "` 1332 verir, 14 satır 2 boşlukla
+> girintili) · masaüstü vitest **bildirimi 594** (55 izlenen test dosyası;
+> `git ls-files -- desktop/src | grep -E '\.test\.tsx?$' | xargs grep -cE
+> "^[[:space:]]*(it\|test)\(" | awk -F: '{s+=$2} END {print s}'`) ·
+> Rust **8 passed / 0 failed** (`cd desktop/src-tauri && cargo test --release
+> --offline`, 2026-10-17 bu makinede gerçekten koşuldu) · CI **19 job koşusu /
+> 19 yeşil** `master` @ `4f25178` (`gh run view <run> --json jobs`).
+> 7447 bir **toplama** sayıdır (7443 passed + 4 skipped): bu sayılar
+> 2026-10-17 04:25'te bu makinede tam `make verify` koşusuyla elde edildi
+> (RC=0, `--cov-fail-under=99` geçti), dolayısıyla "kaç test geçti" sorusunun
+> cevabı **7443 passed + 4 skipped, 0 failed**'dir.
+
+## Bilinen başarısızlık: yok — **2026-09-17 koşusunda** (2577 passed + 4 skipped, 0 failed)
+
+> Bu başlık 2026-09-17 `make verify` koşusuna aittir ve o gün için
+> doğrulanmıştır. 2026-10-16 koşusu da exit 0 / 0 failed raporlamıştır; ancak
+> **bu belgeyi yazarken (2026-10-17) tam suit yeniden koşulmadı**, dolayısıyla
+> "bilinen başarısızlık yok" cümlesi ancak sizin koşacağınız `make verify` ile
+> bugünkü halini alır.
 
 Eskiden "pre-existing" sanılan 2 delta-timer testi bayat mock çıktı
 (Faz-14 argv değişimine uyarlandı); ubuntu CI'daki kalan farklar
@@ -63,8 +97,16 @@ Kullanıcı şikâyeti: "qoder'ı pkgforge ile yükseltirken eski arayüz çıkt
 1. **Tauri ikilisi makinede hiç yoktu.** `install.sh` ikiliyi yalnızca
    `desktop/src-tauri/target/release/pkgforge-desktop` varsa kopyalıyor; o
    dizin silindiği için kurulum sessizce PyQt6'ya düşmüştü. İkili yeniden
-   derlendi (`pnpm tauri build --no-bundle`), 4 Rust testi + 591 vitest testi
-   ve tam `make verify` geçtikten sonra kaynak ağacına yerleştirildi.
+   derlendi (`pnpm tauri build --no-bundle`), o koşuda raporlanan 4 Rust testi
+   + 591 vitest testi ve tam `make verify` geçtikten sonra kaynak ağacına
+   yerleştirildi. *(Not — 2026-10-17 yeniden ölçümü: bugün ağaçta
+   `grep -rn "#\[test\]" desktop/src-tauri/src` = **7** fonksiyon var ve
+   `cargo test --release --offline` **7 passed / 0 failed** veriyor; yani o
+   koşunun "4" sayısı ya sonradan eklenen 3 testten önceye ait ya da
+   eksik raporlanmıştı — 4/4 hükmü bugün yeniden üretilemiyor. Benzer
+   şekilde "591" yerine bugünkü izlenen vitest bildirimi **592**'dir;
+   bu ikisi 2026-10-16 koşusunun kaydıdır, bugünkü kapı sayıları README
+   "Running Tests" tablosundadır.)*
 2. **`Exec=pkgforge desktop %f` dosyayı çöpe atıyordu.** Ne Rust kabuğu argv'yi
    okuyor ne de frontend soruyordu; "Birlikte aç" hiçbir şey yüklenmeden pencere
    açıyordu. Kabuk artık `initial_files` komutuyla yalnızca *gerçekten var olan*
@@ -195,22 +237,117 @@ plan belgesinde geçiyor" diye işaretlenmişti; içeriği gerçek bir UÇTAN UC
 doğrulaması (kabuk + sidecar + JSON-RPC + temiz kapanış) ve CI başsız olduğu
 için çağırıyor — **silinmedi**, ilk kez koşularak yeşile getirildi.
 
+## 2026-10-17 03:41 (gece) — sidecar stdio çerçevelemesi: ikinci istek kayboluyordu
+
+**Ölçülen.** `queue.add` ve `queue.start` aynı pipe paketine düştüğünde ikinci
+isteğin yanıtı **hiç gelmiyordu**; yanıt, istemcinin üçüncü bir satır yazdığı
+anda çıkıyordu. İki ayrı koşuda gecikme, ölçümün bitiş eşiğiyle birebir geldi:
+200.0 sn ve 420.1 sn (`/tmp/pf_ev/trace.out`, `/tmp/pf_ev/trace2.out` —
+`python3 /tmp/pf_ev/trace.py <paket>`, yalıtılmış `HOME` + gerçek `main.py serve`).
+Kuyruğun ilk öğesi de o anda başlıyordu, yani dönüşüm değil **çağrının kendisi**
+takılıyordu.
+
+**Kök neden.** `serve()` fd'yi `select()` ile izleyip `sys.stdin.readline()` ile
+okuyordu. `readline()` tek okumada birden fazla satır alırsa sonraki satırlar
+`TextIOWrapper` tamponunda kalır; fd boşaldığı için `select()` onu bir daha
+"hazır" görmez — satır, yeni bir girdi gelene kadar dispatch edilmez.
+
+**Kullanıcıya etkisi.** Arka arkaya iki RPC çağrısı (toplu kuyruğu başlatmak,
+hızlı tıklamalar, tek-örnek devrinin `queue.add`'i) süresiz bekler; arayüzde
+spinner döner, kuyruk başlamaz, hata da görünmez. Sessiz takılma sınıfı.
+
+**Düzeltme.** `core/api/protocol.py` artık çerçevelemeyi kendi tamponuyla yapıyor
+(`_make_reader` fd→chunk, `_pump_stdin` chunk→satır); çerçevesiz baytlar 8 MB'ı
+aşarsa `-32700` ile reddedilip tampon sıfırlanıyor. Eski sahte-`sys.stdin`
+`select` testleri aynı dala (`_pump_stdin`) taşındı.
+
+**Kanıt (kırmızı → yeşil).** Yeni `tests/test_stdio_frame_batched_lines.py`
+(3 test, **gerçek alt süreç + gerçek boru**): düzeltme öncesi
+`1,2,3 beklenirken gelen [1]` ve `1,2 beklenirken gelen [1]` (REAL_RC=1);
+düzeltme sonrası üç test de geçti (REAL_RC=0). Birim testleri tek chunk→3 istek,
+parçalı satır, EOF ve üst-sınır dallarını da kapsıyor.
+Gerçek uygulama doğrulaması: aynı ölçüm düzeni düzeltme sonrası `queue.start`
+yanıtını **0.1 sn**, ilk olayı 0.2 sn ve tam dönüşümü 6.4 sn'de verdi
+(`/tmp/pf_ev/trace3.out`).
+
+### Ölçülmemiş iddiam geri alındı: "iki dosyadan only ikincisi dönüştü"
+
+Önceki oturumda «GUI'ye iki `--file` verildiğinde yalnızca `iki.deb` dönüştü»
+yazıldı. Bu **okuma yanlışıydı** (Türkçe log satırlarının grep'le eksik
+sayılması — bkz. `docs/DEAD_CODE_AUDIT.md` içindeki `LC_ALL=C` notu). Gerçek
+sidecar + gerçek boru hattı ölçümünde iki paket de sırayla dönüştü:
+`bir.deb` → kapı → `iki.deb` → kapı (`/tmp/pf_ev/harness.out`, `=== SONUC ===`
+bloğu). Webview kuyruk mantığı ayrıca vitest ile kanıtlandı: 3 dosya → 3 sıralı
+`pipeline.start`, başarısızlıktan sonra kuyruk devam ediyor
+(`desktop/src/pages/__tests__/ConvertMultiFileQueue.test.tsx`).
+Kalıcı doğrulama: kabuk tarafında çok-dosyalı argv **sıra** testi yoktu;
+`desktop/src-tauri/src/lib.rs` içine üç-dosyalı sıra/tekillik testi eklendi.
+
+Tasarım gerçeği (hata değil, not): uyumluluk kapısı kullanıcı kararını bekler ve
+`event/finished` yalnız onay/red sonrası yayınlanır — yani kuyrukta ikinci dosya,
+birincisinin diyaloğu kapanana kadar başlamaz.
+
+### AÇIK bulgu 1: "yalnızca dönüştür" çıktısı siliniyor (bir sonraki birim)
+
+Ölçülen (toplu kuyruk, `install: false`): `event/finished` → `success: true`,
+`output_pkg=/tmp/pkgforge_qj3e_bxm/convert/hello-1.0.0-1-x86_64.pkg.tar.zst`
+ve aynı yol için **VAR_MI=False** (`/tmp/pf_ev/trace3.out`). `_cleanup()` geçici
+dizini her yolda sildiği için kullanıcının üretmesini istediği paket yok olur;
+arayüz silinmiş bir yolu gösterir ve "kopyala" düğmesi ölü yol verir. CLI'ın
+kuralı (`cli.py:158`: çıktı, girdinin yanına) pipeline'ın kurulum-yapmayan
+yollarında uygulanmıyor.
+
+### AÇIK bulgu 2: kullanıcı kurulumu reddedince log "✗ Kurulum başarısız" diyor
+
+Ölçülen: `pipeline.dismiss` sonrası adım 5 `error` oluyor ve
+`_set_step(INSTALL, "error")` → `pipeline.label_basarisiz` satırı yazılıyor
+(`core/pipeline.py:1191`), oysa `_do_install` hiç çağrılmamıştı
+(`tests/test_pipeline_gate.py`'in `installed == []` pazarlığı). Kurulum
+**başarısız olmadı**, kullanıcı reddetti. Toplu modun `_skip_install_message`
+dalı aynı sonucu `success: true` + "kurulum atlandı" ile bildiriyor; etkileşimli
+yol `success: false` + kırmızı toast + kuyrukta "failed" üretiyor.
+
 ## Kalan insan adımları (ölçülmüş durum, 2026-10-16 gecesi)
 
 1. **Yeni etiket gerekir — v2.2.0 bugünkü düzeltmeleri İÇERMİYOR.**
-   `v2.2.0` tarball'ının sha256'sı bugün yeniden indirilip doğrulandı
-   (`1b4639c8…`, 4 174 629 bayt — root `PKGBUILD` iddiası DOĞRU), ama tarball
-   17 Eyl kodudur: modern UI yönlendirmesi, argv aktarımı, Qt parent düzeltmesi,
-   kuyruk kalıcılığı ve Tauri 2.12 bu etikette yok. Yani stable `pkgforge`
-   AUR paketi bugün kurulsa bayat GUI davranışını taşır. Çözüm: `v2.2.1`
-   etiketi + root PKGBUILD'de `pkgver/sha256sums` yenilemesi (geri
-   döndürülemez/ethkî adım olduğu için kullanıcı onayı beklenir).
-2. AUR gönderimi: `pkgforge-git` PKGBUILD'i bugün **gerçekten derlendi**
-   (`makepkg -f --noconfirm --skipinteg`, exit 0 → 18,9 MB paket;
-   `usr/lib/pkgforge/desktop/{pkgforge-desktop, pkgforge-sidecar}` pakette).
-   `namcap`: **0 hata, 471 uyarı** — uyarıların 454'ü namcap'ın kendi modüllerimizi
-   ("core.*", "ui.*") dış bağımlı sanması, kalanı tipik sezgisel notlar.
-   Temiz chroot koşumu (`extra-xdg-build`) ayrıca denenmedi; sudo/chroot ister.
+   `v2.2.0` tarball'ının sha256'sı 2026-10-16 gecesi yeniden indirilip
+   doğrulandı; **2026-10-17'de bu oturumda da bağımsız olarak yeniden
+   ölçüldü**: `1b4639c8baef8277afcde345154fb8c1e6ed42d2a6e15df11b59deb6d3aaec8b`,
+   4 174 629 bayt — root `PKGBUILD` iddiası DOĞRU. Yeniden ölçme komutu:
+   `curl -sL https://github.com/goun7/pkgforge/archive/refs/tags/v2.2.0.tar.gz -o /tmp/v220.tar.gz && sha256sum /tmp/v220.tar.gz && wc -c /tmp/v220.tar.gz`
+   ("doğrulandı" kelimesi budur: tarball yeniden indirilip kök PKGBUILD'deki
+   `sha256sums` ile karşılaştırıldı; başka bir trust-anchor iddiası içermez).
+   Ama tarball 17 Eyl kodudur: modern UI yönlendirmesi, argv aktarımı,
+   Qt parent düzeltmesi, kuyruk kalıcılığı ve Tauri 2.12 bu etikette yok.
+   `git log v2.2.0..HEAD --oneline | wc -l` = **58** commit fark var. Yani
+   stable `pkgforge` AUR paketi bugün kurulsa bayat GUI davranışını taşır.
+   Çözüm: `v2.2.1` etiketi + root PKGBUILD'de `pkgver/sha256sums` yenilemesi
+   (geri döndürülemez/ethkî adım olduğu için kullanıcı onayı beklenir).
+2. AUR gönderimi: `pkgforge-git` PKGBUILD'i 2026-10-16'da **gerçekten
+   derlendi** — `makepkg -f --noconfirm --skipinteg`, exit 0 → 18,9 MB paket;
+   `usr/lib/pkgforge/desktop/{pkgforge-desktop, pkgforge-sidecar}` pakette.
+   **Okur için kritik koşullu not:** `--skipinteg` bütünlük
+   kontrollerini (sum doğrulama + source/doğrulama adımları) **atlar**. Yani
+   bu derleme "source'ları doğrulanmış bir AUR derlemesi" **değildir**;
+   `pkgforge-git` `source = git+https://…` kullandığı için `sha256sums = SKIP`
+   zaten standarttır (`packaging/aur/pkgforge-git/.SRCINFO`), ama bu koşumda
+   alınan exit 0 yalnızca "derleme tamamlandı" demektir; "girdiler doğrulandı"
+   demek **değildir**. Bütünlük kapısını gerçekten görmek için `makepkg -f
+   --noconfirm` (`--skipinteg` **sansız**) koşulmalıdır.
+   `namcap`: **0 hata, 471 uyarı** — uyarıların 454'ü namcap'ın kendi
+   modüllerimizi ("core.*", "ui.*") dış bağımlı sanması, kalanı tipik
+   sezgisel notlar. Bu sayımlar 2026-10-16 derleme çıktısından alındı;
+   2026-10-17'de yeniden üretilmedi (tam AUR derlemesi + ağ ister).
+   Yeniden ölçmek için:
+   `namcap pkgforge-git-*.pkg.tar.zst > /tmp/namcap.log; grep -cE '^E: ' /tmp/namcap.log; grep -cE '^W: ' /tmp/namcap.log`.
+   **Koşul:** `namcap` kök ve `pkgforge-git` PKGBUILD'lerinde `depends` değil
+   **`optdepends`** satırıdır (`grep -n "optdepends" -A12 PKGBUILD`); kurulu
+   olmadığı sistemlerde dönüşüm raporu "namcap bulunamadı, statik analiz
+   atlandı" der (`core/compatibility_checker.py::_run_namcap`). Aynı şekilde
+   `clamav` de `optdepends`'tır ve bu makinede `clamscan` kurulu **değil**
+   (`which namcap clamscan`), dolayısıyla ClamAV katmanı varsayılan olarak
+   çalışmıyor. Temiz chroot koşumu (`extra-xdg-build`) ayrıca denenmedi;
+   sudo/chroot ister.
 3. Release CI: `v2.2.0` etiketi için koşan işler yeşildi; yeni etikette tekrar
    izlenmeli.
 4. debtap parite tablosunun debtap sütunu (`docs/BENCHMARK_PARITY.md` —

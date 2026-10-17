@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import http.client
-import json
-import select
 import socket
 import sys
 import time
@@ -101,63 +99,47 @@ def test_sse_stream_replay_and_disconnect(sse_sunucu):
     time.sleep(0.2)
 
 
-# --- serve() dallari -------------------------------------------------------------
+# --- stdin cerceveleme dallari ----------------------------------------------------
 
-def _serve_kos(monkeypatch, satirlar, sec_hazir=True, sec_hata=None):
-    gonderilen = []
+def _pump_kos(monkeypatch, parcalar, tick_hata=None):
+    """_pump_stdin'i sahte okuyucuyla kosur; (yonlenen, hata) doner."""
+    yonlenen: list[dict] = []
+    monkeypatch.setattr(AS.protocol, "_route_request",
+                        lambda msg: yonlenen.append(msg))
 
-    class SahteStdin:
-        def readline(self):
-            return satirlar.pop(0) if satirlar else ""
+    def read():
+        return parcalar.pop(0) if parcalar else None
 
-    monkeypatch.setattr(sys, "stdin", SahteStdin())
-    if sec_hata is not None:
-        def patlak(*a):
-            raise sec_hata
-        monkeypatch.setattr(select, "select", patlak)
-    else:
-        monkeypatch.setattr(select, "select",
-                            lambda *a: (([sys.stdin], [], [])
-                                        if sec_hazir else ([], [], [])))
-    monkeypatch.setattr(AS.transport, "_send",
-                        lambda o: gonderilen.append(o)
-                        or (_ for _ in ()).throw(KeyboardInterrupt()))
-    monkeypatch.setattr(AS.transport, "_ensure_qapp",
-                        lambda: NS(processEvents=lambda: None))
-    monkeypatch.setattr(json.JSONDecodeError, "__init__",
-                        lambda self, *a: None, raising=False)
-
-    def akilli(s):
-        try:
-            return json.loads(s)
-        except (json.JSONDecodeError, ValueError):
-            raise json.JSONDecodeError("h", "d", 0)
-
-    monkeypatch.setattr(json, "loads", akilli)
+    def tick():
+        if tick_hata is not None:
+            raise tick_hata
 
     hata = None
     try:
-        AS.serve()
-    except BaseException as exc:                                   # noqa: BLE001
+        AS.protocol._pump_stdin(read, AS.protocol._handle_line, tick)
+    except BaseException as exc:                                    # noqa: BLE001
         hata = exc
-    return gonderilen, hata
+    return yonlenen, hata
 
 
-def test_serve_eof_break(monkeypatch):
-    satirlar = [""]
-    gonderilen, hata = _serve_kos(monkeypatch, satirlar)           # 1338-1339
-    assert gonderilen == [] and (hata is None) or hata is None
+def test_pump_eof_donguyu_bitirir(monkeypatch):
+    yonlenen, hata = _pump_kos(monkeypatch, [None])                # EOF dali
+    assert yonlenen == [] and hata is None
 
 
-def test_serve_select_error_break(monkeypatch):
-    _, hata = _serve_kos(monkeypatch, ["{x}"], sec_hata=ValueError("kapali"))
-    assert hata is None                                            # 1333-1334
+def test_pump_bos_satirlar_atlanir(monkeypatch):
+    yonlenen, hata = _pump_kos(monkeypatch, [b"   \n", b"\n", None])
+    assert yonlenen == [] and hata is None
 
 
-def test_serve_blank_line_continue_then_eof(monkeypatch):
-    satirlar = ["   ", ""]
-    gonderilen, _ = _serve_kos(monkeypatch, satirlar)              # 1341-1342
-    assert gonderilen == []
+def test_pump_read_istisnasi_yukari_yayar(monkeypatch):
+    """Yutma sozlesmesi _make_reader'in; _pump_stdin istisnayi saklamaz."""
+    class Patlak:
+        def pop(self, _i):
+            raise ValueError("stdin kapali")
+
+    yonlenen, hata = _pump_kos(monkeypatch, Patlak())
+    assert yonlenen == [] and isinstance(hata, ValueError)
 
 
 # --- kucuk handler artiklari ------------------------------------------------------

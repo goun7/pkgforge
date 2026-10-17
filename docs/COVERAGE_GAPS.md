@@ -1,8 +1,22 @@
 # Coverage Durumu — S3 (ölçülen, gerekçeli)
 
-Tarih: 2026-09-07 · Toplam: %99 (12 769 ifade, 46 eksik)
+> **Bu belge 2026-09-07 koşusunun TARİHSEL ANLIK GÖRÜNTÜSÜDÜR.** Aşağıdaki
+> sayılar o günün ağacına aittir ve bugünkü ağaçtan yeniden üretilemez;
+> buradaki rakamları güncel durum sanmayın. Güncel, üretebilir sayımlar bu
+> kutunun altındadır ve tek yetkili özet README → "Running Tests" tablosudur.
+
+Tarih: 2026-09-07 · Toplam: %99 (12 769 ifade, 46 eksik) — *2026-09-07 ölçümü*
 Yöntem: `pytest tests/ --cov=core --cov=ui --cov=i18n`.
 Eski Tur-54 raporu (`%99, 26 eksik`) emeklidir — kod o zamandan beri büyüdü.
+
+> **2026-10-17'de yeniden ölçülen (güncel):** **%99.68 — 13 193 ifade, 42 eksik**
+> (`core`+`ui`+`i18n`; `pyproject.toml` `[tool.coverage.run] source`).
+> Üretim komutu — 2026-10-16 `make verify` koşusunun `.coverage` veri dosyasını
+> yeniden koşmadan okur:
+> `./.venv/bin/python -m coverage json -o /tmp/cov.json && ./.venv/bin/python -c "import json;t=json.load(open('/tmp/cov.json'))['totals'];print(t['percent_covered'],t['num_statements'],t['missing_lines'])"`
+> → `99.68164935950882 13193 42`. Sıfırdan üretmek için `make verify`.
+> Zorlanan kapı **%100 değil `fail_under = 99`**'dur (`pyproject.toml:97`);
+> yani "%99.68" bir tavan değil, 99 eşiğinin üzerindeki geçerli bir sonuçtur.
 
 ## Kapatılanlar (S3)
 

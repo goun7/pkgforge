@@ -1084,6 +1084,7 @@ STRINGS: dict[str, str] = {
     "cli.plugin_aktif": "{n} plugins active",
     "cli.uyumsuzluk_sayisi": "{n} incompatibilities detected.",
     "api.records_liste_olmali": "records must be a list",
+    "api.istem_satiri_cok_uzun": "Request line too long",
     "api.gecersiz_paket_adi_name": "Invalid package name: {name}",
     "api.queue_kayit_bulunamadi_id": "Queue item not found: {item_id}",
     "api.queue_kalicilik_yazilamadi": "Could not persist queue item (id={item_id}): {exc}",

@@ -6,6 +6,86 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+> **Bu etiket-altı yığın 2026-09-18'de donmuştu; v2.2.0 etiketinden bu yana 58
+> commit birikti.** Aşağıdaki üç grup 2026-10-01 … 2026-10-16 arasını özetler
+> (55 commit); bu bloğun altındaki "gelir stratejisi sadeleştirme (2026-09-18)"
+> bölümü zaten belgelenmiş 3 commit'i içerir, tekrar edilmedi.
+> Sayım ve liste komutları (bu satırlar uydurma değildir, commit mesajlarından
+> üretildi):
+> `git log v2.2.0..HEAD --oneline | wc -l` → **58** ·
+> `git log v2.2.0..HEAD --since=2026-10-01 --oneline | wc -l` → **55** ·
+> grup listesi (2026-10-01 sonrası alt aralığı):
+> `git log v2.2.0..HEAD --since=2026-10-01 --format=%s | grep -cE '^fix'` → **29** /
+> `…'^feat'` → **3** / `…'^chore'` → **8** / `…'^test'` → **11** / `…'^docs'` → **4**
+> (toplam 55). Tam aralıkta (`--since` sansız) fix **30**, docs **6** olur —
+> 2026-09-18 tarihli 3 commit zaten aşağıdaki eski bölümde anlatıldığı için
+> alt aralık kullanıldı.
+> Bu commit'lerin **hiçbiri dağıtılan v2.2.0 tarball'ında yoktur**
+> (`git describe --tags` → `v2.2.0-58-g4f25178`, ölçüldü 2026-10-17; ayrıca
+> `RELEASE_READINESS.md` → "Kalan insan adımları").
+
+### Added — v2.2.0 sonrası (feat, 3 commit)
+- **security**: `api_v2` artık routable bind'i reddediyor; `serve-api` yanlış
+  yapılandırmada temiz hata veriyor (`feat(security): api_v2 routable bind'i
+  reddediyor; serve-api temiz hata veriyor`).
+- **security**: RPC dosya yolları containment ile kapatıldı — `/etc`
+  sızıntıları reddediliyor (`feat(security): RPC dosya yollari containment ile
+  kapatildi`).
+- **sbom**: gerçek SPDX-2.3 ve CycloneDX-1.6 çıkarımı; `.spdx.json` artık SPDX
+  okuyucularla yeniden yüklenebiliyor
+  (`feat(sbom): gercek SPDX-2.3 ve CycloneDX-1.6 cikarimi`).
+
+### Fixed — v2.2.0 sonrası (fix, 29 commit)
+- **desktop/arayüz**: modern arayüz her giriş noktasından açılıyor ve dosya
+  `argv`'si artık webview'a ulaşıyor; GUI bayat gömülü sidecar'ı değil kurulu
+  Python ağacını çalıştırıyor; `toast` timer'ı unmount'ta susuyor ve ikili
+  yoksa kurulum artık uyarıyor; Tauri köprüsü yokken ham JS hatası yerine
+  anlaşılır sebep; `tsc -b`'yi kıran TS2556 giderildi.
+- **kuyruk / çok-örnek**: kuyruk kalıcılığı worker thread'lerde sessizce
+  düşüyordu (`sqlite3` `check_same_thread`) ve tek-örnek devri kanallı kuyruk
+  RPC'sine alındı; RPC yol ayrımı gerçekleşti, `atexit` çabuklaştı, SC2155
+  giderildi.
+- **i18n (12 commit)**: çekirdek modüllerin ve CLI/yardım/doktor çıktılarının
+  kullanıcı metinleri kataloga alındı; JSON-RPC hata metinleri kullanıcının
+  dilinde; uyumluluk kontrolünün AD ve MESAJ metinleri çevrildi (12 mesaj,
+  9 yeni anahtar); EN kataloğundaki 127 yarı-Türkçe değer gerçek İngilizceye
+  çevrildi; `tr()` konumlu-şablon `IndexError`'ını da yutuyor (çeviri CLI'i
+  düşürmüyor); sekizli kaçış bozulması, eksik anahtarlar ve SBOM özeti
+  çevrildi; CSV dışa aktarma başlığı çevrildi ve çeviri kalesi `ui/` +
+  `config.py`'ye genişletildi; pacman yerel hatası ve polkit anotasyonu
+  düzeltmeleri çeviriyle birlikte gitti.
+- **güvenlik**: uzun yol girdisi CLI/RPC'yi düşürmüyor, glob enjeksiyonu
+  kapandı; SBOM artık bütün dosya ağacını sınırsız dolanmıyor
+  (`dep_resolver`/`security`).
+- **derleme/analiz**: yerelleştirme ve PIE yüzünden SONSUZ kalan kütüphane
+  analizi yeniden açıldı; dönüşüm CLI'i artık gerekçeyi de basıyor; düşürülen
+  maintainer betikleri yüzeye çıkarıldı, ruff ve audit kapısı yeşile çekildi.
+- **paketleme/AUR**: `.SRCINFO` gerçekten üretiliyor (üretilmiyorsa publish
+  erken duruyor); `pkgforge-git` AUR paketi Tauri arayüzünü gerçekten
+  derliyor ve kopya `mtime` yanıltması kapatıldı; PKGBUILD'in kendi kendisiyle
+  çakışması ve `build/` artıklarının ignore dışında kalması giderildi;
+  `pyproject` tablosu geri kondu, npm yığını tek parça yükseltildi, DNS'li
+  fuzz testi çevrimdışı koşuyor.
+- **CI/kurulum**: E2E harness'i hız-duyarlı kuyruk + teşhis ile düzeltildi;
+  kendi-kendine-iyileşen kapı doğru kıyası baktı; `undici` 8.11.2'ye
+  yükseltilerek high-severity audit bulguları temizlendi.
+
+### Changed — v2.2.0 sonrası (chore + test + docs, 23 commit)
+- **deps**: `uvicorn` 0.54.0 ve `pydantic` 2.14.1 tabanları (#34 + #48),
+  `hypothesis` 6.168.5 ve `pyinstaller` 6.22.3 (#49), `fastapi` >= 0.143.0,
+  `tomli` >= 2.5.0, actions grubu (6 güncelleme); Tauri yığını tek parça
+  2.12'ye yükseltildi (#35–#39 yerine).
+- **kapılar**: kapı araçları CI ile aynı sürüme sabitlendi, snapshot dalları
+  %100'e tamamlandı; gerçek UÇTAN UCA harness artık CI'da koşuyor.
+- **test (11 commit)**: dal-kesen birim test dalgası — `intake` 122,
+  `cli` 72 + 21, `doctor` 57, `sbom` 81, `abi-scanner` 69, `score` 59,
+  `dep-resolver` 46 + 60, `history_db` saniye-sınırı eşitliği ve `Convert`
+  testindeki mock sızıntısı giderilmesi.
+- **docs**: README durum rakamları yeniden ölçüldü (2026-10-14); akademik
+  referanslar eklendi ve ölü rozet çapaları düzeltildi; tek-örnek kilidi
+  denemesi ölçümleriyle kaydedildi (geri alındı); kalan adımlar ölçülmüş
+  duruma göre yeniden yazıldı.
+
 ### Changed — gelir stratejisi sadeleştirme (2026-09-18)
 - **Gelir modeli**: 3-aşamalı plan (sponsorluk → eşik → open core) tek
   katman pasif sponsorluğa indirgendi. 500/ay kurulum eşiği erişilemezdi

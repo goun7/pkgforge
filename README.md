@@ -4,12 +4,17 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-7412%20collected-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-7443%20passed-brightgreen)](#-running-tests)
 [![Coverage](https://img.shields.io/badge/coverage-99.68%25-brightgreen)](#-running-tests)
 [![mypy](https://img.shields.io/badge/mypy-0%20errors-brightgreen)](#-running-tests)
 [![Security](https://img.shields.io/badge/bandit-0%20high-brightgreen)](#-security-architecture)
-[![Desktop](https://img.shields.io/badge/desktop-588%20vitest%20tests-brightgreen)](desktop/)
+[![Desktop](https://img.shields.io/badge/desktop-594%20vitest%20tests-brightgreen)](#-running-tests)
 [![Ruff](https://img.shields.io/badge/ruff-0%20errors-brightgreen)](#-running-tests)
+
+> Rozet sayıları elle yazılmaz; **aşağıdaki "Current status" bloğundaki** ölçüm
+> komutlarından üretilir (`7443 passed` = tam `make verify` koşusu, `594` = vitest test
+> bildirimi sayımı). Coverage rozeti CI tarafından güncellenir
+> (`.github/workflows/test.yml` "Update Coverage Badge" adımı).
 
 **PkgForge** converts Debian (`.deb`) and RedHat (`.rpm`) packages into Arch Linux compatible `.pkg.tar.zst` packages. It features a **high-speed pure Python native converter**, **Bubblewrap sandbox isolation**, **full Headless CLI**, **Tauri desktop app**, **URL direct downloading**, **package lifecycle management (uninstall & rollback)**, and **upstream update tracking**.
 
@@ -50,7 +55,7 @@ $ pkgforge convert hello_1.0.0-1_amd64.deb --dry-run
 ## 🎯 Key Features
 
 - **⚡ Fast Pure Python Native Converter**: Converts `.deb` packages directly into `PKGBUILD` and `.pkg.tar.zst` in seconds without slow external scripts.
-- **🛡️ 12 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256, Path Traversal, and **ClamAV malware scanning** checks.
+- **🛡️ 12 Security Layers & Bubblewrap Sandbox**: Executes `makepkg` and conversions inside isolated `bwrap` sandboxes with strict MIME, GPG, SHA-256 and Path Traversal checks, plus **optional ClamAV malware scanning** (`clamav` is an `optdepends` entry; the scan is reported as skipped when `clamscan` is not installed).
 - **💻 Dual Interface (Headless CLI + Tauri Desktop)**: CLI runs without any GUI dependencies. The primary graphical interface is the Tauri 2 + React desktop app (`desktop/`, build with `cd desktop && pnpm tauri build`). Every graphical intent prefers it: `pkgforge desktop`, `pkgforge --file X.deb`, and the file manager's "Open with" entry all launch the Tauri shell and hand it the package files. The legacy PyQt6 GUI (`pkgforge gui`) is frozen — security fixes only, removal planned for v3.0, and it now points at the modern UI when that is installed.
 - **🖥️ Native Tauri Desktop App**: A modern Tauri 2 + React 19 shell (in `desktop/`) with tr/en i18n, theme + accent colors, command palette, feature tour, lazy-loaded pages, and a Python sidecar over JSON-RPC. Build with `cd desktop && pnpm tauri build`.
 - **🌐 Direct URL Conversion**: Download and convert packages directly from HTTP/HTTPS links (`pkgforge convert https://...`).
@@ -208,16 +213,26 @@ converter can never make a genuinely malicious package safe, so the goal is to
 |---|----------------|-------------|
 | 1 | **MIME Type Validation** | Strict `file --mime-type` checking for genuine `.deb` / `.rpm` archives |
 | 2 | **GPG Signature Detection** | Detects embedded signatures (presence check — **not** a trust-chain verification, since third-party packages are rarely signed against a known keyring) |
-| 3 | **SHA-256 Integrity** | Computes the file hash; for URL downloads it is **verified** against a caller-supplied checksum when provided |
+| 3 | **SHA-256 Integrity** | Computes the file hash; for URL downloads it is compared against a caller-supplied checksum **when the caller supplies one** — no checksum passed means no integrity anchor |
 | 4 | **Path Traversal & Symlink Shield** | Rejects archives containing `../` escapes and extracted symlinks that point outside the build tree |
 | 5 | **HTTPS-Only Downloads** | URL downloads require HTTPS by default (plain `http://` is opt-in via the `allow_insecure_http` setting) to prevent MITM tampering |
-| 6 | **Bubblewrap Sandbox** | Runs `makepkg` inside restricted `bwrap` container mounts with `--unshare-net` |
-| 7 | **Namcap Static Analysis** | Runs Arch Linux `namcap` static analysis (quality/packaging lint) |
+| 6 | **Bubblewrap Sandbox** | Runs `makepkg` inside restricted `bwrap` container mounts with `--unshare-net` — `bubblewrap` is an **`optdepends`** entry: without it the layer is skipped, not failed-open silently (doctor reports it) |
+| 7 | **Namcap Static Analysis** | Runs Arch Linux `namcap` static analysis (quality/packaging lint) — `namcap` is an **`optdepends`** entry; when it is not installed the check reports "eksik" (`core/compatibility_checker.py::_run_namcap`) |
 | 8 | **Dependency Resolution** | Resolves required packages and shared libraries dynamically via `pacman -Fq` |
 | 9 | **File Conflict Detection** | Scans the system via `pacman -Qo` to prevent file collisions |
 | 10 | **Shared Library Audit** | `ldd` analysis to detect missing ELF shared objects and glibc requirements |
 | 11 | **Polkit Privilege Gate** | Privileged installation runs exclusively via `pkexec`, with an explicit confirmation step (`--yes` to bypass in CLI) |
 | 12 | **Orphan Cleanup GC** | Automated purge of stale `/tmp/pkgforge_*` directories on startup |
+
+> **Koşullu katmanlar (ölçüldü 2026-10-17).** `namcap`, `bubblewrap` ve `clamav`
+> kök `PKGBUILD`'de `depends` değil **`optdepends`** satırıdır (`grep -n "optdepends" -A12 PKGBUILD`).
+> Araç kurulu değilse ilgili katman **çalışmaz ve atlandığı raporlanır**
+> (`core/compatibility_checker.py::_run_namcap` → `WARNING` + "namcap bulunamadı,
+> statik analiz atlandı"; `core/malware_scanner.py` → "clamscan bulunamadı — ClamAV
+> taraması atlandı"). Yani 12 katman, 12'si de kurulu bir Arch sisteminde
+> geçerlidir; bu makinede `namcap` kurulu, `clamscan` **değil**
+> (`which namcap clamscan`). Ayrıca "ClamAV malware scanning" bir varsayılan
+> özellik değil, isteğe bağlı bir tarayıcıdır.
 
 > ⚠️ **Trust note:** The sandbox protects the *build* step. The final
 > `pacman -U` installs files onto your real system as root. Always review the
@@ -235,31 +250,84 @@ pip install -e ".[dev]"
 make verify     # ruff + mypy + bandit + full pytest with coverage gate
 ```
 
-Current status (measured 2026-10-16, `make verify` + frontend gates + Rust
-`cargo test`):
-**7437 tests collected, full suite exit 0 (0 failed)** · coverage
-**99.68%** on `core/`+`ui/`+`i18n/` (13 193 statements, 42 missed) ·
-mypy --strict: 0 errors (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`,
-imports followed) · bandit CI-parity: clean (-ll 0 Medium/0 High) ·
-ruff: 0 findings repo-wide · i18n parity 1345/1345 (tr/en) ·
-desktop: 592/592 vitest (exit 0, "errors 0"), `tsc -b` 0 errors, `vite build` ok · Rust
-`cargo test --release`: 4/4 ·
-headless visual tour: 12/12 pages render non-blank ·
-GitHub Actions on `master`: 19/19 jobs green (Python 3.10–3.14, multi-distro,
-coverage gate, supply-chain, keyring-live, desktop build, visual-qa, e2e).
-Real `tauri build --no-bundle` + PyInstaller sidecar built and
-`pkgforge --file <real .deb>` opened the Tauri shell, converted the package
-and reached the approval gate on this machine.
-`bash desktop/scripts/e2e-integration.sh` (real app + sidecar + JSON-RPC +
-clean shutdown): **ALL CHECKS PASSED**.
-Lint/type/security tool versions are pinned in `requirements-lint.txt` so
-`make verify` and CI run the identical versions.
+Current status — her rakam, altında yazılı komutla yeniden üretilebilir.
+Kapsama / mypy / bandit / ruff satırları **2026-10-16** `make verify` koşusunun
+kayıtlı sonucudur; bu oturumda tam suit **yeniden koşmadı** (bilinçli: suit
+uzun). 2026-10-17'de yeniden ölçülenler: pytest toplaması, vitest bildirimi,
+i18n anahtar sayıları, `cargo test` ve CI job koşusu sayısı.
+
+| Metrik | Değer | Üretim komutu |
+|---|---|---|
+| Python test **koşusu** | **7443 passed / 4 skipped / 0 failed**, kapsama %99,65 (`make verify` RC=0, 2026-10-17 04:25) · **7447** toplanıyor | `./.venv/bin/python -m pytest --collect-only -q tests` (dosya-başına sayım satırlarının toplamı: `... \| grep -E "^tests/[^ ]+\.py: [0-9]+$" \| awk -F': ' '{s+=$2} END {print s}'`) |
+| Tam suit sonucu | 2026-10-16 koşusunda exit 0 / 0 failed | `make verify` (bu oturumda **koşmadı**) |
+| Kapsama | **%99.68** — 13 193 ifade, 42 eksik (`core/`+`ui/`+`i18n/`) | `./.venv/bin/python -m coverage json -o /tmp/cov.json && python -c "import json;t=json.load(open('/tmp/cov.json'))['totals'];print(t['percent_covered'],t['num_statements'],t['missing_lines'])"` (mevcut `.coverage` veri dosyasını okur; kapı `pyproject.toml` `fail_under = 99`) |
+| mypy --strict | 0 hata (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`) | `make verify` |
+| bandit | `-ll`: 0 Medium / 0 High | `make verify` |
+| ruff | 0 bulgu (repo geneli) | `ruff check .` |
+| i18n paritesi | **1347 / 1347** anahtar, anahtar kümeleri özdeş | `LC_ALL=C grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py` · küme eşitliği: `tests/test_i18n_parity.py` |
+| Masaüstü (TS) | **594** vitest test bildirimi (55 `*.test.ts(x)` dosyası) · masaüstü sözlüğü **608 tr + 608 en** anahtar | `find desktop/src -name '*.test.ts' -o -name '*.test.tsx' \| xargs grep -cE "^[[:space:]]*(it\|test)\(" \| awk -F: '{s+=$2} END {print s}'` · sözlük: `LC_ALL=C grep -cE '^    [A-Za-z_][A-Za-z0-9_]*: ' desktop/src/lib/i18n.ts` → 1216 |
+| Rust | **8 passed / 0 failed** | `cd desktop/src-tauri && cargo test --release --offline` (2026-10-17 bu makinede gerçekten koşuldu) |
+| GitHub Actions | **19 job koşusu / 19 yeşil**, `master` @ `4f25178` | `gh run view <son-run> --json jobs --jq '.jobs\|{total:length,success:[.[]\|select(.conclusion=="success")]\|length}'` |
+
+**Okur için uyarılar (yanıltıcı olmasın):**
+
+- **7447 bir toplama (collection-only), 7443 geçme sayısıdır** — ikisi de 2026-10-17
+  04:25'te bu makinede `make verify` ile gerçekten koşuldu (RC=0). Geçmişte bu
+  satırlarda duran 7447 yalnızca bir toplama sayısıydı ve geçme iddiası taşımıyordu. Bu
+  belgeyi yazarken tam suit kasıtlı olarak koşmadı; "kaç test geçiyor" iddiası
+  ancak `make verify` çıktısıyla doğrulanır.
+- i18n'de iki sayı dolaşıyor ve **ikisi de üretilabilir**: katalogdaki gerçek
+  anahtar sayısı 1347'dir; `LC_ALL=C grep -cE '^    "[^"]+": '` (tam 4 boşluk)
+  **1332** verir, çünkü 14 satır 2 boşlukla girintilenmiştir. Sabit-4-boşluk
+  grep'i olan 1332'yi anahtar sayısı sanmak hatadır; 1332 + 15 = 1347.
+- 594 **bildirim (declaration) sayımıdır**, yeşil koşu kanıtı değildir.
+  `it.each` kullanımı yoktur (0), bu yüzden sayım olağan durumda koşum
+  sayısıyla eşleşir; yine de "594/594 geçti" cümlesi ancak
+  `cd desktop && pnpm test` ile kanıtlanır (bu makinede `pnpm` proje içinden çalışmıyor; bkz. `AGENTS.md`).
+  Çalışan ağaçta 2 bildirimi olan izlenmemiş bir WIP dosyası daha vardır → 594.
+- **CI'da "multi-distro" yoktur.** `test.yml` 13 job tanımlar; 19 koşusu
+  şöyledir: `test` matrix'i 5 Python sürümü (3.10–3.14) + `multi-distro`
+  matrix'i 3 Python sürümü (3.10/3.12/3.14) + 11 tek job. `multi-distro`
+  matrix'inin `os` listesi **yalnızca `[ubuntu-latest]`**
+  (`.github/workflows/test.yml:480`) — ad tarihseldir; windows/macos koşuları
+  "sahte-yeşil ya da gereksiz-kırmızı" ürettiği için kaldırıldı (aynı dosyadaki
+  F1 yorumu), Arch gerçeğini **ubuntu runner içindeki `arch-smoke` container
+  job'u** (`image: archlinux:latest`) kapsar.
+- **Grep sayımlarında `LC_ALL=C` kullanın (bu depo için kritik).** Geliştirme
+  makinesinin yerel ayarı `tr_TR.UTF-8` (`echo $LANG`); GNU grep bu yerel
+  ayarda `[A-Za-z]` aralık sınıflarını sessizce yanlış çözüyor. Ölçüldü
+  2026-10-17: `grep -cE '^    [A-Za-z_][A-Za-z0-9_]*: ' desktop/src/lib/i18n.ts`
+  = **532** (yanlış) vs `LC_ALL=C grep -cE` aynı desenle = **1216** (doğru).
+  Tırnaklı/`[[:space:]]` tabanlı desenler etkilenmedi; yine de tablodaki tüm
+  grep komutlarını `LC_ALL=C` önekiyle koşun.
+- **Bu rakamlar `master` @ `4f25178` içindir, dağıtılan etiket için değil.**
+  `git rev-parse --short HEAD` ile kendi HEAD'inizi doğrulayın (oturum
+  sırasında değişebilir). Aynı komutun kardeşi
+  `git log v2.2.0..HEAD --oneline | wc -l` = **58**: `master`, etiketlenmiş
+  v2.2.0'dan 58 commit ileride; yani AUR'daki stable `pkgforge` bu
+  düzeltmelerin hiçbirini **içermiyor** (ayrıntı: `RELEASE_READINESS.md`).
+- **Uçtan uca doğrulanmış davranışlar (ölçüldü 2026-10-16, bu makine):** gerçek
+  `tauri build --no-bundle` + PyInstaller sidecar derlendi;
+  `pkgforge --file <gerçek .deb>` Tauri kabuğunu açtı, paketi dönüştürdü ve
+  onay kapısına kadar geldi. `bash desktop/scripts/e2e-integration.sh`
+  (gerçek kabuk + sidecar + JSON-RPC + temiz kapanış) **ALL CHECKS PASSED**
+  verdi. Başsız görsel tur: 12/12 sayfa boş render etmiyor.
+  Lint/tip/güvenlik araç sürümleri `requirements-lint.txt`'te sabittir, böylece
+  `make verify` ile CI aynı sürümleri koşar.
+- **Doğrulanmamış olan:** Rust→JS *özel* olayların webview dinleyucusuna
+  ulaştığı kanıtsızdır; sidecar'ın `event/*` itmelerinin JS'e ulaştığını da
+  **kanıtlamadık**. Bu yüzden "masaüstünde canlı güncellemeler çalışıyor"
+  cümlesi doğrulanmış bir önerme değildir
+  (`RELEASE_READINESS.md` "tek-örnek" bölümü, `docs/DEAD_CODE_AUDIT.md`
+  → "Bilinmeyen").
 
 > **What the numbers do not prove.** High coverage is necessary but not
 > sufficient: this release still shipped a launcher that could not open,
 > because the failure was in the *install/build* layer that unit tests do
 > not exercise. Verified install + real launch is the only trustworthy
-> end-to-end gate — see `docs/RELEASE_READINESS.md`.
+> end-to-end gate — see `RELEASE_READINESS.md` (kök dizindeki güncel, ölçülmüş
+> belge; `docs/RELEASE_READINESS.md` yalnızca v1.1.0 döneminin tarihsel
+> anlık görüntüsüdür).
 
 ---
 
@@ -303,7 +371,7 @@ Distributed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-l
   [arXiv:2503.21705](https://arxiv.org/abs/2503.21705)
 
 - **[4] Linux Dağıtımlarında Kötücül Yazılım Önleme Üzerine Bir İnceleme** — *A Study of Malware Prevention in Linux Distributions* — Vu et al., arXiv 2024.
-  XZ Utils arka kapısı sonrası paket depolarında kötücül yazılım tespiti ve önleme; pkgforge'in ClamAV kötücül yazılım taraması ve 12 katmanlı güvenlik mimarisinin akademik karşılığı.
+  XZ Utils arka kapısı sonrası paket depolarında kötücül yazılım tespiti ve önleme; pkgforge'in **isteğe bağlı** (`optdepends`) ClamAV kötücül yazılım taraması ve 12 katmanlı güvenlik mimarisinin akademik karşılığı.
   [arXiv:2411.11017](https://arxiv.org/abs/2411.11017)
 
 - **[5] Ayrıcalıksız Konteyner Görüntüsü Derlemesi İçin Sıfır-Tutarlılıkta Root Emülasyonu** — *Zero-consistency root emulation for unprivileged container image build* — Priedhorsky et al., arXiv 2024.
