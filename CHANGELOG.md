@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 > Bu bölüm bir sonraki sürüm için boş tutulur.
 
-## [2.2.1] - 2026-10-17
+## [2.2.2] - 2026-10-18
 
 > **v2.2.0 sonrası 68 commit'in son 10'u (2026-10-17 otonom turu).**
 > Sayım komutları: `git log v2.2.0..HEAD --oneline | wc -l` → **68**
@@ -43,6 +43,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   kanıtlandı (10-16'daki "ulaşmıyor" iddiası test-rig kusuru olarak
   çürütüldü; 89 emit → 96 webview rapor satırı) (`e42b814`, `722e7b6`);
   tur kapanış raporu `docs/OTONOM_TUR_RAPORU_2026-10-17.md`.
+
+### Fixed — CI onarımı (v2.2.1 etiketi yayınsız kaldı, bu sürüme alındı)
+- v2.2.1 etiketi CI'da kırmızı kalan bir commit'e atılmıştı; release
+  workflow'unun gate'i testlerden önce hiç asset üretmedi durdu, dolayısıyla
+  yayınlanmış v2.2.1 içeriği yok (runbook: tag taşınmaz → yeni patch).
+- **ci**: sidecar testleri sabit `.venv/bin/python` ve `gen/schemas/
+  acl-manifests.json` (tauri-build çıktısı) varsayiyordu; CI'da ikisi de
+  yoktu. Yorumlayıcı artık `sys.executable`'a düşüyor, ACL testi çıktı
+  yoksa atlıyor.
+- **ci**: canlı RPC testleri CI (ubuntu) image'inde `makepkg` olmadığı için
+  boş olay listesiyle patlıyordu; artık sistem aracı eksikse atlıyor
+  (`PF_TEST_ARAC_EKSIK=1` ile koşul yeniden üretildi).
 
 ### Kapılar (2026-10-17 ölçümü)
 - Python: **7494 test (7490 pass + 4 skip)** — ruff, mypy --strict, bandit
