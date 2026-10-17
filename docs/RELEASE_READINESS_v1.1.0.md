@@ -19,7 +19,7 @@
 > "PRODUCTION-READY" hükmü **bu belgeden alıntılanamaz** — mevcut kapılar
 > `make verify`, `desktop/scripts/e2e-integration.sh` ve CI'dır.
 > Buradaki "vitest 582/582" ve "i18n 766/766" satırları 2026-08-31 sayısıdır;
-> bugünkü ağaçta vitest bildirimi 594, i18n anahtar sayısı 1347'dir.
+> bugünkü ağaçta vitest bildirimi 594, i18n anahtar sayısı 1345'tir.
 
 **Date:** 2026-08-21 · **Last updated:** kritiksizlik taraması (goal-4bc2fb3f)
 **Auditor:** automated deep-audit (goal-driven overnight pass)

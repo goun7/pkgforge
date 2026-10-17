@@ -264,7 +264,7 @@ i18n anahtar sayıları, `cargo test` ve CI job koşusu sayısı.
 | mypy --strict | 0 hata (`core/`+`cli.py`+`main.py`+`config.py`+`ui/`) | `make verify` |
 | bandit | `-ll`: 0 Medium / 0 High | `make verify` |
 | ruff | 0 bulgu (repo geneli) | `ruff check .` |
-| i18n paritesi | **1347 / 1347** anahtar, anahtar kümeleri özdeş | `LC_ALL=C grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py` · küme eşitliği: `tests/test_i18n_parity.py` |
+| i18n paritesi | **1345 / 1345** anahtar, anahtar kümeleri özdeş | `LC_ALL=C grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py` · küme eşitliği: `tests/test_i18n_parity.py` |
 | Masaüstü (TS) | **594** vitest test bildirimi (55 `*.test.ts(x)` dosyası) · masaüstü sözlüğü **608 tr + 608 en** anahtar | `find desktop/src -name '*.test.ts' -o -name '*.test.tsx' \| xargs grep -cE "^[[:space:]]*(it\|test)\(" \| awk -F: '{s+=$2} END {print s}'` · sözlük: `LC_ALL=C grep -cE '^    [A-Za-z_][A-Za-z0-9_]*: ' desktop/src/lib/i18n.ts` → 1216 |
 | Rust | **8 passed / 0 failed** | `cd desktop/src-tauri && cargo test --release --offline` (2026-10-17 bu makinede gerçekten koşuldu) |
 | GitHub Actions | **19 job koşusu / 19 yeşil**, `master` @ `4f25178` | `gh run view <son-run> --json jobs --jq '.jobs\|{total:length,success:[.[]\|select(.conclusion=="success")]\|length}'` |
@@ -277,9 +277,9 @@ i18n anahtar sayıları, `cargo test` ve CI job koşusu sayısı.
   belgeyi yazarken tam suit kasıtlı olarak koşmadı; "kaç test geçiyor" iddiası
   ancak `make verify` çıktısıyla doğrulanır.
 - i18n'de iki sayı dolaşıyor ve **ikisi de üretilabilir**: katalogdaki gerçek
-  anahtar sayısı 1347'dir; `LC_ALL=C grep -cE '^    "[^"]+": '` (tam 4 boşluk)
+  anahtar sayısı 1345'tir; `LC_ALL=C grep -cE '^    "[^"]+": '` (tam 4 boşluk)
   **1332** verir, çünkü 14 satır 2 boşlukla girintilenmiştir. Sabit-4-boşluk
-  grep'i olan 1332'yi anahtar sayısı sanmak hatadır; 1332 + 15 = 1347.
+  grep'i olan 1332'yi anahtar sayısı sanmak hatadır; 1332 + 13 = 1345.
 - 594 **bildirim (declaration) sayımıdır**, yeşil koşu kanıtı değildir.
   `it.each` kullanımı yoktur (0), bu yüzden sayım olağan durumda koşum
   sayısıyla eşleşir; yine de "594/594 geçti" cümlesi ancak

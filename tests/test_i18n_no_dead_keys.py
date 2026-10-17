@@ -53,6 +53,27 @@ def _ts_dosyalari() -> list[Path]:
     ]
 
 
+def _tr_icinde_mi(kok: ast.AST, hedef: ast.JoinedStr) -> bool:
+    """Hedef f-string bir tr(...) cagrisinin icinde mi?
+
+    tr() cagrisinin herhangi bir argumaninda yer alan JoinedStr'ler dinamik
+    anahtar uretiyor sayilir; baska yerlerdeki (degisken atamalari gibi)
+    f-string'ler sayilmaz.
+    """
+    for dugum in ast.walk(kok):
+        if isinstance(dugum, ast.Call):
+            f = dugum.func
+            isim = f.id if isinstance(f, ast.Name) else (
+                f.attr if isinstance(f, ast.Attribute) else None)
+            if isim == "tr":
+                for arg in list(dugum.args) + [
+                        kw.value for kw in dugum.keywords]:
+                    for alt in ast.walk(arg):
+                        if alt is hedef:
+                            return True
+    return False
+
+
 def _kullanim() -> tuple[set[str], set[str]]:
     """(kullanimda görülen metinler, dinamik cagri on ekleri)"""
     kullanim: set[str] = set()
@@ -63,6 +84,15 @@ def _kullanim() -> tuple[set[str], set[str]]:
             if isinstance(dugum, ast.Constant) and isinstance(dugum.value, str):
                 kullanim.add(dugum.value)
             elif isinstance(dugum, ast.JoinedStr) and dugum.values:
+                # Olculen bug (2026-10-17): her f-string'in on eki i18n on eki
+                # sayiliyordu. handlers_queue.py:194'teki `item_id = f"q{seq}"`
+                # bir tr() cagrisi degil, ama "q" on eki butun "queue.*"
+                # ailesini ("queue.done" gibi) canli gibi gosteriyordu —
+                # 5 dead anahtar kilicin altindan sessizce alisti.
+                # Simdi yalnizca bir tr(...) cagrisinin ICINDeki f-string
+                # on ekleri dinamik anahtar sayiliyor.
+                if not _tr_icinde_mi(agac, dugum):
+                    continue
                 ilk = dugum.values[0]
                 if isinstance(ilk, ast.Constant) and isinstance(ilk.value, str):
                     onekler.add(ilk.value)
@@ -106,3 +136,39 @@ def test_ayni_kullanim_kumesi_anahtar_uretmiyor():
 def test_katalog_bos_anahtar_ictirmiyor(katalog: dict[str, str]):
     """Bos anahtar kullanim kumesini "her seyle eslesir" yapmasin."""
     assert "" not in katalog
+
+
+# --- 2026-10-17: tr() disi f-string on eki kilidi ---------------------------
+
+def test_tr_disi_f_string_on_ek_i18n_canliligi_yanlis_eqlemesin():
+    """`f"q{seq}"` gibi tr() disi bir f-string "queue.*" ailesini canli
+    gosterMEMELI. 2026-10-17'da `core/api/handlers_queue.py:194`'teki
+    `item_id = f"q{_queue_seq}"` yuzunden 5 dead queue.* anahtari kilicin
+    altindan gecti (kirmizi kanit: `_tr_icinde_mi` kaldirilinca bu test
+    fail verir)."""
+    _, onekler = _kullanim()
+    assert "q" not in onekler, (
+        "tr() cagrisi OLMAYAN bir f-string'in 'q' on eki toplandi — bu 'queue.*' "
+        "ailesini yanlis canli gosterir. guard tekrar bozulmus."
+    )
+
+
+def test_tr_icindeki_f_string_on_eki_canli_sayiliyor():
+    """`tr(f"month.{mm}")` gibi gercek dinamik kullanim canli kalmali."""
+    _, onekler = _kullanim()
+    assert "month." in onekler, (
+        "stats_wrapped.py'daki tr(f\"month.{int(mm)}\") cagrisi canli bir "
+        "anahtar ailesi uretiyor — on ek tespiti bozulmus."
+    )
+
+
+def test_queue_dead_anahtarlar_katalogdan_cikarildi():
+    """queue.{item_status,waiting,converting,done,error} anahtarlari
+    2026-10-17'de gercekten dead olculup silindi; kataloglara geri
+    donerlerse bu test fail verir."""
+    for katalog, isim in [(TR, "TR"), (EN, "EN")]:
+        for k in ("queue.item_status", "queue.waiting",
+                  "queue.converting", "queue.done", "queue.error"):
+            assert k not in katalog, (
+                f"{isim} katalogunda {k} geri donmus — dead anahtar "
+                f"birikmesin.")

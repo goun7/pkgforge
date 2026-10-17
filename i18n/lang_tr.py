@@ -203,11 +203,6 @@ STRINGS: dict[str, str] = {
     "about.support": "♥ Destek Ol",
 
     # ── Kuyruk ───────────────────────────────────────────────────
-    "queue.item_status": "{name} — {status}",
-    "queue.waiting": "Bekliyor",
-    "queue.converting": "Dönüştürülüyor",
-    "queue.done": "Tamamlandı",
-    "queue.error": "Hatalı",
     "queue.title": "Paket Kuyruğu",
     "queue.completed": "✓ {done}/{total} paket tamamlandı",
     "queue.view_result": "Detay",

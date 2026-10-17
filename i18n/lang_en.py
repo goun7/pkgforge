@@ -203,11 +203,6 @@ STRINGS: dict[str, str] = {
     "about.support": "♥ Sponsor",
 
     # ── Queue ────────────────────────────────────────────────────
-    "queue.item_status": "{name} — {status}",
-    "queue.waiting": "Waiting",
-    "queue.converting": "Converting",
-    "queue.done": "Completed",
-    "queue.error": "Error",
     "queue.title": "Package Queue",
     "queue.completed": "✓ {done}/{total} packages completed",
     "queue.view_result": "Details",

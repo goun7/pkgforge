@@ -35,7 +35,7 @@
 > sayımların toplamı) · kapsama **%99.65 — 13 219 ifade / 46 eksik**
 > (`./.venv/bin/python -m coverage json` + `totals` alanları; 2026-10-16
 > `make verify` koşusunun `.coverage` veri dosyasından okundu) ·
-> i18n paritesi **1347/1347**, anahtar kümeleri özdeş
+> i18n paritesi **1345/1345**, anahtar kümeleri özdeş
 > (`grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py`;
 > dikkat: tam-4-boşluk grep `^    "` 1332 verir, 14 satır 2 boşlukla
 > girintili) · masaüstü vitest **bildirimi 594** (55 izlenen test dosyası;

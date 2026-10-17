@@ -26,7 +26,7 @@ silinenler ve **bilerek silinmeyenler** kaydıdır.
 | Eksen | Taranan | Ölü bulunan | İşlem |
 |---|---|---|---|
 | Python modülü (`core/`, `ui/`) | 111 | 0 (yalnızca 7 `__init__.py`) | gerek yok |
-| TR/EN i18n anahtarı (dil başına) | 1417 → **1416 yeniden ölçüldü** | **72** (doğrulandı) | silindi → 1345 · bugün **1347** |
+| TR/EN i18n anahtarı (dil başına) | 1417 → **1416 yeniden ölçüldü** | **72** (doğrulandı) | silindi → 1345 · bugün **1345** |
 | Masaüstü `i18n.ts` anahtarı (dil başına) | 616 (doğrulandı) | **8** (doğrulandı) | silindi → 608 · bugün de **608** |
 | İzlenen dosya | 1690+ → **829 yeniden ölçüldü** | **69** (65 net düşüş ölçüldü) | silindi (1,09 MB) |
 
@@ -39,9 +39,9 @@ silinenler ve **bilerek silinmeyenler** kaydıdır.
 >   → o commit **72 ölü anahtarı sildi ve 1 anahtar ekledi**
 >   (1416 − 72 + 1 = 1345). Yani "72 silindi" satırı **birebir doğru**;
 >   "1417 taranan" ise ağaçtan üretilemiyor — yeniden ölçülen taranan sayı
->   **1416**'dır. Bugünkü sayı **1347** (2026-10-17'de `api.istem_satiri_cok_uzun` eklendi): `327a077` sonrasında 1 anahtar ekledi.
+>   **1416**'dır. Bugünkü sayı **1345** (2026-10-17'de `api.istem_satiri_cok_uzun` eklendi): `327a077` sonrasında 1 anahtar ekledi.
 > - Bugünkü Python anahtar sayısı:
->   `LC_ALL=C grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py` → **1347 / 1347**.
+>   `LC_ALL=C grep -cE '^[[:space:]]+"[^"]+": ' i18n/lang_tr.py i18n/lang_en.py` → **1345 / 1345**.
 >   Dikkat: tam-4-boşluk deseni (`'^    "[^"]+": '`) **1332** verir — 14 satır
 >   2 boşlukla girintili; bu sayı anahtar sayısı değil, satır sayımıdır.
 > - Masaüstü: `LC_ALL=C grep -cE '^    [A-Za-z_][A-Za-z0-9_]*: ' desktop/src/lib/i18n.ts`
@@ -154,6 +154,50 @@ bir önerme değil; yanlız UI'nin donduğuna dair kullanıcı şikâyeti yok.
 inspector'da `listen()` promise'inin akıbetine bakmak (reddediliyor mu,
 çözümleniyor ama olay mı gelmiyor). Kuyruk devri bu belirsizliğe bağlı
 kalmaması için zaten RPC üzerinden yapılıyor.
+
+## Yeniden koşum
+
+## Üçüncü geçiş (2026-10-17): RPC / TS export / i18n ölü yüzey
+
+Hedef: belirli yüzeylerde kalan ölü kod kalıntılarını ölçmek. Üç eksen
+tamamlandı, hepsi AST/substring taramasıyla üretildi ve elle doğrulandı:
+
+| Eksen | Ölçülen | Ölü | İşlem |
+|---|---|---|---|
+| RPC metotları (`core/api/registry.py` METHODS) | 90 | **0** | gerek yok |
+| Masaüstü TS exportları (`desktop/src`) | 162 | **0** | gerek yok |
+| TR/EN i18n anahtarı | 1350 | **5** (doğrulandı) | silindi → 1345 |
+
+Silinen 5 anahtar (TR ve EN kataloglarının ikisinde de):
+
+- `queue.item_status`, `queue.waiting`, `queue.converting`, `queue.done`,
+  `queue.error` — hiçbir üretim dosyasında, testte, belgede veya masaüstü
+  kataloğunda geçmiyor (`desktop/src/lib/i18n.ts`'te karşılığı yok).
+
+Bu 5 anahtar önceki denetimde yakalanmadı çünkü **kilidin kendisinde bir
+hataydı**: `tests/test_i18n_no_dead_keys.py` her f-string'in başını bir i18n
+anahtar öneki sayıyordu. `core/api/handlers_queue.py:194`'teki
+`item_id = f"q{_queue_seq}"` bir `tr()` çağrısı değil, ama `"q"` öneki bütün
+`queue.*` ailesini canlı gibi gösteriyordu. Düzeltme: yalnızca bir `tr(...)`
+çağrısının **içindeki** f-string'ler dinamik anahtar öneki sayılıyor
+(`_tr_icinde_mi`). Kırmızı kanıt: `tr()` kapsama kontrolü kaldırılınca misma
+tarama 5 anahtarı "canlı" gösteriyor (guard'ın eski davranışı tam olarak
+üretildi). Aynı aile, doğru çalışan taraf için bir **yanlış-pozitif tuzağı**
+da içeriyordu: `month.*` anahtarları gerçekten canlı
+(`core/stats_wrapped.py:22` → `tr(f"month.{int(mm)}")`) — bunlar doğru
+korundu.
+
+Yeni kilitler (`tests/test_i18n_no_dead_keys.py`):
+
+- `test_tr_disi_f_string_on_ek_i18n_canliligi_yanlis_eqlemesin` — `"q"`
+  öneki toplanmamalı (guard tekrar bozulursa FAIL).
+- `test_tr_icindeki_f_string_on_eki_canli_sayiliyor` — `"month."` öneki
+  toplanmalı (gerçek dinamik aile).
+- `test_queue_dead_anahtarlar_katalogdan_cikarildi` — silinen 5 anahtar
+  geri dönerse FAIL.
+
+Parite: TR/EN 1345/1345, anahtar kümeleri özdeş
+(`tests/test_i18n_parity.py`).
 
 ## Yeniden koşum
 

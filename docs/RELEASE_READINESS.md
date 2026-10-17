@@ -23,7 +23,7 @@
 >
 > Ayrıca buradaki "vitest ✅ 582/582" ve "i18n ✅ 766/766" satırları 2026-08-31
 > koşularının sayısıdır; bugünkü ağaçta vitest bildirimi 594, i18n anahtar
-> sayısı 1347'dir (komutlar README'de). **Bu dosyayı bir kapı kanıtı olarak
+> sayısı 1345'tir (komutlar README'de). **Bu dosyayı bir kapı kanıtı olarak
 > alıntılamayın.**
 
 **Date:** 2026-08-21 · **Last updated:** kritiksizlik taraması (goal-4bc2fb3f)
