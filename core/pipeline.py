@@ -12,6 +12,7 @@ import logging
 import os
 import shutil
 import threading
+import time
 from collections.abc import Callable
 from enum import IntEnum
 from pathlib import Path
@@ -206,6 +207,14 @@ class ConversionPipeline(QObject):
         # F4.3 batch mode: when set, a dismissed decision gate means the
         # conversion SUCCEEDED and installation was skipped (not an error).
         self._skip_install_message: str = ""
+        # Olculen bulgu (2026-10-17): kurulum yapilmayan yollarda (kullanici
+        # reddi, dry-run) _cleanup() gecici dizinle birlikte uretilen paketi
+        # de siliyordu — kullanici tam olarak donusturmek istemisti. Bu bayrak,
+        # _cleanup temp dizini silmeden once paketi guvenli yere tasir.
+        self._preserve_converted_pkg: bool = False
+        # _preserve_pkg basarisiz olursa gecici dizin silinmemeli (paketi
+        # kaybetmemek, temizligi gecmeye tercih edilir).
+        self._preserve_failed: bool = False
 
         # Converters and installer (will be created during pipeline).
         # _deb_converter may hold either the native converter or the debtap
@@ -565,6 +574,9 @@ class ConversionPipeline(QObject):
         self._result.converted_pkg = converted_pkg
         self.progress.emit(65)
         self._set_step(PipelineStep.CONVERSION, "done")
+        # Basariyla donusen paket, kurulum yapilmadan biterse bile ayakta
+        # kalmali (cli.py:158 gelenegi: urun girisin yaninda durur).
+        self._preserve_converted_pkg = True
         return converted_pkg
 
     def _run_pipeline(self, file_path: Path) -> None:
@@ -653,7 +665,7 @@ class ConversionPipeline(QObject):
                 if not self._cancelled and self._skip_install_message:
                     # F4.3 batch mode: conversion succeeded, install opted out.
                     msg = self._skip_install_message
-                    self._set_step(PipelineStep.INSTALL, "done")
+                    self._set_step(PipelineStep.INSTALL, "skipped")
                     self.progress.emit(100)
                     self._result.success = True
                     self._result.message = msg
@@ -678,18 +690,25 @@ class ConversionPipeline(QObject):
             # package — stays alive while the user reviews the report.
             if not self._wait_for_decision():
                 if not self._cancelled and self._skip_install_message:
+                    # F4.3 batch mode: conversion succeeded, install opted out.
                     msg = self._skip_install_message
-                    self._set_step(PipelineStep.INSTALL, "done")
+                    self._set_step(PipelineStep.INSTALL, "skipped")
                     self.progress.emit(100)
                     self._result.success = True
                     self._result.message = msg
                     self._log("info", msg)
                     return
-                self._set_step(PipelineStep.INSTALL, "error")
+                if self._cancelled:
+                    self._set_step(PipelineStep.INSTALL, "error")
+                    self._result.success = False
+                    self._result.message = tr("pipeline.iptal_edildi")
+                    return
+                # Kullanici bilerek vazgecti: basarisizlik degil karardir
+                # (AÇIK bulgu 2, 2026-10-17: "✗ Kurulum başarısız" yanilticiydi).
+                self._set_step(PipelineStep.INSTALL, "skipped")
                 self._result.success = False
                 self._result.message = (
-                    tr("pipeline.iptal_edildi") if self._cancelled
-                    else self._decision_message
+                    self._decision_message
                     or tr("pipeline.uyumluluk_uyari_onaylanmadi")
                 )
                 return
@@ -1005,7 +1024,7 @@ class ConversionPipeline(QObject):
         # Dry-run: convert + analyze only, never touch the real system.
         from i18n import load_setting
         if load_setting("dry_run", False):
-            self._set_step(PipelineStep.INSTALL, "done")
+            self._set_step(PipelineStep.INSTALL, "skipped")
             self.progress.emit(100)
             self._result.success = True
             self._result.message = tr("pipeline.pkg_name_donusturuldu_dry", pkg_name=pkg_name)
@@ -1171,14 +1190,82 @@ class ConversionPipeline(QObject):
         except OSError:
             pass
 
+    @staticmethod
+    def _unique_path(dest: Path) -> Path:
+        """Mevcut dosyayi asla ezme: isme sayisal sonek ekle (paket, 2.paket...).
+
+        Sonek tam dosya adinin sonuna eklenir (demo.pkg.tar.zst ->
+        demo.2.pkg.tar.zst), cunku Path.stem coklu uzantilarda (.pkg.tar.zst)
+        sadece son parcadan ayirir ve "demo.pkg.tar.2.zst" gibi bozuk bir
+        isim uretir.
+        """
+        if not dest.exists():
+            return dest
+        name = dest.name
+        for n in range(2, 10000):
+            cand = dest.with_name(f"{name}.{n}")
+            if not cand.exists():
+                return cand
+        return dest.with_name(f"{name}.{int(time.time())}")
+
+    def _preserve_pkg(self, pkg: Path) -> None:
+        """Uretilen paketi gecici dizinden girisin yanina tasi (cli.py:158).
+
+        converts-only yollarinda (kullanici reddi, dry-run) paket,
+        _cleanup'in gecici dizini silmesiyle kaybolmamali. Hedef dizin
+        yazilamazsa veya tasima basarisiz olursa paket yerinde birakilir
+        ve kullaniciya soylenir — sessiz veri kaybi olmaz.
+        """
+        original = self._result.original_file
+        if original is None:
+            return
+        try:
+            dest_dir = original.parent
+        except OSError:
+            return
+        try:
+            dest_dir.mkdir(exist_ok=True)
+            unique = self._unique_path(dest_dir / pkg.name)
+            if unique == pkg:
+                return
+            shutil.move(str(pkg), str(unique))
+            self._result.converted_pkg = unique
+            self._log("info", tr("pipeline.paket_guvene_alindi_hedef", hedef=unique))
+        except OSError as exc:
+            # Paket yerinde birakilir; _cleanup bu durumda gecici dizini
+            # silmemeli (bayrak araciligi ile soyleriz).
+            self._preserve_failed = True
+            self._log("warning", tr("pipeline.paket_tasima_basarisiz_exc", exc=exc))
+
     def _cleanup(self) -> None:
         """Remove temporary directory."""
-        if self._temp_dir and self._temp_dir.exists():
+        if (self._preserve_converted_pkg
+                and self._result.converted_pkg is not None
+                and self._temp_dir is not None
+                and self._is_path_in_dir(self._result.converted_pkg, self._temp_dir)):
+            try:
+                self._preserve_pkg(self._result.converted_pkg)
+            except OSError as exc:
+                # Tasima basarisiz oldu: gecici dizini silmek uretilen paketi
+                # de gotururdu. Kullanici kaybedemesin diye dizini birakiyoruz.
+                self._log("warning", tr("pipeline.paket_tasima_basarisiz_exc", exc=exc))
+                self._preserve_failed = True
+        if self._temp_dir and self._temp_dir.exists() and not self._preserve_failed:
             try:
                 shutil.rmtree(self._temp_dir, onerror=self._on_rm_error)
                 self._log("info", tr("pipeline.geci_dosyalar_temizlendi"))
             except OSError as exc:
                 self._log("warning", tr("pipeline.temizlik_hatasi_exc", exc=exc))
+
+    @staticmethod
+    def _is_path_in_dir(path: Path, directory: Path) -> bool:
+        """Yol `directory` icinde mi, sembolik baglanti fark etmemek icin
+        gerceklestirmeden kontrol et."""
+        try:
+            path.resolve().relative_to(directory.resolve())
+            return True
+        except (ValueError, OSError):
+            return False
 
 
     def _set_step(self, step: PipelineStep, status: str) -> None:
@@ -1192,6 +1279,8 @@ class ConversionPipeline(QObject):
             self._log("error", tr("pipeline.label_basarisiz", label=label))
         elif status == "warning":
             self._log("warning", tr("pipeline.label_uyarilar_mevcut", label=label))
+        elif status == "skipped":
+            self._log("info", tr("pipeline.label_atlandi", label=label))
 
     def _log(self, level: str, message: str) -> None:
         self.log_message.emit(message, level)

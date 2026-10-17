@@ -287,25 +287,32 @@ Tasarım gerçeği (hata değil, not): uyumluluk kapısı kullanıcı kararını
 `event/finished` yalnız onay/red sonrası yayınlanır — yani kuyrukta ikinci dosya,
 birincisinin diyaloğu kapanana kadar başlamaz.
 
-### AÇIK bulgu 1: "yalnızca dönüştür" çıktısı siliniyor (bir sonraki birim)
+### KAPATILDI 2026-10-17 08:16 — bulgu 1 ve bulgu 2 düzeltildi
 
-Ölçülen (toplu kuyruk, `install: false`): `event/finished` → `success: true`,
-`output_pkg=/tmp/pkgforge_qj3e_bxm/convert/hello-1.0.0-1-x86_64.pkg.tar.zst`
-ve aynı yol için **VAR_MI=False** (`/tmp/pf_ev/trace3.out`). `_cleanup()` geçici
-dizini her yolda sildiği için kullanıcının üretmesini istediği paket yok olur;
-arayüz silinmiş bir yolu gösterir ve "kopyala" düğmesi ölü yol verir. CLI'ın
-kuralı (`cli.py:158`: çıktı, girdinin yanına) pipeline'ın kurulum-yapmayan
-yollarında uygulanmıyor.
+**Bulgu 1 (düzeltildi):** `core/pipeline.py` artık dönüşüm başarılı olunca
+`_preserve_converted_pkg` bayrağını kuruyor; `_cleanup()` paketi geçici dizinden
+girdinin yanına (`_result.original_file.parent`, `cli.py:158` kuralı) taşıyor.
+Mevcut dosya **asla ezilmiyor** (`demo.pkg.tar.zst.2` şeklinde sayısal sonek —
+`Path.stem` çoklu uzantılarda parçaladığı için sonek tam adın sonunda).
+Hedef dizin yazılamazsa gecici dizin **silinmiyor** (bayrak: `_preserve_failed`):
+temizlik yerine paketin ayakta kalması tercih edildi; kullanıcı bir uyarı
+loguyla bilgilendiriliyor. Normal kurulum yolu ve "paket zaten dışarıda" durumu
+etkilenmiyor (`_is_path_in_dir` kontrolü).
 
-### AÇIK bulgu 2: kullanıcı kurulumu reddedince log "✗ Kurulum başarısız" diyor
+**Bulgu 2 (düzeltildi):** kullanıcı kurulumu reddettiğinde INSTALL adımı artık
+`skipped` etiketleniyor (`pipeline.label_atlandi`, iki dilde eklendi) ve
+`error`/`label_basarisiz` çıktısı artık yazılmıyor. İptal (`cancel`) hâlâ
+`error` — sessizce karışmadı. `success` semantiği bilerek değiştirilmedi:
+pipeline kullanıcının istediği kurulumu yapamadığı için `False` kalıyor (söz
+leşme değişikliği ayrı bir karar; webview zaten `skipped` durumuda StepIndicator
+gösteriyor).
 
-Ölçülen: `pipeline.dismiss` sonrası adım 5 `error` oluyor ve
-`_set_step(INSTALL, "error")` → `pipeline.label_basarisiz` satırı yazılıyor
-(`core/pipeline.py:1191`), oysa `_do_install` hiç çağrılmamıştı
-(`tests/test_pipeline_gate.py`'in `installed == []` pazarlığı). Kurulum
-**başarısız olmadı**, kullanıcı reddetti. Toplu modun `_skip_install_message`
-dalı aynı sonucu `success: true` + "kurulum atlandı" ile bildiriyor; etkileşimli
-yol `success: false` + kırmızı toast + kuyrukta "failed" üretiyor.
+Kırmızı→yeşil kanıtı: `tests/test_pipeline_keep_pkg.py` (12 test) düzeltmeden
+önce 11/11 kirmiziydi (gist: `git stash` + koşu), şimdi 12/12 yeşil;
+`tests/test_pipeline_gate.py` (önceki davranışlar) değişmedi, hepsi yeşil.
+
+Kapılar: `make verify` RC=0 (2026-10-17 08:16, %99.59 kapsama), ruff temiz,
+mypy --strict temiz, `npx zeron scan .` 129/129 sağlıklı buton.
 
 ## Kalan insan adımları (ölçülmüş durum, 2026-10-16 gecesi)
 
