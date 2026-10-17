@@ -215,6 +215,10 @@ class ConversionPipeline(QObject):
         # _preserve_pkg basarisiz olursa gecici dizin silinmemeli (paketi
         # kaybetmemek, temizligi gecmeye tercih edilir).
         self._preserve_failed: bool = False
+        # Olculen bulgu (2026-10-17): RPC'den verilen out_dir parametresi
+        # pipeline'a ulasmadan yutuluyordu. Bos(nil) = cli.py:158 gelenegi:
+        # urun girisin yanina. Doluysa _preserve_pkg oraya tasir.
+        self._output_dir: Path | None = None
 
         # Converters and installer (will be created during pipeline).
         # _deb_converter may hold either the native converter or the debtap
@@ -1208,6 +1212,15 @@ class ConversionPipeline(QObject):
                 return cand
         return dest.with_name(f"{name}.{int(time.time())}")
 
+    def set_output_dir(self, directory: Path) -> None:
+        """Donusturulen paketin birakilacagi hedef dizini sec (RPC out_dir).
+
+        None birakilirsa cli.py:158 gelenegi gecerli: urun girisin yanina.
+        Cagri noktasi (handlers_pipeline.py) yolu guarded_path() ile
+        sinirladigi icin burada tekrar bir politika kontrolu yapilmaz.
+        """
+        self._output_dir = directory
+
     def _preserve_pkg(self, pkg: Path) -> None:
         """Uretilen paketi gecici dizinden girisin yanina tasi (cli.py:158).
 
@@ -1216,13 +1229,17 @@ class ConversionPipeline(QObject):
         yazilamazsa veya tasima basarisiz olursa paket yerinde birakilir
         ve kullaniciya soylenir — sessiz veri kaybi olmaz.
         """
-        original = self._result.original_file
-        if original is None:
-            return
-        try:
-            dest_dir = original.parent
-        except OSError:
-            return
+        # RPC out_dir'i once gelir; verilmediyse girisin yanina konur.
+        if self._output_dir is not None:
+            dest_dir = self._output_dir
+        else:
+            original = self._result.original_file
+            if original is None:
+                return
+            try:
+                dest_dir = original.parent
+            except OSError:
+                return
         try:
             dest_dir.mkdir(exist_ok=True)
             unique = self._unique_path(dest_dir / pkg.name)

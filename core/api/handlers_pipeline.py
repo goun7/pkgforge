@@ -30,6 +30,15 @@ def handle_pipeline_start(params: dict[str, Any]) -> dict[str, Any]:
     if ir.ambiguous and not forced:
         raise ValueError(
             "Ambiguous file type; pass mode='source_tarball' or mode='binary_tarball'")
+    # Olculen bug (2026-10-17): 'install' ve 'out_dir' parametreleri sessizce
+    # yutuluyordu — pipeline.start her zaman kurulum adimina girip Polkit
+    # istiyordu; urun ise yalnizca girdinin bulundugu dizine birakiliyordu.
+    # queue.add (handlers_queue.py::_make_pipeline) bu iki davranisi zaten
+    # dogru uyguluyordu; ayni kurallar artik tek-dosya yolunda da gecerli.
+    do_install = bool(params.get("install", False))
+    out_dir = params.get("out_dir") or None
+    if out_dir is not None:
+        out_dir = guarded_path(out_dir, field="out_dir")
     transport._ensure_qapp()
     transport._pipeline = ConversionPipeline()
     transport._pipeline.step_changed.connect(
@@ -46,6 +55,15 @@ def handle_pipeline_start(params: dict[str, Any]) -> dict[str, Any]:
             "message": result.message,
             "output_pkg": str(result.converted_pkg) if result.converted_pkg else "",
         }))
+    if out_dir is not None:
+        transport._pipeline.set_output_dir(out_dir)
+    # convert-only istegi: karar kapisini beklemek yerine kurulum bilerek
+    # atlanir (queue.add'in do_install=False dalıyla ayni davranis).
+    if not do_install:
+        transport._pipeline._skip_install_message = tr(
+            "api.pkg_label_donusturuldu_kurulum", pkg_label=path.name)
+        transport._pipeline.compatibility_ready.connect(
+            lambda report: transport._pipeline.dismiss_install())
     transport._pipeline.stage(path, forced)
     # run on a worker thread so stdin keeps being read
     threading.Thread(target=transport._pipeline.run_staged, daemon=True).start()
