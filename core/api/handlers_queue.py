@@ -10,7 +10,7 @@ from typing import Any
 
 from core.api import transport
 from core.pathguard import exists_safe, guarded_path, guarded_paths
-from i18n import load_settings, save_settings, tr
+from i18n import load_setting, load_settings, save_settings, tr
 
 # ── Faz 2 / B6: batch conversion queue ──────────────────────────
 
@@ -133,6 +133,18 @@ def _make_pipeline(path: Path, item_id: str, do_install: bool = False) -> Any:
 
     transport._ensure_qapp()
     p = ConversionPipeline()
+
+    # Olculen bulgu (2026-10-17): Settings "urun dizini" (output_dir) ayari
+    # tek-dosya yolunda (handle_pipeline_start) duzeltilirsa da toplu kuyruk
+    # hala okumuyordu — ayni ayar iki yerde de gecerli olmali. Bos/ayarsiz =
+    # cli.py:158 gelenegi (urun girisin yanina).
+    ayarli_dizin = str(load_setting("output_dir", "") or "").strip()
+    if ayarli_dizin:
+        try:
+            p.set_output_dir(guarded_path(ayarli_dizin, field="output_dir"))
+        except Exception as exc:  # noqa: BLE001 - ayar bozuksa kuyruk durmaz
+            logging.getLogger(__name__).warning(
+                tr("api.queue_output_dir_gecersiz", exc=exc))
 
     # F4.3: slots run DIRECTLY on the emitting thread. Batch dispatcher
     # threads have no Qt event loop; queued delivery would never fire the

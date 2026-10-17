@@ -1084,6 +1084,7 @@ STRINGS: dict[str, str] = {
     "api.gecersiz_paket_adi_name": "Invalid package name: {name}",
     "api.queue_kayit_bulunamadi_id": "Queue item not found: {item_id}",
     "api.queue_kalicilik_yazilamadi": "Could not persist queue item (id={item_id}): {exc}",
+    "api.queue_output_dir_gecersiz": "Saved output directory setting is invalid, using default location: {exc}",
     "api.gecersiz_plugin_adi_name": "Invalid plugin name: {name}",
     "api.plugin_bulunamadi_name": "Plugin not found: {name}",
     "api.eski_paket_bulunamadi_path": "Old package not found: {path}",

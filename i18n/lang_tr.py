@@ -1084,6 +1084,7 @@ STRINGS: dict[str, str] = {
     "api.gecersiz_paket_adi_name": "Geçersiz paket adı: {name}",
     "api.queue_kayit_bulunamadi_id": "Kuyruk kaydı bulunamadı: {item_id}",
     "api.queue_kalicilik_yazilamadi": "Kuyruk kalıcılığı yazılamadı (id={item_id}): {exc}",
+    "api.queue_output_dir_gecersiz": "Kayıtlı çıktı dizini ayarı geçersiz, varsayılan konum kullanılıyor: {exc}",
     "api.gecersiz_plugin_adi_name": "Geçersiz eklenti adı: {name}",
     "api.plugin_bulunamadi_name": "Eklenti bulunamadı: {name}",
     "api.eski_paket_bulunamadi_path": "Eski paket bulunamadı: {path}",

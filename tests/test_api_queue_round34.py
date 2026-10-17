@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sys
 import time
+from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
@@ -335,12 +336,16 @@ def test_make_pipeline_connections(temiz_kuyruk, monkeypatch):
             self.finished = SahteSignal()
             self.onaylandi = []
             self._gecildi = False
+            self.output_dir = None
 
         def approve_install(self):
             self.onaylandi.append(1)
 
         def dismiss_install(self, msg=""):
             self._gecildi = True
+
+        def set_output_dir(self, dizin):
+            self.output_dir = dizin
 
     monkeypatch.setitem(sys.modules, "core.pipeline",
                         NS(ConversionPipeline=SahteBoru))
@@ -374,6 +379,82 @@ def test_make_pipeline_connections(temiz_kuyruk, monkeypatch):
     # varsayilan yol kapida gecilir
     p.dismiss_install()
     assert p._gecildi is True
+
+
+def test_make_pipeline_settings_output_dir_kullanir(temiz_kuyruk, monkeypatch):
+    """Kuyruk yolu da kayitli output_dir ayarini okumali (tek-dosyayla ayni).
+
+    Olculen bulgu (2026-10-17): handle_pipeline_start duzeltilince de kuyruk
+    (_make_pipeline) ayari okumuyordu — ayni kullanici ayari iki yerde de
+    gecerli olmali.
+    """
+    from PyQt6.QtCore import QCoreApplication
+
+    _uygulama = QCoreApplication.instance() or QCoreApplication([])
+
+    class SahteBoru2:
+        def __init__(self):
+            self.step_changed = SahteSignal()
+            self.progress = SahteSignal()
+            self.log_message = SahteSignal()
+            self.compatibility_ready = SahteSignal()
+            self.finished = SahteSignal()
+            self.output_dir = None
+
+        def set_output_dir(self, dizin):
+            self.output_dir = dizin
+
+        def dismiss_install(self, msg=""):
+            pass
+
+    monkeypatch.setitem(sys.modules, "core.pipeline",
+                        NS(ConversionPipeline=SahteBoru2))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: None)
+    hedef = tmp_path_at(temiz_kuyruk)
+    # handlers_queue load_setting'i modulden baglamli alir, o yuzden patch
+    # i18n modulunde degil handlers_queue'in kendi referansinda yapilir.
+    monkeypatch.setattr(AS.handlers_queue, "load_setting",
+                        lambda anahtar, varsayilan=None: (
+                            str(hedef) if anahtar == "output_dir" else varsayilan))
+    p = AS._make_pipeline("/x/p.deb", "qS1")
+    assert p.output_dir == hedef, (
+        "kayitli output_dir ayari kuyruk pipeline'ina ulasmadi")
+
+
+def test_make_pipeline_settings_output_dir_bos_none_kalir(temiz_kuyruk, monkeypatch):
+    """Ayar bossa output_dir None kalmali (cli.py:158 gelenegi)."""
+    from PyQt6.QtCore import QCoreApplication
+
+    _uygulama = QCoreApplication.instance() or QCoreApplication([])
+
+    class SahteBoru3:
+        def __init__(self):
+            self.step_changed = SahteSignal()
+            self.progress = SahteSignal()
+            self.log_message = SahteSignal()
+            self.compatibility_ready = SahteSignal()
+            self.finished = SahteSignal()
+            self.output_dir = None
+
+        def set_output_dir(self, dizin):
+            self.output_dir = dizin
+
+        def dismiss_install(self, msg=""):
+            pass
+
+    monkeypatch.setitem(sys.modules, "core.pipeline",
+                        NS(ConversionPipeline=SahteBoru3))
+    monkeypatch.setattr(AS.transport, "_event", lambda m, p: None)
+    monkeypatch.setattr(AS.handlers_queue, "load_setting",
+                        lambda anahtar, varsayilan=None: varsayilan)
+    p = AS._make_pipeline("/x/p.deb", "qS2")
+    assert p.output_dir is None
+
+
+def tmp_path_at(_fixture):
+    """Test icin gecerli bir hedef dizin (guarded_path'ten gecer)."""
+    import tempfile
+    return Path(tempfile.mkdtemp(prefix="pf_queue_out_"))
 
 
 def test_queue_dispatch_loop(temiz_kuyruk, monkeypatch):
