@@ -134,6 +134,58 @@ def test_install_true_skip_mesaji_birakmaz(monkeypatch, tmp_path, senkron):
     assert boru.skip_mesaj == ""
 
 
+def test_settings_output_dir_out_dir_verilmezse_kullanilir(monkeypatch, tmp_path, senkron):
+    """out_dir parametresi yoksa kayitli 'output_dir' ayari kullanilir.
+
+    Olculen bulgu (2026-10-17): Settings sayfasindaki "urun dizini" alani
+    tamamen olu idi — kaydediliyor ama donusum yolu hic okumuyordu; paket
+    her zaman girdinin yanina birakiliyordu.
+    """
+    import i18n
+
+    boru = _sahte_kur(monkeypatch, tmp_path)
+    deb = tmp_path / "x.deb"
+    deb.write_bytes(b"D")
+    hedef = tmp_path / "ayar_hedefi"
+    monkeypatch.setattr(i18n, "load_setting",
+                        lambda anahtar, varsayilan=None: (
+                            str(hedef) if anahtar == "output_dir" else varsayilan))
+    AS.handle_pipeline_start({"path": str(deb), "install": False})
+    assert boru.output_dir == hedef, (
+        "kayitli output_dir ayari pipeline'a ulasmadi — Settings'teki alan "
+        "hala kullanilmiyor demektir.")
+
+
+def test_settings_output_dir_bossa_varsayilan_gecerli(monkeypatch, tmp_path, senkron):
+    """Ayar bossa out_dir None kalmali (cli.py:158: urun girisin yanina)."""
+    import i18n
+
+    boru = _sahte_kur(monkeypatch, tmp_path)
+    deb = tmp_path / "x.deb"
+    deb.write_bytes(b"D")
+    monkeypatch.setattr(i18n, "load_setting",
+                        lambda anahtar, varsayilan=None: varsayilan)
+    AS.handle_pipeline_start({"path": str(deb), "install": False})
+    assert boru.output_dir is None
+
+
+def test_explicit_out_dir_settings_ezilir(monkeypatch, tmp_path, senkron):
+    """Explicit out_dir parametresi kayitli ayarin onunde gelir."""
+    import i18n
+
+    boru = _sahte_kur(monkeypatch, tmp_path)
+    deb = tmp_path / "x.deb"
+    deb.write_bytes(b"D")
+    ayar_hedef = tmp_path / "ayar_hedefi"
+    param_hedef = tmp_path / "param_hedefi"
+    monkeypatch.setattr(i18n, "load_setting",
+                        lambda anahtar, varsayilan=None: (
+                            str(ayar_hedef) if anahtar == "output_dir" else varsayilan))
+    AS.handle_pipeline_start(
+        {"path": str(deb), "out_dir": str(param_hedef), "install": False})
+    assert boru.output_dir == param_hedef
+
+
 # --- canli surec testleri (gercek sidecar + gercek .deb) ---------------------
 
 def _sidecar_baslat():

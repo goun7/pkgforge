@@ -39,6 +39,19 @@ def handle_pipeline_start(params: dict[str, Any]) -> dict[str, Any]:
     out_dir = params.get("out_dir") or None
     if out_dir is not None:
         out_dir = guarded_path(out_dir, field="out_dir")
+    else:
+        # Olculen bulgu (2026-10-17): arayuzun Settings sayfasindaki
+        # "urun dizini" alani (settings output_dir) tamamen olu idi —
+        # kaydediliyor ama donusum yolu hic okumuyordu. Explicit out_dir
+        # parametresi once gelir; verilmediyse kayitli ayar kullanilir.
+        # Bos/ayarsiz = cli.py:158 gelenegi (urun girisin yanina).
+        # guarded_path() ayari da icerir: /usr gibi bir hedef kaydedilemez,
+        # ki dogrudur: yerel paket uretimi kullanici alanlarina yapilmali.
+        from i18n import load_setting
+
+        ayarli = str(load_setting("output_dir", "") or "").strip()
+        if ayarli:
+            out_dir = guarded_path(ayarli, field="out_dir")
     transport._ensure_qapp()
     transport._pipeline = ConversionPipeline()
     transport._pipeline.step_changed.connect(
