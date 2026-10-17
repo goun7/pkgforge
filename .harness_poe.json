@@ -1,13 +1,13 @@
 {
   "ok": true,
   "returnCode": 0,
-  "outputHash": "4e808bb852ddad03ecc30792934828221772edb7aecea9bcef83864db3cbbf8d",
+  "outputHash": "9011e093e0523daf8b59f1849ba6e68b560188bc557620ce71bd8f8c564e9a4c",
   "outputTail": "100%\nui/tools_dialog.py                    351      0   100%\nui/url_dialog.py                       54      0   100%\n-----------------------------------------------------------------\nTOTAL                               13296     59    99%\nRequired test coverage of 99% reached. Total coverage: 99.56%",
   "command": ".venv/bin/python -m pytest tests/ -q --cov=core --cov=ui --cov=i18n --cov-report=term --cov-fail-under=99",
-  "timestamp": "2026-10-17T13:43:40.551Z",
-  "diffHash": "5eb8e6a2be84fe4df111767c4ec249587bcff0c5164b76d2878b0d5722ffe400",
-  "poeTag": "[PoE rc=0 out=4e808bb852ddad03 diff=5eb8e6a2be84fe4d time=2026-10-17T13:43:40.551Z]",
-  "parentSealHash": "32890a77db04cf2aac42b1a02c42f96228e50720801c60b90d2fd8df79ad46e6",
-  "commitAtSealTime": "e42b8144a59c0ec6ce402eac8936f0995515616c",
-  "sealHash": "fcb3233d3e5aa79e6d8a47863a8c7010eff722d1f3efcbaebcf2528f90eee76e"
+  "timestamp": "2026-10-17T13:59:50.643Z",
+  "diffHash": "143a7130539b19919f51f4bcde78b512d9d7d405e59e3e58a060a94c3538ab00",
+  "poeTag": "[PoE rc=0 out=9011e093e0523daf diff=143a7130539b1991 time=2026-10-17T13:59:50.643Z]",
+  "parentSealHash": "fcb3233d3e5aa79e6d8a47863a8c7010eff722d1f3efcbaebcf2528f90eee76e",
+  "commitAtSealTime": "722e7b6b8d57dae2129dabd8a75867fb71539e42",
+  "sealHash": "0a7e8791137aa56eb1fd81d0381b02881ce1dbf05d842b424a2649e5b6f59761"
 }
