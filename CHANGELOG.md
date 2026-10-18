@@ -27,6 +27,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Kanıt: `tests/test_build_system_unified.py` (24 test) — ürettilen
   PKGBUILD gerçek `makepkg` ile derlenip paket üretmektedir
   (namcap 0 hata). Tamirim öncesi kırmızı: 7 test fail.
+- **HTTP panosunun form denetimlerine erişilebilir ad eklendi**
+  (`core/http_assets/dashboard.html`): `zeron audit core` 2 adet P0
+  (WCAG 4.1.2 ACCESSIBLE_NAME) veriyordu — `input#tok` ve `select#mth`
+  adsızdı. Artık `<label>` + `aria-label` taşımaktalar; regression testi
+  `tests/test_http_assets.py`'de.
 
 ## [2.2.2] - 2026-10-18
 

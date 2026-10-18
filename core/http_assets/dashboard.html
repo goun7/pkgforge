@@ -16,8 +16,10 @@ pre{white-space:pre-wrap;word-break:break-word}
 </head>
 <body>
 <div class="side">PkgForge Panosu
-<input id="tok" placeholder="Token (Bearer)" type="password" style="margin-top:10px">
-<select id="mth" size="20" style="margin-top:10px;height:auto"></select>
+<label for="tok">Token (Bearer)</label>
+<input id="tok" placeholder="Token (Bearer)" type="password" style="margin-top:10px" aria-label="Token (Bearer)">
+<label for="mth">RPC yöntemi</label>
+<select id="mth" size="20" style="margin-top:10px;height:auto" aria-label="RPC yöntemi"></select>
 </div>
 <div class="main">
 <textarea id="prm" rows="6" placeholder='{ "params": {} }'>{}</textarea>

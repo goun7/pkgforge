@@ -32,6 +32,20 @@ def test_dashboard_html_has_csp_and_offline():
     assert "cdn" not in html.lower()
 
 
+def test_dashboard_html_form_denetimlerinde_erisilebilir_ad_var():
+    """WCAG 4.1.2: her input/select icin erisilebilir ad (label/aria-label).
+
+    Olculdu 2026-10-18: zeron audit core 2 adet P0 veriyordu (input#tok ve
+    select#mth icin ACCESSIBLE_NAME). Panonun sag panelinde gormeyi engelleyen
+    arayuzden ekran okuyucuya kadar her yerde bu ogeler Adsizdi.
+    """
+    import re
+
+    html = http_assets.dashboard_html().decode("utf-8")
+    for tag in re.findall(r"<(?:input|select)\b[^>]*>", html):
+        assert "aria-label" in tag, f"erisilebilir adi yok: {tag}"
+
+
 def test_docs_html_uses_vendored_swagger():
     html = http_assets.docs_html().decode("utf-8")
     assert "Content-Security-Policy" in html
