@@ -297,7 +297,7 @@ describe("Browse page", () => {
       ok: true,
       result: {
         name: "firefox-bin",
-        pkg_path: "/home/gokun/out/firefox-bin-130.0-1-x86_64.pkg.tar.zst",
+        pkg_path: "/out/firefox-bin-130.0-1-x86_64.pkg.tar.zst",
         installed: true,
       },
     });

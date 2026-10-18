@@ -174,7 +174,7 @@ def test_polkit_tamam(monkeypatch):
 @pytest.mark.parametrize("helper_path,from_source", [
     ("/usr/share/pkgforge/scripts/pkgforge-privileged.sh", False),
     ("/usr/local/share/pkgforge/scripts/pkgforge-privileged.sh", True),
-    ("/home/gokun/projects/pkgforge/scripts/pkgforge-privileged.sh", True),
+    ("/home/dev/pkgforge/scripts/pkgforge-privileged.sh", True),
     ("/usr/share/pkgforge-other/x.sh", True),
 ])
 def test_polkit_running_from_source(monkeypatch, helper_path, from_source):

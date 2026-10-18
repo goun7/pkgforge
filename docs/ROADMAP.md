@@ -110,4 +110,4 @@ Her madde kendi *spec → plan → uygulama* döngüsünden geçecek.
 - Logo konsepti: **#1 Convergence** (iki paket → kesişimde Arch paketi)
 - Renk: **Mix 1 — FINAL** (Arch Blue #1793d1 × Ember #f97316, kesişim mavi→turuncu gradyan)
 - Final assetler: `assets/logo/` (SVG master, PNG 16–1024px, ICO çoklu-boyut, macOS iconset)
-- Mockup'lar: `docs/design/mockups/`, logo turları: `docs/design/logos/`
+- Mockup'lar ve logo turları: geliştirme sırasında üretilen ara çıktılardır; final assetler `assets/logo/` altındadır.

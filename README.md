@@ -314,20 +314,18 @@ i18n anahtar sayıları, `cargo test` ve CI job koşusu sayısı.
   verdi. Başsız görsel tur: 12/12 sayfa boş render etmiyor.
   Lint/tip/güvenlik araç sürümleri `requirements-lint.txt`'te sabittir, böylece
   `make verify` ile CI aynı sürümleri koşar.
-- **Doğrulanmamış olan:** Rust→JS *özel* olayların webview dinleyucusuna
-  ulaştığı kanıtsızdır; sidecar'ın `event/*` itmelerinin JS'e ulaştığını da
-  **kanıtlamadık**. Bu yüzden "masaüstünde canlı güncellemeler çalışıyor"
-  cümlesi doğrulanmış bir önerme değildir
-  (`RELEASE_READINESS.md` "tek-örnek" bölümü, `docs/DEAD_CODE_AUDIT.md`
-  → "Bilinmeyen").
+- **Doğrulanan (2026-10-17):** Rust→JS *özel* olayların webview dinleyucusine
+  ulaştığı uçtan uca kanıtlandı — canlı webview ölçümünde 89 Rust EMIT, 96
+  webview olay satırı (log 62, progress 14, step 11, finished 1). Kök neden bir
+  test-rig kusuruydu (withGlobalTauri + core:event ACL), ürün hatası değildi.
+  Regression testi `tests/test_desktop_acl_webview.py` ile kilitlendi.
 
 > **What the numbers do not prove.** High coverage is necessary but not
 > sufficient: this release still shipped a launcher that could not open,
 > because the failure was in the *install/build* layer that unit tests do
 > not exercise. Verified install + real launch is the only trustworthy
 > end-to-end gate — see `RELEASE_READINESS.md` (kök dizindeki güncel, ölçülmüş
-> belge; `docs/RELEASE_READINESS.md` yalnızca v1.1.0 döneminin tarihsel
-> anlık görüntüsüdür).
+> belge).
 
 ---
 
@@ -342,8 +340,8 @@ PkgForge ücretsiz ve açık kaynaklıdır ve öyle kalır — dönüştürücü
 arayüzü ve güvenlik taraması dahil her özellik GPL-3.0 altında, paywall'suz.
 Size zaman kazandırıyorsa sponsorluk projenin aktif bakımını destekler.
 
-- **GitHub Sponsors:** `github.com/sponsors/goun7` (Türkiye'de 20/B istisna hesabı veya şahıs şirketi kurulana dek kapalı)
-- **Polar.sh:** `polar.sh/goun7` (aynı nedenle kapalı)
+- **GitHub Sponsors:** `github.com/sponsors/goun7` (henüz açılmadı)
+- **Polar.sh:** `polar.sh/goun7` (henüz açılmadı)
 
 Kripto ödeme bilinçli olarak kabul edilmez. Gelir modeli için
 `acik-kaynak-gelir-modeli.md`'ye bakın.
