@@ -6,5 +6,5 @@
 # bir mukerrer `# type: ignore` satirini [syntax] saydi; yani kapi yerelde yesil,
 # CI'da kirmiziydi. Ayni sapma ruff/bandit icin de gecerli olabilir.
 mypy==2.3.1
-ruff==0.16.6
+ruff==0.17.1
 bandit==1.9.4
